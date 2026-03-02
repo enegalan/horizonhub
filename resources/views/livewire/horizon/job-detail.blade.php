@@ -1,0 +1,71 @@
+<div>
+    <p class="mb-3 text-xs text-muted-foreground">
+        <a href="{{ route('horizon.index') }}" wire:navigate class="link">Jobs</a>
+        @if($job->service)
+            / <a href="{{ route('horizon.services.show', $job->service) }}" wire:navigate class="link">{{ $job->service->name }}</a>
+        @endif
+        / <span class="text-foreground">{{ $job->name ?? $job->job_uuid }}</span>
+    </p>
+    <div class="card space-y-4 p-4">
+        <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+            <div><dt class="text-[11px] font-medium text-muted-foreground">Command</dt><dd class="mt-0.5 font-mono text-foreground">{{ $job->name ?? $job->job_uuid }}</dd></div>
+            <div><dt class="text-[11px] font-medium text-muted-foreground">Queue</dt><dd class="mt-0.5 font-mono text-foreground">{{ $job->queue }}</dd></div>
+            <div><dt class="text-[11px] font-medium text-muted-foreground">Status</dt><dd class="mt-0.5">@if($job->status === 'failed')<span class="badge-danger">{{ $job->status }}</span>@elseif($job->status === 'processed')<span class="badge-success">{{ $job->status }}</span>@else<span class="badge-muted">{{ $job->status }}</span>@endif</dd></div>
+            <div><dt class="text-[11px] font-medium text-muted-foreground">Attempts</dt><dd class="mt-0.5 text-foreground">{{ $job->attempts ?? '–' }}</dd></div>
+            <div><dt class="text-[11px] font-medium text-muted-foreground">Runtime</dt><dd class="mt-0.5 text-foreground">{{ $job->getFormattedRuntime() ?? '–' }}</dd></div>
+            <div><dt class="text-[11px] font-medium text-muted-foreground">Queued at</dt><dd class="mt-0.5 text-foreground">{{ ($job->queued_at ?? $job->created_at)?->toIso8601String() ?? '–' }}</dd></div>
+            <div><dt class="text-[11px] font-medium text-muted-foreground">Processed at</dt><dd class="mt-0.5 text-foreground">{{ $job->processed_at?->toIso8601String() ?? '–' }}</dd></div>
+            <div><dt class="text-[11px] font-medium text-muted-foreground">Failed at</dt><dd class="mt-0.5 text-foreground">{{ $job->failed_at?->toIso8601String() ?? '–' }}</dd></div>
+        </dl>
+        @if($exception !== null && $exception !== '')
+            <div>
+                <dt class="text-[11px] font-medium text-muted-foreground mb-1">Error</dt>
+                <pre class="mt-1 max-h-60 overflow-auto rounded-md border border-red-500/30 bg-red-500/5 p-3 text-xs text-foreground whitespace-pre-wrap break-words">{!! e(html_entity_decode($exception ?? '', ENT_QUOTES | ENT_HTML401, 'UTF-8')) !!}</pre>
+            </div>
+        @endif
+        @if($job->payload)
+            <div>
+                <dt class="text-[11px] font-medium text-muted-foreground mb-1">Payload</dt>
+                <pre class="mt-1 max-h-52 overflow-auto rounded-md border border-border bg-muted/30 p-3 text-xs text-foreground">{{ json_encode($job->payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
+            </div>
+        @endif
+        @if($job->service && $job->service->base_url)
+            <div class="flex gap-2 pt-1">
+                @if($job->status === 'failed')
+                    <x-ui.button type="button" wire:click="retry" wire:loading.attr="disabled" class="h-8 min-h-8 p-2 relative" aria-label="Retry" title="Retry">
+                        <span wire:loading.remove wire:target="retry">
+                            <x-heroicon-o-arrow-path class="size-4" />
+                        </span>
+                        <span wire:loading wire:target="retry" class="inline-flex" aria-hidden="true">
+                            <svg class="size-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        </span>
+                    </x-ui.button>
+                @endif
+                <x-ui.button variant="destructive" type="button" wire:click="confirmDelete" class="h-8 min-h-8 p-2" aria-label="Delete" title="Delete">
+                    <x-heroicon-o-trash class="size-4" />
+                </x-ui.button>
+            </div>
+        @endif
+    </div>
+    @if($showDeleteModal)
+        <x-ui.confirm-modal
+            title="Delete job"
+            :message="'Are you sure you want to permanently delete this job? This cannot be undone.'"
+            variant="danger"
+            size="sm"
+            confirmText="Delete"
+            cancelText="Cancel"
+            confirmAction="delete"
+            cancelAction="cancelDelete"
+            backdropAction="cancelDelete"
+        />
+    @endif
+</div>
+
+@script
+<script>
+    window.addEventListener('horizon-hub-refresh', function () {
+        try { $wire.$refresh(); } catch (e) {}
+    });
+</script>
+@endscript

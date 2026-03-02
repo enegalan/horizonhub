@@ -1,0 +1,14 @@
+/vendor
+/node_modules
+/examples/demo-app/vendor
+/examples/demo-app/.env
+.git
+.env
+.env.*
+!.env.example
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+npm-debug.log
+.DS_Store

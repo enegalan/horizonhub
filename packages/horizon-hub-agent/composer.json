@@ -1,0 +1,27 @@
+{
+    "name": "horizonhub/agent",
+    "description": "Horizon Hub Agent - push Horizon events to Horizon Hub",
+    "type": "laravel-package",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "laravel/framework": "^10.0|^11.0|^12.0",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "illuminate/http": "^10.0|^11.0|^12.0"
+    },
+    "suggest": {
+        "laravel/horizon": "Required to capture Horizon events"
+    },
+    "autoload": {
+        "psr-4": {
+            "HorizonHub\\Agent\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "HorizonHub\\Agent\\HorizonHubAgentServiceProvider"
+            ]
+        }
+    }
+}
