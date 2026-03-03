@@ -11,13 +11,20 @@ use Livewire\WithPagination;
 class JobList extends Component {
     use WithPagination;
 
-    public ?string $serviceFilter = null;
+    protected $queryString = array(
+        'serviceFilter' => array('except' => ''),
+        'queueFilter' => array('except' => ''),
+        'statusFilter' => array('except' => ''),
+        'jobTypeFilter' => array('except' => ''),
+    );
 
-    public ?string $queueFilter = null;
+    public string $serviceFilter = '';
 
-    public ?string $statusFilter = null;
+    public string $queueFilter = '';
 
-    public ?string $jobTypeFilter = null;
+    public string $statusFilter = '';
+
+    public string $jobTypeFilter = '';
 
     public bool $showCleanModal = false;
 
@@ -101,7 +108,6 @@ class JobList extends Component {
         $this->resetPage();
         $msg = $count . ' job(s) cleaned.';
         $this->dispatch('toast', type: 'success', message: $msg);
-        $this->js('if(window.toast)window.toast.success(' . json_encode($msg) . ')');
     }
 
     public function render() {
@@ -121,7 +127,21 @@ class JobList extends Component {
             $query->where('name', 'like', '%' . $this->jobTypeFilter . '%');
         }
 
-        $jobs = $query->paginate(20);
+        $appendQuery = array();
+        if ($this->serviceFilter !== '') {
+            $appendQuery['serviceFilter'] = $this->serviceFilter;
+        }
+        if ($this->queueFilter !== '') {
+            $appendQuery['queueFilter'] = $this->queueFilter;
+        }
+        if ($this->statusFilter !== '') {
+            $appendQuery['statusFilter'] = $this->statusFilter;
+        }
+        if ($this->jobTypeFilter !== '') {
+            $appendQuery['jobTypeFilter'] = $this->jobTypeFilter;
+        }
+
+        $jobs = $query->paginate(20)->appends($appendQuery);
         $services = Service::orderBy('name')->get();
 
         return view('livewire.horizon.job-list', [
