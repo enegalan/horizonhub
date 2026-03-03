@@ -72,7 +72,22 @@
                         <p class="text-sm text-destructive">{{ $message }}</p>
                     @enderror
                 </div>
-                <x-ui.button type="submit" class="h-9 text-sm">Save</x-ui.button>
+                <x-ui.button
+                    type="submit"
+                    class="h-9 text-sm relative inline-flex items-center justify-center"
+                    wire:loading.attr="disabled"
+                    wire:target="saveAlerts"
+                >
+                    <span wire:loading.remove wire:target="saveAlerts">
+                        Save
+                    </span>
+                    <span wire:loading wire:target="saveAlerts" class="inline-flex" aria-hidden="true">
+                        <svg class="size-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </span>
+                </x-ui.button>
             </form>
             @if($alert_email_interval_minutes === '0')
                 <p class="text-xs text-muted-foreground mt-2">With 0, one email is sent per trigger (no batching).</p>
@@ -151,21 +166,21 @@
             </div>
         </div>
     </div>
-</div>
 
-@if($confirmingProviderId)
-    <x-ui.confirm-modal
-        title="Delete provider"
-        :message="'Are you sure you want to delete provider &quot;' . $confirmingProviderName . '&quot;? Alerts using it will stop notifying through it.'"
-        variant="danger"
-        size="sm"
-        confirmText="Delete"
-        cancelText="Cancel"
-        confirmAction="performDeleteProvider"
-        cancelAction="cancelDeleteProvider"
-        backdropAction="cancelDeleteProvider"
-    />
-@endif
+    @if($confirmingProviderId)
+        <x-ui.confirm-modal
+            title="Delete provider"
+            message="{{ $confirmingProviderMessage }}"
+            variant="danger"
+            size="sm"
+            confirmText="Delete"
+            cancelText="Cancel"
+            confirmAction="performDeleteProvider"
+            cancelAction="cancelDeleteProvider"
+            backdropAction="cancelDeleteProvider"
+        />
+    @endif
+</div>
 
 @script
 <script>

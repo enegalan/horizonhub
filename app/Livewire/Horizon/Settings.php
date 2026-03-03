@@ -15,6 +15,8 @@ class Settings extends Component {
 
     public ?string $confirmingProviderName = null;
 
+    public ?string $confirmingProviderMessage = null;
+
     public function mount(): void {
         $queryTab = request()->query('tab', '');
         if (in_array($queryTab, array('appearance', 'alerts', 'providers'), true)) {
@@ -35,16 +37,17 @@ class Settings extends Component {
 
     public function confirmDeleteProvider(int $id): void {
         $provider = NotificationProvider::find($id);
-        if (! $provider) {
-            return;
-        }
-        $this->confirmingProviderId = $provider->id;
-        $this->confirmingProviderName = $provider->name;
+
+        $this->confirmingProviderId = $id;
+        $this->confirmingProviderName = $provider ? $provider->name : ('Provider #' . $id);
+        $name = $this->confirmingProviderName;
+        $this->confirmingProviderMessage = 'Are you sure you want to delete provider ' . $name . '? Alerts using it will stop notifying through it.';
     }
 
     public function cancelDeleteProvider(): void {
         $this->confirmingProviderId = null;
         $this->confirmingProviderName = null;
+        $this->confirmingProviderMessage = null;
     }
 
     public function performDeleteProvider(): void {
@@ -54,6 +57,7 @@ class Settings extends Component {
         $id = $this->confirmingProviderId;
         $this->confirmingProviderId = null;
         $this->confirmingProviderName = null;
+        $this->confirmingProviderMessage = null;
 
         $this->deleteProvider($id);
     }

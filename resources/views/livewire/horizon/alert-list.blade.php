@@ -84,7 +84,7 @@
     @if($confirmingAlertId)
         <x-ui.confirm-modal
             title="Delete alert"
-            :message="'Are you sure you want to delete &quot;' . $confirmingAlertName . '&quot;? This cannot be undone.'"
+            message="Are you sure you want to delete {{ $confirmingAlertName }}? This cannot be undone."
             variant="danger"
             size="sm"
             confirmText="Delete"

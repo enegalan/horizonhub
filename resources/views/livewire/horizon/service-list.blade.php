@@ -17,7 +17,22 @@
                         @error('editBaseUrl') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
                     <div class="flex gap-2 pt-1">
-                        <x-ui.button type="submit" class="h-9 text-sm">Save</x-ui.button>
+                        <x-ui.button
+                            type="submit"
+                            class="h-9 text-sm relative inline-flex items-center justify-center"
+                            wire:loading.attr="disabled"
+                            wire:target="updateService"
+                        >
+                            <span wire:loading.remove wire:target="updateService">
+                                Save
+                            </span>
+                            <span wire:loading wire:target="updateService" class="inline-flex" aria-hidden="true">
+                                <svg class="size-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </span>
+                        </x-ui.button>
                         <x-ui.button variant="ghost" type="button" wire:click="cancelEdit" class="h-9 text-sm">Cancel</x-ui.button>
                     </div>
                 </form>
@@ -50,7 +65,22 @@
                     <x-text-input type="url" wire:model="baseUrl" placeholder="https://my-service.example.com" class="w-full" />
                     @error('baseUrl') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                 </div>
-                <x-ui.button type="submit" class="h-9 text-sm">Register</x-ui.button>
+                <x-ui.button
+                    type="submit"
+                    class="h-9 text-sm relative inline-flex items-center justify-center"
+                    wire:loading.attr="disabled"
+                    wire:target="save"
+                >
+                    <span wire:loading.remove wire:target="save">
+                        Register
+                    </span>
+                    <span wire:loading wire:target="save" class="inline-flex" aria-hidden="true">
+                        <svg class="size-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </span>
+                </x-ui.button>
             </form>
         </div>
     </div>
@@ -89,6 +119,9 @@
                                     <x-ui.button variant="ghost" type="button" wire:click="openEdit({{ $service->id }})" class="h-8 min-h-8 p-2" aria-label="Edit" title="Edit">
                                         <x-heroicon-o-pencil-square class="size-4" />
                                     </x-ui.button>
+                                    <x-ui.button variant="ghost" type="button" wire:click="confirmDeleteService({{ $service->id }})" class="h-8 min-h-8 p-2 text-destructive hover:text-destructive" aria-label="Delete" title="Delete">
+                                        <x-heroicon-o-trash class="size-4" />
+                                    </x-ui.button>
                                 </div>
                             </td>
                         </tr>
@@ -107,6 +140,20 @@
             </table>
         </div>
     </div>
+
+    @if($confirmingServiceId)
+        <x-ui.confirm-modal
+            title="Delete service"
+            message="{{ $confirmingServiceMessage }}"
+            variant="danger"
+            size="sm"
+            confirmText="Delete"
+            cancelText="Cancel"
+            confirmAction="performDeleteService"
+            cancelAction="cancelDeleteService"
+            backdropAction="cancelDeleteService"
+        />
+    @endif
 </div>
 
 @script

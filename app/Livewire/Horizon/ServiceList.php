@@ -19,6 +19,12 @@ class ServiceList extends Component {
 
     public string $editBaseUrl = '';
 
+    public ?int $confirmingServiceId = null;
+
+    public ?string $confirmingServiceName = null;
+
+    public ?string $confirmingServiceMessage = null;
+
     protected $rules = [
         'name' => 'required|string|max:255|unique:services,name',
         'baseUrl' => 'required|url',
@@ -70,6 +76,51 @@ class ServiceList extends Component {
         $this->dispatch('toast', type: 'success', message: 'Service updated.');
         $this->dispatch('service-created');
         $this->js('if(window.toast)window.toast.success(' . json_encode('Service updated.') . ')');
+    }
+
+    public function deleteService(int $serviceId): void {
+        $service = Service::find($serviceId);
+        if (! $service) {
+            return;
+        }
+
+        if ($this->editingServiceId === $serviceId) {
+            $this->cancelEdit();
+        }
+
+        $service->delete();
+
+        $this->dispatch('toast', type: 'success', message: 'Service deleted.');
+        $this->dispatch('service-created');
+        $this->js('if(window.toast)window.toast.success(' . json_encode('Service deleted.') . ')');
+    }
+
+    public function confirmDeleteService(int $serviceId): void {
+        $service = Service::find($serviceId);
+
+        $this->confirmingServiceId = $serviceId;
+        $this->confirmingServiceName = $service ? $service->name : ('Service #' . $serviceId);
+        $name = $this->confirmingServiceName;
+        $this->confirmingServiceMessage = 'Are you sure you want to delete service ' . $name . '? Jobs using it will stop reporting through it.';
+    }
+
+    public function cancelDeleteService(): void {
+        $this->confirmingServiceId = null;
+        $this->confirmingServiceName = null;
+        $this->confirmingServiceMessage = null;
+    }
+
+    public function performDeleteService(): void {
+        if ($this->confirmingServiceId === null) {
+            return;
+        }
+
+        $serviceId = $this->confirmingServiceId;
+        $this->confirmingServiceId = null;
+        $this->confirmingServiceName = null;
+        $this->confirmingServiceMessage = null;
+
+        $this->deleteService($serviceId);
     }
 
     public function render() {
