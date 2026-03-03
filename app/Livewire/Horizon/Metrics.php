@@ -4,53 +4,116 @@ namespace App\Livewire\Horizon;
 
 use App\Models\HorizonFailedJob;
 use App\Models\HorizonJob;
+use App\Models\Service;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
 class Metrics extends Component {
+    /**
+     * The number of rolling minutes to display.
+     *
+     * @var int
+     */
     public int $rollingMinutes = 60;
 
+    /**
+     * The number of hours to display.
+     *
+     * @var int
+     */
     private const HOURS_24 = 24;
 
+    /**
+     * The number of days to display.
+     *
+     * @var int
+     */
     private const DAYS_7 = 7;
 
+    /**
+     * The number of top queues to display.
+     *
+     * @var int
+     */
     private const TOP_N_QUEUES = 12;
 
+    /**
+     * The number of top services to display.
+     *
+     * @var int
+     */
     private const TOP_N_SERVICES = 10;
 
+    /**
+     * Get the listeners for the metrics component.
+     *
+     * @return array<string, string>
+     */
     public function getListeners(): array {
         return [
             'echo:horizon-hub.dashboard,HorizonEvent' => 'refreshMetrics',
         ];
     }
 
+    /**
+     * Refresh the metrics.
+     * 
+     * @internal This method is empty because the metrics are refreshed automatically when the Component is rendered.
+     *
+     * @return void
+     */
     public function refreshMetrics(): void {
         // Re-render will fetch fresh data
     }
 
+    /**
+     * Get the number of processed jobs for the last minute.
+     *
+     * @return int
+     */
     public function getJobsPastMinute(): int {
         return HorizonJob::where('status', 'processed')
             ->where('processed_at', '>=', now()->subMinute())
             ->count();
     }
 
+    /**
+     * Get the number of processed jobs for the last hour.
+     *
+     * @return int
+     */
     public function getJobsPastHour(): int {
         return HorizonJob::where('status', 'processed')
             ->where('processed_at', '>=', now()->subHour())
             ->count();
     }
 
+    /**
+     * Get the number of failed jobs for the last 7 days.
+     *
+     * @return int
+     */
     public function getFailedPastSevenDays(): int {
         return HorizonFailedJob::where('failed_at', '>=', now()->subDays(7))->count();
     }
 
+    /**
+     * Get the number of processed jobs for the last 24 hours.
+     *
+     * @return int
+     */
     public function getProcessedPast24Hours(): int {
         return HorizonJob::where('status', 'processed')
             ->where('processed_at', '>=', now()->subDay())
             ->count();
     }
 
+    /**
+     * Get the failure rate by service and queue for the last 7 days.
+     *
+     * @return array<int, array{service: string, queue: string, cnt: int}>
+     */
     public function getFailuresByServiceQueue(): array {
         $since = now()->subDays(7);
         $rows = HorizonFailedJob::with('service')
@@ -70,10 +133,18 @@ class Metrics extends Component {
         return array_slice($agg, 0, 15);
     }
 
+    /**
+     * Failure rate (percent) for the last 24 hours.
+     *
+     * @return array{rate: float}
+     */
     public function getFailureRate24h(): array {
         $since = now()->subDay();
-        $processed = HorizonJob::where('created_at', '>=', $since)->where('status', 'processed')->count();
-        $failed = HorizonFailedJob::where('failed_at', '>=', $since)->count();
+        $processed = HorizonJob::where('created_at', '>=', $since)
+            ->where('status', 'processed')
+            ->count();
+        $failed = HorizonFailedJob::where('failed_at', '>=', $since)
+            ->count();
         $total = $processed + $failed;
         $rate = $total > 0 ? round(100 * $failed / $total, 1) : 0;
         return array(
@@ -196,11 +267,7 @@ class Metrics extends Component {
 
         foreach ($buckets as $k => $v) {
             $xAxis[] = Carbon::parse($k)->format('H:i');
-            if ($v['count'] > 0) {
-                $series[] = round($v['total'] / $v['count'], 2);
-            } else {
-                $series[] = null;
-            }
+            $series[] = $v['count'] > 0 ? round($v['total'] / $v['count'], 2) : null;
         }
 
         return array('xAxis' => $xAxis, 'avgSeconds' => $series);
@@ -263,7 +330,7 @@ class Metrics extends Component {
             ->pluck('cnt', 'service_id')
             ->all();
         $allIds = array_unique(array_merge(array_keys($processedByService), array_keys($failedByService)));
-        $names = \App\Models\Service::whereIn('id', $allIds)->pluck('name', 'id')->all();
+        $names = Service::whereIn('id', $allIds)->pluck('name', 'id')->all();
         $agg = array();
         foreach ($allIds as $id) {
             $name = $names[$id] ?? (string) $id;
@@ -283,7 +350,12 @@ class Metrics extends Component {
         return array('services' => $services, 'processed' => $processed, 'failed' => $failed);
     }
 
-    public function render() {
+    /**
+     * Render the metrics component.
+     *
+     * @return \Illuminate\Contracts\View\View
+     */
+    public function render(): View {
         $jobsPastMinute = $this->getJobsPastMinute();
         $jobsPastHour = $this->getJobsPastHour();
         $failedPastSevenDays = $this->getFailedPastSevenDays();
