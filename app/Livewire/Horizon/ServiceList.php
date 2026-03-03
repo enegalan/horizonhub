@@ -42,7 +42,6 @@ class ServiceList extends Component {
         $this->newApiKey = $apiKey;
         $this->reset('name', 'baseUrl');
         $this->dispatch('service-created');
-        $this->js('if(window.toast)window.toast.success(' . json_encode('Service registered.') . ')');
     }
 
     public function openEdit(int $serviceId): void {
@@ -74,8 +73,6 @@ class ServiceList extends Component {
         ]);
         $this->cancelEdit();
         $this->dispatch('toast', type: 'success', message: 'Service updated.');
-        $this->dispatch('service-created');
-        $this->js('if(window.toast)window.toast.success(' . json_encode('Service updated.') . ')');
     }
 
     public function deleteService(int $serviceId): void {
@@ -91,8 +88,6 @@ class ServiceList extends Component {
         $service->delete();
 
         $this->dispatch('toast', type: 'success', message: 'Service deleted.');
-        $this->dispatch('service-created');
-        $this->js('if(window.toast)window.toast.success(' . json_encode('Service deleted.') . ')');
     }
 
     public function confirmDeleteService(int $serviceId): void {

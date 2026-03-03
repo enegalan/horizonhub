@@ -64,11 +64,9 @@ class ProviderForm extends Component {
         if ($this->provider) {
             $this->provider->update($data);
             $this->dispatch('toast', type: 'success', message: 'Provider updated.');
-            $this->js('if(window.toast)window.toast.success(' . json_encode('Provider updated.') . ')');
         } else {
             NotificationProvider::create($data);
             $this->dispatch('toast', type: 'success', message: 'Provider created.');
-            $this->js('if(window.toast)window.toast.success(' . json_encode('Provider created.') . ')');
         }
 
         $this->redirect(route('horizon.settings', ['tab' => 'providers']), navigate: true);

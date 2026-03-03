@@ -82,12 +82,10 @@ class AlertForm extends Component {
             $this->alert->update($data);
             $this->alert->notificationProviders()->sync($this->provider_ids);
             $this->dispatch('toast', type: 'success', message: 'Alert updated.');
-            $this->js('if(window.toast)window.toast.success(' . json_encode('Alert updated.') . ')');
         } else {
             $alert = Alert::create($data);
             $alert->notificationProviders()->sync($this->provider_ids);
             $this->dispatch('toast', type: 'success', message: 'Alert created.');
-            $this->js('if(window.toast)window.toast.success(' . json_encode('Alert created.') . ')');
         }
 
         $this->redirect(route('horizon.alerts.index'), navigate: true);

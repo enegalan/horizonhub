@@ -32,7 +32,6 @@ class Settings extends Component {
         ]);
         Setting::set('alerts.email_interval_minutes', (int) $this->alert_email_interval_minutes);
         $this->dispatch('alerts-saved');
-        $this->js('if(window.toast)window.toast.success(' . json_encode('Alerts saved.') . ')');
     }
 
     public function confirmDeleteProvider(int $id): void {
@@ -67,7 +66,6 @@ class Settings extends Component {
         if ($provider) {
             $provider->delete();
             $this->dispatch('toast', type: 'success', message: 'Provider deleted.');
-            $this->js('if(window.toast)window.toast.success(' . json_encode('Provider deleted.') . ')');
         }
     }
 

@@ -60,11 +60,9 @@ class JobDetail extends Component {
         $result = $agent->retryJob($job->service, $job->job_uuid);
         if ($result['success']) {
             $this->dispatch('job-retried');
-            $this->js('if(window.toast)window.toast.success(' . json_encode('Job retried.') . ')');
         } else {
             $msg = $result['message'] ?? 'Retry failed';
             $this->dispatch('job-action-failed', message: $msg);
-            $this->js('if(window.toast)window.toast.error(' . json_encode($msg) . ')');
         }
     }
 
@@ -77,12 +75,10 @@ class JobDetail extends Component {
         $result = $agent->deleteJob($job->service, $job->job_uuid);
         if ($result['success']) {
             $this->dispatch('toast', type: 'success', message: 'Job deleted.');
-            $this->js('if(window.toast)window.toast.success(' . json_encode('Job deleted.') . ')');
             $this->redirect(route('horizon.index'), navigate: true);
         } else {
             $msg = $result['message'] ?? 'Delete failed';
             $this->dispatch('job-action-failed', message: $msg);
-            $this->js('if(window.toast)window.toast.error(' . json_encode($msg) . ')');
         }
     }
 

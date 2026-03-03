@@ -40,7 +40,6 @@ class AlertList extends Component {
         if ($alert) {
             $alert->delete();
             $this->dispatch('toast', type: 'success', message: 'Alert deleted.');
-            $this->js('if(window.toast)window.toast.success(' . json_encode('Alert deleted.') . ')');
         }
     }
 
