@@ -150,41 +150,59 @@ class Metrics extends Component {
     /**
      * Average job runtime (seconds) per hour for the last 24 hours.
      *
+     * This implementation is database-driver agnostic and relies on the
+     * model's runtime calculation instead of raw SQL date functions.
+     *
      * @return array{xAxis: list<string>, avgSeconds: list<float|null>}
      */
     public function getAvgRuntimeOverTime(): array {
         $since = now()->subHours(self::HOURS_24);
         $bucketFormat = 'Y-m-d H:00';
-        $driver = DB::getDriverName();
-        $table = (new HorizonJob)->getTable();
+
         $buckets = array();
         for ($i = 0; $i < self::HOURS_24; $i++) {
             $key = now()->subHours(self::HOURS_24 - 1 - $i)->format($bucketFormat);
-            $buckets[$key] = null;
+            $buckets[$key] = array('total' => 0.0, 'count' => 0);
         }
-        if ($driver === 'mysql') {
-            $rows = DB::select(
-                "SELECT DATE_FORMAT(processed_at, ?) AS bucket, AVG(COALESCE(runtime_seconds, TIMESTAMPDIFF(SECOND, created_at, processed_at))) AS avg_seconds FROM {$table} WHERE processed_at >= ? AND status = 'processed' GROUP BY bucket ORDER BY bucket",
-                array('%Y-%m-%d %H:00', $since->toDateTimeString())
-            );
-        } else {
-            $rows = DB::select(
-                "SELECT strftime('%Y-%m-%d %H:00', processed_at) AS bucket, AVG(COALESCE(runtime_seconds, (julianday(processed_at) - julianday(created_at)) * 86400)) AS avg_seconds FROM {$table} WHERE processed_at >= ? AND status = 'processed' GROUP BY bucket ORDER BY bucket",
-                array($since->toDateTimeString())
-            );
-        }
-        foreach ($rows as $r) {
-            $bucket = $r->bucket;
-            if (isset($buckets[$bucket])) {
-                $buckets[$bucket] = round((float) $r->avg_seconds, 2);
+
+        $jobs = HorizonJob::where('status', 'processed')
+            ->where('processed_at', '>=', $since)
+            ->get(array('queued_at', 'created_at', 'processed_at', 'failed_at', 'runtime_seconds'));
+
+        foreach ($jobs as $job) {
+            /** @var \App\Models\HorizonJob $job */
+            if ($job->processed_at === null) {
+                continue;
             }
+
+            $bucket = $job->processed_at->copy()->setMinute(0)->setSecond(0)->format($bucketFormat);
+
+            if (! isset($buckets[$bucket])) {
+                continue;
+            }
+
+            $runtime = $job->getRuntimeSeconds();
+
+            if ($runtime === null) {
+                continue;
+            }
+
+            $buckets[$bucket]['total'] += $runtime;
+            $buckets[$bucket]['count']++;
         }
+
         $xAxis = array();
         $series = array();
+
         foreach ($buckets as $k => $v) {
             $xAxis[] = Carbon::parse($k)->format('H:i');
-            $series[] = $v;
+            if ($v['count'] > 0) {
+                $series[] = round($v['total'] / $v['count'], 2);
+            } else {
+                $series[] = null;
+            }
         }
+
         return array('xAxis' => $xAxis, 'avgSeconds' => $series);
     }
 
