@@ -218,3 +218,11 @@ td[data-column-id="actions"] {
 td[data-column-id="actions"] > div {
     justify-content: center;
 }
+
+.livewire-navigate-progress {
+    background-color: hsl(var(--primary));
+}
+
+.dark .livewire-navigate-progress {
+    background-color: hsl(var(--primary));
+}
