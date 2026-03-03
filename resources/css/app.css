@@ -179,18 +179,18 @@
         backdrop-filter: blur(4px);
         -webkit-backdrop-filter: blur(4px);
     }
-    .input-shadcn,
-    .select-shadcn {
+    .input-custom,
+    .select-custom {
         @apply flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50;
     }
-    .select-shadcn {
+    .select-custom {
         @apply appearance-none cursor-pointer pr-8;
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
         background-position: right 0.5rem center;
         background-repeat: no-repeat;
         background-size: 1rem;
     }
-    .dark .select-shadcn {
+    .dark .select-custom {
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     }
 }
