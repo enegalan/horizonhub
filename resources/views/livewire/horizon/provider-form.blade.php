@@ -9,7 +9,7 @@
                 </div>
                 <div class="space-y-1.5">
                     <x-input-label class="text-[11px] font-medium text-muted-foreground" for="type">Type</x-input-label>
-                    <x-ui.select id="type" wire:model.live="type" class="w-full" :options="array('slack' => 'Slack', 'email' => 'Email')" />
+                    <x-select id="type" wire:model.live="type" class="w-full" :options="array('slack' => 'Slack', 'email' => 'Email')" />
                 </div>
                 <div class="space-y-1.5" x-show="type === 'slack'" x-cloak>
                     <x-input-label class="text-[11px] font-medium text-muted-foreground" for="webhook_url">Webhook URL</x-input-label>
@@ -25,7 +25,7 @@
         </div>
 
         <div class="flex gap-2">
-            <x-ui.button
+            <x-button
                 type="submit"
                 class="h-9 text-sm relative inline-flex items-center justify-center"
                 wire:loading.attr="disabled"
@@ -40,9 +40,9 @@
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                 </span>
-            </x-ui.button>
+            </x-button>
             <a href="{{ route('horizon.settings', ['tab' => 'providers']) }}" wire:navigate>
-                <x-ui.button variant="ghost" type="button" class="h-9 text-sm">Cancel</x-ui.button>
+                <x-button variant="ghost" type="button" class="h-9 text-sm">Cancel</x-button>
             </a>
         </div>
     </form>

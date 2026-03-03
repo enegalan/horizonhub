@@ -118,7 +118,7 @@
             </table>
         </div>
         <div class="border-t border-border px-4 py-2">
-            <x-ui.pagination :paginator="$jobs" />
+            <x-pagination :paginator="$jobs" />
         </div>
     </div>
 </div>

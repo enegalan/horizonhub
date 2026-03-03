@@ -3,12 +3,12 @@
         <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
             <div class="space-y-1.5">
                 <x-input-label class="text-[11px] font-medium text-muted-foreground">Service</x-input-label>
-                <x-ui.select wire:model.live="serviceFilter" class="w-48">
+                <x-select wire:model.live="serviceFilter" class="w-48">
                     <option value="">All</option>
                     @foreach($services as $s)
                         <option value="{{ $s->id }}">{{ $s->name }}</option>
                     @endforeach
-                </x-ui.select>
+                </x-select>
             </div>
             @if($queueCount > 0)
                 <p class="text-xs text-muted-foreground">{{ $queueCount }} queue(s), {{ number_format($totalJobs) }} total jobs</p>

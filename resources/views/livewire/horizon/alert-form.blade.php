@@ -9,16 +9,16 @@
                 </div>
                 <div class="space-y-1.5">
                     <x-input-label class="text-[11px] font-medium text-muted-foreground" for="service_id">Service</x-input-label>
-                    <x-ui.select id="service_id" wire:model="service_id" class="w-full">
+                    <x-select id="service_id" wire:model="service_id" class="w-full">
                         <option value="">All services</option>
                         @foreach($services as $s)
                             <option value="{{ $s->id }}">{{ $s->name }}</option>
                         @endforeach
-                    </x-ui.select>
+                    </x-select>
                 </div>
                 <div class="space-y-1.5">
                     <x-input-label class="text-[11px] font-medium text-muted-foreground" for="rule_type">Rule type</x-input-label>
-                    <x-ui.select id="rule_type" wire:model.live="rule_type" class="w-full" :options="$ruleTypes" />
+                    <x-select id="rule_type" wire:model.live="rule_type" class="w-full" :options="$ruleTypes" />
                 </div>
                 <div class="space-y-1.5">
                     <x-input-label class="text-[11px] font-medium text-muted-foreground" for="queue">Queue (optional)</x-input-label>
@@ -70,7 +70,7 @@
                     </div>
                 </template>
                 <div class="flex items-center gap-2 pt-2">
-                    <x-ui.checkbox id="enabled" wire:model="enabled" />
+                    <x-checkbox id="enabled" wire:model="enabled" />
                     <x-input-label for="enabled" class="text-sm font-normal cursor-pointer">Alert enabled</x-input-label>
                 </div>
             </div>
@@ -86,7 +86,7 @@
                     <div class="space-y-2">
                         @foreach($providers as $provider)
                             <div class="flex items-center gap-2 rounded-md border border-border px-3 py-2 hover:bg-muted/50">
-                                <x-ui.checkbox id="provider-{{ $provider->id }}" wire:model="provider_ids" value="{{ $provider->id }}" />
+                                <x-checkbox id="provider-{{ $provider->id }}" wire:model="provider_ids" value="{{ $provider->id }}" />
                                 <span class="text-sm font-medium">{{ $provider->name }}</span>
                                 <span class="text-xs text-muted-foreground">({{ $provider->type }})</span>
                             </div>
@@ -98,7 +98,7 @@
         </div>
 
         <div class="flex gap-2">
-            <x-ui.button
+            <x-button
                 type="submit"
                 class="h-9 text-sm relative inline-flex items-center justify-center"
                 wire:loading.attr="disabled"
@@ -113,9 +113,9 @@
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                 </span>
-            </x-ui.button>
+            </x-button>
             <a href="{{ route('horizon.alerts.index') }}" wire:navigate>
-                <x-ui.button variant="ghost" type="button" class="h-9 text-sm">Cancel</x-ui.button>
+                <x-button variant="ghost" type="button" class="h-9 text-sm">Cancel</x-button>
             </a>
         </div>
     </form>

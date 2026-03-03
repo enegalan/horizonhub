@@ -32,23 +32,23 @@
         @if($job->service && $job->service->base_url)
             <div class="flex gap-2 pt-1">
                 @if($job->status === 'failed')
-                    <x-ui.button type="button" wire:click="retry" wire:loading.attr="disabled" class="h-8 min-h-8 p-2 relative" aria-label="Retry" title="Retry">
+                    <x-button type="button" wire:click="retry" wire:loading.attr="disabled" class="h-8 min-h-8 p-2 relative" aria-label="Retry" title="Retry">
                         <span wire:loading.remove wire:target="retry">
                             <x-heroicon-o-arrow-path class="size-4" />
                         </span>
                         <span wire:loading wire:target="retry" class="inline-flex" aria-hidden="true">
                             <svg class="size-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                         </span>
-                    </x-ui.button>
+                    </x-button>
                 @endif
-                <x-ui.button variant="destructive" type="button" wire:click="confirmDelete" class="h-8 min-h-8 p-2" aria-label="Delete" title="Delete">
+                <x-button variant="destructive" type="button" wire:click="confirmDelete" class="h-8 min-h-8 p-2" aria-label="Delete" title="Delete">
                     <x-heroicon-o-trash class="size-4" />
-                </x-ui.button>
+                </x-button>
             </div>
         @endif
     </div>
     @if($showDeleteModal)
-        <x-ui.confirm-modal
+        <x-confirm-modal
             title="Delete job"
             :message="'Are you sure you want to permanently delete this job? This cannot be undone.'"
             variant="danger"

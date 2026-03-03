@@ -23,3 +23,4 @@
         <span class="text-sm font-normal select-none">{{ $slot }}</span>
     @endif
 </label>
+

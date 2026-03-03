@@ -44,11 +44,11 @@
         <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
             <div class="space-y-1.5">
                 <x-input-label class="text-[11px] font-medium text-muted-foreground">Status</x-input-label>
-                <x-ui.select wire:model.live="statusFilter" class="w-36" :options="array('' => 'All', 'sent' => 'Sent', 'failed' => 'Failed')" />
+                <x-select wire:model.live="statusFilter" class="w-36" :options="array('' => 'All', 'sent' => 'Sent', 'failed' => 'Failed')" />
             </div>
             <div class="space-y-1.5">
                 <x-input-label class="text-[11px] font-medium text-muted-foreground">Per page</x-input-label>
-                <x-ui.select wire:model.live="perPage" class="w-24" :options="array(10 => '10', 20 => '20', 50 => '50')" />
+                <x-select wire:model.live="perPage" class="w-24" :options="array(10 => '10', 20 => '20', 50 => '50')" />
             </div>
         </div>
         <div class="overflow-x-auto">
@@ -112,7 +112,7 @@
                                         <x-heroicon-o-document-text class="size-4" />
                                     </button>
                                     @if($log->status === 'failed')
-                                        <x-ui.button
+                                        <x-button
                                             variant="outline"
                                             type="button"
                                             wire:click="retryLog({{ $log->id }})"
@@ -131,7 +131,7 @@
                                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                                 </svg>
                                             </span>
-                                        </x-ui.button>
+                                        </x-button>
                                     @endif
                                 </div>
                             </td>
@@ -151,13 +151,13 @@
             </table>
         </div>
         <div class="border-t border-border px-4 py-2">
-            <x-ui.pagination :paginator="$logs" />
+            <x-pagination :paginator="$logs" />
         </div>
     </div>
 
     @teleport('body')
         <div id="alert-log-modal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto px-4 hidden" role="dialog" aria-modal="true" aria-labelledby="alert-log-modal-title">
-            @include('components.ui.backdrop', array('variant' => 'default', 'extraAttrs' => 'data-alert-log-close'))
+            @include('components.backdrop', array('variant' => 'default', 'extraAttrs' => 'data-alert-log-close'))
             <div class="relative z-10 card w-full max-w-lg p-4 bg-card">
             <h2 id="alert-log-modal-title" class="text-section-title text-foreground mb-3">Delivery log</h2>
             <dl class="space-y-2 text-sm">

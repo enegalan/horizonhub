@@ -72,7 +72,7 @@
                         <p class="text-sm text-destructive">{{ $message }}</p>
                     @enderror
                 </div>
-                <x-ui.button
+                <x-button
                     type="submit"
                     class="h-9 text-sm relative inline-flex items-center justify-center"
                     wire:loading.attr="disabled"
@@ -87,7 +87,7 @@
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                     </span>
-                </x-ui.button>
+                </x-button>
             </form>
             @if($alert_email_interval_minutes === '0')
                 <p class="text-xs text-muted-foreground mt-2">With 0, one email is sent per trigger (no batching).</p>
@@ -100,7 +100,7 @@
             <div class="px-4 py-3 flex items-center justify-between">
                 <h2 class="text-section-title text-foreground">Notification providers</h2>
                 <a href="{{ route('horizon.providers.create') }}" wire:navigate>
-                    <x-ui.button type="button" class="h-9 text-sm">New provider</x-ui.button>
+                    <x-button type="button" class="h-9 text-sm">New provider</x-button>
                 </a>
             </div>
         </div>
@@ -137,13 +137,13 @@
                                 <td class="px-4 py-2.5" data-column-id="actions">
                                     <div class="flex items-center gap-2">
                                         <a href="{{ route('horizon.providers.edit', $provider) }}" wire:navigate>
-                                            <x-ui.button variant="ghost" type="button" class="h-8 min-h-8 p-2" aria-label="Edit" title="Edit">
+                                            <x-button variant="ghost" type="button" class="h-8 min-h-8 p-2" aria-label="Edit" title="Edit">
                                                 <x-heroicon-o-pencil-square class="size-4" />
-                                            </x-ui.button>
+                                            </x-button>
                                         </a>
-                                        <x-ui.button variant="ghost" type="button" wire:click="confirmDeleteProvider({{ $provider->id }})" class="h-8 min-h-8 p-2 text-destructive hover:text-destructive" aria-label="Delete" title="Delete">
+                                        <x-button variant="ghost" type="button" wire:click="confirmDeleteProvider({{ $provider->id }})" class="h-8 min-h-8 p-2 text-destructive hover:text-destructive" aria-label="Delete" title="Delete">
                                             <x-heroicon-o-trash class="size-4" />
-                                        </x-ui.button>
+                                        </x-button>
                                     </div>
                                 </td>
                             </tr>
@@ -155,7 +155,7 @@
                                         <p class="empty-state-title">No providers</p>
                                         <p class="empty-state-description">Create Slack or Email providers, then select them when creating alerts.</p>
                                         <a href="{{ route('horizon.providers.create') }}" wire:navigate>
-                                            <x-ui.button type="button" class="mt-3 h-9 text-sm">New provider</x-ui.button>
+                                            <x-button type="button" class="mt-3 h-9 text-sm">New provider</x-button>
                                         </a>
                                     </div>
                                 </td>
@@ -168,7 +168,7 @@
     </div>
 
     @if($confirmingProviderId)
-        <x-ui.confirm-modal
+        <x-confirm-modal
             title="Delete provider"
             message="{{ $confirmingProviderMessage }}"
             variant="danger"

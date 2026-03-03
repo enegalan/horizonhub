@@ -3,12 +3,12 @@
         <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
             <div class="space-y-1.5">
                 <x-input-label class="text-[11px] font-medium text-muted-foreground">Service</x-input-label>
-                <x-ui.select wire:model.live="serviceFilter" class="w-44">
+                <x-select wire:model.live="serviceFilter" class="w-44">
                     <option value="">All</option>
                     @foreach($services as $s)
                         <option value="{{ $s->id }}">{{ $s->name }} ({{ $s->status }})</option>
                     @endforeach
-                </x-ui.select>
+                </x-select>
             </div>
             <div class="space-y-1.5">
                 <x-input-label class="text-[11px] font-medium text-muted-foreground">Queue</x-input-label>
@@ -16,13 +16,13 @@
             </div>
             <div class="space-y-1.5">
                 <x-input-label class="text-[11px] font-medium text-muted-foreground">Status</x-input-label>
-                <x-ui.select wire:model.live="statusFilter" class="w-32" :options="array('' => 'All', 'processed' => 'Processed', 'failed' => 'Failed', 'processing' => 'Processing')" />
+                <x-select wire:model.live="statusFilter" class="w-32" :options="array('' => 'All', 'processed' => 'Processed', 'failed' => 'Failed', 'processing' => 'Processing')" />
             </div>
             <div class="space-y-1.5">
                 <x-input-label class="text-[11px] font-medium text-muted-foreground">Job type</x-input-label>
                 <x-text-input type="text" wire:model.live.debounce.300ms="jobTypeFilter" placeholder="Class" class="w-44" />
             </div>
-            <x-ui.button type="button" variant="outline" wire:click="openCleanModal" class="h-9 text-sm ml-auto">Clean jobs</x-ui.button>
+            <x-button type="button" variant="outline" wire:click="openCleanModal" class="h-9 text-sm ml-auto">Clean jobs</x-button>
         </div>
         <div class="overflow-x-auto">
             <table class="min-w-full" data-resizable-table="horizon-job-list" data-column-ids="service,queue,job,status,attempts,queued_at,processed,failed_at,runtime,actions">
@@ -91,13 +91,13 @@
             </table>
         </div>
         <div class="border-t border-border px-4 py-2">
-            <x-ui.pagination :paginator="$jobs" />
+            <x-pagination :paginator="$jobs" />
         </div>
     </div>
 
     @if($showCleanModal)
         @teleport('body')
-            <x-ui.confirm-modal
+            <x-confirm-modal
                 :title="$cleanStep === 1 ? 'Clean jobs' : 'Confirm'"
                 :message="$cleanStep === 1 ? null : 'Are you sure you want to permanently delete ' . $this->cleanCount . ' job(s)? This cannot be undone.'"
                 :variant="$cleanStep === 1 ? 'warning' : 'danger'"
@@ -113,16 +113,16 @@
                     <div class="space-y-3">
                         <div class="space-y-1.5">
                             <x-input-label class="text-[11px] font-medium text-muted-foreground">Service</x-input-label>
-                            <x-ui.select wire:model.live="cleanServiceId" class="w-full">
+                            <x-select wire:model.live="cleanServiceId" class="w-full">
                                 <option value="">All</option>
                                 @foreach($services as $s)
                                     <option value="{{ $s->id }}">{{ $s->name }}</option>
                                 @endforeach
-                            </x-ui.select>
+                            </x-select>
                         </div>
                         <div class="space-y-1.5">
                             <x-input-label class="text-[11px] font-medium text-muted-foreground">Status</x-input-label>
-                            <x-ui.select wire:model.live="cleanStatus" class="w-full" :options="array('' => 'All', 'processed' => 'Processed', 'failed' => 'Failed', 'processing' => 'Processing')" />
+                            <x-select wire:model.live="cleanStatus" class="w-full" :options="array('' => 'All', 'processed' => 'Processed', 'failed' => 'Failed', 'processing' => 'Processing')" />
                         </div>
                         <div class="space-y-1.5">
                             <x-input-label class="text-[11px] font-medium text-muted-foreground">Job type</x-input-label>
@@ -131,7 +131,7 @@
                         <p class="text-sm text-muted-foreground">{{ $this->cleanCount }} job(s) match.</p>
                     </div>
                 @endif
-            </x-ui.confirm-modal>
+            </x-confirm-modal>
         @endteleport
     @endif
 </div>

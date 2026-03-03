@@ -34,7 +34,7 @@ $dialogTitle = $title;
         'aria-modal' => 'true',
     )) }}
 >
-    @include('components.ui.backdrop', array('variant' => $backdropVariant, 'wireClick' => $backdropAction))
+    @include('components.backdrop', array('variant' => $backdropVariant, 'wireClick' => $backdropAction))
 
     <div class="relative z-10 flex min-h-full items-center justify-center py-4">
         <div class="card w-full {{ $sizeClass }} p-4 bg-card">
@@ -57,7 +57,7 @@ $dialogTitle = $title;
                 {{ $footer }}
             @else
                 @if($confirmAction)
-                    <x-ui.button
+                    <x-button
                         type="button"
                         variant="{{ $primaryVariant }}"
                         wire:click="{{ $confirmAction }}"
@@ -74,18 +74,18 @@ $dialogTitle = $title;
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
                         </span>
-                    </x-ui.button>
+                    </x-button>
                 @endif
 
                 @if($cancelAction)
-                    <x-ui.button
+                    <x-button
                         type="button"
                         variant="ghost"
                         wire:click="{{ $cancelAction }}"
                         class="h-9 text-sm"
                     >
                         {{ $cancelText }}
-                    </x-ui.button>
+                    </x-button>
                 @endif
             @endisset
         </div>

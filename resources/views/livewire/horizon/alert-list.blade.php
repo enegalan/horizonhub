@@ -3,7 +3,7 @@
         <div class="px-4 py-3 flex items-center justify-between">
             <h2 class="text-section-title text-foreground">Alert rules</h2>
             <a href="{{ route('horizon.alerts.create') }}" wire:navigate>
-                <x-ui.button type="button" class="h-9 text-sm">New alert</x-ui.button>
+                <x-button type="button" class="h-9 text-sm">New alert</x-button>
             </a>
         </div>
     </div>
@@ -52,13 +52,13 @@
                             <td class="px-4 py-2.5" data-column-id="actions">
                                 <div class="flex items-center gap-2">
                                     <a href="{{ route('horizon.alerts.edit', $alert) }}" wire:navigate>
-                                        <x-ui.button variant="ghost" type="button" class="h-8 min-h-8 p-2" aria-label="Edit" title="Edit">
+                                        <x-button variant="ghost" type="button" class="h-8 min-h-8 p-2" aria-label="Edit" title="Edit">
                                             <x-heroicon-o-pencil-square class="size-4" />
-                                        </x-ui.button>
+                                        </x-button>
                                     </a>
-                                    <x-ui.button variant="ghost" type="button" wire:click="confirmDeleteAlert({{ $alert->id }})" class="h-8 min-h-8 p-2 text-destructive hover:text-destructive" aria-label="Delete" title="Delete">
+                                    <x-button variant="ghost" type="button" wire:click="confirmDeleteAlert({{ $alert->id }})" class="h-8 min-h-8 p-2 text-destructive hover:text-destructive" aria-label="Delete" title="Delete">
                                         <x-heroicon-o-trash class="size-4" />
-                                    </x-ui.button>
+                                    </x-button>
                                 </div>
                             </td>
                         </tr>
@@ -70,7 +70,7 @@
                                     <p class="empty-state-title">No alerts</p>
                                     <p class="empty-state-description">Create an alert rule to get notified when jobs fail, queues block, or workers go offline.</p>
                                     <a href="{{ route('horizon.alerts.create') }}" wire:navigate>
-                                        <x-ui.button type="button" class="mt-3 h-9 text-sm">New alert</x-ui.button>
+                                        <x-button type="button" class="mt-3 h-9 text-sm">New alert</x-button>
                                     </a>
                                 </div>
                             </td>
@@ -82,7 +82,7 @@
     </div>
 
     @if($confirmingAlertId)
-        <x-ui.confirm-modal
+        <x-confirm-modal
             title="Delete alert"
             message="Are you sure you want to delete {{ $confirmingAlertName }}? This cannot be undone."
             variant="danger"

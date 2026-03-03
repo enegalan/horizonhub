@@ -2,7 +2,7 @@
     @if($editingServiceId)
         @teleport('body')
             <div class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto px-4">
-                @include('components.ui.backdrop', array('variant' => 'default', 'wireClick' => 'cancelEdit'))
+                @include('components.backdrop', array('variant' => 'default', 'wireClick' => 'cancelEdit'))
                 <div class="relative z-10 card w-full max-w-md p-4 bg-card">
                 <h2 class="text-section-title text-foreground mb-3">Edit service</h2>
                 <form wire:submit="updateService" class="space-y-3">
@@ -17,7 +17,7 @@
                         @error('editBaseUrl') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
                     <div class="flex gap-2 pt-1">
-                        <x-ui.button
+                        <x-button
                             type="submit"
                             class="h-9 text-sm relative inline-flex items-center justify-center"
                             wire:loading.attr="disabled"
@@ -32,8 +32,8 @@
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
                             </span>
-                        </x-ui.button>
-                        <x-ui.button variant="ghost" type="button" wire:click="cancelEdit" class="h-9 text-sm">Cancel</x-ui.button>
+                        </x-button>
+                        <x-button variant="ghost" type="button" wire:click="cancelEdit" class="h-9 text-sm">Cancel</x-button>
                     </div>
                 </form>
             </div>
@@ -46,7 +46,7 @@
             <div class="px-4 py-3">
                 <p class="text-xs font-medium text-amber-800 dark:text-amber-200">New service API key — copy now, it won't be shown again.</p>
                 <code class="mt-2 block rounded-md border border-border bg-muted/50 px-3 py-2 font-mono text-xs break-all text-foreground">{{ $newApiKey }}</code>
-                <x-ui.button variant="ghost" type="button" wire:click="$set('newApiKey', null)" class="mt-2 h-8 text-xs">Dismiss</x-ui.button>
+                <x-button variant="ghost" type="button" wire:click="$set('newApiKey', null)" class="mt-2 h-8 text-xs">Dismiss</x-button>
             </div>
         </div>
     @endif
@@ -65,7 +65,7 @@
                     <x-text-input type="url" wire:model="baseUrl" placeholder="https://my-service.example.com" class="w-full" />
                     @error('baseUrl') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                 </div>
-                <x-ui.button
+                <x-button
                     type="submit"
                     class="h-9 text-sm relative inline-flex items-center justify-center"
                     wire:loading.attr="disabled"
@@ -80,7 +80,7 @@
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                     </span>
-                </x-ui.button>
+                </x-button>
             </form>
         </div>
     </div>
@@ -116,12 +116,12 @@
                             <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="last_seen">{{ $service->last_seen_at?->diffForHumans() ?? '–' }}</td>
                             <td class="px-4 py-2.5" data-column-id="actions">
                                 <div class="flex items-center gap-2">
-                                    <x-ui.button variant="ghost" type="button" wire:click="openEdit({{ $service->id }})" class="h-8 min-h-8 p-2" aria-label="Edit" title="Edit">
+                                    <x-button variant="ghost" type="button" wire:click="openEdit({{ $service->id }})" class="h-8 min-h-8 p-2" aria-label="Edit" title="Edit">
                                         <x-heroicon-o-pencil-square class="size-4" />
-                                    </x-ui.button>
-                                    <x-ui.button variant="ghost" type="button" wire:click="confirmDeleteService({{ $service->id }})" class="h-8 min-h-8 p-2 text-destructive hover:text-destructive" aria-label="Delete" title="Delete">
+                                    </x-button>
+                                    <x-button variant="ghost" type="button" wire:click="confirmDeleteService({{ $service->id }})" class="h-8 min-h-8 p-2 text-destructive hover:text-destructive" aria-label="Delete" title="Delete">
                                         <x-heroicon-o-trash class="size-4" />
-                                    </x-ui.button>
+                                    </x-button>
                                 </div>
                             </td>
                         </tr>
@@ -142,7 +142,7 @@
     </div>
 
     @if($confirmingServiceId)
-        <x-ui.confirm-modal
+        <x-confirm-modal
             title="Delete service"
             message="{{ $confirmingServiceMessage }}"
             variant="danger"

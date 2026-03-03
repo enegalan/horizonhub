@@ -23,3 +23,4 @@
 <button {{ $attributes }}>
     {{ $slot }}
 </button>
+
