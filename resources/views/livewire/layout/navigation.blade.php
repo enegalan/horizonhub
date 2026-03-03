@@ -72,10 +72,10 @@
         </nav>
         <div class="shrink-0 border-t border-border p-2 space-y-1"
              x-data="{
-                 enabled: localStorage.getItem('horizon_hub_hotreload') !== 'false',
+                 enabled: localStorage.getItem('horizonhub_hotreload') !== 'false',
                  toggle() {
                      this.enabled = !this.enabled;
-                     localStorage.setItem('horizon_hub_hotreload', this.enabled);
+                     localStorage.setItem('horizonhub_hotreload', this.enabled);
                      if (typeof $store !== 'undefined' && $store.hotReload) {
                          $store.hotReload.enabled = this.enabled;
                      }

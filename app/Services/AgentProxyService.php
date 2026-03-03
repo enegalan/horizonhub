@@ -15,7 +15,7 @@ class AgentProxyService {
      * @return array
      */
     public function retryJob(Service $service, string $jobUuid): array {
-        $path = Str::replace('{id}', $jobUuid, config('horizon_hub.agent.retry_path', '/horizon-hub/jobs/{id}/retry'));
+        $path = Str::replace('{id}', $jobUuid, config('horizonhub.agent.retry_path', '/horizon-hub/jobs/{id}/retry'));
         return $this->callAgent($service, $path, 'post');
     }
 
@@ -27,7 +27,7 @@ class AgentProxyService {
      * @return array
      */
     public function deleteJob(Service $service, string $jobUuid): array {
-        $path = Str::replace('{id}', $jobUuid, config('horizon_hub.agent.delete_path', '/horizon-hub/jobs/{id}/delete'));
+        $path = Str::replace('{id}', $jobUuid, config('horizonhub.agent.delete_path', '/horizon-hub/jobs/{id}/delete'));
         return $this->callAgent($service, $path, 'delete');
     }
 
@@ -39,7 +39,7 @@ class AgentProxyService {
      * @return array
      */
     public function pauseQueue(Service $service, string $queueName): array {
-        $path = Str::replace('{name}', $queueName, config('horizon_hub.agent.pause_path', '/horizon-hub/queues/{name}/pause'));
+        $path = Str::replace('{name}', $queueName, config('horizonhub.agent.pause_path', '/horizon-hub/queues/{name}/pause'));
         return $this->callAgent($service, $path, 'post');
     }
 
@@ -51,7 +51,7 @@ class AgentProxyService {
      * @return array
      */
     public function resumeQueue(Service $service, string $queueName): array {
-        $path = Str::replace('{name}', $queueName, config('horizon_hub.agent.resume_path', '/horizon-hub/queues/{name}/resume'));
+        $path = Str::replace('{name}', $queueName, config('horizonhub.agent.resume_path', '/horizon-hub/queues/{name}/resume'));
         return $this->callAgent($service, $path, 'post');
     }
 

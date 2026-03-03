@@ -18,17 +18,28 @@ use Laravel\Horizon\Events\QueueResumed;
 use Laravel\Horizon\Events\SupervisorLooped;
 
 class PushHorizonEventToHub {
+    /**
+     * Construct the push horizon event to hub listener.
+     *
+     * @param HubClient $client
+     */
     public function __construct(
         private readonly HubClient $client
     ) {}
 
+    /**
+     * Handle the push horizon event to hub.
+     *
+     * @param object $event
+     * @return void
+     */
     public function handle(object $event): void {
         $payload = $this->buildPayload($event);
         if ($payload === null) {
             return;
         }
 
-        $payload['service_name'] = config('horizon_hub.service_name');
+        $payload['service_name'] = config('horizonhub.service_name');
 
         try {
             $this->client->push($payload);
@@ -40,6 +51,12 @@ class PushHorizonEventToHub {
         }
     }
 
+    /**
+     * Build the payload for the push horizon event to hub.
+     *
+     * @param object $event
+     * @return array|null
+     */
     private function buildPayload(object $event): ?array {
         return match ($event::class) {
             JobProcessed::class, IlluminateJobProcessed::class => EventPayloadBuilder::fromJobProcessed($event),

@@ -17,7 +17,7 @@ class Setting extends Model {
      *
      * @var string
      */
-    private const CACHE_PREFIX = 'horizon_hub_setting_';
+    private const CACHE_PREFIX = 'horizonhub_setting_';
 
     /**
      * The cache TTL for the settings.

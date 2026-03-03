@@ -22,7 +22,7 @@ class EventController extends Controller {
      */
     public function store(StoreEventRequest $request): JsonResponse {
         /** @var Service $service */
-        $service = $request->attributes->get('horizon_hub_service');
+        $service = $request->attributes->get('horizonhub_service');
         if (! $service) {
             return response()->json(['message' => 'Service not resolved'], 401);
         }

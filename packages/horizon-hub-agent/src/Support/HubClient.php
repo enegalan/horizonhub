@@ -9,8 +9,8 @@ class HubClient {
     private static bool $logged_missing_config = false;
 
     public function push(array $payload): void {
-        $url = rtrim(config('horizon_hub.hub_url'), '/') . config('horizon_hub.events_path', '/api/v1/events');
-        $apiKey = config('horizon_hub.api_key');
+        $url = rtrim(config('horizonhub.hub_url'), '/') . config('horizonhub.events_path', '/api/v1/events');
+        $apiKey = config('horizonhub.api_key');
 
         if ($url === '' || $apiKey === '') {
             if (! self::$logged_missing_config) {
@@ -24,8 +24,8 @@ class HubClient {
         $timestamp = (string) time();
         $signature = 'sha256=' . hash_hmac('sha256', $timestamp . '.' . $body, $apiKey);
 
-        $retryTimes = config('horizon_hub.http.retry_times', 3);
-        $retrySleep = config('horizon_hub.http.retry_sleep_ms', 500);
+        $retryTimes = config('horizonhub.http.retry_times', 3);
+        $retrySleep = config('horizonhub.http.retry_sleep_ms', 500);
 
         Http::timeout(15)
             ->withHeaders([

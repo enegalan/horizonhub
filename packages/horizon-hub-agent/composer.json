@@ -4,13 +4,11 @@
     "type": "laravel-package",
     "license": "MIT",
     "require": {
-        "php": "^8.2",
-        "laravel/framework": "^10.0|^11.0|^12.0",
-        "illuminate/support": "^10.0|^11.0|^12.0",
-        "illuminate/http": "^10.0|^11.0|^12.0"
-    },
-    "suggest": {
-        "laravel/horizon": "Required to capture Horizon events"
+        "php": ">=8.0",
+        "laravel/horizon": "*",
+        "laravel/framework": "*",
+        "illuminate/support": "*",
+        "illuminate/http": "*"
     },
     "autoload": {
         "psr-4": {

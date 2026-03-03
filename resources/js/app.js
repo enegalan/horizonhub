@@ -81,8 +81,8 @@ import 'sonner/dist/styles.css';
 
 (function () {
     function getResolvedDark() {
-        var t = localStorage.getItem('horizon_hub_theme');
-        if (!t) t = localStorage.getItem('horizon_hub_dark') === 'true' ? 'dark' : 'light';
+        var t = localStorage.getItem('horizonhub_theme');
+        if (!t) t = localStorage.getItem('horizonhub_dark') === 'true' ? 'dark' : 'light';
         if (t === 'system') return window.matchMedia('(prefers-color-scheme: dark)').matches;
         return t === 'dark';
     }

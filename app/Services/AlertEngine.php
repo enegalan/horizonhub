@@ -20,14 +20,14 @@ class AlertEngine {
      *
      * @var string
      */
-    private const PENDING_CACHE_PREFIX = 'horizon_hub_alert_pending_';
+    private const PENDING_CACHE_PREFIX = 'horizonhub_alert_pending_';
 
     /**
      * The cache prefix for sent alerts.
      *
      * @var string
      */
-    private const SENT_AT_CACHE_PREFIX = 'horizon_hub_alert_sent_at_';
+    private const SENT_AT_CACHE_PREFIX = 'horizonhub_alert_sent_at_';
 
     /**
      * The cache TTL for pending alerts.
@@ -119,7 +119,7 @@ class AlertEngine {
         if ($fromSetting !== null && is_numeric($fromSetting)) {
             return (int) $fromSetting;
         }
-        return (int) config('horizon_hub.alert_email_interval_minutes', 5);
+        return (int) config('horizonhub.alert_email_interval_minutes', 5);
     }
 
     /**

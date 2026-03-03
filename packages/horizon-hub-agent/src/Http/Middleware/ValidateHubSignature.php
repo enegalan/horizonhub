@@ -7,12 +7,36 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class ValidateHubSignature {
+    /**
+     * The timestamp header.
+     *
+     * @var string
+     */
     private const TIMESTAMP_HEADER = 'X-Hub-Timestamp';
+
+    /**
+     * The signature header.
+     *
+     * @var string
+     */
     private const SIGNATURE_HEADER = 'X-Hub-Signature';
+
+    /**
+     * The maximum age of the request in seconds.
+     *
+     * @var int
+     */
     private const MAX_AGE_SECONDS = 300;
 
+    /**
+     * Validate the hub signature.
+     *
+     * @param Request $request
+     * @param Closure $next
+     * @return Response
+     */
     public function handle(Request $request, Closure $next): Response {
-        $apiKey = config('horizon_hub.api_key');
+        $apiKey = config('horizonhub.api_key');
         if ($apiKey === '' || $apiKey === null) {
             return response()->json(['message' => 'Agent not configured'], 503);
         }

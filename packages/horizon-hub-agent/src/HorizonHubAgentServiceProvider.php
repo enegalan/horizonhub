@@ -12,7 +12,7 @@ class HorizonHubAgentServiceProvider extends ServiceProvider {
     public function boot(): void {
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__ . '/../config/horizon_hub.php' => config_path('horizon_hub.php'),
+                __DIR__ . '/../config/horizonhub.php' => config_path('horizonhub.php'),
             ], 'horizon-hub-agent-config');
         }
 
@@ -21,7 +21,7 @@ class HorizonHubAgentServiceProvider extends ServiceProvider {
     }
 
     public function register(): void {
-        $this->mergeConfigFrom(__DIR__ . '/../config/horizon_hub.php', 'horizon_hub');
+        $this->mergeConfigFrom(__DIR__ . '/../config/horizonhub.php', 'horizonhub');
     }
 
     private function registerEventListeners(): void {

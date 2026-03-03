@@ -11,7 +11,7 @@ class MarkStaleServicesOfflineCommand extends Command {
     protected $description = 'Mark services as offline when last_seen_at is older than configured threshold';
 
     public function handle(): int {
-        $minutes = config('horizon_hub.stale_minutes', 5);
+        $minutes = config('horizonhub.stale_minutes', 5);
         $threshold = now()->subMinutes($minutes);
 
         $updated = Service::query()

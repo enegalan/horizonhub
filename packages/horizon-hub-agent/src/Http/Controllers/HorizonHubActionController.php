@@ -8,6 +8,12 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Queue;
 
 class HorizonHubActionController {
+    /**
+     * Retry a job.
+     *
+     * @param string $id
+     * @return JsonResponse
+     */
     public function retry(string $id): JsonResponse {
         try {
             Artisan::call('queue:retry', ['id' => $id]);
@@ -21,6 +27,12 @@ class HorizonHubActionController {
         }
     }
 
+    /**
+     * Delete a job.
+     *
+     * @param string $id
+     * @return JsonResponse
+     */
     public function delete(string $id): JsonResponse {
         try {
             Artisan::call('queue:forget', ['id' => $id]);
@@ -30,6 +42,13 @@ class HorizonHubActionController {
         }
     }
 
+    /**
+     * Pause a queue.
+     *
+     * @param Request $request
+     * @param string $name
+     * @return JsonResponse
+     */
     public function pause(Request $request, string $name): JsonResponse {
         [$connection, $queue] = $this->parseQueueName($name);
         try {
@@ -40,6 +59,13 @@ class HorizonHubActionController {
         }
     }
 
+    /**
+     * Resume a queue.
+     *
+     * @param Request $request
+     * @param string $name
+     * @return JsonResponse
+     */
     public function resume(Request $request, string $name): JsonResponse {
         [$connection, $queue] = $this->parseQueueName($name);
         try {
@@ -50,6 +76,12 @@ class HorizonHubActionController {
         }
     }
 
+    /**
+     * Parse the queue name.
+     *
+     * @param string $name
+     * @return array
+     */
     private function parseQueueName(string $name): array {
         if (str_contains($name, '.')) {
             $parts = explode('.', $name, 2);

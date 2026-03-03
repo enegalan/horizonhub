@@ -44,7 +44,7 @@ class ValidateHubSignature {
             return response()->json(['message' => 'Invalid signature'], 401);
         }
 
-        $request->attributes->set('horizon_hub_service', $service);
+        $request->attributes->set('horizonhub_service', $service);
 
         return $next($request);
     }

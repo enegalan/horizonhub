@@ -8,6 +8,12 @@ class EventPayloadBuilder {
     /** @var array<string, float> job_id => microtime when JobProcessing was built */
     private static array $jobStartedAt = array();
 
+    /**
+     * Build the payload for the job processed event.
+     *
+     * @param object $event
+     * @return array
+     */
     public static function fromJobProcessed(object $event): array {
         $job = static::jobFromEvent($event);
         $base = static::baseJobPayload($event, $job, 'JobProcessed', 'processed');
@@ -21,6 +27,12 @@ class EventPayloadBuilder {
         return $payload;
     }
 
+    /**
+     * Build the payload for the job deleted event.
+     *
+     * @param object $event
+     * @return array
+     */
     public static function fromJobDeleted(object $event): array {
         $job = static::jobFromEvent($event);
         $base = static::baseJobPayload($event, $job, 'JobProcessed', 'processed');
@@ -88,6 +100,12 @@ class EventPayloadBuilder {
         return $result;
     }
 
+    /**
+     * Format the exception.
+     *
+     * @param mixed $exception
+     * @return string|null
+     */
     private static function formatException(mixed $exception): ?string {
         if ($exception === null) {
             return null;
@@ -113,6 +131,12 @@ class EventPayloadBuilder {
         return $seconds >= 0 ? $seconds : null;
     }
 
+    /**
+     * Build the payload for the supervisor looped event.
+     *
+     * @param object $event
+     * @return array
+     */
     public static function fromSupervisorLooped(object $event): array {
         $supervisorName = 'default';
         if (property_exists($event, 'supervisor') && isset($event->supervisor)) {
@@ -126,6 +150,12 @@ class EventPayloadBuilder {
         );
     }
 
+    /**
+     * Build the payload for the queue paused event.
+     *
+     * @param object $event
+     * @return array
+     */
     public static function fromQueuePaused(object $event): array {
         $connection = property_exists($event, 'connectionName') ? $event->connectionName : 'redis';
         $queue = property_exists($event, 'queue') ? $event->queue : 'default';
@@ -137,6 +167,12 @@ class EventPayloadBuilder {
         ];
     }
 
+    /**
+     * Build the payload for the queue resumed event.
+     *
+     * @param object $event
+     * @return array
+     */
     public static function fromQueueResumed(object $event): array {
         $connection = property_exists($event, 'connectionName') ? $event->connectionName : 'redis';
         $queue = property_exists($event, 'queue') ? $event->queue : 'default';
@@ -148,10 +184,25 @@ class EventPayloadBuilder {
         ];
     }
 
+    /**
+     * Get the job from the event.
+     *
+     * @param object $event
+     * @return object|null
+     */
     private static function jobFromEvent(object $event): ?object {
         return property_exists($event, 'job') ? $event->job : null;
     }
 
+    /**
+     * Build the base job payload.
+     *
+     * @param object $event
+     * @param object|null $job
+     * @param string $eventType
+     * @param string $status
+     * @return array
+     */
     private static function baseJobPayload(object $event, ?object $job, string $eventType, string $status): array {
         $queue = 'redis.default';
         $attempts = 0;
@@ -205,13 +256,17 @@ class EventPayloadBuilder {
     }
 
     /**
+     * Get the queued at from the payload.
+     *
      * @param array<string, mixed> $payload Laravel job payload (decoded)
      */
     private static function queuedAtFromPayload(array $payload): ?string {
+        /** @var int|null $createdAt */
         $createdAt = isset($payload['created_at']) ? (int) $payload['created_at'] : null;
         if ($createdAt > 0) {
             return date('c', $createdAt);
         }
+        /** @var int|null $availableAt */
         $availableAt = isset($payload['available_at']) ? (int) $payload['available_at'] : null;
         if ($availableAt > 0) {
             return date('c', $availableAt);
