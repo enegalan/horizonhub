@@ -63,50 +63,20 @@ import 'sonner/dist/styles.css';
     }
     function addListeners() {
         var opts = { capture: true };
-        document.addEventListener('toast', onToast, opts);
         window.addEventListener('toast', onToast, opts);
-        document.addEventListener('service-created', function () { showToast('success', 'Service registered.'); }, opts);
         window.addEventListener('service-created', function () { showToast('success', 'Service registered.'); }, opts);
-        document.addEventListener('job-retried', function () { showToast('success', 'Job retried.'); }, opts);
         window.addEventListener('job-retried', function () { showToast('success', 'Job retried.'); }, opts);
-        document.addEventListener('job-action-failed', function (e) {
-            showToast('error', (e && e.detail && e.detail.message) || 'Action failed.');
-        }, opts);
         window.addEventListener('job-action-failed', function (e) {
             showToast('error', (e && e.detail && e.detail.message) || 'Action failed.');
         }, opts);
-        document.addEventListener('queue-updated', function () { showToast('success', 'Queue updated.'); }, opts);
         window.addEventListener('queue-updated', function () { showToast('success', 'Queue updated.'); }, opts);
-        document.addEventListener('alerts-saved', function () { showToast('success', 'Alerts saved.'); }, opts);
         window.addEventListener('alerts-saved', function () { showToast('success', 'Alerts saved.'); }, opts);
-    }
-    function addLivewireListeners() {
-        if (typeof window.Livewire === 'undefined' || typeof window.Livewire.on !== 'function') return;
-        function onToastLivewire(a, b) {
-            var type = 'success';
-            var message = 'Done.';
-            if (a != null && typeof a === 'object' && ('type' in a || 'message' in a)) {
-                type = a.type || type;
-                message = a.message || message;
-            } else {
-                type = (a === 'error' || a === 'success' || a === 'info' || a === 'warning') ? a : 'success';
-                message = typeof b === 'string' ? b : (typeof a === 'string' ? a : 'Done.');
-            }
-            showToast(type, message);
-        }
-        window.Livewire.on('toast', onToastLivewire);
-        window.Livewire.on('service-created', function () { showToast('success', 'Service registered.'); });
-        window.Livewire.on('job-retried', function () { showToast('success', 'Job retried.'); });
-        window.Livewire.on('job-action-failed', function (message) { showToast('error', typeof message === 'string' ? message : 'Action failed.'); });
-        window.Livewire.on('queue-updated', function () { showToast('success', 'Queue updated.'); });
-        window.Livewire.on('alerts-saved', function () { showToast('success', 'Alerts saved.'); });
     }
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', addListeners);
     } else {
         addListeners();
     }
-    document.addEventListener('livewire:initialized', addLivewireListeners);
 })();
 
 (function () {
