@@ -6,31 +6,91 @@ use App\Models\Alert;
 use App\Models\NotificationProvider;
 use App\Models\Service;
 use Livewire\Component;
+use Illuminate\Contracts\View\View;
 
 class AlertForm extends Component {
+    /**
+     * The alert to edit.
+     *
+     * @var Alert|null
+     */
     public ?Alert $alert = null;
 
+    /**
+     * The name of the alert.
+     *
+     * @var string
+     */
     public string $name = '';
 
+    /**
+     * The ID of the service.
+     *
+     * @var int|null
+     */
     public ?int $service_id = null;
 
+    /**
+     * The type of rule.
+     *
+     * @var string
+     */
     public string $rule_type = 'failure_count';
 
+    /**
+     * The queue name.
+     *
+     * @var string
+     */
     public string $queue = '';
 
+    /**
+     * The type of job.
+     *
+     * @var string
+     */
     public string $job_type = '';
 
+    /**
+     * The threshold count.
+     *
+     * @var int
+     */
     public int $thresholdCount = 5;
 
+    /**
+     * The threshold minutes.
+     *
+     * @var int
+     */
     public int $thresholdMinutes = 15;
 
+    /**
+     * The threshold seconds.
+     *
+     * @var float
+     */
     public float $thresholdSeconds = 60;
 
+    /**
+     * Whether the alert is enabled.
+     *
+     * @var bool
+     */
     public bool $enabled = true;
 
-    /** @var array<int> */
+    /**
+     * The IDs of the notification providers.
+     *
+     * @var array<int>
+     */
     public array $provider_ids = array();
 
+    /**
+     * Get the rule types.
+     *
+     * @return array<string, string>
+     */
     public static function getRuleTypes(): array {
         return array(
             'job_specific_failure' => 'Job failed (any)',
@@ -42,6 +102,12 @@ class AlertForm extends Component {
         );
     }
 
+    /**
+     * Mount the alert form.
+     *
+     * @param Alert|null $alert
+     * @return void
+     */
     public function mount(?Alert $alert = null): void {
         if ($alert !== null) {
             $this->alert = $alert;
@@ -58,6 +124,11 @@ class AlertForm extends Component {
         }
     }
 
+    /**
+     * Save the alert.
+     *
+     * @return void
+     */
     public function save(): void {
         $this->validateRuleType();
         $this->validate([
@@ -91,6 +162,11 @@ class AlertForm extends Component {
         $this->redirect(route('horizon.alerts.index'), navigate: true);
     }
 
+    /**
+     * Validate the rule type.
+     *
+     * @return void
+     */
     private function validateRuleType(): void {
         $rules = array(
             'rule_type' => 'required|in:job_specific_failure,job_type_failure,failure_count,avg_execution_time,queue_blocked,worker_offline',
@@ -118,6 +194,11 @@ class AlertForm extends Component {
         $this->validate($rules);
     }
 
+    /**
+     * Build the threshold.
+     *
+     * @return array<string, int|float>
+     */
     private function buildThreshold(): array {
         $t = array();
         if (in_array($this->rule_type, array('failure_count', 'avg_execution_time', 'queue_blocked', 'worker_offline'), true)) {
@@ -133,7 +214,12 @@ class AlertForm extends Component {
         return $t;
     }
 
-    public function render() {
+    /**
+     * Render the alert form.
+     *
+     * @return View
+     */
+    public function render(): View {
         $services = Service::orderBy('name')->get();
         $providers = NotificationProvider::orderBy('type')->orderBy('name')->get();
         $header = $this->alert ? 'Edit alert' : 'New alert';

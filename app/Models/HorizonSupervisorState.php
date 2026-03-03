@@ -5,8 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class HorizonSupervisorState extends Model
-{
+class HorizonSupervisorState extends Model {
     protected $table = 'horizon_supervisor_states';
 
     protected $fillable = [
@@ -19,8 +18,12 @@ class HorizonSupervisorState extends Model
         'last_seen_at' => 'datetime',
     ];
 
-    public function service(): BelongsTo
-    {
+    /**
+     * Get the service of the supervisor state.
+     *
+     * @return BelongsTo
+     */
+    public function service(): BelongsTo {
         return $this->belongsTo(Service::class);
     }
 }

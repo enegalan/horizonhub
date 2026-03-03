@@ -8,13 +8,24 @@ use App\Models\HorizonJob;
 use App\Models\HorizonSupervisorState;
 use App\Models\Service;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class HorizonEventProcessor {
+    /**
+     * Construct the horizon event processor.
+     *
+     * @param AlertEngine $alertEngine
+     */
     public function __construct(
         private readonly AlertEngine $alertEngine
     ) {}
 
+    /**
+     * Process an event.
+     *
+     * @param Service $service
+     * @param array $event
+     * @return void
+     */
     public function process(Service $service, array $event): void {
         $eventType = $event['event_type'] ?? '';
 
@@ -90,6 +101,13 @@ class HorizonEventProcessor {
         ]))->toOthers();
     }
 
+    /**
+     * Process a supervisor looped event.
+     *
+     * @param Service $service
+     * @param array $event
+     * @return void
+     */
     private function processSupervisorLooped(Service $service, array $event): void {
         $name = isset($event['queue']) && (string) $event['queue'] !== '' ? (string) $event['queue'] : 'default';
         HorizonSupervisorState::updateOrCreate(

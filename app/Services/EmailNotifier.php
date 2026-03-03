@@ -10,8 +10,22 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class EmailNotifier {
+    /**
+     * The maximum length of the exception.
+     *
+     * @var int
+     */
     private const EXCEPTION_MAX_LENGTH = 4000;
 
+    /**
+     * Send an alert.
+     *
+     * @param Alert $alert
+     * @param int $serviceId
+     * @param int|null $jobId
+     * @param array $config
+     * @return void
+     */
     public function send(Alert $alert, int $serviceId, ?int $jobId, array $config): void {
         $this->sendBatched($alert, array(
             array('service_id' => $serviceId, 'job_id' => $jobId, 'triggered_at' => now()->toIso8601String()),
@@ -19,7 +33,12 @@ class EmailNotifier {
     }
 
     /**
+     * Send a batched alert.
+     *
+     * @param Alert $alert
      * @param array<int, array{service_id: int, job_id: int|null, triggered_at: string}> $events
+     * @param array $config
+     * @return void
      */
     public function sendBatched(Alert $alert, array $events, array $config): void {
         $to = $config['to'] ?? array();
@@ -45,6 +64,8 @@ class EmailNotifier {
     }
 
     /**
+     * Enrich the events.
+     *
      * @param array<int, array{service_id: int, job_id: int|null, triggered_at: string}> $events
      * @return array<int, array{service_id: int, job_id: int|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}>
      */
@@ -69,7 +90,7 @@ class EmailNotifier {
                 if ($jobClass === null && isset($payload['job'])) {
                     $jobClass = is_string($payload['job']) ? $payload['job'] : 'Unknown';
                 }
-                $jobClass = $jobClass ?? 'Unknown';
+                $jobClass ??= 'Unknown';
                 $queue = $job->queue ?? null;
                 $failedAt = $job->failed_at ? $job->failed_at->format('Y-m-d H:i:s T') : null;
                 $rawException = $job->exception ?? '';
@@ -92,6 +113,12 @@ class EmailNotifier {
         return $enriched;
     }
 
+    /**
+     * Truncate the exception.
+     *
+     * @param string $text
+     * @return string
+     */
     private function truncateException(string $text): string {
         if (strlen($text) <= self::EXCEPTION_MAX_LENGTH) {
             return $text;

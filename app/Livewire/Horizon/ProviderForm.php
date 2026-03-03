@@ -4,18 +4,50 @@ namespace App\Livewire\Horizon;
 
 use App\Models\NotificationProvider;
 use Livewire\Component;
+use Illuminate\Contracts\View\View;
 
 class ProviderForm extends Component {
+    /**
+     * The provider to edit.
+     *
+     * @var NotificationProvider|null
+     */
     public ?NotificationProvider $provider = null;
 
+    /**
+     * The name of the provider.
+     *
+     * @var string
+     */
     public string $name = '';
 
+    /**
+     * The type of the provider.
+     *
+     * @var string
+     */
     public string $type = NotificationProvider::TYPE_SLACK;
 
+    /**
+     * The webhook URL of the provider.
+     *
+     * @var string
+     */
     public string $webhook_url = '';
 
+    /**
+     * The email recipients of the provider.
+     *
+     * @var string
+     */
     public string $email_to = '';
 
+    /**
+     * Mount the provider form.
+     *
+     * @param NotificationProvider|null $provider
+     * @return void
+     */
     public function mount(?NotificationProvider $provider = null): void {
         if ($provider !== null) {
             $this->provider = $provider;
@@ -31,6 +63,11 @@ class ProviderForm extends Component {
         }
     }
 
+    /**
+     * Save the provider.
+     *
+     * @return void
+     */
     public function save(): void {
         $this->validate([
             'name' => 'required|string|max:255',
@@ -72,7 +109,12 @@ class ProviderForm extends Component {
         $this->redirect(route('horizon.settings', ['tab' => 'providers']), navigate: true);
     }
 
-    public function render() {
+    /**
+     * Render the provider form.
+     *
+     * @return View
+     */
+    public function render(): View {
         $header = $this->provider ? 'Edit provider' : 'New provider';
 
         return view('livewire.horizon.provider-form', [])->layout('layouts.app', ['header' => 'Horizon Hub – ' . $header]);

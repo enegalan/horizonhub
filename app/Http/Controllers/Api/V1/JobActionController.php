@@ -14,6 +14,12 @@ class JobActionController extends Controller {
         private readonly AgentProxyService $agentProxy
     ) {}
 
+    /**
+     * Retry a job.
+     *
+     * @param string $id
+     * @return JsonResponse
+     */
     public function retry(string $id): JsonResponse {
         $job = HorizonJob::find($id) ?? HorizonFailedJob::find($id);
         if (! $job) {
@@ -34,6 +40,12 @@ class JobActionController extends Controller {
         return response()->json(['message' => 'Retry requested']);
     }
 
+    /**
+     * Delete a job.
+     *
+     * @param string $id
+     * @return JsonResponse
+     */
     public function delete(string $id): JsonResponse {
         $job = HorizonJob::find($id) ?? HorizonFailedJob::find($id);
         if (! $job) {

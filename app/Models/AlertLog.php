@@ -21,11 +21,20 @@ class AlertLog extends Model {
         'sent_at' => 'datetime',
         'job_ids' => 'array',
     ];
-
+    /**
+     * Get the alert of the alert log.
+     *
+     * @return BelongsTo
+     */
     public function alert(): BelongsTo {
         return $this->belongsTo(Alert::class);
     }
 
+    /**
+     * Get the service of the alert log.
+     *
+     * @return BelongsTo
+     */
     public function service(): BelongsTo {
         return $this->belongsTo(Service::class);
     }

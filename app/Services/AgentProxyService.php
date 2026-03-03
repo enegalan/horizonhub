@@ -7,26 +7,62 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 class AgentProxyService {
+    /**
+     * Retry a job.
+     *
+     * @param Service $service
+     * @param string $jobUuid
+     * @return array
+     */
     public function retryJob(Service $service, string $jobUuid): array {
         $path = Str::replace('{id}', $jobUuid, config('horizon_hub.agent.retry_path', '/horizon-hub/jobs/{id}/retry'));
         return $this->callAgent($service, $path, 'post');
     }
 
+    /**
+     * Delete a job.
+     *
+     * @param Service $service
+     * @param string $jobUuid
+     * @return array
+     */
     public function deleteJob(Service $service, string $jobUuid): array {
         $path = Str::replace('{id}', $jobUuid, config('horizon_hub.agent.delete_path', '/horizon-hub/jobs/{id}/delete'));
         return $this->callAgent($service, $path, 'delete');
     }
 
+    /**
+     * Pause a queue.
+     *
+     * @param Service $service
+     * @param string $queueName
+     * @return array
+     */
     public function pauseQueue(Service $service, string $queueName): array {
         $path = Str::replace('{name}', $queueName, config('horizon_hub.agent.pause_path', '/horizon-hub/queues/{name}/pause'));
         return $this->callAgent($service, $path, 'post');
     }
 
+    /**
+     * Resume a queue.
+     *
+     * @param Service $service
+     * @param string $queueName
+     * @return array
+     */
     public function resumeQueue(Service $service, string $queueName): array {
         $path = Str::replace('{name}', $queueName, config('horizon_hub.agent.resume_path', '/horizon-hub/queues/{name}/resume'));
         return $this->callAgent($service, $path, 'post');
     }
 
+    /**
+     * Call the agent.
+     *
+     * @param Service $service
+     * @param string $path
+     * @param string $method
+     * @return array
+     */
     private function callAgent(Service $service, string $path, string $method): array {
         $baseUrl = rtrim($service->base_url ?? '', '/');
         if ($baseUrl === '') {

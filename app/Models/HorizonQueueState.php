@@ -18,6 +18,11 @@ class HorizonQueueState extends Model {
         'is_paused' => 'boolean',
     ];
 
+    /**
+     * Get the service of the queue state.
+     *
+     * @return BelongsTo
+     */
     public function service(): BelongsTo {
         return $this->belongsTo(Service::class);
     }

@@ -7,10 +7,16 @@ use App\Models\HorizonJob;
 use App\Models\Service;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Illuminate\Contracts\View\View;
 
 class JobList extends Component {
     use WithPagination;
 
+    /**
+     * The query string parameters.
+     *
+     * @var array<string, array<string, string>>
+     */
     protected $queryString = array(
         'serviceFilter' => array('except' => ''),
         'queueFilter' => array('except' => ''),
@@ -18,34 +24,94 @@ class JobList extends Component {
         'jobTypeFilter' => array('except' => ''),
     );
 
+    /**
+     * The service filter.
+     *
+     * @var string
+     */
     public string $serviceFilter = '';
 
+    /**
+     * The queue filter.
+     *
+     * @var string
+     */
     public string $queueFilter = '';
 
+    /**
+     * The status filter.
+     *
+     * @var string
+     */
     public string $statusFilter = '';
 
+    /**
+     * The job type filter.
+     *
+     * @var string
+     */
     public string $jobTypeFilter = '';
 
+    /**
+     * Whether to show the clean modal.
+     *
+     * @var bool
+     */
     public bool $showCleanModal = false;
 
+    /**
+     * The clean step.
+     *
+     * @var int
+     */
     public int $cleanStep = 1;
 
+    /**
+     * The clean service ID.
+     *
+     * @var string|null
+     */
     public ?string $cleanServiceId = null;
 
+    /**
+     * The clean status.
+     *
+     * @var string|null
+     */
     public ?string $cleanStatus = null;
 
+    /**
+     * The clean job type.
+     *
+     * @var string|null
+     */
     public ?string $cleanJobType = null;
 
+    /**
+     * Get the listeners for the job list component.
+     *
+     * @return array<string, string>
+     */
     public function getListeners(): array {
         return [
             'echo:horizon-hub.dashboard,HorizonEvent' => 'refreshJobs',
         ];
     }
 
+    /**
+     * Refresh the jobs.
+     *
+     * @return void
+     */
     public function refreshJobs(): void {
         $this->resetPage();
     }
 
+    /**
+     * Open the clean modal.
+     *
+     * @return void
+     */
     public function openCleanModal(): void {
         $this->showCleanModal = true;
         $this->cleanStep = 1;
@@ -54,11 +120,21 @@ class JobList extends Component {
         $this->cleanJobType = null;
     }
 
+    /**
+     * Close the clean modal.
+     *
+     * @return void
+     */
     public function closeCleanModal(): void {
         $this->showCleanModal = false;
         $this->cleanStep = 1;
     }
 
+    /**
+     * Get the clean count property.
+     *
+     * @return int
+     */
     public function getCleanCountProperty(): int {
         $query = HorizonJob::query();
         if ($this->cleanServiceId !== null && $this->cleanServiceId !== '') {
@@ -73,6 +149,11 @@ class JobList extends Component {
         return $query->count();
     }
 
+    /**
+     * Confirm the clean jobs.
+     *
+     * @return void
+     */
     public function confirmCleanJobs(): void {
         if ($this->getCleanCountProperty() === 0) {
             return;
@@ -80,6 +161,11 @@ class JobList extends Component {
         $this->cleanStep = 2;
     }
 
+    /**
+     * Run the clean jobs.
+     *
+     * @return void
+     */
     public function runCleanJobs(): void {
         $count = $this->getCleanCountProperty();
         $query = HorizonJob::query();
@@ -110,7 +196,12 @@ class JobList extends Component {
         $this->dispatch('toast', type: 'success', message: $msg);
     }
 
-    public function render() {
+    /**
+     * Render the job list component.
+     *
+     * @return View
+     */
+    public function render(): View {
         $query = HorizonJob::with('service')
             ->orderByDesc('created_at');
 

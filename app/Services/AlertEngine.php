@@ -15,18 +15,45 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class AlertEngine {
+    /**
+     * The cache prefix for pending alerts.
+     *
+     * @var string
+     */
     private const PENDING_CACHE_PREFIX = 'horizon_hub_alert_pending_';
 
+    /**
+     * The cache prefix for sent alerts.
+     *
+     * @var string
+     */
     private const SENT_AT_CACHE_PREFIX = 'horizon_hub_alert_sent_at_';
 
+    /**
+     * The cache TTL for pending alerts.
+     *
+     * @var int
+     */
     private const PENDING_TTL_MINUTES = 60;
 
+    /**
+     * Construct the alert engine.
+     *
+     * @param EmailNotifier $emailNotifier
+     * @param SlackNotifier $slackNotifier
+     */
     public function __construct(
         private readonly EmailNotifier $emailNotifier,
         private readonly SlackNotifier $slackNotifier
     ) {}
 
+    /**
+     * Flush pending alerts.
+     *
+     * @return void
+     */
     public function flushPendingAlerts(): void {
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Alert> $alerts */
         $alerts = Alert::where('enabled', true)->get();
         $intervalMinutes = $this->getIntervalMinutes();
 
@@ -66,7 +93,9 @@ class AlertEngine {
     public function evaluateScheduled(): void {
         $this->flushPendingAlerts();
 
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Alert> $alerts */
         $alerts = Alert::where('enabled', true)->get();
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Service> $services */
         $services = Service::all();
 
         foreach ($alerts as $alert) {
@@ -80,6 +109,11 @@ class AlertEngine {
         }
     }
 
+    /**
+     * Get the interval minutes for the alert engine.
+     *
+     * @return int
+     */
     private function getIntervalMinutes(): int {
         $fromSetting = Setting::get('alerts.email_interval_minutes');
         if ($fromSetting !== null && is_numeric($fromSetting)) {
@@ -88,6 +122,15 @@ class AlertEngine {
         return (int) config('horizon_hub.alert_email_interval_minutes', 5);
     }
 
+    /**
+     * Should evaluate the alert.
+     *
+     * @param Alert $alert
+     * @param int $serviceId
+     * @param string $eventType
+     * @param int|null $jobId
+     * @return bool
+     */
     private function shouldEvaluate(Alert $alert, int $serviceId, string $eventType, ?int $jobId): bool {
         if ($alert->rule_type === 'job_specific_failure' && $eventType !== 'JobFailed') {
             return false;
@@ -104,6 +147,14 @@ class AlertEngine {
         return true;
     }
 
+    /**
+     * Evaluate the rule.
+     *
+     * @param Alert $alert
+     * @param int $serviceId
+     * @param int|null $jobId
+     * @return bool
+     */
     private function evaluateRule(Alert $alert, int $serviceId, ?int $jobId): bool {
         return match ($alert->rule_type) {
             'job_specific_failure' => true,
@@ -116,6 +167,13 @@ class AlertEngine {
         };
     }
 
+    /**
+     * Evaluate the job type failure.
+     *
+     * @param Alert $alert
+     * @param int $serviceId
+     * @return bool
+     */
     private function evaluateJobTypeFailure(Alert $alert, int $serviceId): bool {
         if (! $alert->job_type) {
             return false;
@@ -128,6 +186,13 @@ class AlertEngine {
         return $recent;
     }
 
+    /**
+     * Evaluate the failure count.
+     *
+     * @param Alert $alert
+     * @param int $serviceId
+     * @return bool
+     */
     private function evaluateFailureCount(Alert $alert, int $serviceId): bool {
         $threshold = $alert->threshold ?? array();
         $count = (int) ($threshold['count'] ?? 5);
@@ -139,6 +204,13 @@ class AlertEngine {
         return $actual >= $count;
     }
 
+    /**
+     * Evaluate the average execution time.
+     *
+     * @param Alert $alert
+     * @param int $serviceId
+     * @return bool
+     */
     private function evaluateAvgExecutionTime(Alert $alert, int $serviceId): bool {
         $threshold = $alert->threshold ?? array();
         $maxSeconds = (float) ($threshold['seconds'] ?? 60);
@@ -156,6 +228,13 @@ class AlertEngine {
         return $avg >= $maxSeconds;
     }
 
+    /**
+     * Evaluate the queue blocked.
+     *
+     * @param Alert $alert
+     * @param int $serviceId
+     * @return bool
+     */
     private function evaluateQueueBlocked(Alert $alert, int $serviceId): bool {
         $threshold = $alert->threshold ?? array();
         $minutes = (int) ($threshold['minutes'] ?? 30);
@@ -169,6 +248,13 @@ class AlertEngine {
         return Carbon::parse($lastProcessed)->addMinutes($minutes)->isPast();
     }
 
+    /**
+     * Evaluate the worker offline.
+     *
+     * @param Alert $alert
+     * @param int $serviceId
+     * @return bool
+     */
     private function evaluateWorkerOffline(Alert $alert, int $serviceId): bool {
         $threshold = $alert->threshold ?? array();
         $minutes = (int) ($threshold['minutes'] ?? 5);
@@ -179,6 +265,12 @@ class AlertEngine {
         return $service->last_seen_at->addMinutes($minutes)->isPast();
     }
 
+    /**
+     * Retry the alert log.
+     *
+     * @param AlertLog $log
+     * @return void
+     */
     public function retryAlertLog(AlertLog $log): void {
         $alert = $log->alert;
         if (! $alert) {
@@ -208,6 +300,7 @@ class AlertEngine {
         $providers = $alert->notificationProviders;
 
         if ($providers instanceof Collection && $providers->isNotEmpty()) {
+            /** @var \Illuminate\Database\Eloquent\Collection<int, NotificationProvider> $providers */
             foreach ($providers as $provider) {
                 try {
                     if ($provider->type === NotificationProvider::TYPE_SLACK) {
@@ -254,6 +347,9 @@ class AlertEngine {
     }
 
     /**
+     * Rebuild the events from the log.
+     *
+     * @param AlertLog $log
      * @return array<int, array{service_id: int, job_id: int|null, triggered_at: string}>
      */
     private function rebuildEventsFromLog(AlertLog $log): array {
@@ -279,7 +375,12 @@ class AlertEngine {
         return $events;
     }
 
-    /** @return array<int, array{service_id: int, job_id: int|null, triggered_at: string}> */
+    /**
+     * Get the pending alerts.
+     *
+     * @param Alert $alert
+     * @return array<int, array{service_id: int, job_id: int|null, triggered_at: string}>
+     */
     private function getPending(Alert $alert): array {
         $key = self::PENDING_CACHE_PREFIX . $alert->id;
         $raw = Cache::get($key);
@@ -289,7 +390,13 @@ class AlertEngine {
         return $raw;
     }
 
-    /** @param array<int, array{service_id: int, job_id: int|null, triggered_at: string}> $pending */
+    /**
+     * Set the pending alerts.
+     *
+     * @param Alert $alert
+     * @param array<int, array{service_id: int, job_id: int|null, triggered_at: string}> $pending
+     * @return void
+     */
     private function setPending(Alert $alert, array $pending): void {
         $key = self::PENDING_CACHE_PREFIX . $alert->id;
         if (empty($pending)) {
@@ -299,10 +406,22 @@ class AlertEngine {
         Cache::put($key, $pending, now()->addMinutes(self::PENDING_TTL_MINUTES));
     }
 
+    /**
+     * Clear the pending alerts.
+     *
+     * @param Alert $alert
+     * @return void
+     */
     private function clearPending(Alert $alert): void {
         $this->setPending($alert, array());
     }
 
+    /**
+     * Get the last sent at.
+     *
+     * @param Alert $alert
+     * @return Carbon|null
+     */
     private function getLastSentAt(Alert $alert): ?Carbon {
         $key = self::SENT_AT_CACHE_PREFIX . $alert->id;
         $value = Cache::get($key);
@@ -312,10 +431,24 @@ class AlertEngine {
         return $value instanceof Carbon ? $value : Carbon::parse($value);
     }
 
+    /**
+     * Set the last sent at.
+     *
+     * @param Alert $alert
+     * @return void
+     */
     private function setLastSentAt(Alert $alert): void {
         Cache::put(self::SENT_AT_CACHE_PREFIX . $alert->id, now(), now()->addMinutes(self::PENDING_TTL_MINUTES));
     }
 
+    /**
+     * Trigger the alert.
+     *
+     * @param Alert $alert
+     * @param int $serviceId
+     * @param int|null $jobId
+     * @return void
+     */
     private function triggerAlert(Alert $alert, int $serviceId, ?int $jobId): void {
         $event = array(
             'service_id' => $serviceId,
@@ -342,6 +475,9 @@ class AlertEngine {
     }
 
     /**
+     * Send the batched alert.
+     *
+     * @param Alert $alert
      * @param array<int, array{service_id: int, job_id: int|null, triggered_at: string}> $events
      */
     private function sendBatchedAlert(Alert $alert, array $events): void {
@@ -359,8 +495,6 @@ class AlertEngine {
             'status' => 'sent',
             'sent_at' => now(),
         ]);
-
-        Log::info('Horizon Hub: alert triggered (batched)', ['alert_id' => $alert->id, 'service_id' => $serviceId, 'event_count' => count($events)]);
 
         $providers = $alert->notificationProviders;
 

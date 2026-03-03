@@ -7,6 +7,15 @@ use App\Models\Service;
 use Illuminate\Support\Facades\Http;
 
 class SlackNotifier {
+    /**
+     * Send an alert.
+     *
+     * @param Alert $alert
+     * @param int $serviceId
+     * @param int|null $jobId
+     * @param array $config
+     * @return void
+     */
     public function send(Alert $alert, int $serviceId, ?int $jobId, array $config): void {
         $this->sendBatched($alert, array(
             array('service_id' => $serviceId, 'job_id' => $jobId, 'triggered_at' => now()->toIso8601String()),
@@ -14,7 +23,12 @@ class SlackNotifier {
     }
 
     /**
+     * Send a batched alert.
+     *
+     * @param Alert $alert
      * @param array<int, array{service_id: int, job_id: int|null, triggered_at: string}> $events
+     * @param array $config
+     * @return void
      */
     public function sendBatched(Alert $alert, array $events, array $config): void {
         $webhookUrl = $config['webhook_url'] ?? '';

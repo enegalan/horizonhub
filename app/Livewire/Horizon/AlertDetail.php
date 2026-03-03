@@ -8,18 +8,45 @@ use App\Services\AlertEngine;
 use Carbon\Carbon;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Illuminate\Contracts\View\View;
 
 class AlertDetail extends Component {
     use WithPagination;
 
+    /**
+     * The alert to display.
+     *
+     * @var Alert
+     */
     public Alert $alert;
 
+    /**
+     * The status filter to apply to the alert logs.
+     *
+     * @var string
+     */
     public string $statusFilter = '';
 
+    /**
+     * The number of alert logs to display per page.
+     *
+     * @var int
+     */
     public int $perPage = 20;
 
+    /**
+     * The ID of the selected alert log.
+     *
+     * @var int|null
+     */
     public ?int $selectedLogId = null;
 
+    /**
+     * Retry a alert log.
+     *
+     * @param int $id
+     * @return void
+     */
     public function retryLog(int $id): void {
         $log = AlertLog::with('alert')->find($id);
         if (! $log) {
@@ -32,22 +59,48 @@ class AlertDetail extends Component {
         $this->resetPage();
     }
 
+    /**
+     * Open the alert log modal.
+     *
+     * @param int $id
+     * @return void
+     */
     public function openLogModal(int $id): void {
         $this->selectedLogId = $id;
     }
 
+    /**
+     * Close the alert log modal.
+     *
+     * @return void
+     */
     public function closeLogModal(): void {
         $this->selectedLogId = null;
     }
 
+    /**
+     * Reset the page when the status filter is updated.
+     *
+     * @return void
+     */
     public function updatedStatusFilter(): void {
         $this->resetPage();
     }
 
+    /**
+     * Reset the page when the per page is updated.
+     *
+     * @return void
+     */
     public function updatedPerPage(): void {
         $this->resetPage();
     }
 
+    /**
+     * Get the listeners for the alert detail component.
+     *
+     * @return array<string, string>
+     */
     public function getListeners(): array {
         return [
             'echo:horizon-hub.dashboard,HorizonEvent' => '$refresh',
@@ -55,6 +108,8 @@ class AlertDetail extends Component {
     }
 
     /**
+     * Get the chart data for the last 24 hours.
+     *
      * @return array{xAxis: list<string>, sent: list<int>, failed: list<int>}
      */
     private function getChart24h(): array {
@@ -94,6 +149,8 @@ class AlertDetail extends Component {
     }
 
     /**
+     * Get the chart data for the last 7 days.
+     *
      * @return array{xAxis: list<string>, sent: list<int>, failed: list<int>}
      */
     private function getChart7d(): array {
@@ -133,6 +190,8 @@ class AlertDetail extends Component {
     }
 
     /**
+     * Get the chart data for the last 30 days.
+     *
      * @return array{xAxis: list<string>, sent: list<int>, failed: list<int>}
      */
     private function getChart30d(): array {
@@ -171,7 +230,12 @@ class AlertDetail extends Component {
         return array('xAxis' => $xAxis, 'sent' => $sent, 'failed' => $failed);
     }
 
-    public function render() {
+    /**
+     * Render the alert detail component.
+     *
+     * @return View
+     */
+    public function render(): View {
         $logs = $this->alert->alertLogs()
             ->with('service')
             ->when($this->statusFilter !== '', fn ($q) => $q->where('status', $this->statusFilter))

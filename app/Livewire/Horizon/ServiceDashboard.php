@@ -7,23 +7,44 @@ use App\Models\HorizonJob;
 use App\Models\Service;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Illuminate\Contracts\View\View;
 
 class ServiceDashboard extends Component {
     use WithPagination;
 
+    /**
+     * The service.
+     *
+     * @var Service
+     */
     public Service $service;
 
+    /**
+     * Get the listeners for the service dashboard component.
+     *
+     * @return array<string, string>
+     */
     public function getListeners(): array {
         return [
             'echo:horizon-hub.dashboard,HorizonEvent' => 'refreshJobs',
         ];
     }
 
+    /**
+     * Refresh the jobs.
+     *
+     * @return void
+     */
     public function refreshJobs(): void {
         $this->resetPage();
     }
 
-    public function render() {
+    /**
+     * Render the service dashboard component.
+     *
+     * @return View
+     */
+    public function render(): View {
         $serviceId = $this->service->id;
         $jobs = HorizonJob::where('service_id', $serviceId)
             ->orderByDesc('created_at')

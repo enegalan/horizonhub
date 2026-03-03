@@ -23,12 +23,22 @@ class AlertBatchedMail extends Mailable {
         public $mailSubject
     ) {}
 
+    /**
+     * Get the envelope for the email.
+     *
+     * @return Envelope
+     */
     public function envelope(): Envelope {
         return new Envelope(
             subject: $this->mailSubject
         );
     }
 
+    /**
+     * Get the content for the email.
+     *
+     * @return Content
+     */
     public function content(): Content {
         return new Content(
             view: 'emails.alert-batched',

@@ -12,6 +12,13 @@ class ValidateHubSignature {
     private const SIGNATURE_HEADER = 'X-Hub-Signature';
     private const MAX_AGE_SECONDS = 300;
 
+    /**
+     * Validate the Horizon Hub signature.
+     * 
+     * @param Request $request
+     * @param Closure $next
+     * @return Response
+     */
     public function handle(Request $request, Closure $next): Response {
         $apiKey = $request->header('X-Api-Key');
         $timestamp = $request->header(self::TIMESTAMP_HEADER);

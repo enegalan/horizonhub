@@ -6,10 +6,22 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreEventRequest extends FormRequest {
+    /**
+     * Determine if the user is authorized to make this request.
+     * 
+     * @internal This method returns true because the request authorization is delegated to the ValidateHubSignature middleware.
+     *
+     * @return bool
+     */
     public function authorize(): bool {
         return true;
     }
 
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, array<int, string|Rule>>
+     */
     public function rules(): array {
         return [
             'events' => ['sometimes', 'array'],
@@ -40,6 +52,11 @@ class StoreEventRequest extends FormRequest {
         ];
     }
 
+    /**
+     * Get the events from the request.
+     *
+     * @return array<int, array<string, mixed>>
+     */
     public function getEvents(): array {
         $payload = $this->validated();
         if (isset($payload['events']) && is_array($payload['events'])) {

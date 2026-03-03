@@ -6,21 +6,48 @@ use App\Models\HorizonFailedJob;
 use App\Models\HorizonJob;
 use App\Services\AgentProxyService;
 use Livewire\Component;
+use Illuminate\Contracts\View\View;
 
 class JobDetail extends Component {
+    /**
+     * The ID of the job.
+     *
+     * @var int
+     */
     public int $jobId;
 
+    /**
+     * Whether to show the delete modal.
+     *
+     * @var bool
+     */
     public bool $showDeleteModal = false;
 
+    /**
+     * Mount the job detail component.
+     *
+     * @param int $job
+     * @return void
+     */
     public function mount(int $job): void {
         $this->jobId = $job;
     }
 
+    /**
+     * Get the job property.
+     *
+     * @return HorizonJob|HorizonFailedJob|null
+     */
     public function getJobProperty(): HorizonJob|HorizonFailedJob|null {
         return HorizonFailedJob::with('service')->find($this->jobId)
             ?? HorizonJob::with('service')->find($this->jobId);
     }
 
+    /**
+     * Confirm the deletion of a job.
+     *
+     * @return void
+     */
     public function confirmDelete(): void {
         $job = $this->getJobProperty();
         if (! $job || ! $job->service) {
@@ -29,12 +56,19 @@ class JobDetail extends Component {
         $this->showDeleteModal = true;
     }
 
+    /**
+     * Cancel the deletion of a job.
+     *
+     * @return void
+     */
     public function cancelDelete(): void {
         $this->showDeleteModal = false;
     }
 
     /**
-     * Exception message for display (from job or from horizon_failed_jobs when viewing HorizonJob failed).
+     * Exception message for display (from job or from horizon failed jobs when viewing HorizonJob failed).
+     *
+     * @return string|null
      */
     public function getExceptionProperty(): ?string {
         $job = $this->getJobProperty();
@@ -52,6 +86,12 @@ class JobDetail extends Component {
         return null;
     }
 
+    /**
+     * Retry a job.
+     *
+     * @param AgentProxyService $agent
+     * @return void
+     */
     public function retry(AgentProxyService $agent): void {
         $job = $this->getJobProperty();
         if (! $job || ! $job->service) {
@@ -66,6 +106,12 @@ class JobDetail extends Component {
         }
     }
 
+    /**
+     * Delete a job.
+     *
+     * @param AgentProxyService $agent
+     * @return void
+     */
     public function delete(AgentProxyService $agent): void {
         $job = $this->getJobProperty();
         if (! $job || ! $job->service) {
@@ -82,7 +128,12 @@ class JobDetail extends Component {
         }
     }
 
-    public function render() {
+    /**
+     * Render the job detail component.
+     *
+     * @return View
+     */
+    public function render(): View {
         $job = $this->getJobProperty();
         if (! $job) {
             abort(404);

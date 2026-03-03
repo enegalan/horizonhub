@@ -6,12 +6,26 @@ use App\Models\HorizonJob;
 use App\Models\HorizonQueueState;
 use App\Models\Service;
 use App\Services\AgentProxyService;
-use Illuminate\Support\Facades\DB;
 use Livewire\Component;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Contracts\View\View;
 
 class QueueList extends Component {
+    /**
+     * The service filter.
+     * 
+     * @var string
+     */
     public string $serviceFilter = '';
 
+    /**
+     * Pause a queue.
+     *
+     * @param AgentProxyService $agent
+     * @param int $serviceId
+     * @param string $queueName
+     * @return void
+     */
     public function pauseQueue(AgentProxyService $agent, int $serviceId, string $queueName): void {
         $service = Service::find($serviceId);
         if (! $service) {
@@ -27,6 +41,14 @@ class QueueList extends Component {
         $this->dispatch('queue-updated');
     }
 
+    /**
+     * Resume a queue.
+     *
+     * @param AgentProxyService $agent
+     * @param int $serviceId
+     * @param string $queueName
+     * @return void
+     */
     public function resumeQueue(AgentProxyService $agent, int $serviceId, string $queueName): void {
         $service = Service::find($serviceId);
         if (! $service) {
@@ -42,7 +64,12 @@ class QueueList extends Component {
         $this->dispatch('queue-updated');
     }
 
-    public function render() {
+    /**
+     * Render the queue list component.
+     *
+     * @return View
+     */
+    public function render(): View {
         $query = HorizonJob::query()
             ->select('service_id', 'queue', DB::raw('count(*) as job_count'))
             ->groupBy('service_id', 'queue')

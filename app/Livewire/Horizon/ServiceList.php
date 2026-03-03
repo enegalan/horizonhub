@@ -3,33 +3,89 @@
 namespace App\Livewire\Horizon;
 
 use App\Models\Service;
-use Illuminate\Support\Str;
 use Livewire\Component;
+use Illuminate\Support\Str;
+use Illuminate\Contracts\View\View;
 
 class ServiceList extends Component {
+    /**
+     * The name of the service.
+     *
+     * @var string
+     */
     public string $name = '';
 
+    /**
+     * The base URL of the service.
+     *
+     * @var string
+     */
     public string $baseUrl = '';
 
+    /**
+     * The new API key for the service.
+     *
+     * @var string|null
+     */
     public ?string $newApiKey = null;
 
+    /**
+     * The ID of the service being edited.
+     *
+     * @var int|null
+     */
     public ?int $editingServiceId = null;
 
+    /**
+     * The name of the service being edited.
+     *
+     * @var string
+     */
     public string $editName = '';
 
+    /**
+     * The base URL of the service being edited.
+     *
+     * @var string
+     */
     public string $editBaseUrl = '';
 
+    /**
+     * The ID of the service being confirmed for deletion.
+     *
+     * @var int|null
+     */
     public ?int $confirmingServiceId = null;
 
+    /**
+     * The name of the service being confirmed for deletion.
+     *
+     * @var string|null
+     */
     public ?string $confirmingServiceName = null;
 
+    /**
+     * The message of the service being confirmed for deletion.
+     *
+     * @var string|null
+     */
     public ?string $confirmingServiceMessage = null;
 
+    /**
+     * The rules for the service list component.
+     *
+     * @var array<string, string>
+     */
     protected $rules = [
         'name' => 'required|string|max:255|unique:services,name',
         'baseUrl' => 'required|url',
     ];
 
+    /**
+     * Save the service.
+     *
+     * @return void
+     */
     public function save(): void {
         $this->validate();
         $apiKey = Str::random(64);
@@ -44,6 +100,12 @@ class ServiceList extends Component {
         $this->dispatch('service-created');
     }
 
+    /**
+     * Open the edit modal.
+     *
+     * @param int $serviceId
+     * @return void
+     */
     public function openEdit(int $serviceId): void {
         $service = Service::find($serviceId);
         if (! $service) {
@@ -54,10 +116,20 @@ class ServiceList extends Component {
         $this->editBaseUrl = $service->base_url ?? '';
     }
 
+    /**
+     * Cancel the edit.
+     *
+     * @return void
+     */
     public function cancelEdit(): void {
         $this->reset('editingServiceId', 'editName', 'editBaseUrl');
     }
 
+    /**
+     * Update the service.
+     *
+     * @return void
+     */
     public function updateService(): void {
         $this->validate([
             'editName' => 'required|string|max:255|unique:services,name,' . (int) $this->editingServiceId,
@@ -75,6 +147,12 @@ class ServiceList extends Component {
         $this->dispatch('toast', type: 'success', message: 'Service updated.');
     }
 
+    /**
+     * Delete the service.
+     *
+     * @param int $serviceId
+     * @return void
+     */
     public function deleteService(int $serviceId): void {
         $service = Service::find($serviceId);
         if (! $service) {
@@ -90,6 +168,12 @@ class ServiceList extends Component {
         $this->dispatch('toast', type: 'success', message: 'Service deleted.');
     }
 
+    /**
+     * Confirm the deletion of the service.
+     *
+     * @param int $serviceId
+     * @return void
+     */
     public function confirmDeleteService(int $serviceId): void {
         $service = Service::find($serviceId);
 
@@ -99,12 +183,22 @@ class ServiceList extends Component {
         $this->confirmingServiceMessage = 'Are you sure you want to delete service ' . $name . '? Jobs using it will stop reporting through it.';
     }
 
+    /**
+     * Cancel the deletion of the service.
+     *
+     * @return void
+     */
     public function cancelDeleteService(): void {
         $this->confirmingServiceId = null;
         $this->confirmingServiceName = null;
         $this->confirmingServiceMessage = null;
     }
 
+    /**
+     * Perform the deletion of the service.
+     *
+     * @return void
+     */
     public function performDeleteService(): void {
         if ($this->confirmingServiceId === null) {
             return;
@@ -118,7 +212,12 @@ class ServiceList extends Component {
         $this->deleteService($serviceId);
     }
 
-    public function render() {
+    /**
+     * Render the service list component.
+     *
+     * @return View
+     */
+    public function render(): View {
         $services = Service::withCount(['horizonJobs', 'horizonFailedJobs'])->orderBy('name')->get();
 
         return view('livewire.horizon.service-list', [

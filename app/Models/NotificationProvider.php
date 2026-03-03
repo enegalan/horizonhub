@@ -20,11 +20,21 @@ class NotificationProvider extends Model {
         'config' => 'array',
     ];
 
+    /**
+     * Get the alerts of the provider.
+     *
+     * @return BelongsToMany
+     */
     public function alerts(): BelongsToMany {
         return $this->belongsToMany(Alert::class, 'alert_notification_provider')
             ->withTimestamps();
     }
 
+    /**
+     * Get the webhook URL of the provider.
+     *
+     * @return string
+     */
     public function getWebhookUrl(): string {
         if ($this->type !== self::TYPE_SLACK) {
             return '';
@@ -34,6 +44,8 @@ class NotificationProvider extends Model {
     }
 
     /**
+     * Get the email recipients of the provider.
+     *
      * @return array<int, string>
      */
     public function getToEmails(): array {

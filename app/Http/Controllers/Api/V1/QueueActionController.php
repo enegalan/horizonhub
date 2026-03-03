@@ -15,6 +15,13 @@ class QueueActionController extends Controller {
         private readonly AgentProxyService $agentProxy
     ) {}
 
+    /**
+     * Pause a queue.
+     *
+     * @param Request $request
+     * @param string $name
+     * @return JsonResponse
+     */
     public function pause(Request $request, string $name): JsonResponse {
         $serviceId = (int) $request->input('service_id');
         if (! $serviceId) {
@@ -42,6 +49,13 @@ class QueueActionController extends Controller {
         return response()->json(['message' => 'Queue pause requested']);
     }
 
+    /**
+     * Resume a queue.
+     *
+     * @param Request $request
+     * @param string $name
+     * @return JsonResponse
+     */
     public function resume(Request $request, string $name): JsonResponse {
         $serviceId = (int) $request->input('service_id');
         if (! $serviceId) {
