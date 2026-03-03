@@ -12,7 +12,6 @@ Route::prefix('horizon')->name('horizon.')->group(function (): void {
     Route::get('/metrics', \App\Livewire\Horizon\Metrics::class)->name('metrics');
     Route::get('/jobs/{job}', \App\Livewire\Horizon\JobDetail::class)->name('jobs.show');
     Route::get('/queues', \App\Livewire\Horizon\QueueList::class)->name('queues.index');
-    Route::get('/queues/body', \App\Http\Controllers\Horizon\QueueListBodyController::class)->name('queues.body');
     Route::get('/services', \App\Livewire\Horizon\ServiceList::class)->name('services.index');
     Route::get('/services/{service}', \App\Livewire\Horizon\ServiceDashboard::class)->name('services.show');
     Route::get('/alerts', \App\Livewire\Horizon\AlertList::class)->name('alerts.index');
