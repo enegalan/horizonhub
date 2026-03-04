@@ -1,7 +1,7 @@
 <div class="max-w-3xl space-y-6" x-data="{ tab: @entangle('tab') }">
     <nav class="flex gap-1 border-b border-border">
         <button type="button"
-                @click="tab = 'appearance'"
+                @click="tab = 'appearance'; $nextTick(() => window.dispatchEvent(new CustomEvent('apply-theme')))"
                 :class="tab === 'appearance' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
                 class="border-b-2 px-3 py-2 text-sm font-medium transition-colors">
             Appearance
@@ -25,14 +25,10 @@
             <h2 class="text-section-title text-foreground mb-3">Theme</h2>
             <p class="text-sm text-muted-foreground mb-4">Choose how Horizon Hub looks. You can pick a theme or use your system setting.</p>
             <div class="flex flex-wrap gap-2"
-                x-data="{
-                    theme: () => {
-                        const t = localStorage.getItem('horizonhub_theme');
-                        if (t) return t;
-                        return localStorage.getItem('horizonhub_dark') === 'true' ? 'dark' : 'light';
-                    }
-                }"
-                @theme-changed.window="theme = $event.detail">
+                x-data="{ theme: (window.__horizonhub_theme || 'light') }"
+                x-init="theme = (window.__horizonhub_theme || (function(){ var t = localStorage.getItem('horizonhub_theme'); if (!t) t = localStorage.getItem('horizonhub_dark') === 'true' ? 'dark' : 'light'; return (t === 'light' || t === 'dark' || t === 'system') ? t : 'light'; })())"
+                @theme-changed.window="theme = $event.detail"
+                @apply-theme.window="theme = (window.__horizonhub_theme || (function(){ var t = localStorage.getItem('horizonhub_theme'); if (!t) t = localStorage.getItem('horizonhub_dark') === 'true' ? 'dark' : 'light'; return (t === 'light' || t === 'dark' || t === 'system') ? t : 'light'; })())">
                 <button type="button"
                     @click="theme = 'light'; localStorage.setItem('horizonhub_theme', 'light'); $dispatch('theme-changed', 'light'); $dispatch('apply-theme')"
                     :class="theme === 'light' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'"

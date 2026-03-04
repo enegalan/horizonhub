@@ -1,21 +1,17 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}"
         x-data="{
-            theme: () => {
-                const t = localStorage.getItem('horizonhub_theme');
-                if (t) return t;
-                return localStorage.getItem('horizonhub_dark') === 'true' ? 'dark' : 'light';
-            },
+            theme: (window.__horizonhub_theme || 'light'),
             get dark() {
                 if (this.theme === 'system') return window.matchMedia('(prefers-color-scheme: dark)').matches;
                 return this.theme === 'dark';
             }
         }"
         x-init="document.documentElement.classList.toggle('dark', dark)"
-        x-effect="document.documentElement.classList.toggle('dark', dark); $nextTick(() => { if (theme) localStorage.setItem('horizonhub_theme', theme); })"
-        @theme-changed.window="theme = $event.detail; if (theme) localStorage.setItem('horizonhub_theme', theme)"
-        @apply-theme.window="theme = localStorage.getItem('horizonhub_theme') || (localStorage.getItem('horizonhub_dark') === 'true' ? 'dark' : 'light')"
-        @toggle-dark.window="theme = (theme === 'dark' ? 'light' : 'dark'); localStorage.setItem('horizonhub_theme', theme); localStorage.setItem('horizonhub_dark', theme === 'dark')">
+        x-effect="document.documentElement.classList.toggle('dark', dark)"
+        @theme-changed.window="theme = $event.detail; if (theme) { localStorage.setItem('horizonhub_theme', theme); window.__horizonhub_theme = theme }"
+        @apply-theme.window="theme = (window.__horizonhub_theme || (function(){ var t = localStorage.getItem('horizonhub_theme'); if (t === 'light' || t === 'dark' || t === 'system') return t; return localStorage.getItem('horizonhub_dark') === 'true' ? 'dark' : 'light'; })()); window.__horizonhub_theme = theme"
+        @toggle-dark.window="theme = (theme === 'dark' ? 'light' : 'dark'); localStorage.setItem('horizonhub_theme', theme); localStorage.setItem('horizonhub_dark', theme === 'dark'); window.__horizonhub_theme = theme">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -24,6 +20,8 @@
             (function () {
                 var t = localStorage.getItem('horizonhub_theme');
                 if (!t) t = localStorage.getItem('horizonhub_dark') === 'true' ? 'dark' : 'light';
+                if (t !== 'light' && t !== 'dark' && t !== 'system') t = 'light';
+                window.__horizonhub_theme = t;
                 var isDark = t === 'system' ? window.matchMedia('(prefers-color-scheme: dark)').matches : (t === 'dark');
                 document.documentElement.classList.toggle('dark', isDark);
             })();
@@ -63,8 +61,10 @@
         @toggle-sidebar.window="sidebarOpen = !sidebarOpen; window.dispatchEvent(new CustomEvent('sidebar-open-changed', { detail: sidebarOpen }))">
         <script>
             (() => {
-                var t = localStorage.getItem('horizonhub_theme');
+                var t = window.__horizonhub_theme || localStorage.getItem('horizonhub_theme');
                 if (!t) t = localStorage.getItem('horizonhub_dark') === 'true' ? 'dark' : 'light';
+                if (t !== 'light' && t !== 'dark' && t !== 'system') t = 'light';
+                window.__horizonhub_theme = t;
                 var isDark = t === 'system' ? window.matchMedia('(prefers-color-scheme: dark)').matches : (t === 'dark');
                 document.documentElement.classList.toggle('dark', isDark);
             })();

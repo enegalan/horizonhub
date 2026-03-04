@@ -33,7 +33,7 @@ function mountToaster() {
         try {
             var root = createRoot(el);
             root.render(React.createElement(Toaster, {
-                theme: 'system',
+                theme: 'light',
                 richColors: true,
                 position: 'bottom-right'
             }));
@@ -53,21 +53,26 @@ function hydratePage() {
     });
 }
 
+function syncTheme() {
+    applyTheme();
+    window.dispatchEvent(new CustomEvent('apply-theme'));
+}
+
 onDocumentReady(() => {
     mountToaster();
     registerToastEventListeners();
-    applyTheme();
+    syncTheme();
     hydratePage();
 });
 
 onLivewireNavigated(() => {
     mountToaster();
-    applyTheme();
+    syncTheme();
     hydratePage();
 });
 
 document.addEventListener('livewire:navigating', e => {
-    e.detail.onSwap(applyTheme);
+    e.detail.onSwap(syncTheme);
 });
 
 withLivewireInitialized(() => {
