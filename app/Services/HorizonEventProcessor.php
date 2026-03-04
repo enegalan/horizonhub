@@ -7,7 +7,9 @@ use App\Models\HorizonFailedJob;
 use App\Models\HorizonJob;
 use App\Models\HorizonSupervisorState;
 use App\Models\Service;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class HorizonEventProcessor {
     /**
@@ -47,6 +49,16 @@ class HorizonEventProcessor {
         $runtimeSeconds = isset($event['runtime_seconds']) ? (float) $event['runtime_seconds'] : null;
         $exception = $event['exception'] ?? null;
 
+        if ($queuedAt === null && isset($payload) && is_array($payload)) {
+            $pushedAtRaw = isset($payload['pushedAt']) ? $payload['pushedAt'] : null;
+            if ($pushedAtRaw !== null && is_numeric($pushedAtRaw)) {
+                $pushedAtFloat = (float) $pushedAtRaw;
+                if ($pushedAtFloat > 0) {
+                    $queuedAt = Carbon::createFromTimestamp((int) $pushedAtFloat)->toIso8601String();
+                }
+            }
+        }
+
         DB::transaction(function () use ($service, $eventType, $jobId, $queue, $name, $payload, $attempts, $status, $processedAt, $failedAt, $queuedAt, $runtimeSeconds, $exception) {
             if ($eventType === 'JobFailed') {
                 HorizonFailedJob::create([
@@ -60,22 +72,37 @@ class HorizonEventProcessor {
             }
 
             $failedAtParsed = $failedAt ? now()->parse($failedAt) : null;
-            $attributes = [
-                'queue' => $queue,
-                'payload' => $payload,
-                'status' => $status,
-                'attempts' => $attempts,
-                'name' => $name,
-                'processed_at' => $processedAt ? now()->parse($processedAt) : null,
-                'failed_at' => $eventType === 'JobFailed' ? $failedAtParsed : null,
-                'runtime_seconds' => $runtimeSeconds,
-            ];
-            if ($queuedAt !== null) {
-                $attributes['queued_at'] = now()->parse($queuedAt);
+            $existing = HorizonJob::where('service_id', $service->id)->where('job_uuid', $jobId)->lockForUpdate()->first();
+
+            $processedAtParsed = $processedAt ? now()->parse($processedAt) : null;
+
+            $existingStatus = $existing ? $existing->status : null;
+            $statusForAttributes = $status !== null ? $status : $existingStatus;
+
+            if ($existing && $existing->failed_at !== null && $eventType !== 'JobFailed') {
+                $statusForAttributes = $existingStatus;
             }
-            if ($eventType === 'JobFailed' && $exception !== null) {
-                $attributes['exception'] = $exception;
+
+            $attributes = array(
+                'queue' => $queue !== '' ? $queue : ($existing ? $existing->queue : null),
+                'payload' => $payload !== null ? $payload : ($existing ? $existing->payload : null),
+                'status' => $statusForAttributes,
+                'attempts' => $attempts !== 0 ? $attempts : ($existing ? $existing->attempts : 0),
+                'name' => $name !== null ? $name : ($existing ? $existing->name : null),
+                'processed_at' => $processedAtParsed !== null ? $processedAtParsed : ($existing ? $existing->processed_at : null),
+                'failed_at' => $existing ? $existing->failed_at : null,
+                'runtime_seconds' => $runtimeSeconds !== null ? $runtimeSeconds : ($existing ? $existing->runtime_seconds : null),
+                'queued_at' => $queuedAt !== null ? now()->parse($queuedAt) : ($existing ? $existing->queued_at : null),
+                'exception' => $existing ? $existing->exception : null,
+            );
+
+            if ($eventType === 'JobFailed') {
+                $attributes['failed_at'] = $failedAtParsed !== null ? $failedAtParsed : $attributes['failed_at'];
+                if ($exception !== null) {
+                    $attributes['exception'] = $exception;
+                }
             }
+
             HorizonJob::updateOrCreate(
                 [
                     'service_id' => $service->id,

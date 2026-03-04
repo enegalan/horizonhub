@@ -41,7 +41,7 @@ class HorizonJob extends Model {
         if (isset($this->runtime_seconds) && $this->runtime_seconds >= 0) {
             return round((float) $this->runtime_seconds, 3);
         }
-        $start = $this->queued_at ?? $this->created_at;
+        $start = $this->queued_at;
         $end = $this->processed_at ?? $this->failed_at;
         if ($end === null || $start === null) {
             return null;
