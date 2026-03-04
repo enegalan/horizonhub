@@ -51,7 +51,7 @@ class HorizonJob extends Model {
     }
 
     /**
-     * Human-readable runtime: "85 ms" when &lt; 1s, "1.23 s" otherwise.
+     * Human-readable runtime in seconds (e.g. "0.08 s", "1.23 s").
      *
      * @return string|null
      */
@@ -59,10 +59,6 @@ class HorizonJob extends Model {
         $seconds = $this->getRuntimeSeconds();
         if ($seconds === null) {
             return null;
-        }
-        if ($seconds < 1 && $seconds >= 0) {
-            $ms = (int) round($seconds * 1000);
-            return $ms . ' ms';
         }
         return number_format($seconds, 2) . ' s';
     }
