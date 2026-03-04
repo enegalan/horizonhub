@@ -56,7 +56,7 @@
     </head>
     <body class="font-sans antialiased min-h-screen"
             x-data="{
-                    sidebarOpen: localStorage.getItem('horizon_sidebar_open') !== 'false'
+                sidebarOpen: localStorage.getItem('horizon_sidebar_open') !== 'false'
             }"
             x-init="document.body.classList.toggle('sidebar-collapsed', !sidebarOpen)"
             x-effect="localStorage.setItem('horizon_sidebar_open', sidebarOpen); document.body.classList.toggle('sidebar-collapsed', !sidebarOpen)"
@@ -68,7 +68,6 @@
                 var isDark = t === 'system' ? window.matchMedia('(prefers-color-scheme: dark)').matches : (t === 'dark');
                 document.documentElement.classList.toggle('dark', isDark);
             })();
-            window.horizonQueuesBodyUrl = '{{ route("horizon.queues.body") }}';
             window.addEventListener('horizon-hub-refresh', function () {
                 var main = document.querySelector('main');
                 if (!main) return;
