@@ -209,7 +209,7 @@ class JobList extends Component {
             $query->where('service_id', $this->serviceFilter);
         }
         if ($this->queueFilter) {
-            $query->where('queue', $this->queueFilter);
+            $query->where('queue', 'like', '%' . $this->queueFilter . '%');
         }
         if ($this->statusFilter) {
             $query->where('status', $this->statusFilter);
