@@ -13,9 +13,9 @@
             <div><dt class="text-[11px] font-medium text-muted-foreground">Status</dt><dd class="mt-0.5">@if($job->status === 'failed')<span class="badge-danger">{{ $job->status }}</span>@elseif($job->status === 'processed')<span class="badge-success">{{ $job->status }}</span>@else<span class="badge-muted">{{ $job->status }}</span>@endif</dd></div>
             <div><dt class="text-[11px] font-medium text-muted-foreground">Attempts</dt><dd class="mt-0.5 text-foreground">{{ $job->attempts ?? '–' }}</dd></div>
             <div><dt class="text-[11px] font-medium text-muted-foreground">Runtime</dt><dd class="mt-0.5 text-foreground">{{ $job->getFormattedRuntime() ?? '–' }}</dd></div>
-            <div><dt class="text-[11px] font-medium text-muted-foreground">Queued at</dt><dd class="mt-0.5 text-foreground">{{ ($job->queued_at ?? $job->created_at)?->toIso8601String() ?? '–' }}</dd></div>
-            <div><dt class="text-[11px] font-medium text-muted-foreground">Processed at</dt><dd class="mt-0.5 text-foreground">{{ $job->processed_at?->toIso8601String() ?? '–' }}</dd></div>
-            <div><dt class="text-[11px] font-medium text-muted-foreground">Failed at</dt><dd class="mt-0.5 text-foreground">{{ $job->failed_at?->toIso8601String() ?? '–' }}</dd></div>
+            <div><dt class="text-[11px] font-medium text-muted-foreground">Queued at</dt><dd class="mt-0.5 text-foreground" data-datetime="{{ $job->queued_at?->toIso8601String() ?? '' }}">{{ $job->queued_at ? '…' : '–' }}</dd></div>
+            <div><dt class="text-[11px] font-medium text-muted-foreground">Processed at</dt><dd class="mt-0.5 text-foreground" data-datetime="{{ $job->processed_at?->toIso8601String() ?? '' }}">{{ $job->processed_at ? '…' : '–' }}</dd></div>
+            <div><dt class="text-[11px] font-medium text-muted-foreground">Failed at</dt><dd class="mt-0.5 text-foreground" data-datetime="{{ $job->failed_at?->toIso8601String() ?? '' }}">{{ $job->failed_at ? '…' : '–' }}</dd></div>
         </dl>
         @if($exception !== null && $exception !== '')
             <div>

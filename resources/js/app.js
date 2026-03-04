@@ -315,3 +315,48 @@ import 'sonner/dist/styles.css';
         });
     });
 })();
+
+(function () {
+    function formatDateTimeElements() {
+        var els = document.querySelectorAll('[data-datetime]');
+        if (!els || !els.length) return;
+        els.forEach(function (el) {
+            var iso = el.getAttribute('data-datetime');
+            if (!iso) return;
+            try {
+                var d = new Date(iso);
+                if (isNaN(d.getTime())) return;
+                function pad(n) { return n < 10 ? '0' + n : '' + n; }
+                var year = d.getFullYear();
+                var month = pad(d.getMonth() + 1);
+                var day = pad(d.getDate());
+                var hour = pad(d.getHours());
+                var minute = pad(d.getMinutes());
+                var second = pad(d.getSeconds());
+                var formatted = year + '-' + month + '-' + day + ' ' + hour + ':' + minute + ':' + second;
+                el.textContent = formatted;
+            } catch (e) {
+            }
+        });
+    }
+
+    function scheduleFormat() {
+        setTimeout(formatDateTimeElements, 0);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', scheduleFormat);
+    } else {
+        scheduleFormat();
+    }
+
+    document.addEventListener('livewire:navigated', scheduleFormat);
+    document.addEventListener('livewire:initialized', function () {
+        if (typeof window.Livewire === 'undefined') return;
+        window.Livewire.hook('request', function (ref) {
+            var succeed = ref.succeed;
+            if (succeed) succeed(scheduleFormat);
+        });
+        window.Livewire.hook('morph.updated', scheduleFormat);
+    });
+})();

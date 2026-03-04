@@ -57,9 +57,9 @@
                                 @endif
                             </td>
                             <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="attempts">{{ $job->attempts ?? '–' }}</td>
-                            <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="queued_at">{{ ($job->queued_at ?? $job->created_at)?->format('Y-m-d H:i:s') ?? '–' }}</td>
-                            <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="processed">{{ $job->processed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
-                            <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="failed_at">{{ $job->failed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
+                            <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="queued_at" data-datetime="{{ $job->queued_at?->toIso8601String() ?? '' }}">{{ $job->queued_at ? '…' : '–' }}</td>
+                            <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="processed" data-datetime="{{ $job->processed_at?->toIso8601String() ?? '' }}">{{ $job->processed_at ? '…' : '–' }}</td>
+                            <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="failed_at" data-datetime="{{ $job->failed_at?->toIso8601String() ?? '' }}">{{ $job->failed_at ? '…' : '–' }}</td>
                             <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="runtime">
                                 {{ $job->getFormattedRuntime() ?? '–' }}
                             </td>
