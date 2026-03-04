@@ -1,7 +1,7 @@
 (function () {
     var STORAGE_PREFIX = 'horizon_table_';
     var MIN_WIDTH = 60;
-    var RESIZE_HANDLE_WIDTH = 1;
+    var RESIZE_HANDLE_WIDTH = 8;
     var DRAG_OVER_CLASS = 'horizon-drag-over';
 
     window.horizonTableInteracting = false;
@@ -105,13 +105,20 @@
             var handle = document.createElement('span');
             handle.className = 'horizon-resize-handle';
             handle.title = 'Resize column';
-            handle.style.cssText = 'position:absolute;right:0;top:0;bottom:0;width:' + RESIZE_HANDLE_WIDTH + 'px;cursor:col-resize;margin-right:-' + (RESIZE_HANDLE_WIDTH / 2) + 'px;' + 'background-color: hsl(var(--primary) / .1);';
+            handle.style.cssText = 'position:absolute;right:0;top:0;bottom:0;width:' + RESIZE_HANDLE_WIDTH + 'px;cursor:col-resize;margin-right:-' + (RESIZE_HANDLE_WIDTH / 2) + 'px;background-color:transparent;';
             th.style.position = 'relative';
+
+            var line = document.createElement('span');
+            line.style.cssText = 'position:absolute;top:0;bottom:0;right:' + (RESIZE_HANDLE_WIDTH / 2 - 0.5) + 'px;width:1px;background-color:hsl(var(--primary) / .15);';
+            handle.appendChild(line);
+
             th.appendChild(handle);
 
             handle.addEventListener('mousedown', function (e) {
                 e.preventDefault();
                 window.horizonTableInteracting = true;
+                th.setAttribute('data-horizon-resizing', '1');
+                th.draggable = false;
                 var startX = e.clientX;
                 var startWidth = th.offsetWidth;
 
@@ -125,6 +132,8 @@
                     document.removeEventListener('mouseup', onUp);
                     document.body.style.cursor = '';
                     document.body.style.userSelect = '';
+                    th.removeAttribute('data-horizon-resizing');
+                    th.draggable = true;
                     saveState(storageKey, state.order, state.widths);
                     window.horizonTableInteracting = false;
                 }
@@ -194,6 +203,10 @@
             th.classList.add('select-none');
 
             th.addEventListener('dragstart', function (e) {
+                if (th.getAttribute('data-horizon-resizing') === '1') {
+                    e.preventDefault();
+                    return;
+                }
                 window.horizonTableInteracting = true;
                 e.dataTransfer.effectAllowed = 'move';
                 var colId = th.getAttribute('data-column-id');
