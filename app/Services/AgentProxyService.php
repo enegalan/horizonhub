@@ -93,9 +93,30 @@ class AgentProxyService {
             }
 
             $service->update(['status' => 'offline']);
+
+            $rawBody = $response->body();
+            $message = 'Agent error';
+
+            $decoded = null;
+            if ($rawBody !== '' && $rawBody !== null) {
+                $decoded = json_decode($rawBody, true);
+            }
+
+            if (is_array($decoded) && isset($decoded['message']) && (string) $decoded['message'] !== '') {
+                $message = (string) $decoded['message'];
+            } else {
+                $trimmedBody = trim((string) $rawBody);
+                $isHtml = $trimmedBody !== strip_tags($trimmedBody);
+                if (! $isHtml && $trimmedBody !== '') {
+                    $message = mb_substr($trimmedBody, 0, 200);
+                } else {
+                    $message = 'Agent returned an HTTP error (' . $response->status() . ').';
+                }
+            }
+
             return [
                 'success' => false,
-                'message' => $response->body() ?: 'Agent error',
+                'message' => $message,
                 'status' => $response->status(),
             ];
         } catch (\Throwable $e) {

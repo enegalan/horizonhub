@@ -120,6 +120,17 @@ class JobDetail extends Component {
         $this->showDeleteModal = false;
         $result = $agent->deleteJob($job->service, $job->job_uuid);
         if ($result['success']) {
+            if ($job instanceof HorizonJob) {
+                HorizonFailedJob::where('service_id', $job->service_id)
+                    ->where('job_uuid', $job->job_uuid)
+                    ->delete();
+            }
+            if ($job instanceof HorizonFailedJob) {
+                HorizonJob::where('service_id', $job->service_id)
+                    ->where('job_uuid', $job->job_uuid)
+                    ->delete();
+            }
+            $job->delete();
             $this->dispatch('toast', type: 'success', message: 'Job deleted.');
             $this->redirect(route('horizon.index'), navigate: true);
         } else {

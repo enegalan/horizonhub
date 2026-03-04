@@ -41,9 +41,11 @@
                         </span>
                     </x-button>
                 @endif
-                <x-button variant="destructive" type="button" wire:click="confirmDelete" class="h-8 min-h-8 p-2" aria-label="Delete" title="Delete">
-                    <x-heroicon-o-trash class="size-4" />
-                </x-button>
+                @if($job->status !== 'processing')
+                    <x-button variant="destructive" type="button" wire:click="confirmDelete" class="h-8 min-h-8 p-2" aria-label="Delete" title="Delete">
+                        <x-heroicon-o-trash class="size-4" />
+                    </x-button>
+                @endif
             </div>
         @endif
     </div>
