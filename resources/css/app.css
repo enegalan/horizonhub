@@ -51,29 +51,25 @@
         scrollbar-color: hsl(var(--muted-foreground) / 0.4) transparent;
     }
     *::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        @apply w-2 h-2;
     }
     *::-webkit-scrollbar-track {
-        background: transparent;
+        @apply bg-transparent;
     }
     *::-webkit-scrollbar-thumb {
-        background: hsl(var(--muted-foreground) / 0.4);
-        border-radius: 4px;
+        @apply bg-muted-foreground/40 rounded-md;
     }
     *::-webkit-scrollbar-thumb:hover {
-        background: hsl(var(--muted-foreground) / 0.6);
+        @apply bg-muted-foreground/60;
     }
     *::-webkit-scrollbar-corner {
-        background: transparent;
+        @apply bg-transparent;
     }
     html {
-        @apply scroll-smooth;
-        min-height: 100%;
+        @apply scroll-smooth min-h-screen;
     }
     body {
         @apply bg-background text-foreground antialiased min-h-screen;
-        min-height: 100vh;
     }
     input[type="text"],
     input[type="url"],
@@ -89,18 +85,12 @@
 }
 
 @layer components {
-    .main-content {
-        min-height: 100vh;
-        z-index: 0;
-    }
     .nav-sidebar-column {
         transition: width 0.3s ease-in-out;
     }
     @media (min-width: 1024px) {
         body.sidebar-collapsed .nav-sidebar-column {
-            min-width: 0;
-            overflow: hidden;
-            width: 0;
+            @apply min-w-0 overflow-hidden w-0;
         }
     }
     .card {
@@ -157,72 +147,31 @@
     .empty-state-description {
         @apply text-xs text-muted-foreground mb-3 max-w-[280px];
     }
-    .ui-backdrop {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 0;
-        background: rgba(0, 0, 0, 0.55);
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
-    }
-    .ui-backdrop--muted {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 0;
-        background: hsl(var(--foreground) / 0.1);
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
-    }
-    .input-custom,
-    .select-custom {
-        @apply flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50;
-    }
-    .select-custom {
-        @apply appearance-none cursor-pointer pr-8;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-        background-position: right 0.5rem center;
-        background-repeat: no-repeat;
-        background-size: 1rem;
-    }
-    .dark .select-custom {
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-    }
 }
 
-th.horizon-drag-over,
 .horizon-drag-over {
-    background-color: hsl(var(--primary) / 0.2) !important;
+    @apply bg-primary/20 !important;
 }
 
-.queue-action-btn[data-loading] .queue-btn-text,
 .queue-action-btn[data-loading] .queue-btn-icon {
-    display: none;
+    @apply hidden;
 }
 .queue-action-btn[data-loading] .queue-btn-spinner {
-    display: inline-flex;
+    @apply inline-flex;
 }
 .queue-action-btn .queue-btn-spinner {
-    display: none;
+    @apply hidden;
 }
 
 th[data-column-id="actions"],
 td[data-column-id="actions"] {
-    text-align: center;
+    @apply text-center;
 }
 td[data-column-id="actions"] > div {
-    justify-content: center;
+    @apply justify-center;
 }
 
-.livewire-navigate-progress {
-    background-color: hsl(var(--primary));
-}
-
+.livewire-navigate-progress,
 .dark .livewire-navigate-progress {
-    background-color: hsl(var(--primary));
+    @apply bg-primary;
 }
