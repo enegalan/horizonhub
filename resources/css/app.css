@@ -149,10 +149,6 @@
     }
 }
 
-.horizon-drag-over {
-    @apply bg-primary/20 !important;
-}
-
 .queue-action-btn[data-loading] .queue-btn-icon {
     @apply hidden;
 }

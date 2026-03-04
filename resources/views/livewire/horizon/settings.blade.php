@@ -26,29 +26,29 @@
             <p class="text-sm text-muted-foreground mb-4">Choose how Horizon Hub looks. You can pick a theme or use your system setting.</p>
             <div class="flex flex-wrap gap-2"
                 x-data="{
-                    theme: (function() {
+                    theme: () => {
                         const t = localStorage.getItem('horizonhub_theme');
                         if (t) return t;
                         return localStorage.getItem('horizonhub_dark') === 'true' ? 'dark' : 'light';
-                    })()
+                    }
                 }"
                 @theme-changed.window="theme = $event.detail">
                 <button type="button"
-                        @click="theme = 'light'; localStorage.setItem('horizonhub_theme', 'light'); $dispatch('theme-changed', 'light'); $dispatch('apply-theme')"
-                        :class="theme === 'light' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'"
-                        class="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors">
+                    @click="theme = 'light'; localStorage.setItem('horizonhub_theme', 'light'); $dispatch('theme-changed', 'light'); $dispatch('apply-theme')"
+                    :class="theme === 'light' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'"
+                    class="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors">
                     Light
                 </button>
                 <button type="button"
-                        @click="theme = 'dark'; localStorage.setItem('horizonhub_theme', 'dark'); $dispatch('theme-changed', 'dark'); $dispatch('apply-theme')"
-                        :class="theme === 'dark' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'"
-                        class="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors">
+                    @click="theme = 'dark'; localStorage.setItem('horizonhub_theme', 'dark'); $dispatch('theme-changed', 'dark'); $dispatch('apply-theme')"
+                    :class="theme === 'dark' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'"
+                    class="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors">
                     Dark
                 </button>
                 <button type="button"
-                        @click="theme = 'system'; localStorage.setItem('horizonhub_theme', 'system'); $dispatch('theme-changed', 'system'); $dispatch('apply-theme')"
-                        :class="theme === 'system' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'"
-                        class="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors">
+                    @click="theme = 'system'; localStorage.setItem('horizonhub_theme', 'system'); $dispatch('theme-changed', 'system'); $dispatch('apply-theme')"
+                    :class="theme === 'system' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'"
+                    class="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors">
                     System
                 </button>
             </div>
@@ -63,11 +63,11 @@
                 <div class="flex flex-col gap-1.5">
                     <x-input-label class="text-[11px] font-medium text-muted-foreground" for="alert_email_interval_minutes">Minutes between emails</x-input-label>
                     <x-text-input type="number"
-                                  id="alert_email_interval_minutes"
-                                  wire:model="alert_email_interval_minutes"
-                                  min="0"
-                                  max="1440"
-                                  class="w-24" />
+                        id="alert_email_interval_minutes"
+                        wire:model="alert_email_interval_minutes"
+                        min="0"
+                        max="1440"
+                        class="w-24" />
                     @error('alert_email_interval_minutes')
                         <p class="text-sm text-destructive">{{ $message }}</p>
                     @enderror
@@ -127,7 +127,7 @@
                                         <span class="badge">Email</span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-2.5 text-sm text-muted-foreground font-mono text-xs max-w-xs truncate">
+                                <td class="px-4 py-2.5 text-sm text-muted-foreground font-mono max-w-xs truncate">
                                     @if($provider->type === 'slack')
                                         {{ $provider->getWebhookUrl() ?: '–' }}
                                     @else
@@ -184,7 +184,7 @@
 
 @script
 <script>
-    window.addEventListener('horizon-hub-refresh', function () {
+    window.addEventListener('horizon-hub-refresh', () => {
         try { $wire.$refresh(); } catch (e) {}
     });
 </script>

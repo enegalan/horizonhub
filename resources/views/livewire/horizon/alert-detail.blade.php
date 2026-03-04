@@ -203,7 +203,7 @@
 
 @script
 <script>
-    window.addEventListener('horizon-hub-refresh', function () {
+    window.addEventListener('horizon-hub-refresh', () => {
         if (window.horizonTableInteracting) return;
         try { $wire.$refresh(); } catch (e) {}
     });

@@ -66,7 +66,7 @@
 
 @script
 <script>
-    window.addEventListener('horizon-hub-refresh', function () {
+    window.addEventListener('horizon-hub-refresh', () => {
         try { $wire.$refresh(); } catch (e) {}
     });
 </script>

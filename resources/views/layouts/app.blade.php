@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}"
         x-data="{
-            theme: (function() {
-                    const t = localStorage.getItem('horizonhub_theme');
-                    if (t) return t;
-                    return localStorage.getItem('horizonhub_dark') === 'true' ? 'dark' : 'light';
-            })(),
+            theme: () => {
+                const t = localStorage.getItem('horizonhub_theme');
+                if (t) return t;
+                return localStorage.getItem('horizonhub_dark') === 'true' ? 'dark' : 'light';
+            },
             get dark() {
-                    if (this.theme === 'system') return window.matchMedia('(prefers-color-scheme: dark)').matches;
-                    return this.theme === 'dark';
+                if (this.theme === 'system') return window.matchMedia('(prefers-color-scheme: dark)').matches;
+                return this.theme === 'dark';
             }
         }"
         x-init="document.documentElement.classList.toggle('dark', dark)"
@@ -39,7 +39,7 @@
         <script>
             window.horizonHubHotReloadInterval = {{ (int) config('horizonhub.hot_reload_interval', 5) }};
             window.horizonHubHotReloadTimer = null;
-            document.addEventListener('alpine:init', function () {
+            document.addEventListener('alpine:init', () => {
                 Alpine.store('hotReload', {
                     enabled: localStorage.getItem('horizonhub_hotreload') !== 'false',
                     interval: Math.max(1, window.horizonHubHotReloadInterval || 5)
@@ -55,20 +55,20 @@
         </script>
     </head>
     <body class="font-sans antialiased min-h-screen"
-            x-data="{
-                sidebarOpen: localStorage.getItem('horizon_sidebar_open') !== 'false'
-            }"
-            x-init="document.body.classList.toggle('sidebar-collapsed', !sidebarOpen)"
-            x-effect="localStorage.setItem('horizon_sidebar_open', sidebarOpen); document.body.classList.toggle('sidebar-collapsed', !sidebarOpen)"
-            @toggle-sidebar.window="sidebarOpen = !sidebarOpen; window.dispatchEvent(new CustomEvent('sidebar-open-changed', { detail: sidebarOpen }))">
+        x-data="{
+            sidebarOpen: localStorage.getItem('horizon_sidebar_open') !== 'false'
+        }"
+        x-init="document.body.classList.toggle('sidebar-collapsed', !sidebarOpen)"
+        x-effect="localStorage.setItem('horizon_sidebar_open', sidebarOpen); document.body.classList.toggle('sidebar-collapsed', !sidebarOpen)"
+        @toggle-sidebar.window="sidebarOpen = !sidebarOpen; window.dispatchEvent(new CustomEvent('sidebar-open-changed', { detail: sidebarOpen }))">
         <script>
-            (function () {
+            (() => {
                 var t = localStorage.getItem('horizonhub_theme');
                 if (!t) t = localStorage.getItem('horizonhub_dark') === 'true' ? 'dark' : 'light';
                 var isDark = t === 'system' ? window.matchMedia('(prefers-color-scheme: dark)').matches : (t === 'dark');
                 document.documentElement.classList.toggle('dark', isDark);
             })();
-            window.addEventListener('horizon-hub-refresh', function () {
+            window.addEventListener('horizon-hub-refresh', () => {
                 var main = document.querySelector('main');
                 if (!main) return;
                 if (main.querySelector('table[data-resizable-table]') || window.horizonTableInteracting) return;
@@ -85,7 +85,7 @@
                     } catch (e) {}
                 }
             });
-            document.body.addEventListener('click', function (e) {
+            document.body.addEventListener('click', e => {
                 var btn = e.target.closest('[data-queue-action]');
                 if (!btn || !btn.closest('[data-table-body="horizon-queue-list"]')) return;
                 e.preventDefault();
@@ -105,21 +105,21 @@
                         'X-CSRF-TOKEN': token ? token.getAttribute('content') : ''
                     },
                     body: JSON.stringify({ service_id: serviceId })
-                }).then(function (r) {
+                }).then(r => {
                     btn.disabled = false;
                     btn.removeAttribute('data-loading');
                     if (!r.ok) {
-                        return r.json().then(function (body) {
+                        return r.json().then(body => {
                             if (window.toast) window.toast.error(body.message || 'Request failed');
                             else alert(body.message || 'Request failed');
-                        }).catch(function () {
+                        }).catch(() => {
                             if (window.toast) window.toast.error('Request failed');
                             else alert('Request failed');
                         });
                     }
                     if (window.toast) window.toast.success(action === 'pause' ? 'Queue paused.' : 'Queue resumed.');
                     window.dispatchEvent(new CustomEvent('horizon-queue-action-done'));
-                }).catch(function () {
+                }).catch(() => {
                     btn.disabled = false;
                     btn.removeAttribute('data-loading');
                     if (window.toast) window.toast.error('Network error');

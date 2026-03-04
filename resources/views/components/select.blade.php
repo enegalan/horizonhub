@@ -11,13 +11,13 @@
         selectedValue: '',
         get hiddenSelect() { return this.$refs.hidden; },
         get options() {
-                if (!this.hiddenSelect) return [];
-                return Array.from(this.hiddenSelect.options).map(function(o) {
-                        return { value: o.value, label: o.textContent.trim() };
-                });
+            if (!this.hiddenSelect) return [];
+            return Array.from(this.hiddenSelect.options).map(o => {
+                return { value: o.value, label: o.textContent.trim() };
+            });
         },
         get selectedLabel() {
-            var opt = this.options.find(function(o) { return o.value === this.selectedValue; }.bind(this));
+            var opt = this.options.find(o => o.value === this.selectedValue);
             return opt ? opt.label : (this.placeholder || '');
         },
         placeholder: {{ json_encode($placeholder) }},
@@ -40,7 +40,7 @@
     @click.away="open = false"
     x-cloak>
     <select x-ref="hidden"
-            {{ $selectAttrs->merge(array('class' => 'sr-only')) }}>
+        {{ $selectAttrs->merge(array('class' => 'sr-only')) }}>
         @if($placeholder !== '')
             <option value="">{{ $placeholder }}</option>
         @endif
@@ -51,10 +51,10 @@
     </select>
 
     <button type="button"
-            @click="open = !open"
-            :aria-expanded="open"
-            aria-haspopup="listbox"
-            class="flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
+        @click="open = !open"
+        :aria-expanded="open"
+        aria-haspopup="listbox"
+        class="flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
         <span x-text="selectedLabel" class="block truncate text-left"></span>
         <svg class="h-4 w-4 shrink-0 opacity-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
             <path d="m6 9 6 6 6-6"/>
@@ -72,10 +72,10 @@
         role="listbox">
         <template x-for="opt in options" :key="opt.value">
             <button type="button"
-                    @click="choose(opt)"
-                    :class="opt.value === selectedValue ? 'text-accent-foreground' : ''"
-                    class="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                    role="option">
+                @click="choose(opt)"
+                :class="opt.value === selectedValue ? 'text-accent-foreground' : ''"
+                class="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                role="option">
                 <span class="block truncate" x-text="opt.label"></span>
                 <span x-show="opt.value === selectedValue" class="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
