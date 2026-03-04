@@ -15,13 +15,11 @@ Example Laravel apps with Horizon and the Horizon Hub Agent, used to test the hu
 
 ## Local development (demo-app without Docker)
 
-The demo-app depends on the Horizon Hub Agent via a path repository (`../../packages/horizon-hub-agent`). From the repo root run:
+The demo-app depends on the Horizon Hub Agent via the Packagist package `horizonhub/agent`. From the repo root run:
 
 ```bash
 cd examples/demo-app && composer install
 ```
-
-So that the path resolves, Composer must be run from `examples/demo-app` (the agent is at `../../packages/horizon-hub-agent` from there). The Docker build uses the repo root as context and copies the agent to `/var/packages/horizon-hub-agent` so the same path works inside the container.
 
 ## Run hub with demo apps
 

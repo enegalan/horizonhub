@@ -14,7 +14,6 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 
 WORKDIR /var/www/html
 
-COPY packages/horizon-hub-agent /var/packages/horizon-hub-agent
 COPY examples/demo-app/composer.json examples/demo-app/composer.lock* ./
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
 

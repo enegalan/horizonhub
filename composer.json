@@ -1,13 +1,13 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "horizonhub/horizonhub",
+    "version": "1.0.0",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "Horizon Hub - Centralized dashboard for monitoring Laravel Horizon jobs across multiple services",
+    "keywords": ["laravel", "horizon", "hub", "dashboard", "jobs", "monitoring"],
     "license": "MIT",
     "require": {
-        "php": "^8.2",
-        "laravel/breeze": "^2.3",
+        "php": ">=8.0",
         "laravel/framework": "^12.0",
         "laravel/reverb": "^1.8",
         "laravel/tinker": "^2.10.1",
