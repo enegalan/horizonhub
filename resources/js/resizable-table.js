@@ -138,11 +138,13 @@ import { parseJson } from './utils/parse';
             if (existing) return;
 
             var handle = document.createElement('span');
-            handle.className = 'horizon-resize-handle absolute relative right-0 top-0 bottom-0 cursor-col-resize w-[' + RESIZE_HANDLE_WIDTH + 'px] mr-[-' + (RESIZE_HANDLE_WIDTH / 2) + 'px] bg-transparent';
+            handle.className = 'horizon-resize-handle absolute right-0 top-0 bottom-0 cursor-col-resize bg-transparent';
+            handle.style.cssText = 'width:' + RESIZE_HANDLE_WIDTH + 'px;margin-right:-' + (RESIZE_HANDLE_WIDTH / 2) + 'px;';
             handle.title = 'Resize column';
 
             var line = document.createElement('span');
-            line.className = 'absolute top-0 bottom-0 right-[' + (RESIZE_HANDLE_WIDTH / 2 - 0.5) + 'px] w-1 bg-primary/15';
+            line.className = 'absolute top-0 bottom-0 w-px bg-primary/15';
+            line.style.cssText = 'right:' + (RESIZE_HANDLE_WIDTH / 2 - 0.5) + 'px;';
             handle.appendChild(line);
 
             th.appendChild(handle);

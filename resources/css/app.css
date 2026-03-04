@@ -127,7 +127,7 @@
         @apply badge border-transparent bg-muted text-muted-foreground;
     }
     .table-header {
-        @apply text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground;
+        @apply relative text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground;
     }
     .horizon-resize-handle:hover {
         @apply bg-primary/20;
