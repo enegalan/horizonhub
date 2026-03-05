@@ -1,4 +1,21 @@
-<div class="max-w-3xl space-y-6" x-data="{ tab: @entangle('tab') }">
+<div class="max-w-3xl space-y-6"
+    x-data="{
+        tab: @entangle('tab'),
+        contentHeight: 280,
+        measureMode: true,
+        refName() { return this.tab + 'Panel'; },
+        updateHeight() {
+            const el = this.$refs[this.refName()];
+            if (el) this.contentHeight = el.offsetHeight;
+        }
+    }"
+    x-init="
+        $watch('tab', () => {
+            measureMode = true;
+            $nextTick(() => { updateHeight(); measureMode = false; });
+        });
+        $nextTick(() => updateHeight());
+    ">
     <nav class="flex gap-1 border-b border-border">
         <button no-ring type="button"
             @click="tab = 'appearance'; $nextTick(() => window.dispatchEvent(new CustomEvent('apply-theme')))"
@@ -20,7 +37,19 @@
         </button>
     </nav>
 
-    <div x-show="tab === 'appearance'" class="card" x-cloak x-transition>
+    <div class="relative overflow-hidden transition-[height] duration-200 ease-out"
+        :style="measureMode ? 'min-height: ' + contentHeight + 'px' : 'height: ' + contentHeight + 'px'">
+        <div x-show="tab === 'appearance'"
+            x-ref="appearancePanel"
+            x-cloak
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            :class="(measureMode && tab === 'appearance') ? 'relative' : 'absolute inset-x-0 top-0'"
+            class="card">
         <div class="px-4 py-4">
             <h2 class="text-section-title text-foreground mb-3">Theme</h2>
             <p class="text-sm text-muted-foreground mb-4">Choose how Horizon Hub looks. You can pick a theme or use your system setting.</p>
@@ -49,9 +78,18 @@
                 </button>
             </div>
         </div>
-    </div>
-
-    <div x-show="tab === 'alerts'" class="card" x-cloak x-transition>
+        </div>
+        <div x-show="tab === 'alerts'"
+            x-ref="alertsPanel"
+            x-cloak
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            :class="(measureMode && tab === 'alerts') ? 'relative' : 'absolute inset-x-0 top-0'"
+            class="card">
         <div class="px-4 py-4">
             <h2 class="text-section-title text-foreground mb-3">Alert email throttle</h2>
             <p class="text-sm text-muted-foreground mb-4">Minimum minutes between alert emails. Multiple failed jobs in that window are combined into one email. Use 0 to send on every trigger.</p>
@@ -86,9 +124,18 @@
                 <p class="text-xs text-muted-foreground mt-2">With 0, one email is sent per trigger (no batching).</p>
             @endif
         </div>
-    </div>
-
-    <div x-show="tab === 'providers'" class="space-y-4" x-cloak x-transition>
+        </div>
+        <div x-show="tab === 'providers'"
+            x-ref="providersPanel"
+            x-cloak
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            :class="(measureMode && tab === 'providers') ? 'relative' : 'absolute inset-x-0 top-0'"
+            class="space-y-4">
         <div class="card">
             <div class="px-4 py-3 flex items-center justify-between">
                 <h2 class="text-section-title text-foreground">Notification providers</h2>
@@ -163,6 +210,7 @@
                     </tbody>
                 </table>
             </div>
+        </div>
         </div>
     </div>
 
