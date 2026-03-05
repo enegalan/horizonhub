@@ -27,10 +27,7 @@
                                 Save
                             </span>
                             <span wire:loading wire:target="updateService" class="inline-flex" aria-hidden="true">
-                                <svg class="size-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
+                                <x-heroicon-o-arrow-path class="size-4 animate-spin" />
                             </span>
                         </x-button>
                         <x-button variant="ghost" type="button" wire:click="cancelEdit" class="h-9 text-sm">Cancel</x-button>
@@ -75,10 +72,7 @@
                         Register
                     </span>
                     <span wire:loading wire:target="save" class="inline-flex" aria-hidden="true">
-                        <svg class="size-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
+                        <x-heroicon-o-arrow-path class="size-4 animate-spin" />
                     </span>
                 </x-button>
             </form>
@@ -129,7 +123,7 @@
                         <tr>
                             <td colspan="7" data-column-id="name">
                                 <div class="empty-state">
-                                    <svg class="empty-state-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008z"/></svg>
+                                    <x-heroicon-o-server-stack class="empty-state-icon" />
                                     <p class="empty-state-title">No services</p>
                                     <p class="empty-state-description">Register a service above to connect your Horizon instance.</p>
                                 </div>

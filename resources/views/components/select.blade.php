@@ -56,9 +56,7 @@
         aria-haspopup="listbox"
         class="btn-ghost flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
         <span x-text="selectedLabel" class="block truncate text-left"></span>
-        <svg class="h-4 w-4 shrink-0 opacity-50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m6 9 6 6 6-6"/>
-        </svg>
+        <x-heroicon-o-chevron-down class="h-4 w-4 shrink-0 opacity-50" />
     </button>
 
     <div x-show="open"
@@ -78,7 +76,7 @@
                 role="option">
                 <span class="block truncate" x-text="opt.label"></span>
                 <span x-show="opt.value === selectedValue" class="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                    <x-heroicon-o-check class="h-3.5 w-3.5" />
                 </span>
             </button>
         </template>
