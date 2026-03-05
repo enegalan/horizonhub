@@ -21,10 +21,23 @@ return [
     | Stale Minutes
     |--------------------------------------------------------------------------
     |
-    | This is the number of minutes after which a service is considered stale.
+    | After this many minutes without events, a service is considered stand-by
+    | and a supervisor is considered stale. Supervisors older than 
+    | `dead_service_minutes` are removed; services become offline.
     |
     */
     'stale_minutes' => (int) env('HORIZON_HUB_STALE_MINUTES', 5),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Dead Service Minutes
+    |--------------------------------------------------------------------------
+    |
+    | After this many minutes without any signal, supervisors are deleted and
+    | services are marked offline (services are never deleted).
+    |
+    */
+    'dead_service_minutes' => (int) env('HORIZON_HUB_DEAD_SERVICE_MINUTES', 15),
 
     /*
     |--------------------------------------------------------------------------

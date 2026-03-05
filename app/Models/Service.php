@@ -59,19 +59,29 @@ class Service extends Model {
      * Scope the query for online services.
      *
      * @param Builder $query
-     * @return HasMany
+     * @return Builder
      */
-    public function scopeOnline($query): HasMany {
+    public function scopeOnline($query): Builder {
         return $query->where('status', 'online');
+    }
+
+    /**
+     * Scope the query for stand-by services.
+     *
+     * @param Builder $query
+     * @return Builder
+     */
+    public function scopeStandBy($query): Builder {
+        return $query->where('status', 'stand_by');
     }
 
     /**
      * Scope the query for offline services.
      *
      * @param Builder $query
-     * @return HasMany
+     * @return Builder
      */
-    public function scopeOffline($query): HasMany {
+    public function scopeOffline($query): Builder {
         return $query->where('status', 'offline');
     }
 }

@@ -101,6 +101,8 @@
                             <td class="px-4 py-2.5" data-column-id="status">
                                 @if($service->status === 'online')
                                     <span class="badge-success">online</span>
+                                @elseif($service->status === 'stand_by')
+                                    <span class="badge-warning">stand by</span>
                                 @else
                                     <span class="badge-danger">offline</span>
                                 @endif

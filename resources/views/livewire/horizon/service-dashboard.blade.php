@@ -31,21 +31,20 @@
                 @foreach($supervisors as $supervisor)
                     @php
                         $lastSeen = $supervisor->last_seen_at;
-                        $minutesAgo = $lastSeen ? (int) now()->diffInMinutes($lastSeen) : null;
-                        if ($minutesAgo === null || $minutesAgo > 5) {
-                            $statusColor = 'bg-red-500';
-                            $statusTitle = 'Offline';
-                        } elseif ($minutesAgo > 2) {
+                        $minutesAgo = $lastSeen ? max(0, (int) $lastSeen->diffInMinutes(now(), true)) : 0;
+                        if ($minutesAgo > $stale_minutes) {
                             $statusColor = 'bg-amber-500';
                             $statusTitle = 'Stale';
+                            $statusBlink = true;
                         } else {
                             $statusColor = 'bg-emerald-500';
                             $statusTitle = 'Online';
+                            $statusBlink = false;
                         }
                     @endphp
                     <div class="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2">
                         <div class="flex items-center gap-2">
-                            <span class="inline-flex shrink-0 size-2.5 rounded-full {{ $statusColor }}" title="{{ $statusTitle }}" aria-label="{{ $statusTitle }}"></span>
+                            <span class="inline-flex shrink-0 size-2.5 rounded-full {{ $statusColor }} @if($statusBlink) animate-pulse @endif" title="{{ $statusTitle }}" aria-label="{{ $statusTitle }}"></span>
                             <span class="font-mono text-sm text-foreground">{{ $supervisor->name }}</span>
                         </div>
                         <span class="text-xs text-muted-foreground" title="Last seen">Last seen {{ $supervisor->last_seen_at->diffForHumans() }}</span>

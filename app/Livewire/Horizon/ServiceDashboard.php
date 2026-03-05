@@ -20,6 +20,20 @@ class ServiceDashboard extends Component {
     public Service $service;
 
     /**
+     * Minutes without signal after which a supervisor is considered stale (orange).
+     *
+     * @var int
+     */
+    public int $stale_minutes = config('horizonhub.stale_minutes');
+
+    /**
+     * Minutes without signal after which a supervisor is considered dead (red / removed).
+     *
+     * @var int
+     */
+    public int $dead_minutes = config('horizonhub.dead_service_minutes');
+
+    /**
      * Get the listeners for the service dashboard component.
      *
      * @return array<string, string>
@@ -66,7 +80,9 @@ class ServiceDashboard extends Component {
             ->where('processed_at', '>=', now()->subDay())
             ->count();
 
+        $dead_threshold = now()->subMinutes($this->dead_minutes);
         $supervisors = $this->service->horizonSupervisorStates()
+            ->where('last_seen_at', '>=', $dead_threshold)
             ->orderBy('name')
             ->get();
 
