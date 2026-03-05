@@ -1,21 +1,21 @@
 <div class="max-w-3xl space-y-6" x-data="{ tab: @entangle('tab') }">
     <nav class="flex gap-1 border-b border-border">
-        <button type="button"
-                @click="tab = 'appearance'; $nextTick(() => window.dispatchEvent(new CustomEvent('apply-theme')))"
-                :class="tab === 'appearance' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
-                class="border-b-2 px-3 py-2 text-sm font-medium transition-colors">
+        <button no-ring type="button"
+            @click="tab = 'appearance'; $nextTick(() => window.dispatchEvent(new CustomEvent('apply-theme')))"
+            :class="tab === 'appearance' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
+            class="border-b-2 px-3 py-2 text-sm font-medium transition-colors">
             Appearance
         </button>
-        <button type="button"
-                @click="tab = 'alerts'"
-                :class="tab === 'alerts' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
-                class="border-b-2 px-3 py-2 text-sm font-medium transition-colors">
+        <button no-ring type="button"
+            @click="tab = 'alerts'"
+            :class="tab === 'alerts' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
+            class="border-b-2 px-3 py-2 text-sm font-medium transition-colors">
             Alerts
         </button>
-        <button type="button"
-                @click="tab = 'providers'"
-                :class="tab === 'providers' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
-                class="border-b-2 px-3 py-2 text-sm font-medium transition-colors">
+        <button no-ring type="button"
+            @click="tab = 'providers'"
+            :class="tab === 'providers' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
+            class="border-b-2 px-3 py-2 text-sm font-medium transition-colors">
             Providers
         </button>
     </nav>

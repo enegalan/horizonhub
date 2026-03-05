@@ -90,13 +90,21 @@
                             <td class="px-4 py-2.5" data-column-id="actions">
                                 <div class="flex items-center gap-2">
                                     @if($log->job_id)
-                                        <a href="{{ route('horizon.jobs.show', ['job' => $log->job_id]) }}" wire:navigate class="btn-secondary inline-flex items-center justify-center h-8 min-h-8 p-2 rounded-md" aria-label="View job" title="View job">
+                                        <x-button
+                                            variant="outline"
+                                            type="button"
+                                            onclick="window.location.href='{{ route('horizon.jobs.show', ['job' => $log->job_id]) }}'"
+                                            class="h-8 min-h-8 p-2 rounded-md"
+                                            aria-label="View job"
+                                            title="View job"
+                                        >
                                             <x-heroicon-o-eye class="size-4" />
-                                        </a>
+                                        </x-button>
                                     @endif
-                                    <button
+                                    <x-button
+                                        variant="outline"
                                         type="button"
-                                        class="btn-secondary inline-flex items-center justify-center h-8 min-h-8 p-2 rounded-md"
+                                        class="inline-flex items-center justify-center h-8 min-h-8 p-2 rounded-md"
                                         aria-label="View delivery log"
                                         title="View delivery log"
                                         data-alert-log="1"
@@ -105,12 +113,12 @@
                                         data-alert-job-id="{{ $log->job_id }}"
                                         data-alert-job-url="{{ $log->job_id ? route('horizon.jobs.show', ['job' => $log->job_id]) : '' }}"
                                         data-alert-trigger-count="{{ $log->trigger_count ?? 1 }}"
-                                        data-alert-job-ids='@json($log->job_ids)'
+                                        data-alert-job-ids="{{ e(json_encode($log->job_ids ?? array())) }}"
                                         data-alert-status="{{ $log->status }}"
                                         data-alert-failure="{{ $log->failure_message }}"
                                     >
                                         <x-heroicon-o-document-text class="size-4" />
-                                    </button>
+                                    </x-button>
                                     @if($log->status === 'failed')
                                         <x-button
                                             variant="outline"
@@ -193,7 +201,14 @@
             </dl>
             <div class="pt-4">
                 <div class="flex items-center justify-end gap-3">
-                    <button type="button" data-alert-log-close class="h-9 text-sm rounded-md px-3 inline-flex items-center justify-center border-0 bg-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground">Close</button>
+                    <x-button
+                        variant="ghost"
+                        type="button"
+                        data-alert-log-close
+                        class="h-9 text-sm rounded-md px-3 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    >
+                        Close
+                    </x-button>
                 </div>
             </div>
         </div>

@@ -6,6 +6,7 @@
         'outline' => 'btn-secondary',
         'secondary' => 'btn-secondary',
         'ghost' => 'btn-ghost',
+        'none' => '',
         'link' => 'link inline-flex items-center justify-center',
         default => 'btn-primary',
     };
