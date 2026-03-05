@@ -2,27 +2,27 @@
     $sidebarStorageKey = 'horizon_sidebar_open';
 @endphp
 <div class="nav-sidebar-column shrink-0 lg:flex lg:min-h-screen lg:w-52 lg:flex-col"
-     x-data="{
-    drawerOpen: false,
-    sidebarOpen: localStorage.getItem('{{ $sidebarStorageKey }}') !== 'false',
-    isLg: false
-}"
-     x-init="
-        isLg = window.innerWidth >= 1024;
-        window.addEventListener('resize', () => { isLg = window.innerWidth >= 1024 });
-        window.addEventListener('sidebar-open-changed', e => { sidebarOpen = e.detail });
-     "
-     @keydown.escape.window="drawerOpen = false">
+    x-data="{
+        drawerOpen: false,
+        sidebarOpen: localStorage.getItem('{{ $sidebarStorageKey }}') !== 'false',
+        isLg: false
+    }"
+    x-init="
+    isLg = window.innerWidth >= 1024;
+    window.addEventListener('resize', () => { isLg = window.innerWidth >= 1024 });
+    window.addEventListener('sidebar-open-changed', e => { sidebarOpen = e.detail });
+    "
+    @keydown.escape.window="drawerOpen = false">
     <div x-show="drawerOpen"
-         x-transition:enter="transition ease-out duration-150"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-100"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
-         @click="drawerOpen = false"
-         x-cloak></div>
+        x-transition:enter="transition ease-out duration-150"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-100"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
+        @click="drawerOpen = false"
+        x-cloak></div>
 
     <div class="fixed top-0 left-0 right-0 z-30 flex h-12 items-center gap-2 border-b border-border bg-card/95 px-3 backdrop-blur-sm lg:hidden">
         <x-button variant="ghost" type="button" @click="drawerOpen = !drawerOpen" class="h-8 w-8 p-0" aria-label="Open menu">
@@ -34,7 +34,7 @@
         <span class="text-sm font-semibold text-foreground">Horizon Hub</span>
     </div>
 
-    <aside class="aside-drawer fixed inset-y-0 left-0 z-50 flex w-52 flex-col border-r border-border bg-card transition-transform duration-300 ease-in-out lg:inset-auto lg:h-full lg:min-h-0 lg:translate-x-0 w-[inherit]"
+    <aside class="aside-drawer fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card transition-transform duration-300 ease-in-out lg:inset-auto lg:h-full lg:min-h-0 lg:translate-x-0 w-[inherit]"
         :class="(isLg ? sidebarOpen : drawerOpen) ? 'translate-x-0' : '-translate-x-full hidden'"
         style="will-change: transform;">
         <div class="flex h-12 min-h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
@@ -71,27 +71,27 @@
             </a>
         </nav>
         <div class="shrink-0 border-t border-border p-2 space-y-1"
-             x-data="{
-                 enabled: localStorage.getItem('horizonhub_hotreload') !== 'false',
-                 toggle() {
-                     this.enabled = !this.enabled;
-                     localStorage.setItem('horizonhub_hotreload', this.enabled);
-                     if (typeof $store !== 'undefined' && $store.hotReload) {
-                         $store.hotReload.enabled = this.enabled;
-                     }
-                 }
-             }"
-             x-cloak>
+            x-data="{
+                enabled: localStorage.getItem('horizonhub_hotreload') !== 'false',
+                toggle() {
+                    this.enabled = !this.enabled;
+                    localStorage.setItem('horizonhub_hotreload', this.enabled);
+                    if (typeof $store !== 'undefined' && $store.hotReload) {
+                        $store.hotReload.enabled = this.enabled;
+                    }
+                }
+            }"
+            x-cloak>
             <div class="flex items-center justify-between gap-2 px-2.5 py-1.5">
                 <span class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Hot reload</span>
                 <button type="button"
-                        @click="toggle()"
-                        class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
-                        :class="enabled ? 'bg-primary' : 'bg-muted'"
-                        :aria-pressed="enabled"
-                        aria-label="Toggle hot reload">
+                    @click="toggle()"
+                    class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors"
+                    :class="enabled ? 'bg-primary' : 'bg-muted'"
+                    :aria-pressed="enabled"
+                    aria-label="Toggle hot reload">
                     <span class="inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform"
-                          :class="enabled ? 'translate-x-4' : 'translate-x-0.5'"></span>
+                        :class="enabled ? 'translate-x-4' : 'translate-x-0.5'"></span>
                 </button>
             </div>
             <a href="{{ route('horizon.settings') }}" wire:navigate class="nav-side-link {{ request()->routeIs('horizon.settings') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">

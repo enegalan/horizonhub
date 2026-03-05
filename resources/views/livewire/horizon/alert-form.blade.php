@@ -3,11 +3,11 @@
         <div class="card">
             <div class="px-4 py-4 space-y-4">
                 <h2 class="text-section-title text-foreground">Rule</h2>
-                <div class="space-y-1.5">
+                <div class="space-y-2">
                     <x-input-label class="text-[11px] font-medium text-muted-foreground" for="name">Name (optional)</x-input-label>
                     <x-text-input type="text" id="name" wire:model="name" placeholder="e.g. Production failures" class="w-full" />
                 </div>
-                <div class="space-y-1.5">
+                <div class="space-y-2">
                     <x-input-label class="text-[11px] font-medium text-muted-foreground" for="service_id">Service</x-input-label>
                     <x-select id="service_id" wire:model="service_id" class="w-full">
                         <option value="">All services</option>
@@ -16,15 +16,15 @@
                         @endforeach
                     </x-select>
                 </div>
-                <div class="space-y-1.5">
+                <div class="space-y-2">
                     <x-input-label class="text-[11px] font-medium text-muted-foreground" for="rule_type">Rule type</x-input-label>
                     <x-select id="rule_type" wire:model.live="rule_type" class="w-full" :options="$ruleTypes" />
                 </div>
-                <div class="space-y-1.5">
+                <div class="space-y-2">
                     <x-input-label class="text-[11px] font-medium text-muted-foreground" for="queue">Queue (optional)</x-input-label>
                     <x-text-input type="text" id="queue" wire:model="queue" placeholder="default" class="w-full" />
                 </div>
-                <div class="space-y-1.5" x-show="ruleType === 'job_type_failure'">
+                <div class="space-y-2" x-show="ruleType === 'job_type_failure'">
                     <x-input-label class="text-[11px] font-medium text-muted-foreground" for="job_type">Job type (class name or substring)</x-input-label>
                     <x-text-input type="text" id="job_type" wire:model="job_type" placeholder="App\Jobs\ProcessOrder" class="w-full font-mono text-sm" />
                     @error('job_type') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
@@ -34,12 +34,12 @@
                         <p class="text-xs font-medium text-muted-foreground">Threshold</p>
                         <template x-if="ruleType === 'failure_count'">
                             <div class="flex gap-4 flex-wrap">
-                                <div class="space-y-1.5">
+                                <div class="space-y-2">
                                     <x-input-label class="text-[11px] font-medium text-muted-foreground">Count</x-input-label>
                                     <x-text-input type="number" wire:model="thresholdCount" min="1" class="w-24" />
                                     @error('thresholdCount') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                                 </div>
-                                <div class="space-y-1.5">
+                                <div class="space-y-2">
                                     <x-input-label class="text-[11px] font-medium text-muted-foreground">Minutes</x-input-label>
                                     <x-text-input type="number" wire:model="thresholdMinutes" min="1" class="w-24" />
                                     @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
@@ -48,12 +48,12 @@
                         </template>
                         <template x-if="ruleType === 'avg_execution_time'">
                             <div class="flex gap-4 flex-wrap">
-                                <div class="space-y-1.5">
+                                <div class="space-y-2">
                                     <x-input-label class="text-[11px] font-medium text-muted-foreground">Seconds (max avg)</x-input-label>
                                     <x-text-input type="number" step="0.1" wire:model="thresholdSeconds" min="0.1" class="w-24" />
                                     @error('thresholdSeconds') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                                 </div>
-                                <div class="space-y-1.5">
+                                <div class="space-y-2">
                                     <x-input-label class="text-[11px] font-medium text-muted-foreground">Minutes (window)</x-input-label>
                                     <x-text-input type="number" wire:model="thresholdMinutes" min="1" class="w-24" />
                                     @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
@@ -61,7 +61,7 @@
                             </div>
                         </template>
                         <template x-if="['queue_blocked','worker_offline'].includes(ruleType)">
-                            <div class="space-y-1.5">
+                            <div class="space-y-2">
                                 <x-input-label class="text-[11px] font-medium text-muted-foreground">Minutes</x-input-label>
                                 <x-text-input type="number" wire:model="thresholdMinutes" min="1" class="w-24" />
                                 @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
@@ -114,9 +114,9 @@
                     </svg>
                 </span>
             </x-button>
-            <a href="{{ route('horizon.alerts.index') }}" wire:navigate>
-                <x-button variant="ghost" type="button" class="h-9 text-sm">Cancel</x-button>
-            </a>
+            <x-button variant="ghost" type="button" class="h-9 text-sm" onclick="window.location.href='{{ route('horizon.alerts.index') }}'">
+                Cancel
+            </x-button>
         </div>
     </form>
 </div>

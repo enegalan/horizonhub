@@ -1,7 +1,7 @@
 <div>
     <div class="card">
         <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
-            <div class="space-y-1.5">
+            <div class="space-y-2">
                 <x-input-label class="text-[11px] font-medium text-muted-foreground">Service</x-input-label>
                 <x-select wire:model.live="serviceFilter" class="w-44">
                     <option value="">All</option>
@@ -10,15 +10,15 @@
                     @endforeach
                 </x-select>
             </div>
-            <div class="space-y-1.5">
+            <div class="space-y-2">
                 <x-input-label class="text-[11px] font-medium text-muted-foreground">Queue</x-input-label>
                 <x-text-input type="text" wire:model.live.debounce.300ms="queueFilter" placeholder="Filter" class="w-36" />
             </div>
-            <div class="space-y-1.5">
+            <div class="space-y-2">
                 <x-input-label class="text-[11px] font-medium text-muted-foreground">Status</x-input-label>
                 <x-select wire:model.live="statusFilter" class="w-32" :options="array('' => 'All', 'processed' => 'Processed', 'failed' => 'Failed', 'processing' => 'Processing')" />
             </div>
-            <div class="space-y-1.5">
+            <div class="space-y-2">
                 <x-input-label class="text-[11px] font-medium text-muted-foreground">Job type</x-input-label>
                 <x-text-input type="text" wire:model.live.debounce.300ms="jobTypeFilter" placeholder="Class" class="w-44" />
             </div>
@@ -65,9 +65,16 @@
                             </td>
                             <td class="px-4 py-2.5" data-column-id="actions">
                                 <div class="flex items-center gap-2">
-                                    <a href="{{ route('horizon.jobs.show', ['job' => $job->id]) }}" wire:navigate class="btn-secondary inline-flex items-center justify-center h-8 min-h-8 p-2 rounded-md" aria-label="View" title="View">
+                                    <button
+                                        type="button"
+                                        wire:navigate
+                                        onclick="window.location.href='{{ route('horizon.jobs.show', ['job' => $job->id]) }}'"
+                                        class="btn-secondary inline-flex items-center justify-center h-8 min-h-8 p-2 rounded-md"
+                                        aria-label="View"
+                                        title="View"
+                                    >
                                         <x-heroicon-o-eye class="size-4" />
-                                    </a>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -79,7 +86,14 @@
                                     <p class="empty-state-title">No jobs yet</p>
                                     @if(count($services) === 0)
                                         <p class="empty-state-description">Register a service and push events from the Agent to see jobs here.</p>
-                                        <a href="{{ route('horizon.services.index') }}" wire:navigate class="btn-primary text-xs">Register a service</a>
+                                        <button
+                                            type="button"
+                                            wire:navigate
+                                            onclick="window.location.href='{{ route('horizon.services.index') }}'"
+                                            class="btn-primary text-xs"
+                                        >
+                                            Register a service
+                                        </button>
                                     @else
                                         <p class="empty-state-description">No jobs match the current filters.</p>
                                     @endif
@@ -110,8 +124,8 @@
             >
                 @if($cleanStep === 1)
                     <p class="text-xs text-muted-foreground mb-3">Choose filters. Matching jobs will be permanently deleted.</p>
-                    <div class="space-y-3">
-                        <div class="space-y-1.5">
+                    <div class="space-y-2">
+                        <div class="space-y-2">
                             <x-input-label class="text-[11px] font-medium text-muted-foreground">Service</x-input-label>
                             <x-select wire:model.live="cleanServiceId" class="w-full">
                                 <option value="">All</option>
@@ -120,11 +134,11 @@
                                 @endforeach
                             </x-select>
                         </div>
-                        <div class="space-y-1.5">
+                        <div class="space-y-2">
                             <x-input-label class="text-[11px] font-medium text-muted-foreground">Status</x-input-label>
                             <x-select wire:model.live="cleanStatus" class="w-full" :options="array('' => 'All', 'processed' => 'Processed', 'failed' => 'Failed', 'processing' => 'Processing')" />
                         </div>
-                        <div class="space-y-1.5">
+                        <div class="space-y-2">
                             <x-input-label class="text-[11px] font-medium text-muted-foreground">Job type</x-input-label>
                             <x-text-input type="text" wire:model.live.debounce.200ms="cleanJobType" placeholder="e.g. App\Jobs\SendEmail" class="w-full" />
                         </div>

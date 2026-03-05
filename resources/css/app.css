@@ -77,10 +77,40 @@
     input[type="password"],
     select,
     textarea {
-        @apply flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50;
+        @apply flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50;
     }
     select {
         @apply py-2 pr-8 appearance-none cursor-pointer;
+    }
+    input:focus,
+    input:active,
+    input:target,
+    select:focus,
+    select:active,
+    select:target,
+    textarea:focus,
+    textarea:active,
+    textarea:target,
+    button:focus,
+    button:active,
+    button:target,
+    .btn-primary:focus,
+    .btn-primary:active,
+    .btn-secondary:focus,
+    .btn-secondary:active,
+    .btn-secondary:target,
+    .btn-danger:focus,
+    .btn-danger:active,
+    .btn-ghost:focus,
+    .btn-ghost:active,
+    .btn-ghost:target,
+    .queue-action-btn:focus,
+    .queue-action-btn:active,
+    .queue-action-btn:target {
+        border-color: #bba3f6;
+        outline: 0;
+        box-shadow: 0 0 0 .25rem #7746ec40;
+        transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
     }
 }
 
@@ -97,19 +127,16 @@
         @apply rounded-lg border border-border bg-card text-card-foreground shadow-soft overflow-hidden;
     }
     .btn-primary {
-        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring;
+        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90;
     }
     .btn-ghost {
-        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-4 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring;
+        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-4 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground;
     }
     .btn-danger {
-        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-4 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring;
-    }
-    .btn-sm {
-        @apply h-7 rounded-md px-2.5 text-xs font-medium;
+        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-4 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10;
     }
     .btn-secondary {
-        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-input bg-background px-4 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring;
+        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-input bg-background px-4 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground;
     }
     .badge {
         @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors;

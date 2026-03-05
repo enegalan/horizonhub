@@ -42,11 +42,11 @@
 
     <div class="card mb-4">
         <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
-            <div class="space-y-1.5">
+            <div class="space-y-2">
                 <x-input-label class="text-[11px] font-medium text-muted-foreground">Status</x-input-label>
                 <x-select wire:model.live="statusFilter" class="w-36" :options="array('' => 'All', 'sent' => 'Sent', 'failed' => 'Failed')" />
             </div>
-            <div class="space-y-1.5">
+            <div class="space-y-2">
                 <x-input-label class="text-[11px] font-medium text-muted-foreground">Per page</x-input-label>
                 <x-select wire:model.live="perPage" class="w-24" :options="array(10 => '10', 20 => '20', 50 => '50')" />
             </div>

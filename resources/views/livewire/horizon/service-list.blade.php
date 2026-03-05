@@ -6,12 +6,12 @@
                 <div class="relative z-10 card w-full max-w-md p-4 bg-card">
                 <h2 class="text-section-title text-foreground mb-3">Edit service</h2>
                 <form wire:submit="updateService" class="space-y-3">
-                    <div class="space-y-1.5">
+                    <div class="space-y-2">
                         <x-input-label class="text-[11px] font-medium text-muted-foreground">Name</x-input-label>
                         <x-text-input type="text" wire:model="editName" class="w-full" />
                         @error('editName') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
-                    <div class="space-y-1.5">
+                    <div class="space-y-2">
                         <x-input-label class="text-[11px] font-medium text-muted-foreground">Base URL</x-input-label>
                         <x-text-input type="url" wire:model="editBaseUrl" class="w-full" />
                         @error('editBaseUrl') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
@@ -55,12 +55,12 @@
         <div class="px-4 py-3">
             <h2 class="text-section-title text-foreground mb-3">Register service</h2>
             <form wire:submit="save" class="space-y-3 max-w-sm">
-                <div class="space-y-1.5">
+                <div class="space-y-2">
                     <x-input-label class="text-[11px] font-medium text-muted-foreground">Name</x-input-label>
                     <x-text-input type="text" wire:model="name" placeholder="my-service" class="w-full" />
                     @error('name') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                 </div>
-                <div class="space-y-1.5">
+                <div class="space-y-2">
                     <x-input-label class="text-[11px] font-medium text-muted-foreground">Base URL</x-input-label>
                     <x-text-input type="url" wire:model="baseUrl" placeholder="https://my-service.example.com" class="w-full" />
                     @error('baseUrl') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
