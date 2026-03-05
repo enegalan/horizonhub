@@ -24,14 +24,24 @@ class ServiceDashboard extends Component {
      *
      * @var int
      */
-    public int $stale_minutes = config('horizonhub.stale_minutes');
+    public int $stale_minutes = 5;
 
     /**
      * Minutes without signal after which a supervisor is considered dead (red / removed).
      *
      * @var int
      */
-    public int $dead_minutes = config('horizonhub.dead_service_minutes');
+    public int $dead_minutes = 15;
+
+    /**
+     * Mount the component.
+     *
+     * @return void
+     */
+    public function mount(): void {
+        $this->stale_minutes = config('horizonhub.stale_minutes');
+        $this->dead_minutes = config('horizonhub.dead_service_minutes');
+    }
 
     /**
      * Get the listeners for the service dashboard component.
