@@ -101,7 +101,7 @@ class AgentProxyService {
                 $decoded = \json_decode($rawBody, true);
             }
 
-            if (\is_array($decoded) && \isset($decoded['message']) && (string) $decoded['message'] !== '') {
+            if (\is_array($decoded) && isset($decoded['message']) && (string) $decoded['message'] !== '') {
                 $message = (string) $decoded['message'];
             } else {
                 $trimmedBody = \trim((string) $rawBody);

@@ -128,7 +128,7 @@ class AlertDetail extends Component {
             ->get();
         foreach ($logs as $row) {
             $key = $row->bucket;
-            if (! \isset($buckets[$key])) {
+            if (! isset($buckets[$key])) {
                 continue;
             }
             if ($row->status === 'sent') {
@@ -169,7 +169,7 @@ class AlertDetail extends Component {
             ->get();
         foreach ($logs as $row) {
             $key = $row->bucket;
-            if (! \isset($buckets[$key])) {
+            if (! isset($buckets[$key])) {
                 continue;
             }
             if ($row->status === 'sent') {
@@ -210,7 +210,7 @@ class AlertDetail extends Component {
             ->get();
         foreach ($logs as $row) {
             $key = $row->bucket;
-            if (! \isset($buckets[$key])) {
+            if (! isset($buckets[$key])) {
                 continue;
             }
             if ($row->status === 'sent') {
@@ -251,7 +251,7 @@ class AlertDetail extends Component {
         $alertName = $this->alert->name ?: 'Alert #' . $this->alert->id;
         $selectedLog = $this->selectedLogId !== null ? $logs->firstWhere('id', $this->selectedLogId) : null;
 
-        return view('livewire.horizon.alert-detail', [
+        return \view('livewire.horizon.alert-detail', [
             'logs' => $logs,
             'chartData' => $chartData,
             'alertName' => $alertName,

@@ -224,7 +224,7 @@ class AlertForm extends Component {
         $providers = NotificationProvider::orderBy('type')->orderBy('name')->get();
         $header = $this->alert ? 'Edit alert' : 'New alert';
 
-        return view('livewire.horizon.alert-form', [
+        return \view('livewire.horizon.alert-form', [
             'services' => $services,
             'providers' => $providers,
             'ruleTypes' => self::getRuleTypes(),

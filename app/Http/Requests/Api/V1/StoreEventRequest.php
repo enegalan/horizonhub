@@ -59,10 +59,10 @@ class StoreEventRequest extends FormRequest {
      */
     public function getEvents(): array {
         $payload = $this->validated();
-        if (\isset($payload['events']) && \is_array($payload['events'])) {
+        if (isset($payload['events']) && \is_array($payload['events'])) {
             return $payload['events'];
         }
-        \unset($payload['events']);
+        unset($payload['events']);
         return $payload ? [\array_merge(['attempts' => 0], $payload)] : [];
     }
 }

@@ -84,7 +84,7 @@ class QueueList extends Component {
         $totalJobs = $queues->sum('job_count');
 
         $serviceIds = $queues->pluck('service_id')->unique()->filter()->values()->all();
-        $queueStates = \empty($serviceIds)
+        $queueStates = empty($serviceIds)
             ? \collect()
             : HorizonQueueState::whereIn('service_id', $serviceIds)
                 ->get()

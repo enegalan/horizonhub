@@ -47,17 +47,17 @@ class HorizonEventProcessor {
         $queue = $event['queue'] ?? '';
         $name = $event['name'] ?? null;
         $payload = $event['payload'] ?? null;
-        $attempts = \isset($event['attempts']) ? (int) $event['attempts'] : 0;
+        $attempts = isset($event['attempts']) ? (int) $event['attempts'] : 0;
         $statusRaw = $event['status'] ?? null;
         $status = (is_string($statusRaw) && $statusRaw !== '') ? $statusRaw : $eventType;
-        $processedAt = \isset($event['processed_at']) ? $event['processed_at'] : null;
-        $failedAt = \isset($event['failed_at']) ? $event['failed_at'] : null;
-        $queuedAt = \isset($event['queued_at']) ? $event['queued_at'] : null;
-        $runtimeSeconds = \isset($event['runtime_seconds']) ? (float) $event['runtime_seconds'] : null;
+        $processedAt = isset($event['processed_at']) ? $event['processed_at'] : null;
+        $failedAt = isset($event['failed_at']) ? $event['failed_at'] : null;
+        $queuedAt = isset($event['queued_at']) ? $event['queued_at'] : null;
+        $runtimeSeconds = isset($event['runtime_seconds']) ? (float) $event['runtime_seconds'] : null;
         $exception = $event['exception'] ?? null;
 
-        if ($queuedAt === null && \isset($payload) && \is_array($payload)) {
-            $pushedAtRaw = \isset($payload['pushedAt']) ? $payload['pushedAt'] : null;
+        if ($queuedAt === null && isset($payload) && \is_array($payload)) {
+            $pushedAtRaw = isset($payload['pushedAt']) ? $payload['pushedAt'] : null;
             if ($pushedAtRaw !== null && \is_numeric($pushedAtRaw)) {
                 $pushedAtFloat = (float) $pushedAtRaw;
                 if ($pushedAtFloat > 0) {
@@ -146,7 +146,7 @@ class HorizonEventProcessor {
      * @return void
      */
     private function processSupervisorLooped(Service $service, array $event): void {
-        $name = \isset($event['queue']) && (string) $event['queue'] !== '' ? (string) $event['queue'] : 'default';
+        $name = isset($event['queue']) && (string) $event['queue'] !== '' ? (string) $event['queue'] : 'default';
         HorizonSupervisorState::updateOrCreate(
             [
                 'service_id' => $service->id,

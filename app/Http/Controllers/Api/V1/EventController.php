@@ -56,6 +56,6 @@ class EventController extends Controller {
             }
         }
 
-        return \response()->json(['accepted' => count($events)], 202);
+        return \response()->json(['accepted' => \count($events)], 202);
     }
 }

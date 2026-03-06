@@ -127,7 +127,7 @@ class FailedJobList extends Component {
         $failedJobs = $query->paginate(20);
         $services = Service::orderBy('name')->get();
 
-        return view('livewire.horizon.failed-job-list', [
+        return \view('livewire.horizon.failed-job-list', [
             'failedJobs' => $failedJobs,
             'services' => $services,
         ])->layout('layouts.app', ['header' => 'Horizon Hub – Failed Jobs']);

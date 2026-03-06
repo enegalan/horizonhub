@@ -38,7 +38,7 @@ class HorizonJob extends Model {
      * @return float|null
      */
     public function getRuntimeSeconds(): ?float {
-        if (\isset($this->runtime_seconds) && $this->runtime_seconds >= 0) {
+        if (isset($this->runtime_seconds) && $this->runtime_seconds >= 0) {
             return \round((float) $this->runtime_seconds, 3);
         }
         $start = $this->queued_at;

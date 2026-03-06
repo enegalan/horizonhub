@@ -88,7 +88,7 @@ class AlertList extends Component {
             ->orderByDesc('created_at')
             ->get();
 
-        return view('livewire.horizon.alert-list', [
+        return \view('livewire.horizon.alert-list', [
             'alerts' => $alerts,
         ])->layout('layouts.app', ['header' => 'Horizon Hub – Alerts']);
     }

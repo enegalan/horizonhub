@@ -43,7 +43,7 @@ class EmailNotifier {
     public function sendBatched(Alert $alert, array $events, array $config): void {
         $to = $config['to'] ?? [];
         $to = \is_array($to) ? \array_values(\array_filter(\array_map('trim', $to))) : [];
-        if (\empty($to)) {
+        if (empty($to)) {
             return;
         }
 
@@ -72,10 +72,10 @@ class EmailNotifier {
     private function enrichEvents(array $events): array {
         $enriched = [];
         $jobIds = \array_values(\array_filter(\array_column($events, 'job_id')));
-        $jobs = \empty($jobIds) ? [] : HorizonJob::whereIn('id', $jobIds)->get()->keyBy('id');
+        $jobs = empty($jobIds) ? [] : HorizonJob::whereIn('id', $jobIds)->get()->keyBy('id');
 
         foreach ($events as $event) {
-            $jobId = \isset($event['job_id']) ? (int) $event['job_id'] : null;
+            $jobId = isset($event['job_id']) ? (int) $event['job_id'] : null;
             $job = $jobId ? $jobs->get($jobId) : null;
 
             $jobClass = null;
@@ -86,8 +86,8 @@ class EmailNotifier {
 
             if ($job) {
                 $payload = $job->payload ?? [];
-                $jobClass = $job->name ?? (\isset($payload['displayName']) ? $payload['displayName'] : null);
-                if ($jobClass === null && \isset($payload['job'])) {
+                $jobClass = $job->name ?? (isset($payload['displayName']) ? $payload['displayName'] : null);
+                if ($jobClass === null && isset($payload['job'])) {
                     $jobClass = \is_string($payload['job']) ? $payload['job'] : 'Unknown';
                 }
                 $jobClass ??= 'Unknown';

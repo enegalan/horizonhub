@@ -124,7 +124,7 @@ class Metrics extends Component {
             $s = $r->service?->name ?? (string) $r->service_id;
             $q = $r->queue ?? 'default';
             $key = "$s|$q";
-            if (! \isset($agg[$key])) {
+            if (! isset($agg[$key])) {
                 $agg[$key] = ['service' => $s, 'queue' => $q, 'cnt' => 0];
             }
             $agg[$key]['cnt']++;
@@ -172,14 +172,14 @@ class Metrics extends Component {
             ->get(['processed_at']);
         foreach ($processed as $j) {
             $key = $j->processed_at->format($bucketFormat);
-            if (\isset($buckets[$key])) {
+            if (isset($buckets[$key])) {
                 $buckets[$key]['processed']++;
             }
         }
         $failed = HorizonFailedJob::where('failed_at', '>=', $since)->get(['failed_at']);
         foreach ($failed as $j) {
             $key = $j->failed_at->format($bucketFormat);
-            if (\isset($buckets[$key])) {
+            if (isset($buckets[$key])) {
                 $buckets[$key]['failed']++;
             }
         }
@@ -248,7 +248,7 @@ class Metrics extends Component {
 
             $bucket = $job->processed_at->copy()->setMinute(0)->setSecond(0)->format($bucketFormat);
 
-            if (! \isset($buckets[$bucket])) {
+            if (! isset($buckets[$bucket])) {
                 continue;
             }
 

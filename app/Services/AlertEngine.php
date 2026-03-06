@@ -76,7 +76,7 @@ class AlertEngine {
 
         foreach ($alerts as $alert) {
             $pending = $this->getPending($alert);
-            if (\empty($pending)) {
+            if (empty($pending)) {
                 continue;
             }
             $lastSentAt = $this->getLastSentAt($alert);
@@ -345,7 +345,7 @@ class AlertEngine {
                 if ($channel === 'email') {
                     $to = $config['to'] ?? Setting::get('integrations.email.default_to', []);
                     $to = \is_array($to) ? $to : [];
-                    if (! \empty($to)) {
+                    if (! empty($to)) {
                         $config['to'] = $to;
                         $this->emailNotifier->sendBatched($alert, $events, $config);
                     }
@@ -416,7 +416,7 @@ class AlertEngine {
      */
     private function setPending(Alert $alert, array $pending): void {
         $key = self::PENDING_CACHE_PREFIX . $alert->id;
-        if (\empty($pending)) {
+        if (empty($pending)) {
             Cache::forget($key);
             return;
         }
@@ -520,13 +520,13 @@ class AlertEngine {
                 try {
                     if ($provider->type === NotificationProvider::TYPE_SLACK) {
                         $webhookUrl = $provider->getWebhookUrl();
-                        if (! \empty($webhookUrl)) {
+                        if (! empty($webhookUrl)) {
                             $this->slackNotifier->sendBatched($alert, $events, ['webhook_url' => $webhookUrl]);
                         }
                     }
                     if ($provider->type === NotificationProvider::TYPE_EMAIL) {
                         $to = $provider->getToEmails();
-                        if (! \empty($to)) {
+                        if (! empty($to)) {
                             $this->emailNotifier->sendBatched($alert, $events, ['to' => $to]);
                         } else {
                             Log::warning('Horizon Hub: email provider has no recipients, skip', ['alert_id' => $alert->id, 'provider_id' => $provider->id]);
@@ -544,14 +544,14 @@ class AlertEngine {
                     if ($channel === 'email') {
                         $to = $config['to'] ?? Setting::get('integrations.email.default_to', []);
                         $to = \is_array($to) ? $to : [];
-                        if (! \empty($to)) {
+                        if (! empty($to)) {
                             $merged = \array_merge($config, ['to' => $to]);
                             $this->emailNotifier->sendBatched($alert, $events, $merged);
                         }
                     }
                     if ($channel === 'slack') {
                         $webhookUrl = $config['webhook_url'] ?? Setting::get('integrations.slack.webhook_url', '');
-                        if (! \empty($webhookUrl)) {
+                        if (! empty($webhookUrl)) {
                             $merged = \array_merge($config, ['webhook_url' => $webhookUrl]);
                             $this->slackNotifier->sendBatched($alert, $events, $merged);
                         }
