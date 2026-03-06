@@ -89,7 +89,9 @@ class HorizonEventProcessor {
                 'status' => $statusForAttributes,
                 'attempts' => $attempts !== 0 ? $attempts : ($existing ? $existing->attempts : 0),
                 'name' => $name !== null ? $name : ($existing ? $existing->name : null),
-                'processed_at' => $processedAtParsed !== null ? $processedAtParsed : ($existing ? $existing->processed_at : null),
+                'processed_at' => ($existing && $existing->failed_at !== null && $eventType !== 'JobFailed')
+                    ? $existing->processed_at
+                    : ($processedAtParsed !== null ? $processedAtParsed : ($existing ? $existing->processed_at : null)),
                 'failed_at' => $existing ? $existing->failed_at : null,
                 'runtime_seconds' => $runtimeSeconds !== null ? $runtimeSeconds : ($existing ? $existing->runtime_seconds : null),
                 'queued_at' => $queuedAt !== null ? now()->parse($queuedAt) : ($existing ? $existing->queued_at : null),
@@ -97,6 +99,7 @@ class HorizonEventProcessor {
             );
 
             if ($eventType === 'JobFailed') {
+                $attributes['processed_at'] = null;
                 $attributes['failed_at'] = $failedAtParsed !== null ? $failedAtParsed : $attributes['failed_at'];
                 if ($exception !== null) {
                     $attributes['exception'] = $exception;
