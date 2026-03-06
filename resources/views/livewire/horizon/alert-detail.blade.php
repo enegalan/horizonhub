@@ -126,12 +126,12 @@
             </div>
         </div>
         <div class="overflow-x-auto">
-            <table class="min-w-full" data-resizable-table="horizon-alert-detail-logs" data-column-ids="sent_at,service,job,status,actions">
+            <table class="min-w-full" data-resizable-table="horizon-alert-detail-logs" data-column-ids="sent_at,service,events,status,actions">
                 <thead wire:ignore>
                     <tr class="border-b border-border bg-muted/50">
                         <th class="table-header px-4 py-2.5" data-column-id="sent_at">Sent at</th>
                         <th class="table-header px-4 py-2.5" data-column-id="service">Service</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
+                        <th class="table-header px-4 py-2.5" data-column-id="events">Events</th>
                         <th class="table-header px-4 py-2.5" data-column-id="status">Status</th>
                         <th class="table-header px-4 py-2.5 w-24" data-column-id="actions">Actions</th>
                     </tr>
@@ -141,15 +141,10 @@
                         <tr class="transition-colors hover:bg-muted/30">
                             <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="sent_at">{{ $log->sent_at->format('Y-m-d H:i:s') }}</td>
                             <td class="px-4 py-2.5 text-sm text-foreground" data-column-id="service">{{ $log->service?->name ?? '–' }}</td>
-                            <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="job">
-                                @php $tc = $log->trigger_count ?? 1; @endphp
-                                @if($log->job_id)
-                                    <a href="{{ route('horizon.jobs.show', ['job' => $log->job_id]) }}" wire:navigate class="link font-mono text-xs">{{ $log->job_id }}</a>
-                                    @if($tc > 1)
-                                        <span class="text-muted-foreground"> ({{ $tc }} events)</span>
-                                    @endif
-                                @elseif($tc > 1)
-                                    <span class="text-muted-foreground">{{ $tc }} events</span>
+                            <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="events">
+                                @php $tc = (int) ($log->trigger_count ?? 0); @endphp
+                                @if($tc >= 1)
+                                    <span class="text-muted-foreground">{{ $tc }} {{ $tc === 1 ? 'event' : 'events' }}</span>
                                 @else
                                     –
                                 @endif
@@ -163,18 +158,6 @@
                             </td>
                             <td class="px-4 py-2.5" data-column-id="actions">
                                 <div class="flex items-center gap-2">
-                                    @if($log->job_id)
-                                        <x-button
-                                            variant="outline"
-                                            type="button"
-                                            onclick="window.location.href='{{ route('horizon.jobs.show', ['job' => $log->job_id]) }}'"
-                                            class="h-8 min-h-8 p-2 rounded-md"
-                                            aria-label="View job"
-                                            title="View job"
-                                        >
-                                            <x-heroicon-o-eye class="size-4" />
-                                        </x-button>
-                                    @endif
                                     <x-button
                                         variant="outline"
                                         type="button"
@@ -184,8 +167,6 @@
                                         data-alert-log="1"
                                         data-alert-sent-at="{{ $log->sent_at->format('Y-m-d H:i:s') }}"
                                         data-alert-service="{{ $log->service?->name }}"
-                                        data-alert-job-id="{{ $log->job_id }}"
-                                        data-alert-job-url="{{ $log->job_id ? route('horizon.jobs.show', ['job' => $log->job_id]) : '' }}"
                                         data-alert-trigger-count="{{ $log->trigger_count ?? 1 }}"
                                         data-alert-job-ids="{{ e(json_encode($log->job_ids ?? [])) }}"
                                         data-alert-status="{{ $log->status }}"
@@ -249,7 +230,7 @@
                     <dd id="alert-log-service" class="text-foreground"></dd>
                 </div>
                 <div>
-                    <dt class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Job</dt>
+                    <dt class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Events</dt>
                     <dd id="alert-log-job" class="text-foreground font-mono text-xs"></dd>
                 </div>
                 <div id="alert-log-events-wrapper" class="hidden">

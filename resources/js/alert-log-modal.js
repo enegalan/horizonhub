@@ -8,17 +8,12 @@ import { parseJson } from './utils/parse';
         if (serviceEl) serviceEl.textContent = serviceName || '–';
     }
 
-    function populateJob(jobEl, jobId, jobUrl) {
+    function populateEventsCount(jobEl, triggerCount) {
         if (!jobEl) return;
 
-        if (jobId && jobUrl) {
-            var link = document.createElement('a');
-            link.href = jobUrl;
-            link.className = 'link font-mono text-xs';
-            link.textContent = String(jobId);
-            link.setAttribute('data-navigate', 'true');
-            jobEl.innerHTML = '';
-            jobEl.appendChild(link);
+        jobEl.innerHTML = '';
+        if (triggerCount >= 1) {
+            jobEl.textContent = triggerCount === 1 ? '1 event' : triggerCount + ' events';
         } else {
             jobEl.textContent = '–';
         }
@@ -109,7 +104,7 @@ import { parseJson } from './utils/parse';
         if (!Array.isArray(jobIds)) jobIds = [];
 
         populateHeader(document.getElementById('alert-log-sent-at'), document.getElementById('alert-log-service'), button.getAttribute('data-alert-sent-at'), button.getAttribute('data-alert-service'));
-        populateJob(document.getElementById('alert-log-job'), button.getAttribute('data-alert-job-id'), button.getAttribute('data-alert-job-url'));
+        populateEventsCount(document.getElementById('alert-log-job'), triggerCount);
         populateEvents(document.getElementById('alert-log-events-wrapper'), document.getElementById('alert-log-events-count'), triggerCount);
         populateJobIds(document.getElementById('alert-log-job-ids-wrapper'), document.getElementById('alert-log-job-ids'), document.getElementById('alert-log-job-ids-more'), jobIds);
         populateStatus(document.getElementById('alert-log-status'), status);

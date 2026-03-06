@@ -206,7 +206,6 @@ class AlertEngine {
 
         $newLog = AlertLog::create([
             'alert_id' => $alert->id,
-            'job_id' => isset($jobIds[0]) ? $jobIds[0] : null,
             'service_id' => $serviceId,
             'trigger_count' => count($events),
             'job_ids' => ! empty($jobIds) ? $jobIds : null,
@@ -355,12 +354,10 @@ class AlertEngine {
     private function sendBatchedAlert(Alert $alert, array $events): void {
         $first = $events[0];
         $serviceId = (int) $first['service_id'];
-        $jobId = $first['job_id'] ?? null;
         $jobIds = \array_values(\array_filter(\array_column($events, 'job_id')));
 
         $log = AlertLog::create([
             'alert_id' => $alert->id,
-            'job_id' => $jobId,
             'service_id' => $serviceId,
             'trigger_count' => count($events),
             'job_ids' => $jobIds ?: null,

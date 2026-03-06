@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AlertLog extends Model {
     protected $fillable = [
         'alert_id',
-        'job_id',
         'service_id',
         'trigger_count',
         'job_ids',
