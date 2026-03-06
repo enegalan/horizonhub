@@ -27,7 +27,7 @@
                                 Save
                             </span>
                             <span wire:loading wire:target="updateService" class="inline-flex" aria-hidden="true">
-                                <x-heroicon-o-arrow-path class="size-4 animate-spin" />
+                                <x-loader />
                             </span>
                         </x-button>
                         <x-button variant="ghost" type="button" wire:click="cancelEdit" class="h-9 text-sm">Cancel</x-button>
@@ -72,7 +72,7 @@
                         Register
                     </span>
                     <span wire:loading wire:target="save" class="inline-flex" aria-hidden="true">
-                        <x-heroicon-o-arrow-path class="size-4 animate-spin" />
+                        <x-loader />
                     </span>
                 </x-button>
             </form>

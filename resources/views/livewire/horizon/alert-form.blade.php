@@ -108,7 +108,7 @@
                     Save
                 </span>
                 <span wire:loading wire:target="save" class="inline-flex" aria-hidden="true">
-                    <x-heroicon-o-arrow-path class="size-4 animate-spin" />
+                    <x-loader />
                 </span>
             </x-button>
             <x-button variant="ghost" type="button" class="h-9 text-sm" onclick="window.location.href='{{ route('horizon.alerts.index') }}'">

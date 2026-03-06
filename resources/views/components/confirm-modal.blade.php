@@ -69,7 +69,7 @@ $dialogTitle = $title;
                             {{ $confirmText }}
                         </span>
                         <span wire:loading wire:target="{{ $confirmAction }}" class="inline-flex" aria-hidden="true">
-                            <x-heroicon-o-arrow-path class="size-4 animate-spin" />
+                            <x-loader />
                         </span>
                     </x-button>
                 @endif

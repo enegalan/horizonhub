@@ -134,7 +134,7 @@
                                                 <x-heroicon-o-arrow-path class="size-4" />
                                             </span>
                                             <span wire:loading wire:target="retryLog({{ $log->id }})" class="inline-flex" aria-hidden="true">
-                                                <x-heroicon-o-arrow-path class="size-4 animate-spin" />
+                                                <x-loader />
                                             </span>
                                         </x-button>
                                     @endif

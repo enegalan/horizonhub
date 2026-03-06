@@ -31,7 +31,7 @@
                             @endif
                             </span>
                             <span class="queue-btn-spinner hidden" aria-hidden="true">
-                                <x-heroicon-o-arrow-path class="size-4 animate-spin" />
+                                <x-loader />
                             </span>
                         </x-button>
                     </div>
