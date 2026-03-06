@@ -10,7 +10,10 @@
         }
     }"
     x-init="
-        $watch('tab', () => {
+        $watch('tab', (value) => {
+            const url = new URL(window.location.href);
+            url.searchParams.set('tab', value);
+            window.history.replaceState({}, '', url.toString());
             measureMode = true;
             $nextTick(() => { updateHeight(); measureMode = false; });
         });
