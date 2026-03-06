@@ -4,8 +4,6 @@ namespace App\Services;
 
 use App\Models\Alert;
 use App\Models\AlertLog;
-use App\Models\HorizonFailedJob;
-use App\Models\HorizonJob;
 use App\Models\NotificationProvider;
 use App\Models\Service;
 use Illuminate\Database\Eloquent\Collection;
@@ -37,6 +35,13 @@ class AlertEngine {
     private const PENDING_TTL_MINUTES = 60;
 
     /**
+     * The rule evaluator.
+     *
+     * @var AlertRuleEvaluator
+     */
+    private AlertRuleEvaluator $ruleEvaluator;
+
+    /**
      * The email notifier.
      *
      * @var EmailNotifier
@@ -55,13 +60,16 @@ class AlertEngine {
      *
      * @param EmailNotifier $emailNotifier
      * @param SlackNotifier $slackNotifier
+     * @param AlertRuleEvaluator $ruleEvaluator
      */
     public function __construct(
         EmailNotifier $emailNotifier,
-        SlackNotifier $slackNotifier
+        SlackNotifier $slackNotifier,
+        AlertRuleEvaluator $ruleEvaluator
     ) {
-        $this->emailNotifier = $emailNotifier ?? new EmailNotifier();
-        $this->slackNotifier = $slackNotifier ?? new SlackNotifier();
+        $this->emailNotifier = $emailNotifier;
+        $this->slackNotifier = $slackNotifier;
+        $this->ruleEvaluator = $ruleEvaluator;
     }
 
     /**
@@ -73,7 +81,6 @@ class AlertEngine {
         /** @var \Illuminate\Database\Eloquent\Collection<int, Alert> $alerts */
         $alerts = Alert::where('enabled', true)->get();
         $intervalMinutes = $this->getIntervalMinutes();
-
         foreach ($alerts as $alert) {
             $pending = $this->getPending($alert);
             if (empty($pending)) {
@@ -173,113 +180,7 @@ class AlertEngine {
      * @return bool
      */
     private function evaluateRule(Alert $alert, int $serviceId, ?int $jobId): bool {
-        return match ($alert->rule_type) {
-            'job_specific_failure' => true,
-            'job_type_failure' => $this->evaluateJobTypeFailure($alert, $serviceId),
-            'failure_count' => $this->evaluateFailureCount($alert, $serviceId),
-            'avg_execution_time' => $this->evaluateAvgExecutionTime($alert, $serviceId),
-            'queue_blocked' => $this->evaluateQueueBlocked($alert, $serviceId),
-            'worker_offline' => $this->evaluateWorkerOffline($alert, $serviceId),
-            default => false,
-        };
-    }
-
-    /**
-     * Evaluate the job type failure.
-     *
-     * @param Alert $alert
-     * @param int $serviceId
-     * @return bool
-     */
-    private function evaluateJobTypeFailure(Alert $alert, int $serviceId): bool {
-        if (! $alert->job_type) {
-            return false;
-        }
-        $recent = HorizonFailedJob::where('service_id', $serviceId)
-            ->where('failed_at', '>=', \now()->subMinutes(15))
-            ->get()
-            ->filter(fn ($j) => \str_contains((string) ($j->payload['displayName'] ?? $j->payload['job'] ?? ''), $alert->job_type))
-            ->isNotEmpty();
-        return $recent;
-    }
-
-    /**
-     * Evaluate the failure count.
-     *
-     * @param Alert $alert
-     * @param int $serviceId
-     * @return bool
-     */
-    private function evaluateFailureCount(Alert $alert, int $serviceId): bool {
-        $threshold = $alert->threshold ?? [];
-        $count = (int) ($threshold['count'] ?? 5);
-        $minutes = (int) ($threshold['minutes'] ?? 15);
-        $actual = HorizonFailedJob::where('service_id', $serviceId)
-            ->when($alert->queue, fn ($q) => $q->where('queue', $alert->queue))
-            ->where('failed_at', '>=', \now()->subMinutes($minutes))
-            ->count();
-        return $actual >= $count;
-    }
-
-    /**
-     * Evaluate the average execution time.
-     *
-     * @param Alert $alert
-     * @param int $serviceId
-     * @return bool
-     */
-    private function evaluateAvgExecutionTime(Alert $alert, int $serviceId): bool {
-        $threshold = $alert->threshold ?? [];
-        $maxSeconds = (float) ($threshold['seconds'] ?? 60);
-        $minutes = (int) ($threshold['minutes'] ?? 15);
-        $jobs = HorizonJob::where('service_id', $serviceId)
-            ->where('status', 'processed')
-            ->whereNotNull('processed_at')
-            ->where('processed_at', '>=', \now()->subMinutes($minutes))
-            ->get();
-        if ($jobs->isEmpty()) {
-            return false;
-        }
-        $jobsWithRuntime = $jobs->filter(fn ($j) => $j->getRuntimeSeconds() !== null);
-        $avg = $jobsWithRuntime->isEmpty() ? 0.0 : $jobsWithRuntime->avg(fn ($j) => $j->getRuntimeSeconds());
-        return $avg >= $maxSeconds;
-    }
-
-    /**
-     * Evaluate the queue blocked.
-     *
-     * @param Alert $alert
-     * @param int $serviceId
-     * @return bool
-     */
-    private function evaluateQueueBlocked(Alert $alert, int $serviceId): bool {
-        $threshold = $alert->threshold ?? [];
-        $minutes = (int) ($threshold['minutes'] ?? 30);
-        $lastProcessed = HorizonJob::where('service_id', $serviceId)
-            ->when($alert->queue, fn ($q) => $q->where('queue', $alert->queue))
-            ->where('status', 'processed')
-            ->max('processed_at');
-        if (! $lastProcessed) {
-            return false;
-        }
-        return Carbon::parse($lastProcessed)->addMinutes($minutes)->isPast();
-    }
-
-    /**
-     * Evaluate the worker offline.
-     *
-     * @param Alert $alert
-     * @param int $serviceId
-     * @return bool
-     */
-    private function evaluateWorkerOffline(Alert $alert, int $serviceId): bool {
-        $threshold = $alert->threshold ?? [];
-        $minutes = (int) ($threshold['minutes'] ?? 5);
-        $service = Service::find($serviceId);
-        if (! $service || ! $service->last_seen_at) {
-            return false;
-        }
-        return $service->last_seen_at->addMinutes($minutes)->isPast();
+        return $this->ruleEvaluator->evaluate($alert, $serviceId, $jobId);
     }
 
     /**
@@ -314,53 +215,7 @@ class AlertEngine {
             'sent_at' => \now(),
         ]);
 
-        $providers = $alert->notificationProviders;
-
-        if ($providers instanceof Collection && $providers->isNotEmpty()) {
-            /** @var \Illuminate\Database\Eloquent\Collection<int, NotificationProvider> $providers */
-            foreach ($providers as $provider) {
-                try {
-                    if ($provider->type === NotificationProvider::TYPE_SLACK) {
-                        $webhookUrl = $provider->getWebhookUrl();
-                        if ($webhookUrl !== '') {
-                            $this->slackNotifier->sendBatched($alert, $events, ['webhook_url' => $webhookUrl]);
-                        }
-                    }
-                    if ($provider->type === NotificationProvider::TYPE_EMAIL) {
-                        $to = $provider->getToEmails();
-                        if (! empty($to)) {
-                            $this->emailNotifier->sendBatched($alert, $events, ['to' => $to]);
-                        }
-                    }
-                } catch (\Throwable $e) {
-                    $newLog->update(['status' => 'failed', 'failure_message' => $e->getMessage()]);
-                }
-            }
-            return;
-        }
-
-        $channels = $alert->notification_channels ?? [];
-        foreach ($channels as $channel => $config) {
-            try {
-                if ($channel === 'email') {
-                    $to = $config['to'] ?? Setting::get('integrations.email.default_to', []);
-                    $to = \is_array($to) ? $to : [];
-                    if (! empty($to)) {
-                        $config['to'] = $to;
-                        $this->emailNotifier->sendBatched($alert, $events, $config);
-                    }
-                }
-                if ($channel === 'slack') {
-                    $webhookUrl = $config['webhook_url'] ?? Setting::get('integrations.slack.webhook_url', '');
-                    if ((string) $webhookUrl !== '') {
-                        $config['webhook_url'] = $webhookUrl;
-                        $this->slackNotifier->sendBatched($alert, $events, $config);
-                    }
-                }
-            } catch (\Throwable $e) {
-                $newLog->update(['status' => 'failed', 'failure_message' => $e->getMessage()]);
-            }
-        }
+        $this->sendAlertForLog($alert, $events, $newLog);
     }
 
     /**
@@ -513,9 +368,22 @@ class AlertEngine {
             'sent_at' => \now(),
         ]);
 
+        $this->sendAlertForLog($alert, $events, $log);
+    }
+
+    /**
+     * Send alert notifications for the given log using providers or channels.
+     *
+     * @param Alert $alert
+     * @param array<int, array{service_id: int, job_id: int|null, triggered_at: string}> $events
+     * @param AlertLog $log
+     * @return void
+     */
+    private function sendAlertForLog(Alert $alert, array $events, AlertLog $log): void {
         $providers = $alert->notificationProviders;
 
-        if ($providers->isNotEmpty()) {
+        if ($providers instanceof Collection && $providers->isNotEmpty()) {
+            /** @var \Illuminate\Database\Eloquent\Collection<int, NotificationProvider> $providers */
             foreach ($providers as $provider) {
                 try {
                     if ($provider->type === NotificationProvider::TYPE_SLACK) {
@@ -537,29 +405,31 @@ class AlertEngine {
                     $log->update(['status' => 'failed', 'failure_message' => $e->getMessage()]);
                 }
             }
-        } else {
-            $channels = $alert->notification_channels ?? [];
-            foreach ($channels as $channel => $config) {
-                try {
-                    if ($channel === 'email') {
-                        $to = $config['to'] ?? Setting::get('integrations.email.default_to', []);
-                        $to = \is_array($to) ? $to : [];
-                        if (! empty($to)) {
-                            $merged = \array_merge($config, ['to' => $to]);
-                            $this->emailNotifier->sendBatched($alert, $events, $merged);
-                        }
+
+            return;
+        }
+
+        $channels = $alert->notification_channels ?? [];
+        foreach ($channels as $channel => $config) {
+            try {
+                if ($channel === 'email') {
+                    $to = \isset($config['to']) ? $config['to'] : Setting::get('integrations.email.default_to', []);
+                    $to = \is_array($to) ? $to : [];
+                    if (! empty($to)) {
+                        $config['to'] = $to;
+                        $this->emailNotifier->sendBatched($alert, $events, $config);
                     }
-                    if ($channel === 'slack') {
-                        $webhookUrl = $config['webhook_url'] ?? Setting::get('integrations.slack.webhook_url', '');
-                        if (! empty($webhookUrl)) {
-                            $merged = \array_merge($config, ['webhook_url' => $webhookUrl]);
-                            $this->slackNotifier->sendBatched($alert, $events, $merged);
-                        }
-                    }
-                } catch (\Throwable $e) {
-                    Log::error('Horizon Hub alert notification failed', ['alert_id' => $alert->id, 'channel' => $channel, 'error' => $e->getMessage()]);
-                    $log->update(['status' => 'failed', 'failure_message' => $e->getMessage()]);
                 }
+                if ($channel === 'slack') {
+                    $webhookUrl = \isset($config['webhook_url']) ? $config['webhook_url'] : Setting::get('integrations.slack.webhook_url', '');
+                    if (! empty($webhookUrl)) {
+                        $config['webhook_url'] = $webhookUrl;
+                        $this->slackNotifier->sendBatched($alert, $events, $config);
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::error('Horizon Hub alert notification failed', ['alert_id' => $alert->id, 'channel' => $channel, 'error' => $e->getMessage()]);
+                $log->update(['status' => 'failed', 'failure_message' => $e->getMessage()]);
             }
         }
     }

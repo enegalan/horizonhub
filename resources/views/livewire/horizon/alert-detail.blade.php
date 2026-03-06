@@ -23,6 +23,71 @@
         </div>
     </div>
 
+    @if(!empty($ruleConfig))
+        <div class="card p-4 mb-4">
+            <h3 class="text-section-title text-foreground mb-3">Alert rule</h3>
+            <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                <div>
+                    <dt class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Type</dt>
+                    <dd class="mt-0.5 text-foreground font-mono text-xs">{{ $ruleConfig['rule_type'] ?? 'unknown' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Service scope</dt>
+                    @php
+                        $serviceId = $ruleConfig['service_id'] ?? null;
+                        $serviceName = null;
+                        if ($serviceId !== null) {
+                            foreach ($services as $s) {
+                                if ((int) $s->id === (int) $serviceId) {
+                                    $serviceName = $s->name;
+                                    break;
+                                }
+                            }
+                        }
+                    @endphp
+                    <dd class="mt-0.5 text-foreground">
+                        @if($serviceName)
+                            {{ $serviceName }}
+                        @else
+                            Any service
+                        @endif
+                    </dd>
+                </div>
+                @if(!empty($ruleConfig['queue']))
+                    <div>
+                        <dt class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Queue</dt>
+                        <dd class="mt-0.5 text-foreground font-mono text-xs">{{ $ruleConfig['queue'] }}</dd>
+                    </div>
+                @endif
+                @if(!empty($ruleConfig['job_type']))
+                    <div>
+                        <dt class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Job type</dt>
+                        <dd class="mt-0.5 text-foreground font-mono text-xs">{{ $ruleConfig['job_type'] }}</dd>
+                    </div>
+                @endif
+                @php
+                    $threshold = $ruleConfig['threshold'] ?? array();
+                @endphp
+                @if(!empty($threshold))
+                    <div>
+                        <dt class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Threshold</dt>
+                        <dd class="mt-0.5 text-foreground text-xs">
+                            @if(isset($threshold['count']))
+                                Failures: {{ (int) $threshold['count'] }}
+                            @endif
+                            @if(isset($threshold['seconds']))
+                                <span class="mr-1"></span>Seconds: {{ (float) $threshold['seconds'] }}
+                            @endif
+                            @if(isset($threshold['minutes']))
+                                <span class="mr-1"></span>Window: {{ (int) $threshold['minutes'] }} min
+                            @endif
+                        </dd>
+                    </div>
+                @endif
+            </dl>
+        </div>
+    @endif
+
     <div class="grid gap-4 mb-6">
         <div class="card p-4" wire:ignore>
             <h3 class="text-section-title text-foreground mb-2">Sends in the last 24h (by hour)</h3>
@@ -42,6 +107,15 @@
 
     <div class="card mb-4">
         <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
+            <div class="space-y-2">
+                <x-input-label class="text-[11px] font-medium text-muted-foreground">Service</x-input-label>
+                <x-select wire:model.live="serviceFilter" class="w-44">
+                    <option value="">All</option>
+                    @foreach($services as $s)
+                        <option value="{{ $s->id }}">{{ $s->name }} ({{ $s->status }})</option>
+                    @endforeach
+                </x-select>
+            </div>
             <div class="space-y-2">
                 <x-input-label class="text-[11px] font-medium text-muted-foreground">Status</x-input-label>
                 <x-select wire:model.live="statusFilter" class="w-36" :options="['' => 'All', 'sent' => 'Sent', 'failed' => 'Failed']" />

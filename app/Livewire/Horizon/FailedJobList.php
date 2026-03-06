@@ -61,6 +61,9 @@ class FailedJobList extends Component {
         $result = $agent->retryJob($job->service, $job->job_uuid);
         if ($result['success']) {
             $this->dispatch('job-retried');
+        } else {
+            $message = $result['message'] ?? 'Retry failed';
+            $this->dispatch('job-action-failed', message: $message);
         }
     }
 
@@ -76,8 +79,13 @@ class FailedJobList extends Component {
         if (! $job || ! $job->service) {
             return;
         }
-        $agent->deleteJob($job->service, $job->job_uuid);
-        $this->refreshList();
+        $result = $agent->deleteJob($job->service, $job->job_uuid);
+        if ($result['success']) {
+            $this->refreshList();
+        } else {
+            $message = $result['message'] ?? 'Delete failed';
+            $this->dispatch('job-action-failed', message: $message);
+        }
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Livewire\Horizon;
 
 use App\Models\Alert;
 use App\Models\AlertLog;
+use App\Models\Service;
 use App\Services\AlertEngine;
 use Carbon\Carbon;
 use Livewire\Component;
@@ -40,6 +41,13 @@ class AlertDetail extends Component {
      * @var int|null
      */
     public ?int $selectedLogId = null;
+
+    /**
+     * The service filter to apply to the alert logs.
+     *
+     * @var int|null
+     */
+    public ?int $serviceFilter = null;
 
     /**
      * Retry a alert log.
@@ -90,9 +98,22 @@ class AlertDetail extends Component {
     /**
      * Reset the page when the per page is updated.
      *
+     * Hook for Livewire.
+     *
      * @return void
      */
     public function updatedPerPage(): void {
+        $this->resetPage();
+    }
+
+    /**
+     * Reset the page when the service filter is updated.
+     *
+     * Hook for Livewire.
+     *
+     * @return void
+     */
+    public function updatedServiceFilter(): void {
         $this->resetPage();
     }
 
@@ -238,6 +259,7 @@ class AlertDetail extends Component {
     public function render(): View {
         $logs = $this->alert->alertLogs()
             ->with('service')
+            ->when($this->serviceFilter !== null, fn ($q) => $q->where('service_id', $this->serviceFilter))
             ->when($this->statusFilter !== '', fn ($q) => $q->where('status', $this->statusFilter))
             ->orderByDesc('sent_at')
             ->paginate((int) $this->perPage);
@@ -251,11 +273,23 @@ class AlertDetail extends Component {
         $alertName = $this->alert->name ?: 'Alert #' . $this->alert->id;
         $selectedLog = $this->selectedLogId !== null ? $logs->firstWhere('id', $this->selectedLogId) : null;
 
+        $services = Service::orderBy('name')->get();
+
+        $ruleConfig = [
+            'rule_type' => $this->alert->rule_type,
+            'threshold' => $this->alert->threshold,
+            'queue' => $this->alert->queue,
+            'job_type' => $this->alert->job_type,
+            'service_id' => $this->alert->service_id,
+        ];
+
         return \view('livewire.horizon.alert-detail', [
             'logs' => $logs,
             'chartData' => $chartData,
             'alertName' => $alertName,
             'selectedLog' => $selectedLog,
+            'services' => $services,
+            'ruleConfig' => $ruleConfig,
         ])->layout('layouts.app', [
             'header' => 'Horizon Hub – ' . $alertName,
         ]);
