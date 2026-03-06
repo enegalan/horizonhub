@@ -111,7 +111,8 @@
     .queue-action-btn:focus,
     .queue-action-btn:active,
     .queue-action-btn:target {
-        @apply border-primary outline-none;
+        @apply outline-none;
+        border: 1px solid var(--primary-40);
         box-shadow: 0 0 0 .25rem var(--primary-40);
         transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
     }
