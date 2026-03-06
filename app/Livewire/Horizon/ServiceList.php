@@ -82,13 +82,25 @@ class ServiceList extends Component {
     ];
 
     /**
+     * Generate a new API key.
+     *
+     * @return string
+     */
+    private function generateApiKey(): string {
+        do {
+            $apiKey = Str::random(64);
+        } while (Service::where('api_key', $apiKey)->exists());
+        return $apiKey;
+    }
+
+    /**
      * Save the service.
      *
      * @return void
      */
     public function save(): void {
         $this->validate();
-        $apiKey = Str::random(64);
+        $apiKey = $this->generateApiKey();
         Service::create([
             'name' => $this->name,
             'api_key' => $apiKey,
@@ -166,6 +178,26 @@ class ServiceList extends Component {
         $service->delete();
 
         $this->dispatch('toast', type: 'success', message: 'Service deleted.');
+    }
+
+    /**
+     * Regenerate the API key for the given service.
+     *
+     * @param int $serviceId
+     * @return void
+     */
+    public function regenerateApiKey(int $serviceId): void {
+        $service = Service::find($serviceId);
+        if (! $service) {
+            return;
+        }
+
+        $apiKey = $this->generateApiKey();
+        $service->update(['api_key' => $apiKey]);
+
+        $this->newApiKey = $apiKey;
+
+        $this->dispatch('toast', type: 'success', message: 'API key regenerated.');
     }
 
     /**

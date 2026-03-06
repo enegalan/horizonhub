@@ -112,6 +112,23 @@
                             <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="last_seen">{{ $service->last_seen_at?->diffForHumans() ?? '–' }}</td>
                             <td class="px-4 py-2.5" data-column-id="actions">
                                 <div class="flex items-center gap-2">
+                                    <x-button
+                                        variant="ghost"
+                                        type="button"
+                                        wire:click="regenerateApiKey({{ $service->id }})"
+                                        class="h-8 min-h-8 p-2"
+                                        wire:loading.attr="disabled"
+                                        wire:target="regenerateApiKey"
+                                        aria-label="Regenerate API key"
+                                        title="Regenerate API key"
+                                    >
+                                        <span wire:loading.remove wire:target="regenerateApiKey">
+                                            <x-heroicon-o-key class="size-4" />
+                                        </span>
+                                        <span wire:loading wire:target="regenerateApiKey" class="inline-flex" aria-hidden="true">
+                                            <x-loader />
+                                        </span>
+                                    </x-button>
                                     <x-button variant="ghost" type="button" wire:click="openEdit({{ $service->id }})" class="h-8 min-h-8 p-2" aria-label="Edit" title="Edit">
                                         <x-heroicon-o-pencil-square class="size-4" />
                                     </x-button>
