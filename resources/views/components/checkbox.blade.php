@@ -1,12 +1,12 @@
 @props(['disabled' => false])
 
 @php
-    $inputAttrs = $attributes->merge(array(
+    $inputAttrs = $attributes->merge([
         'type' => 'checkbox',
         'class' => 'peer sr-only',
-    ));
+    ]);
     if ($disabled) {
-        $inputAttrs = $inputAttrs->merge(array('disabled' => true));
+        $inputAttrs = $inputAttrs->merge(['disabled' => true]);
     }
 @endphp
 <div

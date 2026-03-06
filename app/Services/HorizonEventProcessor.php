@@ -9,17 +9,24 @@ use App\Models\HorizonSupervisorState;
 use App\Models\Service;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class HorizonEventProcessor {
+    /**
+     * The alert engine.
+     *
+     * @var AlertEngine
+     */
+    private AlertEngine $alertEngine;
     /**
      * Construct the horizon event processor.
      *
      * @param AlertEngine $alertEngine
      */
     public function __construct(
-        private readonly AlertEngine $alertEngine
-    ) {}
+        AlertEngine $alertEngine
+    ) {
+        $this->alertEngine = $alertEngine;
+    }
 
     /**
      * Process an event.
@@ -40,18 +47,18 @@ class HorizonEventProcessor {
         $queue = $event['queue'] ?? '';
         $name = $event['name'] ?? null;
         $payload = $event['payload'] ?? null;
-        $attempts = isset($event['attempts']) ? (int) $event['attempts'] : 0;
+        $attempts = \isset($event['attempts']) ? (int) $event['attempts'] : 0;
         $statusRaw = $event['status'] ?? null;
         $status = (is_string($statusRaw) && $statusRaw !== '') ? $statusRaw : $eventType;
-        $processedAt = isset($event['processed_at']) ? $event['processed_at'] : null;
-        $failedAt = isset($event['failed_at']) ? $event['failed_at'] : null;
-        $queuedAt = isset($event['queued_at']) ? $event['queued_at'] : null;
-        $runtimeSeconds = isset($event['runtime_seconds']) ? (float) $event['runtime_seconds'] : null;
+        $processedAt = \isset($event['processed_at']) ? $event['processed_at'] : null;
+        $failedAt = \isset($event['failed_at']) ? $event['failed_at'] : null;
+        $queuedAt = \isset($event['queued_at']) ? $event['queued_at'] : null;
+        $runtimeSeconds = \isset($event['runtime_seconds']) ? (float) $event['runtime_seconds'] : null;
         $exception = $event['exception'] ?? null;
 
-        if ($queuedAt === null && isset($payload) && is_array($payload)) {
-            $pushedAtRaw = isset($payload['pushedAt']) ? $payload['pushedAt'] : null;
-            if ($pushedAtRaw !== null && is_numeric($pushedAtRaw)) {
+        if ($queuedAt === null && \isset($payload) && \is_array($payload)) {
+            $pushedAtRaw = \isset($payload['pushedAt']) ? $payload['pushedAt'] : null;
+            if ($pushedAtRaw !== null && \is_numeric($pushedAtRaw)) {
                 $pushedAtFloat = (float) $pushedAtRaw;
                 if ($pushedAtFloat > 0) {
                     $queuedAt = Carbon::createFromTimestamp((int) $pushedAtFloat)->toIso8601String();
@@ -67,14 +74,14 @@ class HorizonEventProcessor {
                     'queue' => $queue,
                     'payload' => $payload,
                     'exception' => $exception,
-                    'failed_at' => $failedAt ? now()->parse($failedAt) : now(),
+                    'failed_at' => $failedAt ? \now()->parse($failedAt) : \now(),
                 ]);
             }
 
-            $failedAtParsed = $failedAt ? now()->parse($failedAt) : null;
+            $failedAtParsed = $failedAt ? \now()->parse($failedAt) : null;
             $existing = HorizonJob::where('service_id', $service->id)->where('job_uuid', $jobId)->lockForUpdate()->first();
 
-            $processedAtParsed = $processedAt ? now()->parse($processedAt) : null;
+            $processedAtParsed = $processedAt ? \now()->parse($processedAt) : null;
 
             $existingStatus = $existing ? $existing->status : null;
             $statusForAttributes = $status !== null ? $status : $existingStatus;
@@ -83,7 +90,7 @@ class HorizonEventProcessor {
                 $statusForAttributes = $existingStatus;
             }
 
-            $attributes = array(
+            $attributes = [
                 'queue' => $queue !== '' ? $queue : ($existing ? $existing->queue : null),
                 'payload' => $payload !== null ? $payload : ($existing ? $existing->payload : null),
                 'status' => $statusForAttributes,
@@ -94,9 +101,9 @@ class HorizonEventProcessor {
                     : ($processedAtParsed !== null ? $processedAtParsed : ($existing ? $existing->processed_at : null)),
                 'failed_at' => $existing ? $existing->failed_at : null,
                 'runtime_seconds' => $runtimeSeconds !== null ? $runtimeSeconds : ($existing ? $existing->runtime_seconds : null),
-                'queued_at' => $queuedAt !== null ? now()->parse($queuedAt) : ($existing ? $existing->queued_at : null),
+                'queued_at' => $queuedAt !== null ? \now()->parse($queuedAt) : ($existing ? $existing->queued_at : null),
                 'exception' => $existing ? $existing->exception : null,
-            );
+            ];
 
             if ($eventType === 'JobFailed') {
                 $attributes['processed_at'] = null;
@@ -139,14 +146,14 @@ class HorizonEventProcessor {
      * @return void
      */
     private function processSupervisorLooped(Service $service, array $event): void {
-        $name = isset($event['queue']) && (string) $event['queue'] !== '' ? (string) $event['queue'] : 'default';
+        $name = \isset($event['queue']) && (string) $event['queue'] !== '' ? (string) $event['queue'] : 'default';
         HorizonSupervisorState::updateOrCreate(
             [
                 'service_id' => $service->id,
                 'name' => $name,
             ],
             [
-                'last_seen_at' => now(),
+                'last_seen_at' => \now(),
             ]
         );
     }

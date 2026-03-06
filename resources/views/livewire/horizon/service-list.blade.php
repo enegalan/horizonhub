@@ -2,7 +2,7 @@
     @if($editingServiceId)
         @teleport('body')
             <div class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto px-4">
-                @include('components.backdrop', array('variant' => 'default', 'wireClick' => 'cancelEdit'))
+                @include('components.backdrop', ['variant' => 'default', 'wireClick' => 'cancelEdit'])
                 <div class="relative z-10 card w-full max-w-md p-4 bg-card">
                 <h2 class="text-section-title text-foreground mb-3">Edit service</h2>
                 <form wire:submit="updateService" class="space-y-3">

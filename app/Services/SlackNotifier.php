@@ -17,9 +17,9 @@ class SlackNotifier {
      * @return void
      */
     public function send(Alert $alert, int $serviceId, ?int $jobId, array $config): void {
-        $this->sendBatched($alert, array(
-            array('service_id' => $serviceId, 'job_id' => $jobId, 'triggered_at' => now()->toIso8601String()),
-        ), $config);
+        $this->sendBatched($alert, [
+            ['service_id' => $serviceId, 'job_id' => $jobId, 'triggered_at' => now()->toIso8601String()],
+        ], $config);
     }
 
     /**
@@ -39,19 +39,19 @@ class SlackNotifier {
         $first = $events[0];
         $serviceId = (int) $first['service_id'];
         $service = Service::find($serviceId);
-        $count = count($events);
+        $count = \count($events);
 
-        $lines = array(
-            sprintf('*[Horizon Hub]* Alert: %s | Service: %s', $alert->rule_type, $service ? $service->name : (string) $serviceId),
-            'Events: ' . $count,
-        );
-        foreach (array_slice($events, 0, 10) as $i => $event) {
+        $lines = [
+            \sprintf('*[Horizon Hub]* Alert: %s | Service: %s', $alert->rule_type, $service ? $service->name : (string) $serviceId),
+            "Events: $count",
+        ];
+        foreach (\array_slice($events, 0, 10) as $i => $event) {
             $lines[] = '• Job ID: ' . ($event['job_id'] ?? 'N/A') . ' at ' . ($event['triggered_at'] ?? '');
         }
         if ($count > 10) {
-            $lines[] = '… and ' . ($count - 10) . ' more';
+            $lines[] = "… and " . ($count - 10) . " more";
         }
-        $text = implode("\n", $lines);
+        $text = \implode("\n", $lines);
 
         Http::post($webhookUrl, [
             'text' => $text,

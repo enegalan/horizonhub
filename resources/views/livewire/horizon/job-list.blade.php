@@ -16,7 +16,7 @@
             </div>
             <div class="space-y-2">
                 <x-input-label class="text-[11px] font-medium text-muted-foreground">Status</x-input-label>
-                <x-select wire:model.live="statusFilter" class="w-32" :options="array('' => 'All', 'processed' => 'Processed', 'failed' => 'Failed', 'processing' => 'Processing')" />
+                <x-select wire:model.live="statusFilter" class="w-32" :options="['' => 'All', 'processed' => 'Processed', 'failed' => 'Failed', 'processing' => 'Processing']" />
             </div>
             <div class="space-y-2">
                 <x-input-label class="text-[11px] font-medium text-muted-foreground">Job type</x-input-label>
@@ -135,7 +135,7 @@
                         </div>
                         <div class="space-y-2">
                             <x-input-label class="text-[11px] font-medium text-muted-foreground">Status</x-input-label>
-                            <x-select wire:model.live="cleanStatus" class="w-full" :options="array('' => 'All', 'processed' => 'Processed', 'failed' => 'Failed', 'processing' => 'Processing')" />
+                            <x-select wire:model.live="cleanStatus" class="w-full" :options="['' => 'All', 'processed' => 'Processed', 'failed' => 'Failed', 'processing' => 'Processing']" />
                         </div>
                         <div class="space-y-2">
                             <x-input-label class="text-[11px] font-medium text-muted-foreground">Job type</x-input-label>

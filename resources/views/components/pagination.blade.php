@@ -5,16 +5,16 @@
         $current = $paginator->currentPage();
         $last = $paginator->lastPage();
         $window = (int) $onEachSide;
-        $slider = array();
+        $slider = [];
         if ($last <= ($window * 2 + 3)) {
             $slider = range(1, $last);
         } else {
             if ($current <= $window + 2) {
-                $slider = array_merge(range(1, min($window * 2 + 2, $last)), array('...'), array($last));
+                $slider = array_merge(range(1, min($window * 2 + 2, $last)), ['...'], [$last]);
             } elseif ($current >= $last - $window - 1) {
-                $slider = array_merge(array(1), array('...'), range(max(1, $last - $window * 2 - 1), $last));
+                $slider = array_merge([1], ['...'], range(max(1, $last - $window * 2 - 1), $last));
             } else {
-                $slider = array_merge(array(1), array('...'), range($current - $window, $current + $window), array('...'), array($last));
+                $slider = array_merge([1], ['...'], range($current - $window, $current + $window), ['...'], [$last]);
             }
         }
     @endphp

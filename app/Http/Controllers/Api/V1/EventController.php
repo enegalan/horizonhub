@@ -10,9 +10,23 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 
 class EventController extends Controller {
+    /**
+     * The horizon event processor.
+     *
+     * @var HorizonEventProcessor
+     */
+    private HorizonEventProcessor $processor;
+
+    /**
+     * Construct the event controller.
+     *
+     * @param HorizonEventProcessor $processor
+     */
     public function __construct(
-        private readonly HorizonEventProcessor $processor
-    ) {}
+        HorizonEventProcessor $processor
+    ) {
+        $this->processor = $processor;
+    }
 
     /**
      * Store an event.
@@ -24,10 +38,10 @@ class EventController extends Controller {
         /** @var Service $service */
         $service = $request->attributes->get('horizonhub_service');
         if (! $service) {
-            return response()->json(['message' => 'Service not resolved'], 401);
+            return \response()->json(['message' => 'Service not resolved'], 401);
         }
 
-        $service->update(['last_seen_at' => now(), 'status' => 'online']);
+        $service->update(['last_seen_at' => \now(), 'status' => 'online']);
         $events = $request->getEvents();
 
         foreach ($events as $event) {
@@ -42,6 +56,6 @@ class EventController extends Controller {
             }
         }
 
-        return response()->json(['accepted' => count($events)], 202);
+        return \response()->json(['accepted' => count($events)], 202);
     }
 }

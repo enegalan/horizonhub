@@ -17,12 +17,12 @@ class JobList extends Component {
      *
      * @var array<string, array<string, string>>
      */
-    protected $queryString = array(
-        'serviceFilter' => array('except' => ''),
-        'queueFilter' => array('except' => ''),
-        'statusFilter' => array('except' => ''),
-        'jobTypeFilter' => array('except' => ''),
-    );
+    protected $queryString = [
+        'serviceFilter' => ['except' => ''],
+        'queueFilter' => ['except' => ''],
+        'statusFilter' => ['except' => ''],
+        'jobTypeFilter' => ['except' => ''],
+    ];
 
     /**
      * The service filter.
@@ -192,7 +192,7 @@ class JobList extends Component {
 
         $this->closeCleanModal();
         $this->resetPage();
-        $msg = $count . ' job(s) cleaned.';
+        $msg = "$count job(s) cleaned.";
         $this->dispatch('toast', type: 'success', message: $msg);
     }
 
@@ -218,7 +218,7 @@ class JobList extends Component {
             $query->where('name', 'like', '%' . $this->jobTypeFilter . '%');
         }
 
-        $appendQuery = array();
+        $appendQuery = [];
         if ($this->serviceFilter !== '') {
             $appendQuery['serviceFilter'] = $this->serviceFilter;
         }
@@ -235,7 +235,7 @@ class JobList extends Component {
         $jobs = $query->paginate(20)->appends($appendQuery);
         $services = Service::orderBy('name')->get();
 
-        return view('livewire.horizon.job-list', [
+        return \view('livewire.horizon.job-list', [
             'jobs' => $jobs,
             'services' => $services,
         ])->layout('layouts.app', [

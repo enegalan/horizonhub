@@ -24,14 +24,14 @@ class AlertEngineTest extends TestCase {
         Alert::create([
             'service_id' => $service->id,
             'rule_type' => 'failure_count',
-            'threshold' => array('count' => 2, 'minutes' => 60),
-            'notification_channels' => array(),
+            'threshold' => ['count' => 2, 'minutes' => 60],
+            'notification_channels' => [],
         ]);
         HorizonFailedJob::create([
             'service_id' => $service->id,
             'job_uuid' => 'u1',
             'queue' => 'default',
-            'payload' => array(),
+            'payload' => [],
             'exception' => 'err',
             'failed_at' => now(),
         ]);
@@ -39,7 +39,7 @@ class AlertEngineTest extends TestCase {
             'service_id' => $service->id,
             'job_uuid' => 'u2',
             'queue' => 'default',
-            'payload' => array(),
+            'payload' => [],
             'exception' => 'err',
             'failed_at' => now(),
         ]);

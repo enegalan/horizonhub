@@ -24,7 +24,7 @@ class FailedJobList extends Component {
      *
      * @var array<int>
      */
-    public array $selectedIds = array();
+    public array $selectedIds = [];
 
     /**
      * Get the listeners for the failed job list component.

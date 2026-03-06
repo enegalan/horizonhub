@@ -75,7 +75,7 @@ class JobDetail extends Component {
         if (! $job) {
             return null;
         }
-        if (isset($job->exception) && (string) $job->exception !== '') {
+        if (\isset($job->exception) && (string) $job->exception !== '') {
             return (string) $job->exception;
         }
         if ($job instanceof HorizonJob && $job->status === 'failed' && $job->service_id && $job->job_uuid) {
@@ -147,7 +147,7 @@ class JobDetail extends Component {
     public function render(): View {
         $job = $this->getJobProperty();
         if (! $job) {
-            abort(404);
+            \abort(404);
         }
         return view('livewire.horizon.job-detail', [
             'job' => $job,

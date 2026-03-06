@@ -4,7 +4,6 @@ namespace App\Livewire\Horizon;
 
 use App\Models\Service;
 use Livewire\Component;
-use Illuminate\Support\Str;
 use Illuminate\Contracts\View\View;
 
 class ServiceList extends Component {
@@ -88,7 +87,7 @@ class ServiceList extends Component {
      */
     private function generateApiKey(): string {
         do {
-            $apiKey = Str::random(64);
+            $apiKey = \Str::random(64);
         } while (Service::where('api_key', $apiKey)->exists());
         return $apiKey;
     }
@@ -104,7 +103,7 @@ class ServiceList extends Component {
         Service::create([
             'name' => $this->name,
             'api_key' => $apiKey,
-            'base_url' => rtrim($this->baseUrl, '/'),
+            'base_url' => \rtrim($this->baseUrl, '/'),
             'status' => 'online',
         ]);
         $this->newApiKey = $apiKey;
@@ -211,8 +210,7 @@ class ServiceList extends Component {
 
         $this->confirmingServiceId = $serviceId;
         $this->confirmingServiceName = $service ? $service->name : ('Service #' . $serviceId);
-        $name = $this->confirmingServiceName;
-        $this->confirmingServiceMessage = 'Are you sure you want to delete service ' . $name . '? Jobs using it will stop reporting through it.';
+        $this->confirmingServiceMessage = 'Are you sure you want to delete service ' . $this->confirmingServiceName . '? Jobs using it will stop reporting through it.';
     }
 
     /**
@@ -252,7 +250,7 @@ class ServiceList extends Component {
     public function render(): View {
         $services = Service::withCount(['horizonJobs', 'horizonFailedJobs'])->orderBy('name')->get();
 
-        return view('livewire.horizon.service-list', [
+        return \view('livewire.horizon.service-list', [
             'services' => $services,
         ])->layout('layouts.app', ['header' => 'Horizon Hub – Services']);
     }

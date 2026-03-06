@@ -12,11 +12,11 @@
 ])
 
 @php
-$sizes = array(
+$sizes = [
     'sm' => 'max-w-sm',
     'md' => 'max-w-md',
     'lg' => 'max-w-lg',
-);
+];
 
 $sizeClass = isset($sizes[$size]) ? $sizes[$size] : $sizes['md'];
 
@@ -28,13 +28,13 @@ $dialogTitle = $title;
 @endphp
 
 <div
-    {{ $attributes->merge(array(
+    {{ $attributes->merge([
         'class' => 'fixed inset-0 z-50 overflow-y-auto px-4',
         'role' => 'dialog',
         'aria-modal' => 'true',
-    )) }}
+    ]) }}
 >
-    @include('components.backdrop', array('variant' => $backdropVariant, 'wireClick' => $backdropAction))
+    @include('components.backdrop', ['variant' => $backdropVariant, 'wireClick' => $backdropAction])
 
     <div class="relative z-10 flex min-h-full items-center justify-center py-4">
         <div class="card w-full {{ $sizeClass }} p-4 bg-card">

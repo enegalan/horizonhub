@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Service;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 
 class AgentProxyService {
     /**
@@ -15,7 +14,7 @@ class AgentProxyService {
      * @return array
      */
     public function retryJob(Service $service, string $jobUuid): array {
-        $path = Str::replace('{id}', $jobUuid, config('horizonhub.agent.retry_path', '/horizon-hub/jobs/{id}/retry'));
+        $path = \Str::replace('{id}', $jobUuid, \config('horizonhub.agent.retry_path'));
         return $this->callAgent($service, $path, 'post');
     }
 
@@ -27,7 +26,7 @@ class AgentProxyService {
      * @return array
      */
     public function deleteJob(Service $service, string $jobUuid): array {
-        $path = Str::replace('{id}', $jobUuid, config('horizonhub.agent.delete_path', '/horizon-hub/jobs/{id}/delete'));
+        $path = \Str::replace('{id}', $jobUuid, \config('horizonhub.agent.delete_path'));
         return $this->callAgent($service, $path, 'delete');
     }
 
@@ -39,7 +38,7 @@ class AgentProxyService {
      * @return array
      */
     public function pauseQueue(Service $service, string $queueName): array {
-        $path = Str::replace('{name}', $queueName, config('horizonhub.agent.pause_path', '/horizon-hub/queues/{name}/pause'));
+        $path = \Str::replace('{name}', $queueName, \config('horizonhub.agent.pause_path'));
         return $this->callAgent($service, $path, 'post');
     }
 
@@ -51,7 +50,7 @@ class AgentProxyService {
      * @return array
      */
     public function resumeQueue(Service $service, string $queueName): array {
-        $path = Str::replace('{name}', $queueName, config('horizonhub.agent.resume_path', '/horizon-hub/queues/{name}/resume'));
+        $path = \Str::replace('{name}', $queueName, \config('horizonhub.agent.resume_path'));
         return $this->callAgent($service, $path, 'post');
     }
 
@@ -64,15 +63,15 @@ class AgentProxyService {
      * @return array
      */
     private function callAgent(Service $service, string $path, string $method): array {
-        $baseUrl = rtrim($service->base_url ?? '', '/');
+        $baseUrl = \rtrim($service->base_url ?? '', '/');
         if ($baseUrl === '') {
             return ['success' => false, 'message' => 'Service has no base_url', 'status' => 400];
         }
 
         $url = $baseUrl . $path;
-        $timestamp = (string) time();
+        $timestamp = (string) \time();
         $body = '';
-        $signature = 'sha256=' . hash_hmac('sha256', $timestamp . '.' . $body, $service->api_key);
+        $signature = 'sha256=' . \hash_hmac('sha256', "$timestamp.$body", $service->api_key);
 
         try {
             $request = Http::timeout(10)
@@ -83,7 +82,7 @@ class AgentProxyService {
                 ])
                 ->withBody($body, 'text/plain');
 
-            $response = match (Str::lower($method)) {
+            $response = match (\Str::lower($method)) {
                 'delete' => $request->delete($url),
                 default => $request->post($url),
             };
@@ -99,18 +98,18 @@ class AgentProxyService {
 
             $decoded = null;
             if ($rawBody !== '' && $rawBody !== null) {
-                $decoded = json_decode($rawBody, true);
+                $decoded = \json_decode($rawBody, true);
             }
 
-            if (is_array($decoded) && isset($decoded['message']) && (string) $decoded['message'] !== '') {
+            if (\is_array($decoded) && \isset($decoded['message']) && (string) $decoded['message'] !== '') {
                 $message = (string) $decoded['message'];
             } else {
-                $trimmedBody = trim((string) $rawBody);
-                $isHtml = $trimmedBody !== strip_tags($trimmedBody);
+                $trimmedBody = \trim((string) $rawBody);
+                $isHtml = $trimmedBody !== \strip_tags($trimmedBody);
                 if (! $isHtml && $trimmedBody !== '') {
-                    $message = mb_substr($trimmedBody, 0, 200);
+                    $message = \mb_substr($trimmedBody, 0, 200);
                 } else {
-                    $message = 'Agent returned an HTTP error (' . $response->status() . ').';
+                    $message = "Agent returned an HTTP error ({$response->status()}).";
                 }
             }
 

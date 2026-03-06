@@ -21,6 +21,7 @@ class AlertLog extends Model {
         'sent_at' => 'datetime',
         'job_ids' => 'array',
     ];
+
     /**
      * Get the alert of the alert log.
      *

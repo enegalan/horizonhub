@@ -84,7 +84,7 @@ class AlertForm extends Component {
      *
      * @var array<int>
      */
-    public array $provider_ids = array();
+    public array $provider_ids = [];
 
     /**
      * Get the rule types.
@@ -92,14 +92,14 @@ class AlertForm extends Component {
      * @return array<string, string>
      */
     public static function getRuleTypes(): array {
-        return array(
+        return [
             'job_specific_failure' => 'Job failed (any)',
             'job_type_failure' => 'Job type failed',
             'failure_count' => 'Failure count in window',
             'avg_execution_time' => 'Avg execution time exceeded',
             'queue_blocked' => 'Queue blocked',
             'worker_offline' => 'Worker offline',
-        );
+        ];
     }
 
     /**
@@ -138,16 +138,16 @@ class AlertForm extends Component {
 
         $threshold = $this->buildThreshold();
 
-        $data = array(
+        $data = [
             'name' => $this->name ?: null,
             'service_id' => $this->service_id ?: null,
             'rule_type' => $this->rule_type,
             'threshold' => $threshold,
             'queue' => $this->queue ?: null,
             'job_type' => $this->job_type ?: null,
-            'notification_channels' => array(),
+            'notification_channels' => [],
             'enabled' => $this->enabled,
-        );
+        ];
 
         if ($this->alert) {
             $this->alert->update($data);
@@ -168,7 +168,7 @@ class AlertForm extends Component {
      * @return void
      */
     private function validateRuleType(): void {
-        $rules = array(
+        $rules = [
             'rule_type' => 'required|in:job_specific_failure,job_type_failure,failure_count,avg_execution_time,queue_blocked,worker_offline',
             'service_id' => 'nullable|exists:services,id',
             'queue' => 'nullable|string|max:255',
@@ -176,12 +176,12 @@ class AlertForm extends Component {
             'thresholdCount' => 'nullable|integer|min:1',
             'thresholdMinutes' => 'nullable|integer|min:1',
             'thresholdSeconds' => 'nullable|numeric|min:0.1',
-        );
+        ];
 
         if ($this->rule_type === 'job_type_failure') {
             $rules['job_type'] = 'required|string|max:255';
         }
-        if (in_array($this->rule_type, array('failure_count', 'avg_execution_time', 'queue_blocked', 'worker_offline'), true)) {
+        if (\in_array($this->rule_type, ['failure_count', 'avg_execution_time', 'queue_blocked', 'worker_offline'], true)) {
             $rules['thresholdMinutes'] = 'required|integer|min:1';
         }
         if ($this->rule_type === 'failure_count') {
@@ -200,8 +200,8 @@ class AlertForm extends Component {
      * @return array<string, int|float>
      */
     private function buildThreshold(): array {
-        $t = array();
-        if (in_array($this->rule_type, array('failure_count', 'avg_execution_time', 'queue_blocked', 'worker_offline'), true)) {
+        $t = [];
+        if (\in_array($this->rule_type, ['failure_count', 'avg_execution_time', 'queue_blocked', 'worker_offline'], true)) {
             $t['minutes'] = $this->thresholdMinutes;
         }
         if ($this->rule_type === 'failure_count') {

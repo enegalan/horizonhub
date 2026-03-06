@@ -50,17 +50,17 @@ class NotificationProvider extends Model {
      */
     public function getToEmails(): array {
         if ($this->type !== self::TYPE_EMAIL) {
-            return array();
+            return [];
         }
 
-        $to = $this->config['to'] ?? array();
-        if (is_array($to)) {
-            return array_values(array_filter(array_map('trim', $to)));
+        $to = $this->config['to'] ?? [];
+        if (\is_array($to)) {
+            return \array_values(\array_filter(\array_map('trim', $to)));
         }
-        if (is_string($to) && trim($to) !== '') {
-            return array(trim($to));
+        if (\is_string($to) && \trim($to) !== '') {
+            return [\trim($to)];
         }
 
-        return array();
+        return [];
     }
 }

@@ -46,8 +46,8 @@ class Setting extends Model {
             return $default;
         }
 
-        $decoded = json_decode($value, true);
-        if (json_last_error() === JSON_ERROR_NONE) {
+        $decoded = \json_decode($value, true);
+        if (\json_last_error() === \JSON_ERROR_NONE) {
             return $decoded;
         }
 
@@ -62,7 +62,7 @@ class Setting extends Model {
      * @return void
      */
     public static function set(string $key, mixed $value): void {
-        $serialized = is_array($value) || is_bool($value) ? json_encode($value) : (string) $value;
+        $serialized = \is_array($value) || \is_bool($value) ? \json_encode($value) : (string) $value;
 
         static::query()->updateOrInsert(
             ['key' => $key],

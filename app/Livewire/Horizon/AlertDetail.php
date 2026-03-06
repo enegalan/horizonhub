@@ -55,7 +55,7 @@ class AlertDetail extends Component {
         if ($log->status !== 'failed') {
             return;
         }
-        app(AlertEngine::class)->retryAlertLog($log);
+        \app(AlertEngine::class)->retryAlertLog($log);
         $this->resetPage();
     }
 
@@ -113,13 +113,13 @@ class AlertDetail extends Component {
      * @return array{xAxis: list<string>, sent: list<int>, failed: list<int>}
      */
     private function getChart24h(): array {
-        $since = now()->subDay();
+        $since = \now()->subDay();
         $bucketFormatPhp = 'Y-m-d H:00';
         $bucketFormatSql = '%Y-%m-%d %H:00';
-        $buckets = array();
+        $buckets = [];
         for ($i = 0; $i < 24; $i++) {
-            $key = now()->subHours(23 - $i)->format($bucketFormatPhp);
-            $buckets[$key] = array('sent' => 0, 'failed' => 0);
+            $key = \now()->subHours(23 - $i)->format($bucketFormatPhp);
+            $buckets[$key] = ['sent' => 0, 'failed' => 0];
         }
         $logs = AlertLog::where('alert_id', $this->alert->id)
             ->where('sent_at', '>=', $since)
@@ -128,7 +128,7 @@ class AlertDetail extends Component {
             ->get();
         foreach ($logs as $row) {
             $key = $row->bucket;
-            if (! isset($buckets[$key])) {
+            if (! \isset($buckets[$key])) {
                 continue;
             }
             if ($row->status === 'sent') {
@@ -137,15 +137,15 @@ class AlertDetail extends Component {
                 $buckets[$key]['failed'] += (int) $row->total;
             }
         }
-        $xAxis = array();
-        $sent = array();
-        $failed = array();
+        $xAxis = [];
+        $sent = [];
+        $failed = [];
         foreach ($buckets as $k => $v) {
             $xAxis[] = Carbon::parse($k)->format('H:i');
             $sent[] = $v['sent'];
             $failed[] = $v['failed'];
         }
-        return array('xAxis' => $xAxis, 'sent' => $sent, 'failed' => $failed);
+        return ['xAxis' => $xAxis, 'sent' => $sent, 'failed' => $failed];
     }
 
     /**
@@ -154,13 +154,13 @@ class AlertDetail extends Component {
      * @return array{xAxis: list<string>, sent: list<int>, failed: list<int>}
      */
     private function getChart7d(): array {
-        $since = now()->subDays(6)->startOfDay();
+        $since = \now()->subDays(6)->startOfDay();
         $bucketFormatPhp = 'Y-m-d';
         $bucketFormatSql = '%Y-%m-%d';
-        $buckets = array();
+        $buckets = [];
         for ($i = 0; $i < 7; $i++) {
-            $key = now()->subDays(6 - $i)->format($bucketFormatPhp);
-            $buckets[$key] = array('sent' => 0, 'failed' => 0);
+            $key = \now()->subDays(6 - $i)->format($bucketFormatPhp);
+            $buckets[$key] = ['sent' => 0, 'failed' => 0];
         }
         $logs = AlertLog::where('alert_id', $this->alert->id)
             ->where('sent_at', '>=', $since)
@@ -169,7 +169,7 @@ class AlertDetail extends Component {
             ->get();
         foreach ($logs as $row) {
             $key = $row->bucket;
-            if (! isset($buckets[$key])) {
+            if (! \isset($buckets[$key])) {
                 continue;
             }
             if ($row->status === 'sent') {
@@ -178,15 +178,15 @@ class AlertDetail extends Component {
                 $buckets[$key]['failed'] += (int) $row->total;
             }
         }
-        $xAxis = array();
-        $sent = array();
-        $failed = array();
+        $xAxis = [];
+        $sent = [];
+        $failed = [];
         foreach ($buckets as $k => $v) {
             $xAxis[] = Carbon::parse($k)->format('M j');
             $sent[] = $v['sent'];
             $failed[] = $v['failed'];
         }
-        return array('xAxis' => $xAxis, 'sent' => $sent, 'failed' => $failed);
+        return ['xAxis' => $xAxis, 'sent' => $sent, 'failed' => $failed];
     }
 
     /**
@@ -195,13 +195,13 @@ class AlertDetail extends Component {
      * @return array{xAxis: list<string>, sent: list<int>, failed: list<int>}
      */
     private function getChart30d(): array {
-        $since = now()->subDays(29)->startOfDay();
+        $since = \now()->subDays(29)->startOfDay();
         $bucketFormatPhp = 'Y-m-d';
         $bucketFormatSql = '%Y-%m-%d';
-        $buckets = array();
+        $buckets = [];
         for ($i = 0; $i < 30; $i++) {
-            $key = now()->subDays(29 - $i)->format($bucketFormatPhp);
-            $buckets[$key] = array('sent' => 0, 'failed' => 0);
+            $key = \now()->subDays(29 - $i)->format($bucketFormatPhp);
+            $buckets[$key] = ['sent' => 0, 'failed' => 0];
         }
         $logs = AlertLog::where('alert_id', $this->alert->id)
             ->where('sent_at', '>=', $since)
@@ -210,7 +210,7 @@ class AlertDetail extends Component {
             ->get();
         foreach ($logs as $row) {
             $key = $row->bucket;
-            if (! isset($buckets[$key])) {
+            if (! \isset($buckets[$key])) {
                 continue;
             }
             if ($row->status === 'sent') {
@@ -219,15 +219,15 @@ class AlertDetail extends Component {
                 $buckets[$key]['failed'] += (int) $row->total;
             }
         }
-        $xAxis = array();
-        $sent = array();
-        $failed = array();
+        $xAxis = [];
+        $sent = [];
+        $failed = [];
         foreach ($buckets as $k => $v) {
             $xAxis[] = Carbon::parse($k)->format('M j');
             $sent[] = $v['sent'];
             $failed[] = $v['failed'];
         }
-        return array('xAxis' => $xAxis, 'sent' => $sent, 'failed' => $failed);
+        return ['xAxis' => $xAxis, 'sent' => $sent, 'failed' => $failed];
     }
 
     /**
@@ -242,17 +242,14 @@ class AlertDetail extends Component {
             ->orderByDesc('sent_at')
             ->paginate((int) $this->perPage);
 
-        $chartData = array(
+        $chartData = [
             'chart24h' => $this->getChart24h(),
             'chart7d' => $this->getChart7d(),
             'chart30d' => $this->getChart30d(),
-        );
+        ];
 
-        $alertName = $this->alert->name ?: ('Alert #' . $this->alert->id);
-        $selectedLog = null;
-        if ($this->selectedLogId !== null) {
-            $selectedLog = $logs->firstWhere('id', $this->selectedLogId);
-        }
+        $alertName = $this->alert->name ?: 'Alert #' . $this->alert->id;
+        $selectedLog = $this->selectedLogId !== null ? $logs->firstWhere('id', $this->selectedLogId) : null;
 
         return view('livewire.horizon.alert-detail', [
             'logs' => $logs,

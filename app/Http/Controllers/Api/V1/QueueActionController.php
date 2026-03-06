@@ -11,9 +11,20 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class QueueActionController extends Controller {
-    public function __construct(
-        private readonly AgentProxyService $agentProxy
-    ) {}
+    /**
+     * The agent proxy service.
+     *
+     * @var AgentProxyService
+     */
+    private AgentProxyService $agentProxy;
+    /**
+     * Construct the queue action controller.
+     *
+     * @param AgentProxyService $agentProxy
+     */
+    public function __construct(AgentProxyService $agentProxy) {
+        $this->agentProxy = $agentProxy;
+    }
 
     /**
      * Pause a queue.
@@ -25,17 +36,17 @@ class QueueActionController extends Controller {
     public function pause(Request $request, string $name): JsonResponse {
         $serviceId = (int) $request->input('service_id');
         if (! $serviceId) {
-            return response()->json(['message' => 'service_id required'], 422);
+            return \response()->json(['message' => 'service_id required'], 422);
         }
 
         $service = Service::find($serviceId);
         if (! $service) {
-            return response()->json(['message' => 'Service not found'], 404);
+            return \response()->json(['message' => 'Service not found'], 404);
         }
 
         $result = $this->agentProxy->pauseQueue($service, $name);
         if (! ($result['success'] ?? false)) {
-            return response()->json(
+            return \response()->json(
                 ['message' => $result['message'] ?? 'Agent request failed'],
                 $result['status'] ?? Response::HTTP_BAD_GATEWAY
             );
@@ -46,7 +57,7 @@ class QueueActionController extends Controller {
             ['is_paused' => true]
         );
 
-        return response()->json(['message' => 'Queue pause requested']);
+        return \response()->json(['message' => 'Queue pause requested']);
     }
 
     /**
@@ -59,17 +70,17 @@ class QueueActionController extends Controller {
     public function resume(Request $request, string $name): JsonResponse {
         $serviceId = (int) $request->input('service_id');
         if (! $serviceId) {
-            return response()->json(['message' => 'service_id required'], 422);
+            return \response()->json(['message' => 'service_id required'], 422);
         }
 
         $service = Service::find($serviceId);
         if (! $service) {
-            return response()->json(['message' => 'Service not found'], 404);
+            return \response()->json(['message' => 'Service not found'], 404);
         }
 
         $result = $this->agentProxy->resumeQueue($service, $name);
         if (! ($result['success'] ?? false)) {
-            return response()->json(
+            return \response()->json(
                 ['message' => $result['message'] ?? 'Agent request failed'],
                 $result['status'] ?? Response::HTTP_BAD_GATEWAY
             );
@@ -80,6 +91,6 @@ class QueueActionController extends Controller {
             ['is_paused' => false]
         );
 
-        return response()->json(['message' => 'Queue resume requested']);
+        return \response()->json(['message' => 'Queue resume requested']);
     }
 }

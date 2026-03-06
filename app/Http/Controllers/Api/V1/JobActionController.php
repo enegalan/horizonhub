@@ -10,9 +10,22 @@ use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 class JobActionController extends Controller {
+    /**
+     * The agent proxy service.
+     *
+     * @var AgentProxyService
+     */
+    private AgentProxyService $agentProxy;
+    /**
+     * Construct the job action controller.
+     *
+     * @param AgentProxyService $agentProxy
+     */
     public function __construct(
-        private readonly AgentProxyService $agentProxy
-    ) {}
+        AgentProxyService $agentProxy
+    ) {
+        $this->agentProxy = $agentProxy;
+    }
 
     /**
      * Retry a job.
@@ -23,7 +36,7 @@ class JobActionController extends Controller {
     public function retry(string $id): JsonResponse {
         $job = HorizonJob::find($id) ?? HorizonFailedJob::find($id);
         if (! $job) {
-            return response()->json(['message' => 'Job not found'], 404);
+            return \response()->json(['message' => 'Job not found'], 404);
         }
 
         $service = $job->service;
@@ -31,13 +44,13 @@ class JobActionController extends Controller {
 
         $result = $this->agentProxy->retryJob($service, $jobUuid);
         if (! $result['success']) {
-            return response()->json(
+            return \response()->json(
                 ['message' => $result['message'] ?? 'Agent request failed'],
                 $result['status'] ?? Response::HTTP_BAD_GATEWAY
             );
         }
 
-        return response()->json(['message' => 'Retry requested']);
+        return \response()->json(['message' => 'Retry requested']);
     }
 
     /**
@@ -49,7 +62,7 @@ class JobActionController extends Controller {
     public function delete(string $id): JsonResponse {
         $job = HorizonJob::find($id) ?? HorizonFailedJob::find($id);
         if (! $job) {
-            return response()->json(['message' => 'Job not found'], 404);
+            return \response()->json(['message' => 'Job not found'], 404);
         }
 
         $service = $job->service;
@@ -57,12 +70,12 @@ class JobActionController extends Controller {
 
         $result = $this->agentProxy->deleteJob($service, $jobUuid);
         if (! $result['success']) {
-            return response()->json(
+            return \response()->json(
                 ['message' => $result['message'] ?? 'Agent request failed'],
                 $result['status'] ?? Response::HTTP_BAD_GATEWAY
             );
         }
 
-        return response()->json(['message' => 'Delete requested']);
+        return \response()->json(['message' => 'Delete requested']);
     }
 }

@@ -9,7 +9,7 @@
                 </div>
                 <div class="space-y-2">
                     <x-input-label class="text-[11px] font-medium text-muted-foreground" for="type">Type</x-input-label>
-                    <x-select id="type" wire:model.live="type" class="w-full" :options="array('slack' => 'Slack', 'email' => 'Email')" />
+                    <x-select id="type" wire:model.live="type" class="w-full" :options="['slack' => 'Slack', 'email' => 'Email']" />
                 </div>
                 <div class="space-y-2" x-show="type === 'slack'" x-cloak>
                     <x-input-label class="text-[11px] font-medium text-muted-foreground" for="webhook_url">Webhook URL</x-input-label>

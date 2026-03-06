@@ -16,9 +16,9 @@
 @php
     $mergedClass = trim($variantClasses . ' ' . $attributes->get('class', ''));
     $disabled = $attributes->get('disabled', false);
-    $attributes = $attributes->except('disabled')->merge(array('type' => $type, 'class' => $mergedClass));
+    $attributes = $attributes->except('disabled')->merge(['type' => $type, 'class' => $mergedClass]);
     if ($disabled) {
-        $attributes = $attributes->merge(array('disabled' => true));
+        $attributes = $attributes->merge(['disabled' => true]);
     }
 @endphp
 <button {{ $attributes }}>

@@ -25,23 +25,23 @@ class ValidateHubSignature {
         $signature = $request->header(self::SIGNATURE_HEADER);
 
         if (! $apiKey || ! $timestamp || ! $signature) {
-            return response()->json(['message' => 'Missing API key, timestamp or signature'], 401);
+            return \response()->json(['message' => 'Missing API key, timestamp or signature'], 401);
         }
 
         $service = Service::where('api_key', $apiKey)->first();
         if (! $service) {
-            return response()->json(['message' => 'Invalid API key'], 401);
+            return \response()->json(['message' => 'Invalid API key'], 401);
         }
 
         $timestampInt = (int) $timestamp;
-        if (abs(time() - $timestampInt) > self::MAX_AGE_SECONDS) {
-            return response()->json(['message' => 'Request timestamp expired'], 401);
+        if (\abs(\time() - $timestampInt) > self::MAX_AGE_SECONDS) {
+            return \response()->json(['message' => 'Request timestamp expired'], 401);
         }
 
         $payload = $request->getContent();
-        $expected = 'sha256=' . hash_hmac('sha256', $timestamp . '.' . $payload, $apiKey);
-        if (! hash_equals($expected, $signature)) {
-            return response()->json(['message' => 'Invalid signature'], 401);
+        $expected = 'sha256=' . \hash_hmac('sha256', "$timestamp.$payload", $apiKey);
+        if (! \hash_equals($expected, $signature)) {
+            return \response()->json(['message' => 'Invalid signature'], 401);
         }
 
         $request->attributes->set('horizonhub_service', $service);

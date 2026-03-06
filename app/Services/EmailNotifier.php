@@ -27,9 +27,9 @@ class EmailNotifier {
      * @return void
      */
     public function send(Alert $alert, int $serviceId, ?int $jobId, array $config): void {
-        $this->sendBatched($alert, array(
-            array('service_id' => $serviceId, 'job_id' => $jobId, 'triggered_at' => now()->toIso8601String()),
-        ), $config);
+        $this->sendBatched($alert, [
+            ['service_id' => $serviceId, 'job_id' => $jobId, 'triggered_at' => \now()->toIso8601String()],
+        ], $config);
     }
 
     /**
@@ -41,9 +41,9 @@ class EmailNotifier {
      * @return void
      */
     public function sendBatched(Alert $alert, array $events, array $config): void {
-        $to = $config['to'] ?? array();
-        $to = is_array($to) ? array_values(array_filter(array_map('trim', $to))) : array();
-        if (empty($to)) {
+        $to = $config['to'] ?? [];
+        $to = \is_array($to) ? \array_values(\array_filter(\array_map('trim', $to))) : [];
+        if (\empty($to)) {
             return;
         }
 
@@ -51,11 +51,11 @@ class EmailNotifier {
         $first = $events[0];
         $serviceId = (int) $first['service_id'];
         $service = Service::find($serviceId);
-        $count = count($events);
+        $count = \count($events);
 
-        $subject = '[Horizon Hub] Alert: ' . $alert->rule_type . ($service ? ' - ' . $service->name : '');
+        $subject = '[Horizon Hub] Alert: ' . $alert->rule_type . ($service ? " - {$service->name}" : '');
         if ($count > 1) {
-            $subject .= ' (' . $count . ' events)';
+            $subject .= " ({$count} events)";
         }
 
         Log::info('Horizon Hub: sending alert email', ['alert_id' => $alert->id, 'to' => $to, 'event_count' => $count]);
@@ -70,13 +70,13 @@ class EmailNotifier {
      * @return array<int, array{service_id: int, job_id: int|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}>
      */
     private function enrichEvents(array $events): array {
-        $enriched = array();
-        $jobIds = array_values(array_filter(array_column($events, 'job_id')));
-        $jobs = empty($jobIds) ? array() : HorizonJob::whereIn('id', $jobIds)->get()->keyBy('id');
+        $enriched = [];
+        $jobIds = \array_values(\array_filter(\array_column($events, 'job_id')));
+        $jobs = \empty($jobIds) ? [] : HorizonJob::whereIn('id', $jobIds)->get()->keyBy('id');
 
         foreach ($events as $event) {
-            $jobId = isset($event['job_id']) ? (int) $event['job_id'] : null;
-            $job = $jobId ? ($jobs->get($jobId)) : null;
+            $jobId = \isset($event['job_id']) ? (int) $event['job_id'] : null;
+            $job = $jobId ? $jobs->get($jobId) : null;
 
             $jobClass = null;
             $queue = null;
@@ -85,10 +85,10 @@ class EmailNotifier {
             $attempts = null;
 
             if ($job) {
-                $payload = $job->payload ?? array();
-                $jobClass = $job->name ?? (isset($payload['displayName']) ? $payload['displayName'] : null);
-                if ($jobClass === null && isset($payload['job'])) {
-                    $jobClass = is_string($payload['job']) ? $payload['job'] : 'Unknown';
+                $payload = $job->payload ?? [];
+                $jobClass = $job->name ?? (\isset($payload['displayName']) ? $payload['displayName'] : null);
+                if ($jobClass === null && \isset($payload['job'])) {
+                    $jobClass = \is_string($payload['job']) ? $payload['job'] : 'Unknown';
                 }
                 $jobClass ??= 'Unknown';
                 $queue = $job->queue ?? null;
@@ -98,7 +98,7 @@ class EmailNotifier {
                 $attempts = $job->attempts ?? null;
             }
 
-            $enriched[] = array(
+            $enriched[] = [
                 'service_id' => (int) ($event['service_id'] ?? 0),
                 'job_id' => $jobId,
                 'triggered_at' => $event['triggered_at'] ?? '',
@@ -107,7 +107,7 @@ class EmailNotifier {
                 'failed_at' => $failedAt,
                 'exception' => $exception,
                 'attempts' => $attempts,
-            );
+            ];
         }
 
         return $enriched;
@@ -120,18 +120,18 @@ class EmailNotifier {
      * @return string
      */
     private function truncateException(string $text): string {
-        if (strlen($text) <= self::EXCEPTION_MAX_LENGTH) {
+        if (\strlen($text) <= self::EXCEPTION_MAX_LENGTH) {
             return $text;
         }
     
-        $truncated = substr($text, 0, self::EXCEPTION_MAX_LENGTH);
+        $truncated = \substr($text, 0, self::EXCEPTION_MAX_LENGTH);
     
         // Avoid cutting mid-line
-        $lastNewLine = strrpos($truncated, "\n");
+        $lastNewLine = \strrpos($truncated, "\n");
         if ($lastNewLine !== false) {
-            $truncated = substr($truncated, 0, $lastNewLine);
+            $truncated = \substr($truncated, 0, $lastNewLine);
         }
     
-        return rtrim($truncated) . "\n\n…";
+        return \rtrim($truncated) . "\n\n…";
     }
 }

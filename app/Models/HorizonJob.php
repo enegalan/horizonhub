@@ -38,8 +38,8 @@ class HorizonJob extends Model {
      * @return float|null
      */
     public function getRuntimeSeconds(): ?float {
-        if (isset($this->runtime_seconds) && $this->runtime_seconds >= 0) {
-            return round((float) $this->runtime_seconds, 3);
+        if (\isset($this->runtime_seconds) && $this->runtime_seconds >= 0) {
+            return \round((float) $this->runtime_seconds, 3);
         }
         $start = $this->queued_at;
         $end = $this->processed_at ?? $this->failed_at;
@@ -47,7 +47,7 @@ class HorizonJob extends Model {
             return null;
         }
         $seconds = $start->diffInMilliseconds($end, false) / 1000;
-        return $seconds < 0 ? null : round($seconds, 3);
+        return $seconds < 0 ? null : \round($seconds, 3);
     }
 
     /**
@@ -60,7 +60,7 @@ class HorizonJob extends Model {
         if ($seconds === null) {
             return null;
         }
-        return number_format($seconds, 2) . ' s';
+        return \number_format($seconds, 2) . ' s';
     }
 
     /**

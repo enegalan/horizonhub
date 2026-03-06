@@ -14,14 +14,52 @@ class AlertBatchedMail extends Mailable {
     use Queueable, SerializesModels;
 
     /**
+     * The alert.
+     *
+     * @var Alert
+     */
+    public Alert $alert;
+
+    /**
+     * The enriched events.
+     *
+     * @var array<int, array{service_id: int, job_id: int|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}>
+     */
+    public array $enrichedEvents;
+
+    /**
+     * The service.
+     *
+     * @var Service|null
+     */
+    public ?Service $service;
+
+    /**
+     * The mail subject.
+     *
+     * @var string
+     */
+    public string $mailSubject;
+
+    /**
+     * Construct the alert batched mail.
+     *
+     * @param Alert $alert
      * @param array<int, array{service_id: int, job_id: int|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}> $enrichedEvents
+     * @param Service|null $service
+     * @param string $mailSubject
      */
     public function __construct(
-        public Alert $alert,
-        public array $enrichedEvents,
-        public ?Service $service,
-        public $mailSubject
-    ) {}
+        Alert $alert,
+        array $enrichedEvents,
+        ?Service $service,
+        string $mailSubject
+    ) {
+        $this->alert = $alert;
+        $this->enrichedEvents = $enrichedEvents;
+        $this->service = $service;
+        $this->mailSubject = $mailSubject;
+    }
 
     /**
      * Get the envelope for the email.

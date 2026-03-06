@@ -79,6 +79,6 @@ class HorizonFailedJob extends Model {
      */
     public function getNameAttribute(): ?string {
         $p = $this->payload;
-        return (is_array($p) && isset($p['displayName'])) ? $p['displayName'] : null;
+        return (\is_array($p) && \isset($p['displayName'])) ? $p['displayName'] : null;
     }
 }

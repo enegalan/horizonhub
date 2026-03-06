@@ -44,11 +44,11 @@
         <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
             <div class="space-y-2">
                 <x-input-label class="text-[11px] font-medium text-muted-foreground">Status</x-input-label>
-                <x-select wire:model.live="statusFilter" class="w-36" :options="array('' => 'All', 'sent' => 'Sent', 'failed' => 'Failed')" />
+                <x-select wire:model.live="statusFilter" class="w-36" :options="['' => 'All', 'sent' => 'Sent', 'failed' => 'Failed']" />
             </div>
             <div class="space-y-2">
                 <x-input-label class="text-[11px] font-medium text-muted-foreground">Per page</x-input-label>
-                <x-select wire:model.live="perPage" class="w-24" :options="array(10 => '10', 20 => '20', 50 => '50')" />
+                <x-select wire:model.live="perPage" class="w-24" :options="[10 => '10', 20 => '20', 50 => '50']" />
             </div>
         </div>
         <div class="overflow-x-auto">
@@ -113,7 +113,7 @@
                                         data-alert-job-id="{{ $log->job_id }}"
                                         data-alert-job-url="{{ $log->job_id ? route('horizon.jobs.show', ['job' => $log->job_id]) : '' }}"
                                         data-alert-trigger-count="{{ $log->trigger_count ?? 1 }}"
-                                        data-alert-job-ids="{{ e(json_encode($log->job_ids ?? array())) }}"
+                                        data-alert-job-ids="{{ e(json_encode($log->job_ids ?? [])) }}"
                                         data-alert-status="{{ $log->status }}"
                                         data-alert-failure="{{ $log->failure_message }}"
                                     >
@@ -162,7 +162,7 @@
 
     @teleport('body')
         <div id="alert-log-modal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto px-4 hidden" role="dialog" aria-modal="true" aria-labelledby="alert-log-modal-title">
-            @include('components.backdrop', array('variant' => 'default', 'extraAttrs' => 'data-alert-log-close'))
+            @include('components.backdrop', ['variant' => 'default', 'extraAttrs' => 'data-alert-log-close'])
             <div class="relative z-10 card w-full max-w-lg p-4 bg-card">
             <h2 id="alert-log-modal-title" class="text-section-title text-foreground mb-3">Delivery log</h2>
             <dl class="space-y-2 text-sm">

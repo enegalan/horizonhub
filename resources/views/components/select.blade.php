@@ -1,4 +1,4 @@
-@props(['options' => array(), 'placeholder' => ''])
+@props(['options' => [], 'placeholder' => ''])
 
 @php
     $wrapperClass = $attributes->get('class', '');
@@ -40,7 +40,7 @@
     @click.away="open = false"
     x-cloak>
     <select x-ref="hidden"
-        {{ $selectAttrs->merge(array('class' => 'sr-only')) }}>
+        {{ $selectAttrs->merge(['class' => 'sr-only']) }}>
         @if($placeholder !== '')
             <option value="">{{ $placeholder }}</option>
         @endif

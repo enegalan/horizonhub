@@ -51,11 +51,11 @@ class EventsApiTest extends TestCase {
             'base_url' => 'https://demo.example.com',
             'status' => 'online',
         ]);
-        $payload = array(
+        $payload = [
             'event_type' => 'SupervisorLooped',
             'queue' => 'supervisor-default',
             'status' => 'looped',
-        );
+        ];
         $body = json_encode($payload);
         $timestamp = (string) time();
         $signature = 'sha256=' . hash_hmac('sha256', $timestamp . '.' . $body, $service->api_key);

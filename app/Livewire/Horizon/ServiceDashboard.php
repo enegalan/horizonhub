@@ -76,27 +76,27 @@ class ServiceDashboard extends Component {
 
         $jobsPastMinute = HorizonJob::where('service_id', $serviceId)
             ->where('status', 'processed')
-            ->where('processed_at', '>=', now()->subMinute())
+            ->where('processed_at', '>=', \now()->subMinute())
             ->count();
         $jobsPastHour = HorizonJob::where('service_id', $serviceId)
             ->where('status', 'processed')
-            ->where('processed_at', '>=', now()->subHour())
+            ->where('processed_at', '>=', \now()->subHour())
             ->count();
         $failedPastSevenDays = HorizonFailedJob::where('service_id', $serviceId)
-            ->where('failed_at', '>=', now()->subDays(7))
+            ->where('failed_at', '>=', \now()->subDays(7))
             ->count();
         $processedPast24Hours = HorizonJob::where('service_id', $serviceId)
             ->where('status', 'processed')
-            ->where('processed_at', '>=', now()->subDay())
+            ->where('processed_at', '>=', \now()->subDay())
             ->count();
 
-        $dead_threshold = now()->subMinutes($this->dead_minutes);
+        $dead_threshold = \now()->subMinutes($this->dead_minutes);
         $supervisors = $this->service->horizonSupervisorStates()
             ->where('last_seen_at', '>=', $dead_threshold)
             ->orderBy('name')
             ->get();
 
-        return view('livewire.horizon.service-dashboard', [
+        return \view('livewire.horizon.service-dashboard', [
             'jobs' => $jobs,
             'jobsPastMinute' => $jobsPastMinute,
             'jobsPastHour' => $jobsPastHour,

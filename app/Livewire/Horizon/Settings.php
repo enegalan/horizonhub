@@ -50,7 +50,7 @@ class Settings extends Component {
      */
     public function mount(): void {
         $queryTab = request()->query('tab', '');
-        if (in_array($queryTab, array('appearance', 'alerts', 'providers'), true)) {
+        if (\in_array($queryTab, ['appearance', 'alerts', 'providers'], true)) {
             $this->tab = $queryTab;
         }
         $interval = Setting::get('alerts.email_interval_minutes');
@@ -135,7 +135,7 @@ class Settings extends Component {
     public function render(): View {
         $providers = NotificationProvider::orderBy('type')->orderBy('name')->get();
 
-        return view('livewire.horizon.settings', [
+        return \view('livewire.horizon.settings', [
             'providers' => $providers,
         ])->layout('layouts.app', ['header' => 'Settings']);
     }

@@ -84,13 +84,13 @@ class QueueList extends Component {
         $totalJobs = $queues->sum('job_count');
 
         $serviceIds = $queues->pluck('service_id')->unique()->filter()->values()->all();
-        $queueStates = empty($serviceIds)
-            ? collect()
+        $queueStates = \empty($serviceIds)
+            ? \collect()
             : HorizonQueueState::whereIn('service_id', $serviceIds)
                 ->get()
-                ->keyBy(fn ($s) => $s->service_id . '|' . $s->queue);
+                ->keyBy(fn ($s) => "$s->service_id|$s->queue");
 
-        return view('livewire.horizon.queue-list', [
+        return \view('livewire.horizon.queue-list', [
             'queueCount' => $queues->count(),
             'queues' => $queues,
             'queueStates' => $queueStates,

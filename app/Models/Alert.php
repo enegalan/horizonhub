@@ -24,12 +24,12 @@ class Alert extends Model {
         'notification_channels' => 'array',
         'enabled' => 'boolean',
     ];
+
     /**
      * Get the service of the alert.
      *
      * @return BelongsTo
      */
-
     public function service(): BelongsTo {
         return $this->belongsTo(Service::class);
     }

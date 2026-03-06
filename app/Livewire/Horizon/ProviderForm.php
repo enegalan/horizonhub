@@ -49,17 +49,16 @@ class ProviderForm extends Component {
      * @return void
      */
     public function mount(?NotificationProvider $provider = null): void {
-        if ($provider !== null) {
-            $this->provider = $provider;
-            $this->name = $this->provider->name;
-            $this->type = $this->provider->type;
-            $config = $this->provider->config ?? array();
-            if ($this->provider->type === NotificationProvider::TYPE_SLACK) {
-                $this->webhook_url = (string) ($config['webhook_url'] ?? '');
-            } else {
-                $to = $config['to'] ?? array();
-                $this->email_to = is_array($to) ? implode(', ', $to) : (string) $to;
-            }
+        if ($provider === null) return;
+        $this->provider = $provider;
+        $this->name = $this->provider->name;
+        $this->type = $this->provider->type;
+        $config = $this->provider->config ?? [];
+        if ($this->provider->type === NotificationProvider::TYPE_SLACK) {
+            $this->webhook_url = (string) ($config['webhook_url'] ?? '');
+        } else {
+            $to = $config['to'] ?? [];
+            $this->email_to = \is_array($to) ? \implode(', ', $to) : (string) $to;
         }
     }
 
@@ -77,9 +76,9 @@ class ProviderForm extends Component {
         ]);
 
         if ($this->type === NotificationProvider::TYPE_EMAIL) {
-            $emails = array_values(array_filter(array_map('trim', explode(',', $this->email_to))));
+            $emails = \array_values(\array_filter(\array_map('trim', \explode(',', $this->email_to))));
             foreach ($emails as $e) {
-                if (! filter_var($e, FILTER_VALIDATE_EMAIL)) {
+                if (! \filter_var($e, FILTER_VALIDATE_EMAIL)) {
                     $this->addError('email_to', __('One or more email addresses are invalid.'));
 
                     return;
@@ -89,14 +88,14 @@ class ProviderForm extends Component {
         }
 
         $config = $this->type === NotificationProvider::TYPE_SLACK
-            ? array('webhook_url' => $this->webhook_url)
-            : array('to' => array_values(array_filter(array_map('trim', explode(',', $this->email_to)))));
+            ? ['webhook_url' => $this->webhook_url]
+            : ['to' => \array_values(\array_filter(\array_map('trim', \explode(',', $this->email_to))))];
 
-        $data = array(
+        $data = [
             'name' => $this->name,
             'type' => $this->type,
             'config' => $config,
-        );
+        ];
 
         if ($this->provider) {
             $this->provider->update($data);
@@ -106,7 +105,7 @@ class ProviderForm extends Component {
             $this->dispatch('toast', type: 'success', message: 'Provider created.');
         }
 
-        $this->redirect(route('horizon.settings', ['tab' => 'providers']), navigate: true);
+        $this->redirect(\route('horizon.settings', ['tab' => 'providers']), navigate: true);
     }
 
     /**
@@ -117,6 +116,6 @@ class ProviderForm extends Component {
     public function render(): View {
         $header = $this->provider ? 'Edit provider' : 'New provider';
 
-        return view('livewire.horizon.provider-form', [])->layout('layouts.app', ['header' => 'Horizon Hub – ' . $header]);
+        return \view('livewire.horizon.provider-form', [])->layout('layouts.app', ['header' => 'Horizon Hub – ' . $header]);
     }
 }
