@@ -67,6 +67,12 @@
     *::-webkit-scrollbar-corner {
         @apply bg-transparent;
     }
+    ::selection {
+        background-color: var(--primary-40);
+    }
+    ::-moz-selection {
+        background-color: var(--primary-40);
+    }
     html {
         @apply scroll-smooth min-h-screen;
     }
