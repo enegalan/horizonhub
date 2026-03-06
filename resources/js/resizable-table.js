@@ -43,7 +43,7 @@ import { parseJson } from './utils/parse';
         return Array.from(ths).map(th => th.getAttribute('data-column-id'));
     }
 
-    function applyState(table, storageKey, state) {
+    function applyState(table, state) {
         var theadRow = table.querySelector('thead tr');
         var bodyRows = table.querySelectorAll('tbody tr');
         if (!theadRow) return;
@@ -78,26 +78,6 @@ import { parseJson } from './utils/parse';
         });
     }
 
-    function applyStateToTable(table, state) {
-        var bodyRows = table.querySelectorAll('tbody tr');
-        bodyRows.forEach(tr => {
-            var cellsById = {};
-            tr.querySelectorAll('td[data-column-id]').forEach(td => {
-                cellsById[td.getAttribute('data-column-id')] = td;
-            });
-            state.order.forEach(colId => {
-                var td = cellsById[colId];
-                if (td) tr.appendChild(td);
-            });
-        });
-    }
-
-    function getDragOverBackground() {
-        var primary = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
-        if (primary) return 'hsl(' + primary + ' / 0.25)';
-        return 'rgba(0,0,0,0.1)';
-    }
-
     function getDragOverlay() {
         var id = 'horizon-drag-overlay';
         var el = document.getElementById(id);
@@ -107,7 +87,6 @@ import { parseJson } from './utils/parse';
         el.id = id;
         el.setAttribute('aria-hidden', 'true');
         el.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;border-radius:4px;transition:opacity 0.1s;display:none;box-sizing:border-box;';
-        el.style.backgroundColor = getDragOverBackground();
         document.body.appendChild(el);
         return el;
     }
@@ -234,7 +213,7 @@ import { parseJson } from './utils/parse';
                 order.splice(si, 1);
                 order.splice(ti, 0, sourceId);
                 state.order = order;
-                applyState(table, storageKey, state);
+                applyState(table, state);
                 setupResize(table, storageKey, state, columnIds);
                 saveState(storageKey, state.order, state.widths);
             });
@@ -254,11 +233,13 @@ import { parseJson } from './utils/parse';
         if (table.hasAttribute(INITTED_ATTR)) {
             if (window.horizonTableInteracting) return;
 
-            applyStateToTable(table, state);
+            applyState(table, state);
+            setupResize(table, storageKey, state, columnIds);
+            setupReorder(table, storageKey, state, columnIds);
             return;
         }
 
-        applyState(table, storageKey, state);
+        applyState(table, state);
         setupResize(table, storageKey, state, columnIds);
         setupReorder(table, storageKey, state, columnIds);
         table.setAttribute(INITTED_ATTR, '1');
@@ -267,19 +248,6 @@ import { parseJson } from './utils/parse';
     function init() {
         document.querySelectorAll('table[data-resizable-table]').forEach(initTable);
     }
-
-    window.horizonApplyTableBodyOrder = () => {
-        document.querySelectorAll('table[' + INITTED_ATTR + ']').forEach(table => {
-            var storageKey = table.getAttribute('data-resizable-table');
-            if (!storageKey) return;
-
-            var columnIds = getColumnIds(table);
-            if (columnIds.length === 0) return;
-
-            var state = loadState(storageKey, columnIds);
-            applyStateToTable(table, state);
-        });
-    };
 
     function setupDelegatedDragOver() {
         if (window._horizonDragOverDelegated) return;
