@@ -66,12 +66,16 @@ import { parseJson } from './utils/parse';
             }
         });
 
+        var columnOrder = Array.from(theadRow.querySelectorAll('th[data-column-id]')).map(function (th) {
+            return th.getAttribute('data-column-id');
+        });
+
         bodyRows.forEach(tr => {
             var cellsById = {};
             tr.querySelectorAll('td[data-column-id]').forEach(td => {
                 cellsById[td.getAttribute('data-column-id')] = td;
             });
-            state.order.forEach(colId => {
+            columnOrder.forEach(colId => {
                 var td = cellsById[colId];
                 if (td) tr.appendChild(td);
             });
@@ -199,6 +203,13 @@ import { parseJson } from './utils/parse';
                 window.horizonTableInteracting = false;
             });
 
+            th.addEventListener('dragover', e => {
+                if (!table.getAttribute('data-drag-source-id')) return;
+                if (th.getAttribute('data-column-id') === table.getAttribute('data-drag-source-id')) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+            });
+
             th.addEventListener('drop', e => {
                 e.preventDefault();
                 var sourceId = e.dataTransfer.getData('text/plain');
@@ -299,6 +310,11 @@ import { parseJson } from './utils/parse';
     withLivewireInitialized(() => {
         onLivewireRequestSuccess(() => {
             schedule(init);
+        });
+        var morphRafId;
+        window.Livewire.hook('morph.updated', () => {
+            cancelAnimationFrame(morphRafId);
+            morphRafId = requestAnimationFrame(init);
         });
     });
 })();
