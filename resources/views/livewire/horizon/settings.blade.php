@@ -41,7 +41,6 @@
         :style="measureMode ? 'min-height: ' + contentHeight + 'px' : 'height: ' + contentHeight + 'px'">
         <div x-show="tab === 'appearance'"
             x-ref="appearancePanel"
-            x-cloak
             x-transition:enter="transition ease-out duration-200"
             x-transition:enter-start="opacity-0"
             x-transition:enter-end="opacity-100"
@@ -81,7 +80,6 @@
         </div>
         <div x-show="tab === 'alerts'"
             x-ref="alertsPanel"
-            x-cloak
             x-transition:enter="transition ease-out duration-200"
             x-transition:enter-start="opacity-0"
             x-transition:enter-end="opacity-100"
@@ -127,7 +125,6 @@
         </div>
         <div x-show="tab === 'providers'"
             x-ref="providersPanel"
-            x-cloak
             x-transition:enter="transition ease-out duration-200"
             x-transition:enter-start="opacity-0"
             x-transition:enter-end="opacity-100"

@@ -84,9 +84,9 @@
     select {
         @apply py-2 pr-8 appearance-none cursor-pointer;
     }
-    input:not([type="checkbox"]):focus,
-    input:not([type="checkbox"]):active,
-    input:not([type="checkbox"]):target,
+    input:focus,
+    input:active,
+    input:target,
     select:focus,
     select:active,
     select:target,
@@ -98,29 +98,11 @@
     [checkbox]:target,
     button:not([no-ring]):focus,
     button:not([no-ring]):active,
-    button:not([no-ring]):target,
-    .btn-primary:focus,
-    .btn-primary:active,
-    .btn-secondary:focus,
-    .btn-secondary:active,
-    .btn-secondary:target,
-    .btn-danger:focus,
-    .btn-danger:active,
-    .btn-ghost:focus,
-    .btn-ghost:active,
-    .btn-ghost:target,
-    .queue-action-btn:focus,
-    .queue-action-btn:active,
-    .queue-action-btn:target {
+    button:not([no-ring]):target {
         @apply outline-none;
         border: 1px solid var(--primary-40);
         box-shadow: 0 0 0 .25rem var(--primary-40);
         transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
-    }
-    input[type="checkbox"]:focus,
-    input[type="checkbox"]:active,
-    input[type="checkbox"]:target {
-        @apply outline-none shadow-none border-inherit;
     }
 }
 
@@ -129,6 +111,13 @@
     .checkbox-root input:focus-visible + span[checkbox] {
         @apply outline-none rounded-full;
         box-shadow: 0 0 0 .25rem var(--primary-40);
+    }
+    .nav-side-link {
+        @apply flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors text-muted-foreground rounded-lg;
+    }
+    .nav-side-link:hover,
+    .nav-side-link-active {
+        @apply bg-accent text-accent-foreground;
     }
     .nav-sidebar-column {
         transition: width 0.3s ease-in-out;

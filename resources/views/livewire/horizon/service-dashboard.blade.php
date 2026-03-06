@@ -96,9 +96,9 @@
                             </td>
                             <td class="px-4 py-2.5" data-column-id="actions">
                                 <div class="flex items-center gap-2">
-                                    <a href="{{ route('horizon.jobs.show', ['job' => $job->id]) }}" wire:navigate class="btn-secondary inline-flex items-center justify-center h-8 min-h-8 p-2 rounded-md" aria-label="View" title="View">
+                                    <x-button variant="secondary" class="h-8 min-h-8 p-2 rounded-md" aria-label="View" title="View" data-url="{{ route('horizon.jobs.show', ['job' => $job->id]) }}" onclick="var u = this.getAttribute('data-url'); (window.Livewire && window.Livewire.navigate ? window.Livewire.navigate(u) : (window.location.href = u))">
                                         <x-heroicon-o-eye class="size-4" />
-                                    </a>
+                                    </x-button>
                                 </div>
                             </td>
                         </tr>

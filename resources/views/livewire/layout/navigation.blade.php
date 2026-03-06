@@ -8,9 +8,9 @@
         isLg: false
     }"
     x-init="
-    isLg = window.innerWidth >= 1024;
-    window.addEventListener('resize', () => { isLg = window.innerWidth >= 1024 });
-    window.addEventListener('sidebar-open-changed', e => { sidebarOpen = e.detail });
+        isLg = window.innerWidth >= 1024;
+        window.addEventListener('resize', () => { isLg = window.innerWidth >= 1024 });
+        window.addEventListener('sidebar-open-changed', e => { sidebarOpen = e.detail });
     "
     @keydown.escape.window="drawerOpen = false">
     <div x-show="drawerOpen"
@@ -22,7 +22,7 @@
         x-transition:leave-end="opacity-0"
         class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
         @click="drawerOpen = false"
-        x-cloak></div>
+        ></div>
 
     <div class="fixed top-0 left-0 right-0 z-30 flex h-12 items-center gap-2 border-b border-border bg-card/95 px-3 backdrop-blur-sm lg:hidden">
         <x-button variant="ghost" type="button" @click="drawerOpen = !drawerOpen" class="h-8 w-8 p-0" aria-label="Open menu">
@@ -40,9 +40,6 @@
                 <img src="{{ asset('logo.svg') }}" alt="Horizon Hub" class="h-6 w-6 shrink-0 rounded-md object-contain">
                 <span class="truncate text-sm font-semibold text-foreground">Horizon Hub</span>
             </a>
-            <x-button variant="ghost" type="button" @click="$dispatch('toggle-sidebar'); drawerOpen = false" class="hidden shrink-0 lg:inline-flex h-8 w-8 p-0" aria-label="Collapse sidebar">
-                <x-heroicon-o-bars-3 class="size-6" />
-            </x-button>
         </div>
         <nav class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden p-2">
             <a href="{{ route('horizon.index') }}" wire:navigate class="nav-side-link {{ request()->routeIs('horizon.index') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
@@ -77,7 +74,7 @@
                     }
                 }
             }"
-            x-cloak>
+            >
             <div class="flex items-center justify-between gap-2 px-2.5 py-1.5">
                 <span class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Hot reload</span>
                 <x-button
@@ -100,34 +97,10 @@
         </div>
     </aside>
 
-    <div class="fixed left-4 top-4 z-40 hidden lg:block" x-show="isLg && !sidebarOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" x-cloak>
+    <div class="fixed left-4 top-4 z-40 hidden lg:block" x-show="isLg && !sidebarOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
         <x-button variant="secondary" type="button" @click="$dispatch('toggle-sidebar')" class="h-9 w-9 p-0" aria-label="Open sidebar">
             <x-heroicon-o-bars-3 class="size-6" />
         </x-button>
     </div>
 
-    <style>
-    .aside-drawer { height: 100vh; height: 100dvh; min-height: 100vh; }
-    @media (min-width: 1024px) { .aside-drawer { height: 100%; min-height: 0; } }
-    [x-cloak] { display: none !important; }
-    .nav-side-link {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 0.625rem;
-        font-size: 0.8125rem;
-        font-weight: 500;
-        color: hsl(var(--muted-foreground));
-        border-radius: var(--radius);
-        transition: color 0.15s, background-color 0.15s;
-    }
-    .nav-side-link:hover {
-        background-color: hsl(var(--accent));
-        color: hsl(var(--accent-foreground));
-    }
-    .nav-side-link-active {
-        background-color: hsl(var(--accent));
-        color: hsl(var(--accent-foreground));
-    }
-    </style>
 </div>

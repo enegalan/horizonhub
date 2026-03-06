@@ -38,7 +38,7 @@
         $watch('open', (open) => { if (open) sync(); });
     "
     @click.away="open = false"
-    x-cloak>
+    >
     <select x-ref="hidden"
         {{ $selectAttrs->merge(['class' => 'sr-only']) }}>
         @if($placeholder !== '')
@@ -73,7 +73,7 @@
                 @click="choose(opt)"
                 :class="opt.value === selectedValue ? 'text-accent-foreground' : ''"
                 class="btn-ghost relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                role="option">
+                role="option" no-ring>
                 <span class="block truncate" x-text="opt.label"></span>
                 <span x-show="opt.value === selectedValue" class="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
                     <x-heroicon-o-check class="h-3.5 w-3.5" />
@@ -82,5 +82,3 @@
         </template>
     </div>
 </div>
-<style>[x-cloak]{display:none!important}</style>
-
