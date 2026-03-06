@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\EmailAlertNotifier;
 use App\Mail\AlertBatchedMail;
 use App\Models\Alert;
 use App\Models\HorizonJob;
@@ -9,7 +10,7 @@ use App\Models\Service;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
-class EmailNotifier {
+class EmailNotifier implements EmailAlertNotifier {
     /**
      * The maximum length of the exception.
      *

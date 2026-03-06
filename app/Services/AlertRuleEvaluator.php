@@ -7,6 +7,7 @@ use App\Models\HorizonFailedJob;
 use App\Models\HorizonJob;
 use App\Models\Service;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class AlertRuleEvaluator {
     /**
@@ -34,12 +35,45 @@ class AlertRuleEvaluator {
      *
      * @param Alert $alert
      * @param int $serviceId
-     * @param int|null $jobId
+     * @param int|null $jobId HorizonJob id (horizon_jobs.id).
      * @return bool
      */
     private function evaluateJobSpecificFailure(Alert $alert, int $serviceId, ?int $jobId): bool {
-        $triggered = true;
-        return $triggered;
+        if ($jobId === null) {
+            return false;
+        }
+
+        $horizonJob = HorizonJob::where('service_id', $serviceId)->where('id', $jobId)->first();
+        if (! $horizonJob) {
+            return false;
+        }
+
+        $failedJob = HorizonFailedJob::where('service_id', $serviceId)
+            ->where('job_uuid', $horizonJob->job_uuid)
+            ->where('failed_at', '>=', \now()->subMinutes(15))
+            ->first();
+
+        if (! $failedJob) {
+            return false;
+        }
+
+        if ($alert->job_type !== null && (string) $alert->job_type !== '') {
+            $payload = $failedJob->payload ?? [];
+            $displayName = \isset($payload['displayName']) ? $payload['displayName'] : null;
+            $rawJob = \isset($payload['job']) ? $payload['job'] : null;
+            $haystack = (string) ($displayName ?? $rawJob ?? '');
+            if (! \str_contains($haystack, $alert->job_type)) {
+                return false;
+            }
+        }
+
+        if (!empty($alert->queue)) {
+            if ((string) $failedJob->queue !== (string) $alert->queue) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -106,29 +140,28 @@ class AlertRuleEvaluator {
         $maxSeconds = (float) (\isset($threshold['seconds']) ? $threshold['seconds'] : 60);
         $minutes = (int) (\isset($threshold['minutes']) ? $threshold['minutes'] : 15);
 
-        $jobs = HorizonJob::where('service_id', $serviceId)
+        $query = HorizonJob::where('service_id', $serviceId)
             ->where('status', 'processed')
             ->whereNotNull('processed_at')
             ->where('processed_at', '>=', \now()->subMinutes($minutes))
-            ->get();
+            ->whereNotNull('queued_at');
 
-        if ($jobs->isEmpty()) {
+        $driver = DB::connection()->getDriverName();
+        if ($driver === 'mysql') {
+            $avg = $query->clone()
+                ->selectRaw('AVG(COALESCE(runtime_seconds, TIMESTAMPDIFF(SECOND, queued_at, processed_at))) as avg_runtime')
+                ->value('avg_runtime');
+        } else {
+            $avg = $query->clone()
+                ->selectRaw('AVG(COALESCE(runtime_seconds, (julianday(processed_at) - julianday(queued_at)) * 86400)) as avg_runtime')
+                ->value('avg_runtime');
+        }
+
+        if ($avg === null) {
             return false;
         }
 
-        $jobsWithRuntime = $jobs->filter(function ($job) {
-            return $job->getRuntimeSeconds() !== null;
-        });
-
-        $avg = $jobsWithRuntime->isEmpty()
-            ? 0.0
-            : $jobsWithRuntime->avg(function ($job) {
-                return $job->getRuntimeSeconds();
-            });
-
-        $triggered = $avg >= $maxSeconds;
-
-        return $triggered;
+        return (float) $avg >= $maxSeconds;
     }
 
     /**

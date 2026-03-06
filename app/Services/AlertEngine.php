@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Contracts\EmailAlertNotifier;
+use App\Contracts\SlackAlertNotifier;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
@@ -44,27 +46,27 @@ class AlertEngine {
     /**
      * The email notifier.
      *
-     * @var EmailNotifier
+     * @var EmailAlertNotifier
      */
-    private EmailNotifier $emailNotifier;
+    private EmailAlertNotifier $emailNotifier;
 
     /**
      * The slack notifier.
      *
-     * @var SlackNotifier
+     * @var SlackAlertNotifier
      */
-    private SlackNotifier $slackNotifier;
+    private SlackAlertNotifier $slackNotifier;
 
     /**
      * Construct the alert engine.
      *
-     * @param EmailNotifier $emailNotifier
-     * @param SlackNotifier $slackNotifier
+     * @param EmailAlertNotifier $emailNotifier
+     * @param SlackAlertNotifier $slackNotifier
      * @param AlertRuleEvaluator $ruleEvaluator
      */
     public function __construct(
-        EmailNotifier $emailNotifier,
-        SlackNotifier $slackNotifier,
+        EmailAlertNotifier $emailNotifier,
+        SlackAlertNotifier $slackNotifier,
         AlertRuleEvaluator $ruleEvaluator
     ) {
         $this->emailNotifier = $emailNotifier;

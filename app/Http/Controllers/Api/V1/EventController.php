@@ -43,19 +43,34 @@ class EventController extends Controller {
 
         $service->update(['last_seen_at' => \now(), 'status' => 'online']);
         $events = $request->getEvents();
+        $failed = [];
+        $processed = 0;
 
-        foreach ($events as $event) {
+        foreach ($events as $index => $event) {
             try {
                 $this->processor->process($service, $event);
+                $processed++;
             } catch (\Throwable $e) {
                 Log::error('Horizon Hub: failed to process event', [
                     'service_id' => $service->id,
                     'event' => $event,
                     'error' => $e->getMessage(),
                 ]);
+                $failed[] = [
+                    'index' => $index,
+                    'error' => 'Processing failed',
+                ];
             }
         }
 
-        return \response()->json(['accepted' => \count($events)], 202);
+        $payload = [
+            'accepted' => \count($events),
+            'processed' => $processed,
+        ];
+        if (! empty($failed)) {
+            $payload['failed'] = $failed;
+        }
+
+        return \response()->json($payload, 202);
     }
 }

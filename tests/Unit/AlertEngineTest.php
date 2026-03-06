@@ -35,7 +35,7 @@ class AlertEngineTest extends TestCase {
             'queue' => 'default',
             'payload' => [],
             'exception' => 'err',
-            'failed_at' => now(),
+            'failed_at' => \now(),
         ]);
         HorizonFailedJob::create([
             'service_id' => $service->id,
@@ -43,7 +43,7 @@ class AlertEngineTest extends TestCase {
             'queue' => 'default',
             'payload' => [],
             'exception' => 'err',
-            'failed_at' => now(),
+            'failed_at' => \now(),
         ]);
         $engine = new AlertEngine(
             $this->createMock(EmailNotifier::class),

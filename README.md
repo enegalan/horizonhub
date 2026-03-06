@@ -12,7 +12,7 @@ Centralized dashboard for monitoring Laravel Horizon jobs across multiple servic
 
 ## Requirements
 
-- PHP 8.2+
+- PHP 8.0+
 - Laravel 12 (or 11)
 - MySQL 8 or SQLite
 - Redis (for Reverb broadcasting)
@@ -68,7 +68,7 @@ See [examples/README.md](examples/README.md) for demo apps that push events to t
 
 ## API (v1)
 
-- `POST /api/v1/events` – Agent pushes Horizon events (requires `X-Api-Key`, `X-Hub-Timestamp`, `X-Hub-Signature`).
+- `POST /api/v1/events` – Agent pushes Horizon events (requires `X-Api-Key`, `X-Hub-Timestamp`, `X-Hub-Signature`). Response: `202` with body `{ "accepted": N, "processed": M }`. If some events failed to process, the body also includes `"failed": [ { "index": 0, "error": "Processing failed" }, ... ]` (index is the position in the request payload).
 - Job/queue actions (retry, delete, pause, resume) are available from the Hub UI and proxy to the Agent on each service.
 
 ## License

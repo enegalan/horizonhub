@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Contracts\EmailAlertNotifier;
+use App\Contracts\SlackAlertNotifier;
+use App\Services\EmailNotifier;
+use App\Services\SlackNotifier;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -14,7 +18,8 @@ class AppServiceProvider extends ServiceProvider {
      * @return void
      */
     public function register(): void {
-        //
+        $this->app->bind(EmailAlertNotifier::class, EmailNotifier::class);
+        $this->app->bind(SlackAlertNotifier::class, SlackNotifier::class);
     }
 
     /**
