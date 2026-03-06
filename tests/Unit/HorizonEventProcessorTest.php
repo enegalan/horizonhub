@@ -18,12 +18,12 @@ class HorizonEventProcessorTest extends TestCase {
     public function test_job_failed_event_persists_models_and_triggers_alert_engine(): void {
         Event::fake();
 
-        $service = Service::create(array(
+        $service = Service::create([
             'name' => 'svc',
             'api_key' => 'key',
             'base_url' => 'https://a.com',
             'status' => 'online',
-        ));
+        ]);
 
         $engine = $this->createMock(AlertEngine::class);
         $engine->expects($this->once())
@@ -32,16 +32,16 @@ class HorizonEventProcessorTest extends TestCase {
 
         $processor = new HorizonEventProcessor($engine);
 
-        $event = array(
+        $event = [
             'event_type' => 'JobFailed',
             'job_id' => 'uuid-1',
             'queue' => 'default',
             'name' => 'SomeJob',
-            'payload' => array('displayName' => 'SomeJob'),
+            'payload' => ['displayName' => 'SomeJob'],
             'attempts' => 1,
-            'failed_at' => now()->toIso8601String(),
+            'failed_at' => \now()->toIso8601String(),
             'exception' => 'boom',
-        );
+        ];
 
         $processor->process($service, $event);
 

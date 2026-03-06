@@ -26,7 +26,7 @@ class EventsApiTest extends TestCase {
             'base_url' => 'https://example.com',
             'status' => 'online',
         ]);
-        $body = json_encode([
+        $body = \json_encode([
             'event_type' => 'JobProcessed',
             'job_id' => 'job-123',
             'queue' => 'redis.default',
@@ -41,7 +41,59 @@ class EventsApiTest extends TestCase {
             'X-Hub-Signature' => $signature,
         ]);
         $response->assertStatus(202);
-        $response->assertJson(['accepted' => 1]);
+        $response->assertJson(['accepted' => 1, 'processed' => 1]);
+    }
+
+    public function test_events_response_includes_processed_and_failed_when_some_events_fail(): void {
+        $service = Service::create([
+            'name' => 'test-service',
+            'api_key' => 'test-api-key-64-chars-long-enough-to-meet-requirementxxxxxxxx',
+            'base_url' => 'https://example.com',
+            'status' => 'online',
+        ]);
+        $payload = [
+            'events' => [
+                [
+                    'event_type' => 'JobProcessed',
+                    'job_id' => 'job-1',
+                    'queue' => 'default',
+                    'status' => 'processed',
+                ],
+                [
+                    'event_type' => 'JobProcessed',
+                    'job_id' => 'job-2',
+                    'queue' => 'default',
+                    'status' => 'processed',
+                ],
+            ],
+        ];
+        $body = \json_encode($payload);
+        $timestamp = (string) \time();
+        $signature = 'sha256=' . \hash_hmac('sha256', "$timestamp.$body", $service->api_key);
+
+        $this->mock(\App\Services\HorizonEventProcessor::class, function ($mock) {
+            $mock->shouldReceive('process')
+                ->once()
+                ->andReturn(null);
+            $mock->shouldReceive('process')
+                ->once()
+                ->andThrow(new \RuntimeException('Test failure'));
+        });
+
+        $response = $this->postJson('/api/v1/events', $payload, [
+            'X-Api-Key' => $service->api_key,
+            'X-Hub-Timestamp' => $timestamp,
+            'X-Hub-Signature' => $signature,
+        ]);
+
+        $response->assertStatus(202);
+        $response->assertJson([
+            'accepted' => 2,
+            'processed' => 1,
+            'failed' => [
+                ['index' => 1, 'error' => 'Processing failed'],
+            ],
+        ]);
     }
 
     public function test_supervisor_looped_creates_or_updates_supervisor_state(): void {
@@ -56,9 +108,9 @@ class EventsApiTest extends TestCase {
             'queue' => 'supervisor-default',
             'status' => 'looped',
         ];
-        $body = json_encode($payload);
-        $timestamp = (string) time();
-        $signature = 'sha256=' . hash_hmac('sha256', $timestamp . '.' . $body, $service->api_key);
+        $body = \json_encode($payload);
+        $timestamp = (string) \time();
+        $signature = 'sha256=' . \hash_hmac('sha256', "$timestamp.$body", $service->api_key);
 
         $response = $this->postJson('/api/v1/events', $payload, [
             'X-Api-Key' => $service->api_key,
@@ -67,7 +119,7 @@ class EventsApiTest extends TestCase {
         ]);
 
         $response->assertStatus(202);
-        $response->assertJson(['accepted' => 1]);
+        $response->assertJson(['accepted' => 1, 'processed' => 1]);
 
         $state = HorizonSupervisorState::where('service_id', $service->id)->where('name', 'supervisor-default')->first();
         $this->assertNotNull($state);

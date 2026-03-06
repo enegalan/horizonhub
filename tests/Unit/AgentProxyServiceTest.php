@@ -17,15 +17,15 @@ class AgentProxyServiceTest extends TestCase {
         Http::fake(function ($request) use (&$capturedRequest) {
             $capturedRequest = $request;
 
-            return Http::response(array(), 200);
+            return Http::response([], 200);
         });
 
-        $service = Service::create(array(
+        $service = Service::create([
             'name' => 'svc',
             'api_key' => 'secret-key',
             'base_url' => 'https://example.test',
             'status' => 'online',
-        ));
+        ]);
 
         $proxy = new AgentProxyService();
 
@@ -42,7 +42,7 @@ class AgentProxyServiceTest extends TestCase {
         $this->assertNotNull($timestamp);
         $this->assertNotNull($signature);
 
-        $expectedSignature = 'sha256=' . \hash_hmac('sha256', $timestamp . '.', $service->api_key);
+        $expectedSignature = 'sha256=' . \hash_hmac('sha256', "$timestamp.", $service->api_key);
         $this->assertSame($expectedSignature, $signature);
     }
 }

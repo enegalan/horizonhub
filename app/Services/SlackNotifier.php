@@ -2,11 +2,12 @@
 
 namespace App\Services;
 
+use App\Contracts\SlackAlertNotifier;
 use App\Models\Alert;
 use App\Models\Service;
 use Illuminate\Support\Facades\Http;
 
-class SlackNotifier {
+class SlackNotifier implements SlackAlertNotifier {
     /**
      * Send an alert.
      *

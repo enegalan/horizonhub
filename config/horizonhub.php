@@ -6,7 +6,10 @@ return [
     | Agent Configuration
     |--------------------------------------------------------------------------
     |
-    | This is used to configure the agent endpoints.
+    | Paths the Hub uses to build action URLs (retry, delete, pause, resume).
+    | They must match the routes published by the horizonhub/agent package on
+    | each Laravel service. When upgrading the Agent, verify compatibility.
+    | See the Agent package README or examples/README.md for route details.
     |
     */
     'agent' => [
