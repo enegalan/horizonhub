@@ -4,6 +4,7 @@
 
 @layer base {
     :root {
+        --livewire-progress-bar-color: var(--primary-40) !important;
         --primary-40: #7746ec40;
         --background: 0 0% 100%;
         --foreground: 240 10% 3.9%;
@@ -208,12 +209,6 @@ td[data-column-id="actions"] > div {
     @apply justify-center;
 }
 
-.livewire-navigate-progress,
-.dark .livewire-navigate-progress {
-    @apply bg-primary;
-}
-
-/* Sonner toasts: follow app theme via .dark on html (toaster is always mounted with theme=light) */
 html.dark [data-sonner-toaster] {
     --normal-bg: #000;
     --normal-bg-hover: hsl(0, 0%, 12%);
