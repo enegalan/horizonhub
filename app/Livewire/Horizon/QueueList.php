@@ -79,7 +79,30 @@ class QueueList extends Component {
             $query->where('service_id', (int) $this->serviceFilter);
         }
 
-        $queues = $query->get();
+        $queuesFromJobs = $query->get();
+        $queueKeys = $queuesFromJobs->keyBy(fn ($r) => "{$r->service_id}|{$r->queue}")->keys();
+
+        $statesQuery = HorizonQueueState::query();
+        if ($this->serviceFilter !== '') {
+            $statesQuery->where('service_id', (int) $this->serviceFilter);
+        }
+        $queueStatesAll = $statesQuery->get();
+
+        foreach ($queueStatesAll as $state) {
+            $key = "{$state->service_id}|{$state->queue}";
+            if ($queueKeys->contains($key)) {
+                continue;
+            }
+            $queueKeys->push($key);
+            $queuesFromJobs->push((object) [
+                'service_id' => $state->service_id,
+                'queue' => $state->queue,
+                'job_count' => 0,
+                'service' => Service::find($state->service_id),
+            ]);
+        }
+
+        $queues = $queuesFromJobs->sortBy(fn ($r) => $r->queue)->values();
         $services = Service::orderBy('name')->get();
         $totalJobs = $queues->sum('job_count');
 

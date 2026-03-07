@@ -38,7 +38,11 @@ class StoreEventRequest extends FormRequest {
             'events.*.runtime_seconds' => ['nullable', 'numeric', 'min:0'],
             'events.*.exception' => ['nullable', 'string'],
             'event_type' => ['required_without:events', 'string', 'in:JobProcessed,JobFailed,JobProcessing,SupervisorLooped,QueuePaused,QueueResumed'],
-            'job_id' => [Rule::requiredIf(fn () => ! $this->has('events') && $this->input('event_type') !== 'SupervisorLooped'), 'nullable', 'string'],
+            'job_id' => [
+                Rule::requiredIf(fn () => ! $this->has('events') && ! \in_array($this->input('event_type'), ['SupervisorLooped', 'QueuePaused', 'QueueResumed'], true)),
+                'nullable',
+                'string',
+            ],
             'queue' => ['required_without:events', 'string'],
             'status' => ['nullable', 'string'],
             'attempts' => ['nullable', 'integer', 'min:0'],

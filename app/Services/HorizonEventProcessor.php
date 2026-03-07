@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Events\HorizonEventReceived;
 use App\Models\HorizonFailedJob;
 use App\Models\HorizonJob;
+use App\Models\HorizonQueueState;
 use App\Models\HorizonSupervisorState;
 use App\Models\Service;
 use Carbon\Carbon;
@@ -43,21 +44,26 @@ class HorizonEventProcessor {
             return;
         }
 
+        if ($eventType === 'QueuePaused' || $eventType === 'QueueResumed') {
+            $this->processQueuePauseResume($service, $event);
+            return;
+        }
+
         $jobId = $event['job_id'] ?? '';
         $queue = $event['queue'] ?? '';
         $name = $event['name'] ?? null;
         $payload = $event['payload'] ?? null;
         $attempts = isset($event['attempts']) ? (int) $event['attempts'] : 0;
         $statusRaw = $event['status'] ?? null;
-        $status = (is_string($statusRaw) && $statusRaw !== '') ? $statusRaw : $eventType;
-        $processedAt = isset($event['processed_at']) ? $event['processed_at'] : null;
-        $failedAt = isset($event['failed_at']) ? $event['failed_at'] : null;
-        $queuedAt = isset($event['queued_at']) ? $event['queued_at'] : null;
+        $status = (\is_string($statusRaw) && $statusRaw !== '') ? $statusRaw : $eventType;
+        $processedAt = isset($event['processed_at']) ?? $event['processed_at'];
+        $failedAt = isset($event['failed_at']) ?? $event['failed_at'];
+        $queuedAt = isset($event['queued_at']) ?? $event['queued_at'];
         $runtimeSeconds = isset($event['runtime_seconds']) ? (float) $event['runtime_seconds'] : null;
         $exception = $event['exception'] ?? null;
 
         if ($queuedAt === null && isset($payload) && \is_array($payload)) {
-            $pushedAtRaw = isset($payload['pushedAt']) ? $payload['pushedAt'] : null;
+            $pushedAtRaw = isset($payload['pushedAt']) ?? $payload['pushedAt'];
             if ($pushedAtRaw !== null && \is_numeric($pushedAtRaw)) {
                 $pushedAtFloat = (float) $pushedAtRaw;
                 if ($pushedAtFloat > 0) {
@@ -154,6 +160,28 @@ class HorizonEventProcessor {
             ],
             [
                 'last_seen_at' => \now(),
+            ]
+        );
+    }
+
+    /**
+     * Process queue paused or resumed event and update HorizonQueueState.
+     *
+     * @param Service $service
+     * @param array $event
+     * @return void
+     */
+    private function processQueuePauseResume(Service $service, array $event): void {
+        $queue = isset($event['queue']) && (string) $event['queue'] !== '' ? (string) $event['queue'] : 'redis.default';
+        $isPaused = ($event['event_type'] ?? '') === 'QueuePaused';
+
+        HorizonQueueState::updateOrCreate(
+            [
+                'service_id' => $service->id,
+                'queue' => $queue,
+            ],
+            [
+                'is_paused' => $isPaused,
             ]
         );
     }
