@@ -66,11 +66,6 @@ Ensure the service’s `base_url` is reachable by the Hub (for retry/delete/paus
 
 See [examples/README.md](examples/README.md) for demo apps that push events to the Hub.
 
-## API (v1)
-
-- `POST /api/v1/events` – Agent pushes Horizon events (requires `X-Api-Key`, `X-Hub-Timestamp`, `X-Hub-Signature`). Response: `202` with body `{ "accepted": N, "processed": M }`. If some events failed to process, the body also includes `"failed": [ { "index": 0, "error": "Processing failed" }, ... ]` (index is the position in the request payload).
-- Job/queue actions (retry, delete, pause, resume) are available from the Hub UI and proxy to the Agent on each service.
-
 ## License
 
 MIT

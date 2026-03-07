@@ -12,7 +12,7 @@ class EventsApiTest extends TestCase {
     use RefreshDatabase;
 
     public function test_events_endpoint_requires_signature(): void {
-        $response = $this->postJson('/api/v1/events', [
+        $response = $this->postJson(\config('horizonhub.events_path'), [
             'event_type' => 'JobProcessed',
             'job_id' => 'abc',
             'queue' => 'default',
@@ -36,7 +36,7 @@ class EventsApiTest extends TestCase {
         $timestamp = (string) time();
         $signature = 'sha256=' . hash_hmac('sha256', $timestamp . '.' . $body, $service->api_key);
 
-        $response = $this->postJson('/api/v1/events', json_decode($body, true), [
+        $response = $this->postJson(\config('horizonhub.events_path'), json_decode($body, true), [
             'X-Api-Key' => $service->api_key,
             'X-Hub-Timestamp' => $timestamp,
             'X-Hub-Signature' => $signature,
@@ -81,7 +81,7 @@ class EventsApiTest extends TestCase {
                 ->andThrow(new \RuntimeException('Test failure'));
         });
 
-        $response = $this->postJson('/api/v1/events', $payload, [
+        $response = $this->postJson(\config('horizonhub.events_path'), $payload, [
             'X-Api-Key' => $service->api_key,
             'X-Hub-Timestamp' => $timestamp,
             'X-Hub-Signature' => $signature,
@@ -113,7 +113,7 @@ class EventsApiTest extends TestCase {
         $timestamp = (string) \time();
         $signature = 'sha256=' . \hash_hmac('sha256', "$timestamp.$body", $service->api_key);
 
-        $response = $this->postJson('/api/v1/events', $payload, [
+        $response = $this->postJson(\config('horizonhub.events_path'), $payload, [
             'X-Api-Key' => $service->api_key,
             'X-Hub-Timestamp' => $timestamp,
             'X-Hub-Signature' => $signature,
@@ -144,7 +144,7 @@ class EventsApiTest extends TestCase {
         $timestamp = (string) \time();
         $signature = 'sha256=' . \hash_hmac('sha256', "$timestamp.$body", $service->api_key);
 
-        $response = $this->postJson('/api/v1/events', $payload, [
+        $response = $this->postJson(\config('horizonhub.events_path'), $payload, [
             'X-Api-Key' => $service->api_key,
             'X-Hub-Timestamp' => $timestamp,
             'X-Hub-Signature' => $signature,
@@ -179,7 +179,7 @@ class EventsApiTest extends TestCase {
         $timestamp = (string) \time();
         $signature = 'sha256=' . \hash_hmac('sha256', "$timestamp.$body", $service->api_key);
 
-        $response = $this->postJson('/api/v1/events', $payload, [
+        $response = $this->postJson(\config('horizonhub.events_path'), $payload, [
             'X-Api-Key' => $service->api_key,
             'X-Hub-Timestamp' => $timestamp,
             'X-Hub-Signature' => $signature,
@@ -209,7 +209,7 @@ class EventsApiTest extends TestCase {
         $timestamp = (string) \time();
         $signature = 'sha256=' . \hash_hmac('sha256', "$timestamp.$body", $service->api_key);
 
-        $this->postJson('/api/v1/events', $payload, [
+        $this->postJson(\config('horizonhub.events_path'), $payload, [
             'X-Api-Key' => $service->api_key,
             'X-Hub-Timestamp' => $timestamp,
             'X-Hub-Signature' => $signature,
