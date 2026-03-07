@@ -122,7 +122,7 @@ class Metrics extends Component {
         $agg = [];
         foreach ($rows as $r) {
             $s = $r->service?->name ?? (string) $r->service_id;
-            $q = $r->queue ?? 'default';
+            $q = $r->queue;
             $key = "$s|$q";
             if (! isset($agg[$key])) {
                 $agg[$key] = ['service' => $s, 'queue' => $q, 'cnt' => 0];
