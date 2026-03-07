@@ -56,14 +56,14 @@ class HorizonEventProcessor {
         $attempts = isset($event['attempts']) ? (int) $event['attempts'] : 0;
         $statusRaw = $event['status'] ?? null;
         $status = (\is_string($statusRaw) && $statusRaw !== '') ? $statusRaw : $eventType;
-        $processedAt = isset($event['processed_at']) ?? $event['processed_at'];
-        $failedAt = isset($event['failed_at']) ?? $event['failed_at'];
-        $queuedAt = isset($event['queued_at']) ?? $event['queued_at'];
+        $processedAt = $event['processed_at'] ?? null;
+        $failedAt = $event['failed_at'] ?? null;
+        $queuedAt = $event['queued_at'] ?? null;
         $runtimeSeconds = isset($event['runtime_seconds']) ? (float) $event['runtime_seconds'] : null;
         $exception = $event['exception'] ?? null;
 
         if ($queuedAt === null && isset($payload) && \is_array($payload)) {
-            $pushedAtRaw = isset($payload['pushedAt']) ?? $payload['pushedAt'];
+            $pushedAtRaw = $payload['pushedAt'] ?? null;
             if ($pushedAtRaw !== null && \is_numeric($pushedAtRaw)) {
                 $pushedAtFloat = (float) $pushedAtRaw;
                 if ($pushedAtFloat > 0) {
