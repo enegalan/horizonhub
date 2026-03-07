@@ -94,7 +94,7 @@ class JobList extends Component {
      */
     public function getListeners(): array {
         return [
-            'echo:horizon-hub.dashboard,HorizonEvent' => 'refreshJobs',
+            'echo:horizonhub.dashboard,HorizonEvent' => 'refreshJobs',
         ];
     }
 

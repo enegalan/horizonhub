@@ -68,7 +68,7 @@ class HorizonEventReceived implements ShouldBroadcast {
      */
     public function broadcastOn(): array {
         return [
-            new Channel('horizon-hub.dashboard'),
+            new Channel('horizonhub.dashboard'),
         ];
     }
 

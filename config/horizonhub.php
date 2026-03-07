@@ -13,10 +13,10 @@ return [
     |
     */
     'agent' => [
-        'retry_path' => '/horizon-hub/jobs/{id}/retry',
-        'delete_path' => '/horizon-hub/jobs/{id}/delete',
-        'pause_path' => '/horizon-hub/queues/{name}/pause',
-        'resume_path' => '/horizon-hub/queues/{name}/resume',
+        'retry_path' => '/horizonhub/jobs/{id}/retry',
+        'delete_path' => '/horizonhub/jobs/{id}/delete',
+        'pause_path' => '/horizonhub/queues/{name}/pause',
+        'resume_path' => '/horizonhub/queues/{name}/resume',
     ],
 
     /*

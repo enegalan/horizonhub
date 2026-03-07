@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: horizon-hub
+    container_name: horizonhub
     restart: unless-stopped
     ports:
       - "80:80"
@@ -40,7 +40,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: horizon-hub-reverb
+    container_name: horizonhub-reverb
     restart: unless-stopped
     working_dir: /var/www/html
     command: php artisan reverb:start --host=0.0.0.0 --port=6001
@@ -69,7 +69,7 @@ services:
 
   mysql:
     image: mysql:8.0
-    container_name: horizon-hub-mysql
+    container_name: horizonhub-mysql
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: horizonhub
@@ -90,7 +90,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: horizon-hub-redis
+    container_name: horizonhub-redis
     restart: unless-stopped
     ports:
       - "6379:6379"

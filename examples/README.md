@@ -57,7 +57,7 @@ docker compose --profile demo up -d mysql redis hub reverb redis-demo-1 demo-app
 Then seed the demo service for app 1 once (if not already present):
 
 ```bash
-docker exec horizon-hub php artisan db:seed --class=DemoServicesSeeder --force
+docker exec horizonhub php artisan db:seed --class=DemoServicesSeeder --force
 ```
 
 Or register "Demo Orders" manually in the hub UI with base URL `http://demo-app-1:80` and the api_key from `examples/demo-app/.env.example` (`demo-service-1-api-key-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`).
@@ -86,7 +86,7 @@ The hub only shows jobs when the demo-app **agent** sends events to the hub (Job
 
 2. **"Invalid API key" or 401**  
    The hub has no service with the demo-app’s API key. Start the hub with `DEMO_SERVICES=1` or run:  
-   `docker exec horizon-hub php artisan db:seed --class=DemoServicesSeeder --force`
+   `docker exec horizonhub php artisan db:seed --class=DemoServicesSeeder --force`
 
 3. **"HORIZON_HUB_URL or HORIZON_HUB_API_KEY not set"**  
    The agent skips sending events. Set these env vars in the demo-app (in docker-compose they are set per service).

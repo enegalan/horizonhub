@@ -124,7 +124,7 @@ class AlertDetail extends Component {
      */
     public function getListeners(): array {
         return [
-            'echo:horizon-hub.dashboard,HorizonEvent' => '$refresh',
+            'echo:horizonhub.dashboard,HorizonEvent' => '$refresh',
         ];
     }
 

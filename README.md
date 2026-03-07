@@ -51,7 +51,7 @@ On each Laravel service that runs Horizon:
 
 ```bash
 composer require horizonhub/agent
-php artisan vendor:publish --tag=horizon-hub-agent-config
+php artisan horizonhub:install
 ```
 
 In `.env`:

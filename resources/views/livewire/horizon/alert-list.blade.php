@@ -1,4 +1,4 @@
-<div @horizon-hub-refresh.window="$wire.$refresh()">
+<div @horizonhub-refresh.window="$wire.$refresh()">
     <div class="card mb-4">
         <div class="px-4 py-3 flex items-center justify-between">
             <h2 class="text-section-title text-foreground">Alert rules</h2>

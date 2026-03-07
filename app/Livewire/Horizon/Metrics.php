@@ -52,7 +52,7 @@ class Metrics extends Component {
      */
     public function getListeners(): array {
         return [
-            'echo:horizon-hub.dashboard,HorizonEvent' => 'refreshMetrics',
+            'echo:horizonhub.dashboard,HorizonEvent' => 'refreshMetrics',
         ];
     }
 

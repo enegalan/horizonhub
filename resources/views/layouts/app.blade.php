@@ -45,7 +45,7 @@
                 });
                 function tick() {
                     if (typeof Alpine !== 'undefined' && Alpine.store && Alpine.store('hotReload') && Alpine.store('hotReload').enabled) {
-                        window.dispatchEvent(new CustomEvent('horizon-hub-refresh'));
+                        window.dispatchEvent(new CustomEvent('horizonhub-refresh'));
                     }
                 }
                 var sec = Math.max(1, (Alpine.store('hotReload').interval || window.horizonHubHotReloadInterval || 5));
@@ -69,7 +69,7 @@
                 var isDark = t === 'system' ? window.matchMedia('(prefers-color-scheme: dark)').matches : (t === 'dark');
                 document.documentElement.classList.toggle('dark', isDark);
             })();
-            window.addEventListener('horizon-hub-refresh', () => {
+            window.addEventListener('horizonhub-refresh', () => {
                 var main = document.querySelector('main');
                 if (!main) return;
                 if (main.querySelector('table[data-resizable-table]') || window.horizonTableInteracting) return;

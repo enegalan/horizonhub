@@ -2,5 +2,5 @@
 
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::command('horizon-hub:evaluate-alerts')->everyMinute();
-Schedule::command('horizon-hub:mark-stale-services-offline')->everyMinute();
+Schedule::command('horizonhub:evaluate-alerts')->everyMinute();
+Schedule::command('horizonhub:mark-stale-services-offline')->everyMinute();

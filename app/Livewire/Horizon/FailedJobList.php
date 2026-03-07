@@ -33,7 +33,7 @@ class FailedJobList extends Component {
      */
     public function getListeners(): array {
         return [
-            'echo:horizon-hub.dashboard,HorizonEvent' => 'refreshList',
+            'echo:horizonhub.dashboard,HorizonEvent' => 'refreshList',
         ];
     }
 

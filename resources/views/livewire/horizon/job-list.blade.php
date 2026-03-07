@@ -151,7 +151,7 @@
 
 @script
 <script>
-    window.addEventListener('horizon-hub-refresh', () => {
+    window.addEventListener('horizonhub-refresh', () => {
         try { $wire.$refresh(); } catch (e) {}
     });
 </script>
