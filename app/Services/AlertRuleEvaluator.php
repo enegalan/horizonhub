@@ -59,8 +59,8 @@ class AlertRuleEvaluator {
 
         if ($alert->job_type !== null && (string) $alert->job_type !== '') {
             $payload = $failedJob->payload ?? [];
-            $displayName = \isset($payload['displayName']) ? $payload['displayName'] : null;
-            $rawJob = \isset($payload['job']) ? $payload['job'] : null;
+            $displayName = isset($payload['displayName']) ?? $payload['displayName'];
+            $rawJob = isset($payload['job']) ?? $payload['job'];
             $haystack = (string) ($displayName ?? $rawJob ?? '');
             if (! \str_contains($haystack, $alert->job_type)) {
                 return false;
@@ -93,8 +93,8 @@ class AlertRuleEvaluator {
             ->get()
             ->filter(function ($job) use ($alert) {
                 $payload = $job->payload ?? [];
-                $displayName = \isset($payload['displayName']) ? $payload['displayName'] : null;
-                $rawJob = \isset($payload['job']) ? $payload['job'] : null;
+                $displayName = isset($payload['displayName']) ?? $payload['displayName'];
+                $rawJob = isset($payload['job']) ?? $payload['job'];
                 $haystack = (string) ($displayName ?? $rawJob ?? '');
 
                 return \str_contains($haystack, $alert->job_type);
@@ -113,8 +113,8 @@ class AlertRuleEvaluator {
      */
     private function evaluateFailureCount(Alert $alert, int $serviceId): bool {
         $threshold = $alert->threshold ?? [];
-        $count = (int) (\isset($threshold['count']) ? $threshold['count'] : 5);
-        $minutes = (int) (\isset($threshold['minutes']) ? $threshold['minutes'] : 15);
+        $count = (int) (isset($threshold['count']) ? $threshold['count'] : 5);
+        $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 15);
 
         $actual = HorizonFailedJob::where('service_id', $serviceId)
             ->when($alert->queue, function ($query) use ($alert) {
@@ -137,8 +137,8 @@ class AlertRuleEvaluator {
      */
     private function evaluateAvgExecutionTime(Alert $alert, int $serviceId): bool {
         $threshold = $alert->threshold ?? [];
-        $maxSeconds = (float) (\isset($threshold['seconds']) ? $threshold['seconds'] : 60);
-        $minutes = (int) (\isset($threshold['minutes']) ? $threshold['minutes'] : 15);
+        $maxSeconds = (float) (isset($threshold['seconds']) ? $threshold['seconds'] : 60);
+        $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 15);
 
         $query = HorizonJob::where('service_id', $serviceId)
             ->where('status', 'processed')
@@ -173,7 +173,7 @@ class AlertRuleEvaluator {
      */
     private function evaluateQueueBlocked(Alert $alert, int $serviceId): bool {
         $threshold = $alert->threshold ?? [];
-        $minutes = (int) (\isset($threshold['minutes']) ? $threshold['minutes'] : 30);
+        $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 30);
 
         $lastProcessed = HorizonJob::where('service_id', $serviceId)
             ->when($alert->queue, function ($query) use ($alert) {
@@ -200,7 +200,7 @@ class AlertRuleEvaluator {
      */
     private function evaluateWorkerOffline(Alert $alert, int $serviceId): bool {
         $threshold = $alert->threshold ?? [];
-        $minutes = (int) (\isset($threshold['minutes']) ? $threshold['minutes'] : 5);
+        $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 5);
 
         $service = Service::find($serviceId);
         if (! $service || ! $service->last_seen_at) {

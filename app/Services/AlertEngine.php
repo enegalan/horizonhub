@@ -412,7 +412,7 @@ class AlertEngine {
         foreach ($channels as $channel => $config) {
             try {
                 if ($channel === 'email') {
-                    $to = \isset($config['to']) ? $config['to'] : Setting::get('integrations.email.default_to', []);
+                    $to = isset($config['to']) ? $config['to'] : Setting::get('integrations.email.default_to', []);
                     $to = \is_array($to) ? $to : [];
                     if (! empty($to)) {
                         $config['to'] = $to;
@@ -420,7 +420,7 @@ class AlertEngine {
                     }
                 }
                 if ($channel === 'slack') {
-                    $webhookUrl = \isset($config['webhook_url']) ? $config['webhook_url'] : Setting::get('integrations.slack.webhook_url', '');
+                    $webhookUrl = isset($config['webhook_url']) ? $config['webhook_url'] : Setting::get('integrations.slack.webhook_url', '');
                     if (! empty($webhookUrl)) {
                         $config['webhook_url'] = $webhookUrl;
                         $this->slackNotifier->sendBatched($alert, $events, $config);
