@@ -1,6 +1,5 @@
 import './bootstrap';
 import './resizable-table';
-import './alert-log-modal';
 
 import { createRoot } from 'react-dom/client';
 import React from 'react';

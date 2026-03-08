@@ -164,13 +164,7 @@
                                         class="inline-flex items-center justify-center h-8 min-h-8 p-2 rounded-md"
                                         aria-label="View delivery log"
                                         title="View delivery log"
-                                        data-alert-log="1"
-                                        data-alert-sent-at="{{ $log->sent_at->format('Y-m-d H:i:s') }}"
-                                        data-alert-service="{{ $log->service?->name }}"
-                                        data-alert-trigger-count="{{ $log->trigger_count ?? 1 }}"
-                                        data-alert-job-ids="{{ e(json_encode($log->job_ids ?? [])) }}"
-                                        data-alert-status="{{ $log->status }}"
-                                        data-alert-failure="{{ $log->failure_message }}"
+                                        wire:click="openLogModal({{ $log->id }})"
                                     >
                                         <x-heroicon-o-document-text class="size-4" />
                                     </x-button>
@@ -215,57 +209,90 @@
         </div>
     </div>
 
-    @teleport('body')
-        <div id="alert-log-modal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto px-4 hidden" role="dialog" aria-modal="true" aria-labelledby="alert-log-modal-title">
-            @include('components.backdrop', ['variant' => 'default', 'extraAttrs' => 'data-alert-log-close'])
-            <div class="relative z-10 card w-full max-w-lg p-4 bg-card">
-            <h2 id="alert-log-modal-title" class="text-section-title text-foreground mb-3">Delivery log</h2>
-            <dl class="space-y-2 text-sm">
-                <div>
-                    <dt class="label-muted">Sent at</dt>
-                    <dd id="alert-log-sent-at" class="text-foreground"></dd>
-                </div>
-                <div>
-                    <dt class="label-muted">Service</dt>
-                    <dd id="alert-log-service" class="text-foreground"></dd>
-                </div>
-                <div>
-                    <dt class="label-muted">Events</dt>
-                    <dd id="alert-log-job" class="text-foreground font-mono text-xs"></dd>
-                </div>
-                <div id="alert-log-events-wrapper" class="hidden">
-                    <dt class="label-muted">Events in this delivery</dt>
-                    <dd id="alert-log-events-count" class="text-foreground"></dd>
-                </div>
-                <div id="alert-log-job-ids-wrapper" class="hidden">
-                    <dt class="label-muted">Job IDs (grouped)</dt>
-                    <dd id="alert-log-job-ids" class="text-foreground flex flex-wrap gap-1"></dd>
-                    <dd id="alert-log-job-ids-more" class="text-xs text-muted-foreground mt-1"></dd>
-                </div>
-                <div>
-                    <dt class="label-muted">Status</dt>
-                    <dd id="alert-log-status"></dd>
-                </div>
-                <div id="alert-log-failure-wrapper" class="hidden">
-                    <dt class="label-muted">Failure reason</dt>
-                    <dd id="alert-log-failure-message" class="mt-1 rounded-md border border-border bg-muted/30 px-3 py-2 font-mono text-xs text-foreground whitespace-pre-wrap break-words"></dd>
-                </div>
-            </dl>
-            <div class="pt-4">
-                <div class="flex items-center justify-end gap-3">
-                    <x-button
-                        variant="ghost"
-                        type="button"
-                        data-alert-log-close
-                        class="h-9 text-sm rounded-md px-3 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                    >
-                        Close
-                    </x-button>
+    @if($selectedLog)
+        @teleport('body')
+            <div id="alert-log-modal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto px-4" role="dialog" aria-modal="true" aria-labelledby="alert-log-modal-title">
+                @include('components.backdrop', ['variant' => 'default', 'wireClick' => 'closeLogModal'])
+                <div class="relative z-10 card w-full max-w-lg p-4 bg-card">
+                    <h2 id="alert-log-modal-title" class="text-section-title text-foreground mb-3">Delivery log</h2>
+                    @php
+                        $sl = $selectedLog;
+                        $triggerCount = (int) ($sl->trigger_count ?? 0);
+                        if ($triggerCount < 1) $triggerCount = 1;
+                        $jobIds = is_array($sl->job_ids ?? null) ? $sl->job_ids : array();
+                        $totals = array();
+                        foreach ($jobIds as $id) {
+                            $key = (string) $id;
+                            $totals[$key] = ($totals[$key] ?? 0) + 1;
+                        }
+                        $jobIdsLimited = array_slice(array_keys($totals), 0, 25);
+                        $jobIdsMore = count($totals) > 25 ? count($totals) - 25 : 0;
+                    @endphp
+                    <dl class="space-y-2 text-sm">
+                        <div>
+                            <dt class="label-muted">Sent at</dt>
+                            <dd class="text-foreground">{{ $sl->sent_at->format('Y-m-d H:i:s') }}</dd>
+                        </div>
+                        <div>
+                            <dt class="label-muted">Service</dt>
+                            <dd class="text-foreground">{{ $sl->service?->name ?? '–' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="label-muted">Events</dt>
+                            <dd class="text-foreground font-mono text-xs">{{ $triggerCount === 1 ? '1 event' : $triggerCount . ' events' }}</dd>
+                        </div>
+                        @if($triggerCount > 1)
+                            <div>
+                                <dt class="label-muted">Events in this delivery</dt>
+                                <dd class="text-foreground">{{ $triggerCount }}</dd>
+                            </div>
+                        @endif
+                        @if(!empty($jobIds))
+                            <div>
+                                <dt class="label-muted">Job IDs (grouped)</dt>
+                                <dd class="text-foreground flex flex-wrap gap-1">
+                                    @foreach($jobIdsLimited as $jid)
+                                        <span class="inline-flex items-center rounded border border-border px-1.5 py-0.5 text-[11px] font-mono text-muted-foreground bg-muted/40">{{ $jid }} <span class="mx-1 text-xs text-foreground">×</span> {{ $totals[$jid] }}</span>
+                                    @endforeach
+                                </dd>
+                                @if($jobIdsMore > 0)
+                                    <dd class="text-xs text-muted-foreground mt-1">+{{ $jobIdsMore }} more job types</dd>
+                                @endif
+                            </div>
+                        @endif
+                        <div>
+                            <dt class="label-muted">Status</dt>
+                            <dd>
+                                @if($sl->status === 'sent')
+                                    <span class="badge-success">sent</span>
+                                @else
+                                    <span class="badge-danger">failed</span>
+                                @endif
+                            </dd>
+                        </div>
+                        @if($sl->status === 'failed' && !empty($sl->failure_message))
+                            <div>
+                                <dt class="label-muted">Failure reason</dt>
+                                <dd class="mt-1 rounded-md border border-border bg-muted/30 px-3 py-2 font-mono text-xs text-foreground whitespace-pre-wrap break-words">{{ $sl->failure_message }}</dd>
+                            </div>
+                        @endif
+                    </dl>
+                    <div class="pt-4">
+                        <div class="flex items-center justify-end gap-3">
+                            <x-button
+                                variant="ghost"
+                                type="button"
+                                wire:click="closeLogModal"
+                                class="h-9 text-sm rounded-md px-3 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                            >
+                                Close
+                            </x-button>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        </div>
-    @endteleport
+        @endteleport
+    @endif
 </div>
 
 @script

@@ -271,7 +271,12 @@ class AlertDetail extends Component {
         ];
 
         $alertName = $this->alert->name ?: 'Alert #' . $this->alert->id;
-        $selectedLog = $this->selectedLogId !== null ? $logs->firstWhere('id', $this->selectedLogId) : null;
+        $selectedLog = null;
+        if ($this->selectedLogId !== null) {
+            $selectedLog = AlertLog::with('service')
+                ->where('alert_id', $this->alert->id)
+                ->find($this->selectedLogId);
+        }
 
         $services = Service::orderBy('name')->get();
 
