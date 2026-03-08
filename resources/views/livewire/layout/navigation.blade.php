@@ -1,7 +1,7 @@
 @php
     $sidebarStorageKey = 'horizon_sidebar_open';
 @endphp
-<div class="nav-sidebar-column shrink-0 lg:flex lg:min-h-screen lg:w-52 lg:flex-col"
+<div class="nav-sidebar-column shrink-0 lg:flex lg:min-h-screen lg:w-[248px] lg:flex-col"
     x-data="{
         drawerOpen: false,
         sidebarOpen: localStorage.getItem('{{ $sidebarStorageKey }}') !== 'false',
@@ -24,7 +24,7 @@
         @click="drawerOpen = false"
         ></div>
 
-    <div class="fixed top-0 left-0 right-0 z-30 flex h-12 items-center gap-2 border-b border-border bg-card/95 px-3 backdrop-blur-sm lg:hidden">
+    <div class="fixed top-0 left-0 right-0 z-30 flex h-12 items-center gap-2 border-b border-border bg-card px-3 lg:hidden">
         <x-button variant="ghost" type="button" @click="drawerOpen = !drawerOpen" class="h-8 w-8 p-0" aria-label="Open menu">
             <x-heroicon-o-bars-3 class="size-6" />
         </x-button>
@@ -76,7 +76,7 @@
             }"
             >
             <div class="flex items-center justify-between gap-2 px-2.5 py-1.5">
-                <span class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Hot reload</span>
+                <span class="label-muted">Hot reload</span>
                 <x-button
                     variant="none"
                     type="button"

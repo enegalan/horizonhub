@@ -2,7 +2,7 @@
     <div class="card">
         <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
             <div class="space-y-2">
-                <x-input-label class="text-[11px] font-medium text-muted-foreground">Service</x-input-label>
+                <x-input-label>Service</x-input-label>
                 <x-select wire:model.live="serviceFilter" class="w-48">
                     <option value="">All</option>
                     @foreach($services as $s)

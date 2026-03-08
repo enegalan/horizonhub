@@ -132,7 +132,7 @@
             <livewire:layout.navigation />
             <div class="flex min-h-0 min-w-0 flex-1 flex-col pt-12 lg:pt-0">
             @if (isset($header))
-                <header class="shrink-0 border-b border-border bg-card/95 backdrop-blur-sm">
+                <header class="shrink-0 border-b border-border bg-card">
                     <div class="max-w-6xl mx-16 flex h-12 items-center">
                         <h1 class="text-page-title text-foreground">{{ $header }}</h1>
                     </div>

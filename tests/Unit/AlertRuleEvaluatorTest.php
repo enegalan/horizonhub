@@ -13,7 +13,7 @@ use Tests\TestCase;
 class AlertRuleEvaluatorTest extends TestCase {
     use RefreshDatabase;
 
-    private function createService(array $overrides = array()): Service {
+    private function createService(array $overrides = []): Service {
         return Service::create(array_merge(array(
             'name' => 'test-svc',
             'api_key' => 'key',
@@ -27,7 +27,7 @@ class AlertRuleEvaluatorTest extends TestCase {
         $alert = Alert::create([
             'service_id' => $service->id,
             'rule_type' => 'job_specific_failure',
-            'threshold' => array(),
+            'threshold' => [],
         ]);
         $evaluator = new AlertRuleEvaluator();
 
@@ -39,7 +39,7 @@ class AlertRuleEvaluatorTest extends TestCase {
         $alert = Alert::create([
             'service_id' => $service->id,
             'rule_type' => 'job_specific_failure',
-            'threshold' => array(),
+            'threshold' => [],
         ]);
         $evaluator = new AlertRuleEvaluator();
 
@@ -53,7 +53,7 @@ class AlertRuleEvaluatorTest extends TestCase {
             'rule_type' => 'job_specific_failure',
             'job_type' => null,
             'queue' => null,
-            'threshold' => array(),
+            'threshold' => [],
         ]);
         $job = HorizonJob::create([
             'service_id' => $service->id,
@@ -66,7 +66,7 @@ class AlertRuleEvaluatorTest extends TestCase {
             'service_id' => $service->id,
             'job_uuid' => 'uuid-1',
             'queue' => 'default',
-            'payload' => array(),
+            'payload' => [],
             'exception' => 'err',
             'failed_at' => now(),
         ]);
@@ -82,7 +82,7 @@ class AlertRuleEvaluatorTest extends TestCase {
             'rule_type' => 'job_specific_failure',
             'job_type' => 'OtherJob',
             'queue' => null,
-            'threshold' => array(),
+            'threshold' => [],
         ]);
         $job = HorizonJob::create([
             'service_id' => $service->id,
@@ -111,7 +111,7 @@ class AlertRuleEvaluatorTest extends TestCase {
             'rule_type' => 'job_specific_failure',
             'job_type' => 'MyJob',
             'queue' => null,
-            'threshold' => array(),
+            'threshold' => [],
         ]);
         $job = HorizonJob::create([
             'service_id' => $service->id,
@@ -139,7 +139,7 @@ class AlertRuleEvaluatorTest extends TestCase {
             'service_id' => $service->id,
             'rule_type' => 'job_type_failure',
             'job_type' => 'SendEmail',
-            'threshold' => array(),
+            'threshold' => [],
         ]);
         HorizonFailedJob::create([
             'service_id' => $service->id,
@@ -160,7 +160,7 @@ class AlertRuleEvaluatorTest extends TestCase {
             'service_id' => $service->id,
             'rule_type' => 'job_type_failure',
             'job_type' => 'SendEmail',
-            'threshold' => array(),
+            'threshold' => [],
         ]);
         HorizonFailedJob::create([
             'service_id' => $service->id,
@@ -186,7 +186,7 @@ class AlertRuleEvaluatorTest extends TestCase {
             'service_id' => $service->id,
             'job_uuid' => 'u1',
             'queue' => 'default',
-            'payload' => array(),
+            'payload' => [],
             'exception' => 'e',
             'failed_at' => now(),
         ]);
@@ -194,7 +194,7 @@ class AlertRuleEvaluatorTest extends TestCase {
             'service_id' => $service->id,
             'job_uuid' => 'u2',
             'queue' => 'default',
-            'payload' => array(),
+            'payload' => [],
             'exception' => 'e',
             'failed_at' => now(),
         ]);
@@ -214,7 +214,7 @@ class AlertRuleEvaluatorTest extends TestCase {
             'service_id' => $service->id,
             'job_uuid' => 'u1',
             'queue' => 'default',
-            'payload' => array(),
+            'payload' => [],
             'exception' => 'e',
             'failed_at' => now(),
         ]);
@@ -344,7 +344,7 @@ class AlertRuleEvaluatorTest extends TestCase {
         $alert = Alert::create([
             'service_id' => $service->id,
             'rule_type' => 'unknown_type',
-            'threshold' => array(),
+            'threshold' => [],
         ]);
         $evaluator = new AlertRuleEvaluator();
 

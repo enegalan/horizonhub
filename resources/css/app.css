@@ -6,47 +6,47 @@
     :root {
         --livewire-progress-bar-color: var(--primary-40) !important;
         --primary-40: #7746ec40;
-        --background: 0 0% 100%;
-        --foreground: 240 10% 3.9%;
-        --card: 0 0% 100%;
-        --card-foreground: 240 10% 3.9%;
-        --popover: 0 0% 100%;
-        --popover-foreground: 240 10% 3.9%;
+        --background: 60 9% 96%;
+        --foreground: 30 9% 10%;
+        --card: 40 33% 98%;
+        --card-foreground: 30 9% 10%;
+        --popover: 40 33% 98%;
+        --popover-foreground: 30 9% 10%;
         --primary: 240 5.9% 10%;
-        --primary-foreground: 0 0% 98%;
-        --secondary: 240 4.8% 95.9%;
-        --secondary-foreground: 240 5.9% 10%;
-        --muted: 240 4.8% 95.9%;
-        --muted-foreground: 240 3.8% 46.1%;
-        --accent: 240 4.8% 95.9%;
-        --accent-foreground: 240 5.9% 10%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 60 9% 94%;
+        --secondary-foreground: 30 9% 10%;
+        --muted: 60 9% 94%;
+        --muted-foreground: 30 5% 45%;
+        --accent: 60 9% 94%;
+        --accent-foreground: 30 9% 10%;
         --destructive: 0 84.2% 60.2%;
         --destructive-foreground: 0 0% 98%;
-        --border: 240 5.9% 90%;
-        --input: 240 5.9% 90%;
+        --border: 30 9% 88%;
+        --input: 30 9% 88%;
         --ring: 240 5.9% 10%;
         --radius: 0.5rem;
     }
     .dark {
-        --background: 240 10% 3.9%;
-        --foreground: 0 0% 98%;
-        --card: 240 10% 3.9%;
-        --card-foreground: 0 0% 98%;
-        --popover: 240 10% 3.9%;
-        --popover-foreground: 0 0% 98%;
+        --background: 0 0% 6%;
+        --foreground: 0 0% 96%;
+        --card: 0 0% 10%;
+        --card-foreground: 0 0% 96%;
+        --popover: 0 0% 10%;
+        --popover-foreground: 0 0% 96%;
         --primary: 0 0% 98%;
-        --primary-foreground: 240 5.9% 10%;
-        --secondary: 240 3.7% 15.9%;
-        --secondary-foreground: 0 0% 98%;
-        --muted: 240 3.7% 15.9%;
-        --muted-foreground: 240 5% 64.9%;
-        --accent: 240 3.7% 15.9%;
-        --accent-foreground: 0 0% 98%;
+        --primary-foreground: 0 0% 10%;
+        --secondary: 0 0% 14%;
+        --secondary-foreground: 0 0% 96%;
+        --muted: 0 0% 14%;
+        --muted-foreground: 0 0% 65%;
+        --accent: 0 0% 14%;
+        --accent-foreground: 0 0% 96%;
         --destructive: 0 62.8% 50.6%;
         --destructive-foreground: 0 0% 98%;
-        --border: 240 3.7% 15.9%;
-        --input: 240 3.7% 15.9%;
-        --ring: 240 4.9% 83.9%;
+        --border: 0 0% 20%;
+        --input: 0 0% 20%;
+        --ring: 240 5.9% 10%;
     }
     * {
         scrollbar-width: thin;
@@ -106,7 +106,6 @@
     button:not([no-ring]):active,
     button:not([no-ring]):target {
         @apply outline-none;
-        border: 1px solid var(--primary-40);
         box-shadow: 0 0 0 .25rem var(--primary-40);
         transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
     }
@@ -126,7 +125,7 @@
         @apply bg-accent text-accent-foreground;
     }
     .nav-sidebar-column {
-        transition: width 0.3s ease-in-out;
+        transition: width 0.2s ease;
     }
     @media (min-width: 1024px) {
         body.sidebar-collapsed .nav-sidebar-column {
@@ -164,7 +163,10 @@
         @apply badge border-transparent bg-muted text-muted-foreground;
     }
     .table-header {
-        @apply relative text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground whitespace-nowrap;
+        @apply relative text-left text-sm font-medium text-muted-foreground whitespace-nowrap;
+    }
+    .label-muted {
+        @apply text-sm font-medium text-muted-foreground;
     }
     .link {
         @apply text-primary font-medium underline-offset-4 hover:underline;

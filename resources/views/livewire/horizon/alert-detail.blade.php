@@ -6,19 +6,19 @@
 
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
         <div class="card p-4">
-            <h3 class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Sent (24h)</h3>
+            <h3 class="label-muted">Sent (24h)</h3>
             <p class="mt-1 text-2xl font-semibold text-foreground">{{ number_format(array_sum($chartData['chart24h']['sent'])) }}</p>
         </div>
         <div class="card p-4">
-            <h3 class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Failed (24h)</h3>
+            <h3 class="label-muted">Failed (24h)</h3>
             <p class="mt-1 text-2xl font-semibold text-foreground">{{ number_format(array_sum($chartData['chart24h']['failed'])) }}</p>
         </div>
         <div class="card p-4">
-            <h3 class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Total (7 days)</h3>
+            <h3 class="label-muted">Total (7 days)</h3>
             <p class="mt-1 text-2xl font-semibold text-foreground">{{ number_format(array_sum($chartData['chart7d']['sent']) + array_sum($chartData['chart7d']['failed'])) }}</p>
         </div>
         <div class="card p-4">
-            <h3 class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Total (30 days)</h3>
+            <h3 class="label-muted">Total (30 days)</h3>
             <p class="mt-1 text-2xl font-semibold text-foreground">{{ number_format(array_sum($chartData['chart30d']['sent']) + array_sum($chartData['chart30d']['failed'])) }}</p>
         </div>
     </div>
@@ -28,11 +28,11 @@
             <h3 class="text-section-title text-foreground mb-3">Alert rule</h3>
             <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                 <div>
-                    <dt class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Type</dt>
+                    <dt class="label-muted">Type</dt>
                     <dd class="mt-0.5 text-foreground font-mono text-xs">{{ $ruleConfig['rule_type'] ?? 'unknown' }}</dd>
                 </div>
                 <div>
-                    <dt class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Service scope</dt>
+                    <dt class="label-muted">Service scope</dt>
                     @php
                         $serviceId = $ruleConfig['service_id'] ?? null;
                         $serviceName = null;
@@ -55,22 +55,22 @@
                 </div>
                 @if(!empty($ruleConfig['queue']))
                     <div>
-                        <dt class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Queue</dt>
+                        <dt class="label-muted">Queue</dt>
                         <dd class="mt-0.5 text-foreground font-mono text-xs">{{ $ruleConfig['queue'] }}</dd>
                     </div>
                 @endif
                 @if(!empty($ruleConfig['job_type']))
                     <div>
-                        <dt class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Job type</dt>
+                        <dt class="label-muted">Job type</dt>
                         <dd class="mt-0.5 text-foreground font-mono text-xs">{{ $ruleConfig['job_type'] }}</dd>
                     </div>
                 @endif
                 @php
-                    $threshold = $ruleConfig['threshold'] ?? array();
+                    $threshold = $ruleConfig['threshold'] ?? [];
                 @endphp
                 @if(!empty($threshold))
                     <div>
-                        <dt class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Threshold</dt>
+                        <dt class="label-muted">Threshold</dt>
                         <dd class="mt-0.5 text-foreground text-xs">
                             @if(isset($threshold['count']))
                                 Failures: {{ (int) $threshold['count'] }}
@@ -108,7 +108,7 @@
     <div class="card mb-4">
         <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
             <div class="space-y-2">
-                <x-input-label class="text-[11px] font-medium text-muted-foreground">Service</x-input-label>
+                <x-input-label>Service</x-input-label>
                 <x-select wire:model.live="serviceFilter" class="w-44">
                     <option value="">All</option>
                     @foreach($services as $s)
@@ -117,11 +117,11 @@
                 </x-select>
             </div>
             <div class="space-y-2">
-                <x-input-label class="text-[11px] font-medium text-muted-foreground">Status</x-input-label>
+                <x-input-label>Status</x-input-label>
                 <x-select wire:model.live="statusFilter" class="w-36" :options="['' => 'All', 'sent' => 'Sent', 'failed' => 'Failed']" />
             </div>
             <div class="space-y-2">
-                <x-input-label class="text-[11px] font-medium text-muted-foreground">Per page</x-input-label>
+                <x-input-label>Per page</x-input-label>
                 <x-select wire:model.live="perPage" class="w-24" :options="[10 => '10', 20 => '20', 50 => '50']" />
             </div>
         </div>
@@ -222,32 +222,32 @@
             <h2 id="alert-log-modal-title" class="text-section-title text-foreground mb-3">Delivery log</h2>
             <dl class="space-y-2 text-sm">
                 <div>
-                    <dt class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Sent at</dt>
+                    <dt class="label-muted">Sent at</dt>
                     <dd id="alert-log-sent-at" class="text-foreground"></dd>
                 </div>
                 <div>
-                    <dt class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Service</dt>
+                    <dt class="label-muted">Service</dt>
                     <dd id="alert-log-service" class="text-foreground"></dd>
                 </div>
                 <div>
-                    <dt class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Events</dt>
+                    <dt class="label-muted">Events</dt>
                     <dd id="alert-log-job" class="text-foreground font-mono text-xs"></dd>
                 </div>
                 <div id="alert-log-events-wrapper" class="hidden">
-                    <dt class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Events in this delivery</dt>
+                    <dt class="label-muted">Events in this delivery</dt>
                     <dd id="alert-log-events-count" class="text-foreground"></dd>
                 </div>
                 <div id="alert-log-job-ids-wrapper" class="hidden">
-                    <dt class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Job IDs (grouped)</dt>
+                    <dt class="label-muted">Job IDs (grouped)</dt>
                     <dd id="alert-log-job-ids" class="text-foreground flex flex-wrap gap-1"></dd>
-                    <dd id="alert-log-job-ids-more" class="text-[11px] text-muted-foreground mt-1"></dd>
+                    <dd id="alert-log-job-ids-more" class="text-xs text-muted-foreground mt-1"></dd>
                 </div>
                 <div>
-                    <dt class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Status</dt>
+                    <dt class="label-muted">Status</dt>
                     <dd id="alert-log-status"></dd>
                 </div>
                 <div id="alert-log-failure-wrapper" class="hidden">
-                    <dt class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Failure reason</dt>
+                    <dt class="label-muted">Failure reason</dt>
                     <dd id="alert-log-failure-message" class="mt-1 rounded-md border border-border bg-muted/30 px-3 py-2 font-mono text-xs text-foreground whitespace-pre-wrap break-words"></dd>
                 </div>
             </dl>

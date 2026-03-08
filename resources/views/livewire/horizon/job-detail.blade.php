@@ -8,24 +8,24 @@
     </p>
     <div class="card space-y-4 p-4">
         <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-            <div><dt class="text-[11px] font-medium text-muted-foreground">Command</dt><dd class="mt-0.5 font-mono text-foreground">{{ $job->name ?? $job->job_uuid }}</dd></div>
-            <div><dt class="text-[11px] font-medium text-muted-foreground">Queue</dt><dd class="mt-0.5 font-mono text-foreground">{{ $job->queue }}</dd></div>
-            <div><dt class="text-[11px] font-medium text-muted-foreground">Status</dt><dd class="mt-0.5">@if($job->status === 'failed')<span class="badge-danger">{{ $job->status }}</span>@elseif($job->status === 'processed')<span class="badge-success">{{ $job->status }}</span>@else<span class="badge-muted">{{ $job->status }}</span>@endif</dd></div>
-            <div><dt class="text-[11px] font-medium text-muted-foreground">Attempts</dt><dd class="mt-0.5 text-foreground">{{ $job->attempts ?? '–' }}</dd></div>
-            <div><dt class="text-[11px] font-medium text-muted-foreground">Runtime</dt><dd class="mt-0.5 text-foreground">{{ $job->getFormattedRuntime() ?? '–' }}</dd></div>
-            <div><dt class="text-[11px] font-medium text-muted-foreground">Queued at</dt><dd class="mt-0.5 text-foreground" data-datetime="{{ $job->queued_at?->toIso8601String() ?? '' }}">{{ $job->queued_at ? '…' : '–' }}</dd></div>
-            <div><dt class="text-[11px] font-medium text-muted-foreground">Processed at</dt><dd class="mt-0.5 text-foreground" data-datetime="{{ $job->processed_at?->toIso8601String() ?? '' }}">{{ $job->processed_at ? '…' : '–' }}</dd></div>
-            <div><dt class="text-[11px] font-medium text-muted-foreground">Failed at</dt><dd class="mt-0.5 text-foreground" data-datetime="{{ $job->failed_at?->toIso8601String() ?? '' }}">{{ $job->failed_at ? '…' : '–' }}</dd></div>
+            <div><dt class="label-muted">Command</dt><dd class="mt-0.5 font-mono text-foreground">{{ $job->name ?? $job->job_uuid }}</dd></div>
+            <div><dt class="label-muted">Queue</dt><dd class="mt-0.5 font-mono text-foreground">{{ $job->queue }}</dd></div>
+            <div><dt class="label-muted">Status</dt><dd class="mt-0.5">@if($job->status === 'failed')<span class="badge-danger">{{ $job->status }}</span>@elseif($job->status === 'processed')<span class="badge-success">{{ $job->status }}</span>@else<span class="badge-muted">{{ $job->status }}</span>@endif</dd></div>
+            <div><dt class="label-muted">Attempts</dt><dd class="mt-0.5 text-foreground">{{ $job->attempts ?? '–' }}</dd></div>
+            <div><dt class="label-muted">Runtime</dt><dd class="mt-0.5 text-foreground">{{ $job->getFormattedRuntime() ?? '–' }}</dd></div>
+            <div><dt class="label-muted">Queued at</dt><dd class="mt-0.5 text-foreground" data-datetime="{{ $job->queued_at?->toIso8601String() ?? '' }}">{{ $job->queued_at ? '…' : '–' }}</dd></div>
+            <div><dt class="label-muted">Processed at</dt><dd class="mt-0.5 text-foreground" data-datetime="{{ $job->processed_at?->toIso8601String() ?? '' }}">{{ $job->processed_at ? '…' : '–' }}</dd></div>
+            <div><dt class="label-muted">Failed at</dt><dd class="mt-0.5 text-foreground" data-datetime="{{ $job->failed_at?->toIso8601String() ?? '' }}">{{ $job->failed_at ? '…' : '–' }}</dd></div>
         </dl>
         @if($exception !== null && $exception !== '')
             <div>
-                <dt class="text-[11px] font-medium text-muted-foreground mb-1">Error</dt>
+                <dt class="label-muted mb-1">Error</dt>
                 <pre class="mt-1 max-h-60 overflow-auto rounded-md border border-red-500/30 bg-red-500/5 p-3 text-xs text-foreground whitespace-pre-wrap break-words">{!! e(html_entity_decode($exception ?? '', ENT_QUOTES | ENT_HTML401, 'UTF-8')) !!}</pre>
             </div>
         @endif
         @if($job->payload)
             <div>
-                <dt class="text-[11px] font-medium text-muted-foreground mb-1">Payload</dt>
+                <dt class="label-muted mb-1">Payload</dt>
                 <pre class="mt-1 max-h-52 overflow-auto rounded-md border border-border bg-muted/30 p-3 text-xs text-foreground">{{ json_encode($job->payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
             </div>
         @endif

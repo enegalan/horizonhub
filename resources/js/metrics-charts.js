@@ -1,16 +1,18 @@
-function getChartColors(isDark) {
+import { getCssHsl } from './utils/styles';
+
+function getChartColors() {
     return {
-        axis: isDark ? '#71717a' : '#a1a1aa',
-        processed: isDark ? '#22c55e' : '#16a34a',
-        failed: isDark ? '#ef4444' : '#dc2626',
-        line: isDark ? '#a1a1aa' : '#3f3f46'
+        axis: getCssHsl('--muted-foreground'),
+        processed: getCssHsl('--primary'),
+        failed: getCssHsl('--destructive'),
+        line: getCssHsl('--muted-foreground'),
     };
 }
 
-export function initMetricsCharts(data, isDark) {
+export function initMetricsCharts(data) {
     if (typeof window.echarts === 'undefined' || !data) return;
 
-    var c = getChartColors(isDark);
+    var c = getChartColors();
 
     var processedFailedEl = document.getElementById('processed-failed-chart');
     if (processedFailedEl && data.processedVsFailed) {
@@ -96,10 +98,10 @@ var ALERT_DETAIL_CHARTS = [
     { key: 'chart30d', id: 'alert-detail-chart-30d' }
 ];
 
-export function initAlertDetailCharts(data, isDark) {
+export function initAlertDetailCharts(data) {
     if (typeof window.echarts === 'undefined' || !data) return;
 
-    var c = getChartColors(isDark);
+    var c = getChartColors();
 
     function makeBarOption(xAxis, sent, failed) {
         return {

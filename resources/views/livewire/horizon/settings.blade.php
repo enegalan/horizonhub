@@ -96,7 +96,7 @@
             <p class="text-sm text-muted-foreground mb-4">Minimum minutes between alert emails. Multiple failed jobs in that window are combined into one email. Use 0 to send on every trigger.</p>
             <form wire:submit="saveAlerts" class="flex flex-wrap items-end gap-3">
                 <div class="flex flex-col gap-1.5">
-                    <x-input-label class="text-[11px] font-medium text-muted-foreground" for="alert_email_interval_minutes">Minutes between emails</x-input-label>
+                    <x-input-label for="alert_email_interval_minutes">Minutes between emails</x-input-label>
                     <x-text-input type="number"
                         id="alert_email_interval_minutes"
                         wire:model="alert_email_interval_minutes"

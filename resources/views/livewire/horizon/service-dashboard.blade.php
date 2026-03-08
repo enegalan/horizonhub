@@ -7,19 +7,19 @@
 
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
         <div class="card p-4">
-            <h3 class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Jobs past minute</h3>
+            <h3 class="label-muted">Jobs past minute</h3>
             <p class="mt-1 text-2xl font-semibold text-foreground">{{ number_format($jobsPastMinute) }}</p>
         </div>
         <div class="card p-4">
-            <h3 class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Jobs past hour</h3>
+            <h3 class="label-muted">Jobs past hour</h3>
             <p class="mt-1 text-2xl font-semibold text-foreground">{{ number_format($jobsPastHour) }}</p>
         </div>
         <div class="card p-4">
-            <h3 class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Failed (past 7 days)</h3>
+            <h3 class="label-muted">Failed (past 7 days)</h3>
             <p class="mt-1 text-2xl font-semibold text-foreground">{{ number_format($failedPastSevenDays) }}</p>
         </div>
         <div class="card p-4">
-            <h3 class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Processed (24h)</h3>
+            <h3 class="label-muted">Processed (24h)</h3>
             <p class="mt-1 text-2xl font-semibold text-foreground">{{ number_format($processedPast24Hours) }}</p>
         </div>
     </div>

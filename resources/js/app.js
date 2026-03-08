@@ -80,8 +80,7 @@ withLivewireInitialized(() => {
     window.Livewire.hook('morph.updated', () => {
         if (document.getElementById('alert-detail-chart-data')) {
             var alertData = parseJsonFromElement('alert-detail-chart-data');
-            var isDark = document.documentElement.classList.contains('dark');
-            initAlertDetailCharts(alertData, isDark);
+            initAlertDetailCharts(alertData);
         }
         formatDateTimeElements();
     });
@@ -97,8 +96,7 @@ function hydrateMetricsChartsFromDom() {
     var data = parseJsonFromElement('metrics-chart-data');
     if (!data) return;
 
-    var isDark = document.documentElement.classList.contains('dark');
-    initMetricsCharts(data, isDark);
+    initMetricsCharts(data);
 }
 
 function hydrateAlertDetailChartsFromDom() {
@@ -107,6 +105,5 @@ function hydrateAlertDetailChartsFromDom() {
     var data = parseJsonFromElement('alert-detail-chart-data');
     if (!data) return;
 
-    var isDark = document.documentElement.classList.contains('dark');
-    initAlertDetailCharts(data, isDark);
+    initAlertDetailCharts(data);
 }
