@@ -14,4 +14,3 @@ $extraAttrs ??= '';
     @if(!empty($wireClick)) wire:click="{{ $wireClick }}" @endif
     {!! $extraAttrs !!}
 ></div>
-

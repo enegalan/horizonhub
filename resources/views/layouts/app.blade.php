@@ -10,8 +10,8 @@
         x-init="document.documentElement.classList.toggle('dark', dark)"
         x-effect="document.documentElement.classList.toggle('dark', dark)"
         @theme-changed.window="theme = $event.detail; if (theme) { localStorage.setItem('horizonhub_theme', theme); window.__horizonhub_theme = theme }"
-        @apply-theme.window="theme = (window.__horizonhub_theme || (function(){ var t = localStorage.getItem('horizonhub_theme'); if (t === 'light' || t === 'dark' || t === 'system') return t; return localStorage.getItem('horizonhub_dark') === 'true' ? 'dark' : 'light'; })()); window.__horizonhub_theme = theme"
-        @toggle-dark.window="theme = (theme === 'dark' ? 'light' : 'dark'); localStorage.setItem('horizonhub_theme', theme); localStorage.setItem('horizonhub_dark', theme === 'dark'); window.__horizonhub_theme = theme">
+        @apply-theme.window="theme = (window.__horizonhub_theme || (function(){ var t = localStorage.getItem('horizonhub_theme'); if (t === 'light' || t === 'dark' || t === 'system') return t; })()); window.__horizonhub_theme = theme"
+        @toggle-dark.window="theme = theme === 'dark' ? 'light' : 'dark'; localStorage.setItem('horizonhub_theme', theme); window.__horizonhub_theme = theme">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -19,8 +19,7 @@
         <script>
             (function () {
                 var t = localStorage.getItem('horizonhub_theme');
-                if (!t) t = localStorage.getItem('horizonhub_dark') === 'true' ? 'dark' : 'light';
-                if (t !== 'light' && t !== 'dark' && t !== 'system') t = 'light';
+                if (!t || (t !== 'light' && t !== 'dark' && t !== 'system')) t = 'light';
                 window.__horizonhub_theme = t;
                 var isDark = t === 'system' ? window.matchMedia('(prefers-color-scheme: dark)').matches : (t === 'dark');
                 document.documentElement.classList.toggle('dark', isDark);
@@ -63,8 +62,7 @@
         <script>
             (() => {
                 var t = window.__horizonhub_theme || localStorage.getItem('horizonhub_theme');
-                if (!t) t = localStorage.getItem('horizonhub_dark') === 'true' ? 'dark' : 'light';
-                if (t !== 'light' && t !== 'dark' && t !== 'system') t = 'light';
+                if (!t || (t !== 'light' && t !== 'dark' && t !== 'system')) t = 'light';
                 window.__horizonhub_theme = t;
                 var isDark = t === 'system' ? window.matchMedia('(prefers-color-scheme: dark)').matches : (t === 'dark');
                 document.documentElement.classList.toggle('dark', isDark);

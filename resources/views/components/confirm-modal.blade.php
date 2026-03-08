@@ -18,7 +18,11 @@ $sizes = [
     'lg' => 'max-w-lg',
 ];
 
-$sizeClass = isset($sizes[$size]) ? $sizes[$size] : $sizes['md'];
+$defaultSize = 'md';
+
+$size ??= $defaultSize;
+
+$sizeClass = $sizes[$size] ?? $sizes[$defaultSize];
 
 $primaryVariant = $variant === 'danger' ? 'destructive' : ($variant === 'warning' ? 'secondary' : 'primary');
 
@@ -89,4 +93,3 @@ $dialogTitle = $title;
         </div>
     </div>
 </div>
-

@@ -14,7 +14,8 @@
 @endphp
 
 @php
-    $mergedClass = trim($variantClasses . ' ' . $attributes->get('class', ''));
+    $classes = $attributes->get('class', '');
+    $mergedClass = trim("$variantClasses $classes");
     $disabled = $attributes->get('disabled', false);
     $attributes = $attributes->except('disabled')->merge(['type' => $type, 'class' => $mergedClass]);
     if ($disabled) {
@@ -24,4 +25,3 @@
 <button {{ $attributes }}>
     {{ $slot }}
 </button>
-

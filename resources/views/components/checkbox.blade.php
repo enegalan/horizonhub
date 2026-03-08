@@ -31,4 +31,3 @@
         @endif
     </label>
 </div>
-

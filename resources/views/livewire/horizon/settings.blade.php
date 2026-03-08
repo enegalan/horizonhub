@@ -57,9 +57,9 @@
             <p class="text-sm text-muted-foreground mb-4">Choose how Horizon Hub looks. You can pick a theme or use your system setting.</p>
             <div class="flex flex-wrap gap-2"
                 x-data="{ theme: (window.__horizonhub_theme || 'light') }"
-                x-init="theme = (window.__horizonhub_theme || (function(){ var t = localStorage.getItem('horizonhub_theme'); if (!t) t = localStorage.getItem('horizonhub_dark') === 'true' ? 'dark' : 'light'; return (t === 'light' || t === 'dark' || t === 'system') ? t : 'light'; })())"
+                x-init="theme = (window.__horizonhub_theme || (function(){ var t = localStorage.getItem('horizonhub_theme'); return (t === 'light' || t === 'dark' || t === 'system') ? t : 'light'; })())"
                 @theme-changed.window="theme = $event.detail"
-                @apply-theme.window="theme = (window.__horizonhub_theme || (function(){ var t = localStorage.getItem('horizonhub_theme'); if (!t) t = localStorage.getItem('horizonhub_dark') === 'true' ? 'dark' : 'light'; return (t === 'light' || t === 'dark' || t === 'system') ? t : 'light'; })())">
+                @apply-theme.window="theme = (window.__horizonhub_theme || (function(){ var t = localStorage.getItem('horizonhub_theme'); return (t === 'light' || t === 'dark' || t === 'system') ? t : 'light'; })())">
                 <button type="button"
                     @click="theme = 'light'; localStorage.setItem('horizonhub_theme', 'light'); $dispatch('theme-changed', 'light'); $dispatch('apply-theme')"
                     :class="theme === 'light' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'"
