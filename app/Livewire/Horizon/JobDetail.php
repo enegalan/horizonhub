@@ -4,7 +4,7 @@ namespace App\Livewire\Horizon;
 
 use App\Models\HorizonFailedJob;
 use App\Models\HorizonJob;
-use App\Services\AgentProxyService;
+use App\Services\HorizonApiProxyService;
 use Livewire\Component;
 use Illuminate\Contracts\View\View;
 
@@ -39,8 +39,20 @@ class JobDetail extends Component {
      * @return HorizonJob|HorizonFailedJob|null
      */
     public function getJobProperty(): HorizonJob|HorizonFailedJob|null {
-        return HorizonFailedJob::with('service')->find($this->jobId)
-            ?? HorizonJob::with('service')->find($this->jobId);
+        $failed = HorizonFailedJob::with('service')->find($this->jobId);
+        if ($failed) {
+            $matchingJob = null;
+            if ($failed->service_id && $failed->job_uuid) {
+                $matchingJob = HorizonJob::with('service')
+                    ->where('service_id', $failed->service_id)
+                    ->where('job_uuid', $failed->job_uuid)
+                    ->first();
+            }
+
+            return $matchingJob ?? $failed;
+        }
+
+        return HorizonJob::with('service')->find($this->jobId);
     }
 
     /**
@@ -89,52 +101,19 @@ class JobDetail extends Component {
     /**
      * Retry a job.
      *
-     * @param AgentProxyService $agent
+     * @param HorizonApiProxyService $horizonApi
      * @return void
      */
-    public function retry(AgentProxyService $agent): void {
+    public function retry(HorizonApiProxyService $horizonApi): void {
         $job = $this->getJobProperty();
         if (! $job || ! $job->service) {
             return;
         }
-        $result = $agent->retryJob($job->service, $job->job_uuid);
+        $result = $horizonApi->retryJob($job->service, $job->job_uuid);
         if ($result['success']) {
             $this->dispatch('job-retried');
         } else {
             $msg = $result['message'] ?? 'Retry failed';
-            $this->dispatch('job-action-failed', message: $msg);
-        }
-    }
-
-    /**
-     * Delete a job.
-     *
-     * @param AgentProxyService $agent
-     * @return void
-     */
-    public function delete(AgentProxyService $agent): void {
-        $job = $this->getJobProperty();
-        if (! $job || ! $job->service) {
-            return;
-        }
-        $this->showDeleteModal = false;
-        $result = $agent->deleteJob($job->service, $job->job_uuid);
-        if ($result['success']) {
-            if ($job instanceof HorizonJob) {
-                HorizonFailedJob::where('service_id', $job->service_id)
-                    ->where('job_uuid', $job->job_uuid)
-                    ->delete();
-            }
-            if ($job instanceof HorizonFailedJob) {
-                HorizonJob::where('service_id', $job->service_id)
-                    ->where('job_uuid', $job->job_uuid)
-                    ->delete();
-            }
-            $job->delete();
-            $this->dispatch('toast', type: 'success', message: 'Job deleted.');
-            $this->redirect(route('horizon.index'), navigate: true);
-        } else {
-            $msg = $result['message'] ?? 'Delete failed';
             $this->dispatch('job-action-failed', message: $msg);
         }
     }

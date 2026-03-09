@@ -11,6 +11,7 @@ class Service extends Model {
         'name',
         'api_key',
         'base_url',
+        'public_url',
         'status',
         'last_seen_at',
     ];

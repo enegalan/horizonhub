@@ -3,6 +3,7 @@
 namespace App\Livewire\Horizon;
 
 use App\Models\Service;
+use App\Services\HorizonApiProxyService;
 use Livewire\Component;
 use Illuminate\Contracts\View\View;
 
@@ -22,11 +23,11 @@ class ServiceList extends Component {
     public string $baseUrl = '';
 
     /**
-     * The new API key for the service.
+     * The public URL of the service.
      *
-     * @var string|null
+     * @var string
      */
-    public ?string $newApiKey = null;
+    public string $publicUrl = '';
 
     /**
      * The ID of the service being edited.
@@ -48,6 +49,13 @@ class ServiceList extends Component {
      * @var string
      */
     public string $editBaseUrl = '';
+
+    /**
+     * The public URL of the service being edited.
+     *
+     * @var string
+     */
+    public string $editPublicUrl = '';
 
     /**
      * The ID of the service being confirmed for deletion.
@@ -78,6 +86,7 @@ class ServiceList extends Component {
     protected $rules = [
         'name' => 'required|string|max:255|unique:services,name',
         'baseUrl' => 'required|url',
+        'publicUrl' => 'nullable|url',
     ];
 
     /**
@@ -104,10 +113,10 @@ class ServiceList extends Component {
             'name' => $this->name,
             'api_key' => $apiKey,
             'base_url' => \rtrim($this->baseUrl, '/'),
+            'public_url' => $this->publicUrl !== '' ? \rtrim($this->publicUrl, '/') : null,
             'status' => 'online',
         ]);
-        $this->newApiKey = $apiKey;
-        $this->reset('name', 'baseUrl');
+        $this->reset('name', 'baseUrl', 'publicUrl');
         $this->dispatch('service-created');
     }
 
@@ -125,6 +134,7 @@ class ServiceList extends Component {
         $this->editingServiceId = $serviceId;
         $this->editName = $service->name;
         $this->editBaseUrl = $service->base_url ?? '';
+        $this->editPublicUrl = $service->public_url ?? '';
     }
 
     /**
@@ -133,7 +143,7 @@ class ServiceList extends Component {
      * @return void
      */
     public function cancelEdit(): void {
-        $this->reset('editingServiceId', 'editName', 'editBaseUrl');
+        $this->reset('editingServiceId', 'editName', 'editBaseUrl', 'editPublicUrl');
     }
 
     /**
@@ -145,6 +155,7 @@ class ServiceList extends Component {
         $this->validate([
             'editName' => 'required|string|max:255|unique:services,name,' . (int) $this->editingServiceId,
             'editBaseUrl' => 'required|url',
+            'editPublicUrl' => 'nullable|url',
         ]);
         $service = Service::find($this->editingServiceId);
         if (! $service) {
@@ -152,7 +163,8 @@ class ServiceList extends Component {
         }
         $service->update([
             'name' => $this->editName,
-            'base_url' => rtrim($this->editBaseUrl, '/'),
+            'base_url' => \rtrim($this->editBaseUrl, '/'),
+            'public_url' => $this->editPublicUrl !== '' ? \rtrim($this->editPublicUrl, '/') : null,
         ]);
         $this->cancelEdit();
         $this->dispatch('toast', type: 'success', message: 'Service updated.');
@@ -180,23 +192,39 @@ class ServiceList extends Component {
     }
 
     /**
-     * Regenerate the API key for the given service.
+     * Test connectivity with the Horizon HTTP API for the given service.
      *
      * @param int $serviceId
      * @return void
      */
-    public function regenerateApiKey(int $serviceId): void {
+    public function testConnection(HorizonApiProxyService $horizonApi, int $serviceId): void {
         $service = Service::find($serviceId);
         if (! $service) {
             return;
         }
 
-        $apiKey = $this->generateApiKey();
-        $service->update(['api_key' => $apiKey]);
+        if (! $service->base_url) {
+            $this->dispatch('toast', type: 'error', message: 'Service has no base URL configured.');
+            return;
+        }
 
-        $this->newApiKey = $apiKey;
+        $result = $horizonApi->ping($service);
 
-        $this->dispatch('toast', type: 'success', message: 'API key regenerated.');
+        if ($result['success'] ?? false) {
+            $service->update([
+                'status' => 'online',
+                'last_seen_at' => now(),
+            ]);
+            $this->dispatch('toast', type: 'success', message: 'Service Horizon API is reachable.');
+            $this->dispatch('horizonhub-refresh');
+            return;
+        }
+
+        $service->update(['status' => 'offline']);
+
+        $message = $result['message'] ?? 'Connection test failed.';
+        $this->dispatch('toast', type: 'error', message: $message);
+        $this->dispatch('horizonhub-refresh');
     }
 
     /**

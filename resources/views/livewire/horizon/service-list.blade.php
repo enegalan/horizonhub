@@ -15,6 +15,17 @@
                         <x-input-label>Base URL</x-input-label>
                         <x-text-input type="url" wire:model="editBaseUrl" class="w-full" />
                         @error('editBaseUrl') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                        <p class="text-xs text-muted-foreground">
+                            Internal URL used to obtain events from the service.
+                        </p>
+                    </div>
+                    <div class="space-y-2">
+                        <x-input-label>Public URL (optional)</x-input-label>
+                        <x-text-input type="url" wire:model="editPublicUrl" class="w-full" />
+                        @error('editPublicUrl') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                        <p class="text-xs text-muted-foreground">
+                            URL reachable from your browser.
+                        </p>
                     </div>
                     <div class="flex gap-2 pt-1">
                         <x-button
@@ -38,16 +49,6 @@
         @endteleport
     @endif
 
-    @if($newApiKey)
-        <div class="card mb-4 border-amber-500/30 bg-amber-500/5">
-            <div class="px-4 py-3">
-                <p class="text-xs font-medium text-amber-800 dark:text-amber-200">New service API key — copy now, it won't be shown again.</p>
-                <code class="mt-2 block rounded-md border border-border bg-muted/50 px-3 py-2 font-mono text-xs break-all text-foreground">{{ $newApiKey }}</code>
-                <x-button variant="ghost" type="button" wire:click="$set('newApiKey', null)" class="mt-2 h-8 text-xs">Dismiss</x-button>
-            </div>
-        </div>
-    @endif
-
     <div class="card mb-4">
         <div class="px-4 py-3">
             <h2 class="text-section-title text-foreground mb-3">Register service</h2>
@@ -59,8 +60,19 @@
                 </div>
                 <div class="space-y-2">
                     <x-input-label>Base URL</x-input-label>
-                    <x-text-input type="url" wire:model="baseUrl" placeholder="https://my-service.example.com" class="w-full" />
+                    <x-text-input type="url" wire:model="baseUrl" placeholder="http://my-service" class="w-full" />
                     @error('baseUrl') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                    <p class="text-xs text-muted-foreground">
+                        Internal URL used to obtain events from the service.
+                    </p>
+                </div>
+                <div class="space-y-2">
+                    <x-input-label>Public URL (optional)</x-input-label>
+                    <x-text-input type="url" wire:model="publicUrl" placeholder="http://my-service:8080" class="w-full" />
+                    @error('publicUrl') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                    <p class="text-xs text-muted-foreground">
+                        URL reachable from your browser.
+                    </p>
                 </div>
                 <x-button
                     type="submit"
@@ -112,20 +124,35 @@
                             <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="last_seen">{{ $service->last_seen_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
                             <td class="px-4 py-2.5" data-column-id="actions">
                                 <div class="flex items-center gap-2">
+                                    @php
+                                        $dashboardBase = $service->public_url ?: $service->base_url;
+                                    @endphp
+                                    @if($dashboardBase)
+                                        <x-button
+                                            variant="ghost"
+                                            as="a"
+                                            onclick="window.open('{{ rtrim($dashboardBase, '/') . \config('horizonhub.horizon.dashboard_path') }}', '_blank')"
+                                            class="h-8 min-h-8 p-2"
+                                            aria-label="Open Horizon dashboard"
+                                            title="Open Horizon dashboard"
+                                        >
+                                            <x-heroicon-o-window class="size-4" />
+                                        </x-button>
+                                    @endif
                                     <x-button
                                         variant="ghost"
                                         type="button"
-                                        wire:click="regenerateApiKey({{ $service->id }})"
+                                        wire:click="testConnection({{ $service->id }})"
                                         class="h-8 min-h-8 p-2"
                                         wire:loading.attr="disabled"
-                                        wire:target="regenerateApiKey"
-                                        aria-label="Regenerate API key"
-                                        title="Regenerate API key"
+                                        wire:target="testConnection"
+                                        aria-label="Test connection"
+                                        title="Test connection"
                                     >
-                                        <span wire:loading.remove wire:target="regenerateApiKey">
-                                            <x-heroicon-o-key class="size-4" />
+                                        <span wire:loading.remove wire:target="testConnection">
+                                            <x-heroicon-o-signal class="size-4" />
                                         </span>
-                                        <span wire:loading wire:target="regenerateApiKey" class="inline-flex" aria-hidden="true">
+                                        <span wire:loading wire:target="testConnection" class="inline-flex" aria-hidden="true">
                                             <x-loader />
                                         </span>
                                     </x-button>

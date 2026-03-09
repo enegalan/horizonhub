@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Api\V1\JobActionController;
-use App\Http\Controllers\Api\V1\QueueActionController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/horizon');
@@ -26,7 +25,4 @@ Route::prefix('horizon')->name('horizon.')->group(function (): void {
 
 Route::prefix('api/v1')->middleware(['throttle:60,1'])->group(function (): void {
     Route::post('jobs/{id}/retry', [JobActionController::class, 'retry'])->name('api.jobs.retry');
-    Route::delete('jobs/{id}/delete', [JobActionController::class, 'delete'])->name('api.jobs.delete');
-    Route::post('queues/{name}/pause', [QueueActionController::class, 'pause'])->name('api.queues.pause');
-    Route::post('queues/{name}/resume', [QueueActionController::class, 'resume'])->name('api.queues.resume');
 });

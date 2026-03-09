@@ -132,6 +132,8 @@ services:
       dockerfile: examples/demo-app/Dockerfile
     container_name: horizon-demo-app-1
     restart: unless-stopped
+    ports:
+      - "8081:80"
     environment:
       APP_NAME: "Demo Orders"
       APP_ENV: local
@@ -155,6 +157,8 @@ services:
       dockerfile: examples/demo-app/Dockerfile
     container_name: horizon-demo-app-2
     restart: unless-stopped
+    ports:
+      - "8082:80"
     environment:
       APP_NAME: "Demo Notifications"
       APP_ENV: local
@@ -178,6 +182,8 @@ services:
       dockerfile: examples/demo-app/Dockerfile
     container_name: horizon-demo-app-3
     restart: unless-stopped
+    ports:
+      - "8083:80"
     environment:
       APP_NAME: "Demo Reports"
       APP_ENV: local

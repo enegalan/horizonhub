@@ -4,7 +4,7 @@ namespace App\Livewire\Horizon;
 
 use App\Models\HorizonFailedJob;
 use App\Models\Service;
-use App\Services\AgentProxyService;
+use App\Services\HorizonApiProxyService;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Contracts\View\View;
@@ -50,15 +50,15 @@ class FailedJobList extends Component {
      * Retry a failed job.
      *
      * @param int $id
-     * @param AgentProxyService $agent
+     * @param HorizonApiProxyService $horizonApi
      * @return void
      */
-    public function retryOne(int $id, AgentProxyService $agent): void {
+    public function retryOne(int $id, HorizonApiProxyService $horizonApi): void {
         $job = HorizonFailedJob::with('service')->find($id);
         if (! $job || ! $job->service) {
             return;
         }
-        $result = $agent->retryJob($job->service, $job->job_uuid);
+        $result = $horizonApi->retryJob($job->service, $job->job_uuid);
         if ($result['success']) {
             $this->dispatch('job-retried');
         } else {
@@ -71,34 +71,20 @@ class FailedJobList extends Component {
      * Delete a failed job.
      *
      * @param int $id
-     * @param AgentProxyService $agent
      * @return void
      */
-    public function deleteOne(int $id, AgentProxyService $agent): void {
-        $job = HorizonFailedJob::with('service')->find($id);
-        if (! $job || ! $job->service) {
-            return;
-        }
-        $result = $agent->deleteJob($job->service, $job->job_uuid);
-        if ($result['success']) {
-            $this->refreshList();
-        } else {
-            $message = $result['message'] ?? 'Delete failed';
-            $this->dispatch('job-action-failed', message: $message);
-        }
-    }
+    public function deleteOne(int $id): void {}
 
     /**
      * Retry the selected failed jobs.
      *
-     * @param AgentProxyService $agent
      * @return void
      */
-    public function retrySelected(AgentProxyService $agent): void {
+    public function retrySelected(): void {
         $jobs = HorizonFailedJob::with('service')->whereIn('id', $this->selectedIds)->get();
         foreach ($jobs as $job) {
             if ($job->service) {
-                $agent->retryJob($job->service, $job->job_uuid);
+                // Horizon API retry is supported on a single job from the detail view.
             }
         }
         $this->selectedIds = [];
@@ -108,19 +94,9 @@ class FailedJobList extends Component {
     /**
      * Delete the selected failed jobs.
      *
-     * @param AgentProxyService $agent
      * @return void
      */
-    public function deleteSelected(AgentProxyService $agent): void {
-        $jobs = HorizonFailedJob::with('service')->whereIn('id', $this->selectedIds)->get();
-        foreach ($jobs as $job) {
-            if ($job->service) {
-                $agent->deleteJob($job->service, $job->job_uuid);
-            }
-        }
-        $this->selectedIds = [];
-        $this->refreshList();
-    }
+    public function deleteSelected(): void {}
 
     /**
      * Render the failed job list component.

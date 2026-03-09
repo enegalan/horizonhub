@@ -13,16 +13,24 @@
             @if($queueCount > 0)
                 <p class="text-xs text-muted-foreground">{{ $queueCount }} queue(s), {{ number_format($totalJobs) }} total jobs</p>
             @endif
+            <div class="ml-auto flex items-center gap-2">
+                <div
+                    wire:loading.flex
+                    wire:target="serviceFilter"
+                    class="items-center gap-1 text-xs text-muted-foreground"
+                >
+                    <x-loader class="size-3" />
+                    <span>Loading…</span>
+                </div>
+            </div>
         </div>
         <div class="overflow-x-auto">
-            <table class="min-w-full" data-resizable-table="horizon-queue-list" data-column-ids="service,queue,status,job_count,actions" data-service-filter="{{ $serviceFilter }}">
+            <table class="min-w-full" data-resizable-table="horizon-queue-list" data-column-ids="service,queue,job_count" data-service-filter="{{ $serviceFilter }}">
                 <thead wire:ignore>
                     <tr class="border-b border-border bg-muted/50">
                         <th class="table-header px-4 py-2.5 min-w-[120px]" data-column-id="service">Service</th>
                         <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="queue">Queue</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="status">Status</th>
                         <th class="table-header px-4 py-2.5" data-column-id="job_count">Job count</th>
-                        <th class="table-header px-4 py-2.5 w-40" data-column-id="actions">Actions</th>
                     </tr>
                 </thead>
                 @include('livewire.horizon.partials.queue-list-tbody', ['queues' => $queues, 'queueStates' => $queueStates])

@@ -11,18 +11,29 @@
                 </x-select>
             </div>
             <div class="space-y-2">
-                <x-input-label>Queue</x-input-label>
-                <x-text-input type="text" wire:model.live.debounce.300ms="queueFilter" placeholder="Filter" class="w-36" />
-            </div>
-            <div class="space-y-2">
                 <x-input-label>Status</x-input-label>
                 <x-select wire:model.live="statusFilter" class="w-32" :options="['' => 'All', 'processed' => 'Processed', 'failed' => 'Failed', 'processing' => 'Processing']" />
             </div>
             <div class="space-y-2">
-                <x-input-label>Job type</x-input-label>
-                <x-text-input type="text" wire:model.live.debounce.300ms="jobTypeFilter" placeholder="Class" class="w-44" />
+                <x-input-label>Search</x-input-label>
+                <x-text-input
+                    type="text"
+                    wire:model.live.debounce.300ms="search"
+                    placeholder="Queue, job or UUID"
+                    class="w-56"
+                />
             </div>
-            <x-button type="button" variant="outline" wire:click="openCleanModal" class="h-9 text-sm ml-auto">Clean jobs</x-button>
+            <div class="ml-auto flex items-center gap-2">
+                <div
+                    wire:loading.flex
+                    wire:target="serviceFilter,statusFilter,search"
+                    class="items-center gap-1 text-xs text-muted-foreground"
+                >
+                    <x-loader class="size-3" />
+                    <span>Loading…</span>
+                </div>
+                <x-button type="button" variant="outline" wire:click="openCleanModal" class="h-9 text-sm">Clean jobs</x-button>
+            </div>
         </div>
         <div class="overflow-x-auto">
             <table class="min-w-full" data-resizable-table="horizon-job-list" data-column-ids="service,queue,job,status,attempts,queued_at,processed,failed_at,runtime,actions">

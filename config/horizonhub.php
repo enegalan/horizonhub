@@ -3,20 +3,37 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Agent Configuration
+    | Horizon HTTP API Configuration
     |--------------------------------------------------------------------------
     |
-    | Paths the Hub uses to build action URLs (retry, delete, pause, resume).
-    | They must match the routes published by the horizonhub/agent package on
-    | each Laravel service. When upgrading the Agent, verify compatibility.
-    | See the Agent package README or examples/README.md for route details.
+    | Configuration for talking directly to each service's existing Horizon
+    | HTTP API. The Hub will proxy retry actions through these endpoints.
+    |
+    | - api_base_path: the base path where Horizon's API is exposed on the
+    |   service (for example, "/horizon/api").
+    | - retry_path: the relative path for retrying a failed job; the "{id}"
+    |   placeholder will be replaced with the job UUID.
+    | - ping_path: the relative path used to test connectivity with the
+    |   Horizon API for a given service.
+    | - workload_path: the relative path used to read queue workload from
+    |   the Horizon API.
+    | - failed_jobs_path: the relative path to list failed jobs.
+    | - completed_jobs_path: the relative path to list completed jobs.
+    | - pending_jobs_path: the relative path to list pending/processing jobs.
+    | - headers: optional headers to send to the Horizon API on each request
+    |   (for example, authentication headers).
     |
     */
-    'agent' => [
-        'retry_path' => '/horizonhub/jobs/{id}/retry',
-        'delete_path' => '/horizonhub/jobs/{id}/delete',
-        'pause_path' => '/horizonhub/queues/{name}/pause',
-        'resume_path' => '/horizonhub/queues/{name}/resume',
+    'horizon' => [
+        'api_base_path' => \env('HORIZON_HUB_HORIZON_API_BASE_PATH', '/horizon/api'),
+        'dashboard_path' => \env('HORIZON_HUB_HORIZON_DASHBOARD_PATH', '/horizon'),
+        'retry_path' => '/jobs/retry/{id}',
+        'ping_path' => '/stats',
+        'workload_path' => '/workload',
+        'failed_jobs_path' => '/jobs/failed',
+        'completed_jobs_path' => '/jobs/completed',
+        'pending_jobs_path' => '/jobs/pending',
+        'headers' => [],
     ],
 
     /*
