@@ -3,6 +3,7 @@
 namespace App\Livewire\Horizon;
 
 use App\Models\Service;
+use App\Services\HorizonApiProxyService;
 use Livewire\Component;
 use Illuminate\Contracts\View\View;
 
@@ -20,13 +21,6 @@ class ServiceList extends Component {
      * @var string
      */
     public string $baseUrl = '';
-
-    /**
-     * The new API key for the service.
-     *
-     * @var string|null
-     */
-    public ?string $newApiKey = null;
 
     /**
      * The ID of the service being edited.
@@ -106,7 +100,6 @@ class ServiceList extends Component {
             'base_url' => \rtrim($this->baseUrl, '/'),
             'status' => 'online',
         ]);
-        $this->newApiKey = $apiKey;
         $this->reset('name', 'baseUrl');
         $this->dispatch('service-created');
     }
@@ -180,23 +173,39 @@ class ServiceList extends Component {
     }
 
     /**
-     * Regenerate the API key for the given service.
+     * Test connectivity with the Horizon HTTP API for the given service.
      *
      * @param int $serviceId
      * @return void
      */
-    public function regenerateApiKey(int $serviceId): void {
+    public function testConnection(HorizonApiProxyService $horizonApi, int $serviceId): void {
         $service = Service::find($serviceId);
         if (! $service) {
             return;
         }
 
-        $apiKey = $this->generateApiKey();
-        $service->update(['api_key' => $apiKey]);
+        if (! $service->base_url) {
+            $this->dispatch('toast', type: 'error', message: 'Service has no base URL configured.');
+            return;
+        }
 
-        $this->newApiKey = $apiKey;
+        $result = $horizonApi->ping($service);
 
-        $this->dispatch('toast', type: 'success', message: 'API key regenerated.');
+        if ($result['success'] ?? false) {
+            $service->update([
+                'status' => 'online',
+                'last_seen_at' => now(),
+            ]);
+            $this->dispatch('toast', type: 'success', message: 'Service Horizon API is reachable.');
+            $this->dispatch('horizonhub-refresh');
+            return;
+        }
+
+        $service->update(['status' => 'offline']);
+
+        $message = $result['message'] ?? 'Connection test failed.';
+        $this->dispatch('toast', type: 'error', message: $message);
+        $this->dispatch('horizonhub-refresh');
     }
 
     /**

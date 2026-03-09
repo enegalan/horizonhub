@@ -5,6 +5,7 @@ namespace App\Livewire\Horizon;
 use App\Models\HorizonFailedJob;
 use App\Models\HorizonJob;
 use App\Models\Service;
+use App\Services\HorizonSyncService;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
@@ -353,9 +354,11 @@ class Metrics extends Component {
     /**
      * Render the metrics component.
      *
+     * @param HorizonSyncService $sync
      * @return \Illuminate\Contracts\View\View
      */
-    public function render(): View {
+    public function render(HorizonSyncService $sync): View {
+        $sync->syncRecentJobs(null);
         $jobsPastMinute = $this->getJobsPastMinute();
         $jobsPastHour = $this->getJobsPastHour();
         $failedPastSevenDays = $this->getFailedPastSevenDays();

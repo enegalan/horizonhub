@@ -5,6 +5,7 @@ namespace App\Livewire\Horizon;
 use App\Models\HorizonFailedJob;
 use App\Models\HorizonJob;
 use App\Models\Service;
+use App\Services\HorizonSyncService;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Contracts\View\View;
@@ -199,9 +200,13 @@ class JobList extends Component {
     /**
      * Render the job list component.
      *
+     * @param HorizonSyncService $sync
      * @return View
      */
-    public function render(): View {
+    public function render(HorizonSyncService $sync): View {
+        $serviceId = $this->serviceFilter !== '' ? (int) $this->serviceFilter : null;
+        $sync->syncRecentJobs($serviceId);
+
         $query = HorizonJob::with('service')
             ->orderByDesc('created_at');
 

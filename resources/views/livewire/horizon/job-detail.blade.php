@@ -29,39 +29,19 @@
                 <pre class="mt-1 max-h-52 overflow-auto rounded-md border border-border bg-muted/30 p-3 text-xs text-foreground">{{ json_encode($job->payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
             </div>
         @endif
-        @if($job->service && $job->service->base_url)
+        @if($job->service && $job->service->base_url && $job->status === 'failed')
             <div class="flex gap-2 pt-1">
-                @if($job->status === 'failed')
-                    <x-button type="button" wire:click="retry" wire:loading.attr="disabled" class="h-8 min-h-8 p-2 relative" aria-label="Retry" title="Retry">
-                        <span wire:loading.remove wire:target="retry">
-                            <x-heroicon-o-arrow-path class="size-4" />
-                        </span>
-                        <span wire:loading wire:target="retry" class="inline-flex" aria-hidden="true">
-                            <x-loader />
-                        </span>
-                    </x-button>
-                @endif
-                @if($job->status !== 'processing')
-                    <x-button variant="destructive" type="button" wire:click="confirmDelete" class="h-8 min-h-8 p-2" aria-label="Delete" title="Delete">
-                        <x-heroicon-o-trash class="size-4" />
-                    </x-button>
-                @endif
+                <x-button type="button" wire:click="retry" wire:loading.attr="disabled" class="h-8 min-h-8 p-2 relative" aria-label="Retry" title="Retry">
+                    <span wire:loading.remove wire:target="retry">
+                        <x-heroicon-o-arrow-path class="size-4" />
+                    </span>
+                    <span wire:loading wire:target="retry" class="inline-flex" aria-hidden="true">
+                        <x-loader />
+                    </span>
+                </x-button>
             </div>
         @endif
     </div>
-    @if($showDeleteModal)
-        <x-confirm-modal
-            title="Delete job"
-            :message="'Are you sure you want to permanently delete this job? This cannot be undone.'"
-            variant="danger"
-            size="sm"
-            confirmText="Delete"
-            cancelText="Cancel"
-            confirmAction="delete"
-            cancelAction="cancelDelete"
-            backdropAction="cancelDelete"
-        />
-    @endif
 </div>
 
 @script

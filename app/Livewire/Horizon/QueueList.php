@@ -5,7 +5,6 @@ namespace App\Livewire\Horizon;
 use App\Models\HorizonJob;
 use App\Models\HorizonQueueState;
 use App\Models\Service;
-use App\Services\AgentProxyService;
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Contracts\View\View;
@@ -17,52 +16,6 @@ class QueueList extends Component {
      * @var string
      */
     public string $serviceFilter = '';
-
-    /**
-     * Pause a queue.
-     *
-     * @param AgentProxyService $agent
-     * @param int $serviceId
-     * @param string $queueName
-     * @return void
-     */
-    public function pauseQueue(AgentProxyService $agent, int $serviceId, string $queueName): void {
-        $service = Service::find($serviceId);
-        if (! $service) {
-            return;
-        }
-        $result = $agent->pauseQueue($service, $queueName);
-        if ($result['success'] ?? false) {
-            HorizonQueueState::updateOrCreate(
-                ['service_id' => $serviceId, 'queue' => $queueName],
-                ['is_paused' => true]
-            );
-        }
-        $this->dispatch('queue-updated');
-    }
-
-    /**
-     * Resume a queue.
-     *
-     * @param AgentProxyService $agent
-     * @param int $serviceId
-     * @param string $queueName
-     * @return void
-     */
-    public function resumeQueue(AgentProxyService $agent, int $serviceId, string $queueName): void {
-        $service = Service::find($serviceId);
-        if (! $service) {
-            return;
-        }
-        $result = $agent->resumeQueue($service, $queueName);
-        if ($result['success'] ?? false) {
-            HorizonQueueState::updateOrCreate(
-                ['service_id' => $serviceId, 'queue' => $queueName],
-                ['is_paused' => false]
-            );
-        }
-        $this->dispatch('queue-updated');
-    }
 
     /**
      * Render the queue list component.

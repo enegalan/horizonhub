@@ -22,7 +22,17 @@
                 <x-input-label>Job type</x-input-label>
                 <x-text-input type="text" wire:model.live.debounce.300ms="jobTypeFilter" placeholder="Class" class="w-44" />
             </div>
-            <x-button type="button" variant="outline" wire:click="openCleanModal" class="h-9 text-sm ml-auto">Clean jobs</x-button>
+            <div class="ml-auto flex items-center gap-2">
+                <div
+                    wire:loading.flex
+                    wire:target="serviceFilter,queueFilter,statusFilter,jobTypeFilter"
+                    class="items-center gap-1 text-xs text-muted-foreground"
+                >
+                    <x-loader class="size-3" />
+                    <span>Loading…</span>
+                </div>
+                <x-button type="button" variant="outline" wire:click="openCleanModal" class="h-9 text-sm">Clean jobs</x-button>
+            </div>
         </div>
         <div class="overflow-x-auto">
             <table class="min-w-full" data-resizable-table="horizon-job-list" data-column-ids="service,queue,job,status,attempts,queued_at,processed,failed_at,runtime,actions">

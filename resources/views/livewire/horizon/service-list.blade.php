@@ -38,16 +38,6 @@
         @endteleport
     @endif
 
-    @if($newApiKey)
-        <div class="card mb-4 border-amber-500/30 bg-amber-500/5">
-            <div class="px-4 py-3">
-                <p class="text-xs font-medium text-amber-800 dark:text-amber-200">New service API key — copy now, it won't be shown again.</p>
-                <code class="mt-2 block rounded-md border border-border bg-muted/50 px-3 py-2 font-mono text-xs break-all text-foreground">{{ $newApiKey }}</code>
-                <x-button variant="ghost" type="button" wire:click="$set('newApiKey', null)" class="mt-2 h-8 text-xs">Dismiss</x-button>
-            </div>
-        </div>
-    @endif
-
     <div class="card mb-4">
         <div class="px-4 py-3">
             <h2 class="text-section-title text-foreground mb-3">Register service</h2>
@@ -115,17 +105,17 @@
                                     <x-button
                                         variant="ghost"
                                         type="button"
-                                        wire:click="regenerateApiKey({{ $service->id }})"
+                                        wire:click="testConnection({{ $service->id }})"
                                         class="h-8 min-h-8 p-2"
                                         wire:loading.attr="disabled"
-                                        wire:target="regenerateApiKey"
-                                        aria-label="Regenerate API key"
-                                        title="Regenerate API key"
+                                        wire:target="testConnection"
+                                        aria-label="Test connection"
+                                        title="Test connection"
                                     >
-                                        <span wire:loading.remove wire:target="regenerateApiKey">
-                                            <x-heroicon-o-key class="size-4" />
+                                        <span wire:loading.remove wire:target="testConnection">
+                                            <x-heroicon-o-signal class="size-4" />
                                         </span>
-                                        <span wire:loading wire:target="regenerateApiKey" class="inline-flex" aria-hidden="true">
+                                        <span wire:loading wire:target="testConnection" class="inline-flex" aria-hidden="true">
                                             <x-loader />
                                         </span>
                                     </x-button>

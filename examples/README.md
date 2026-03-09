@@ -1,6 +1,6 @@
 # Demo Laravel apps for Horizon Hub
 
-Example Laravel apps with Horizon and the Horizon Hub Agent, used to test the hub with real job events (processed, failed, multiple queues) in development. The hub UI is Livewire-based at `/horizon` (root `/` redirects there); no authentication is required.
+Example Laravel apps with Horizon, used to test the hub with real job events (processed, failed, multiple queues) in development. The hub UI is Livewire-based at `/horizon` (root `/` redirects there); no authentication is required.
 
 ## Overview
 
@@ -12,14 +12,6 @@ Example Laravel apps with Horizon and the Horizon Hub Agent, used to test the hu
 
 - Docker and Docker Compose
 - From the **repository root** (parent of `examples/`)
-
-## Local development (demo-app without Docker)
-
-The demo-app depends on the Horizon Hub Agent via the Packagist package `horizonhub/agent`. From the repo root run:
-
-```bash
-cd examples/demo-app && composer install
-```
 
 ## Run hub with demo apps
 
@@ -38,7 +30,7 @@ cd examples/demo-app && composer install
    - **Jobs**: Processing/processed jobs on default and notifications; failed jobs from the reports queue.
    - **Queues**: default, notifications, reports per service.
 
-4. You can use the hub UI to retry or delete failed jobs and to pause/resume queues; the hub will call the demo apps at `http://demo-app-{1,2,3}:80` (inside the Docker network).
+4. You can use the hub UI to retry failed jobs; the hub will call the demo apps' Horizon HTTP APIs at `http://demo-app-{1,2,3}:80` (inside the Docker network).
 
 ## Run only the hub (no demo apps)
 
@@ -73,23 +65,6 @@ The seeder and demo app env use fixed 64-character api_keys so the agent and hub
 | Demo Reports        | `demo-service-3-api-key-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`     | http://demo-app-3:80  |
 
 These values are in `database/seeders/DemoServicesSeeder.php` and `examples/demo-app/.env.example`.
-
-## Troubleshooting: jobs don't appear in the hub UI
-
-The hub only shows jobs when the demo-app **agent** sends events to the hub (JobProcessed, JobFailed, JobProcessing). If no jobs appear:
-
-1. **"Failed to connect to hub" in demo-app logs**  
-   The demo-app container cannot reach the hub at `HORIZON_HUB_URL` (e.g. `http://hub`). Ensure:
-   - The **hub** container is running (`docker compose --profile demo ps`).
-   - Hub and demo-apps were started with the **same** `docker compose --profile demo up` so they share the `horizonhub` network and the hostname `hub` resolves to the hub container.
-   - If you start demo-apps in another way (e.g. different compose or host), set `HORIZON_HUB_URL` to a URL reachable from the demo-app (e.g. host gateway IP or hub’s published port).
-
-2. **"Invalid API key" or 401**  
-   The hub has no service with the demo-app’s API key. Start the hub with `DEMO_SERVICES=1` or run:  
-   `docker exec horizonhub php artisan db:seed --class=DemoServicesSeeder --force`
-
-3. **"HORIZON_HUB_URL or HORIZON_HUB_API_KEY not set"**  
-   The agent skips sending events. Set these env vars in the demo-app (in docker-compose they are set per service).
 
 ## Stopping
 
