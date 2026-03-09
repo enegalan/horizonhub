@@ -17,12 +17,14 @@ class Alert extends Model {
         'job_type',
         'notification_channels',
         'enabled',
+        'email_interval_minutes',
     ];
 
     protected $casts = [
         'threshold' => 'array',
         'notification_channels' => 'array',
         'enabled' => 'boolean',
+        'email_interval_minutes' => 'integer',
     ];
 
     /**

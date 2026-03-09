@@ -25,4 +25,5 @@ Route::prefix('horizon')->name('horizon.')->group(function (): void {
 
 Route::prefix('api/v1')->middleware(['throttle:60,1'])->group(function (): void {
     Route::post('jobs/{id}/retry', [JobActionController::class, 'retry'])->name('api.jobs.retry');
+    Route::post('jobs/retry-batch', [JobActionController::class, 'retryBatch'])->name('api.jobs.retry-batch');
 });

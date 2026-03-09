@@ -6,12 +6,9 @@ use App\Models\HorizonFailedJob;
 use App\Models\HorizonJob;
 use App\Models\Service;
 use Livewire\Component;
-use Livewire\WithPagination;
 use Illuminate\Contracts\View\View;
 
 class ServiceDashboard extends Component {
-    use WithPagination;
-
     /**
      * The service.
      *
@@ -55,12 +52,11 @@ class ServiceDashboard extends Component {
     }
 
     /**
-     * Refresh the jobs.
+     * Refresh the jobs (no-op; child JobTable handles it).
      *
      * @return void
      */
     public function refreshJobs(): void {
-        $this->resetPage();
     }
 
     /**
@@ -70,9 +66,6 @@ class ServiceDashboard extends Component {
      */
     public function render(): View {
         $serviceId = $this->service->id;
-        $jobs = HorizonJob::where('service_id', $serviceId)
-            ->orderByDesc('created_at')
-            ->paginate(20);
 
         $jobsPastMinute = HorizonJob::where('service_id', $serviceId)
             ->where('status', 'processed')
@@ -97,7 +90,6 @@ class ServiceDashboard extends Component {
             ->get();
 
         return \view('livewire.horizon.service-dashboard', [
-            'jobs' => $jobs,
             'jobsPastMinute' => $jobsPastMinute,
             'jobsPastHour' => $jobsPastHour,
             'failedPastSevenDays' => $failedPastSevenDays,

@@ -82,12 +82,12 @@ class AlertEngine {
     public function flushPendingAlerts(): void {
         /** @var \Illuminate\Database\Eloquent\Collection<int, Alert> $alerts */
         $alerts = Alert::where('enabled', true)->get();
-        $intervalMinutes = $this->getIntervalMinutes();
         foreach ($alerts as $alert) {
             $pending = $this->getPending($alert);
             if (empty($pending)) {
                 continue;
             }
+            $intervalMinutes = $this->getIntervalMinutes($alert);
             $lastSentAt = $this->getLastSentAt($alert);
             if ($intervalMinutes > 0 && $lastSentAt !== null && \now()->lt($lastSentAt->copy()->addMinutes($intervalMinutes))) {
                 continue;
@@ -136,14 +136,14 @@ class AlertEngine {
     }
 
     /**
-     * Get the interval minutes for the alert engine.
+     * Get the interval minutes for the given alert.
      *
+     * @param Alert $alert
      * @return int
      */
-    private function getIntervalMinutes(): int {
-        $fromSetting = Setting::get('alerts.email_interval_minutes');
-        if ($fromSetting !== null && \is_numeric($fromSetting)) {
-            return (int) $fromSetting;
+    private function getIntervalMinutes(Alert $alert): int {
+        if ($alert->email_interval_minutes !== null) {
+            return (int) $alert->email_interval_minutes;
         }
         return (int) config('horizonhub.alert_email_interval_minutes');
     }
@@ -167,7 +167,7 @@ class AlertEngine {
         if ($alert->rule_type === 'failure_count' && $eventType !== 'JobFailed') {
             return false;
         }
-        if (\in_array($alert->rule_type, ['queue_blocked', 'worker_offline'], true)) {
+        if (\in_array($alert->rule_type, ['queue_blocked', 'worker_offline', 'supervisor_offline'], true)) {
             return false;
         }
         return true;
@@ -332,7 +332,7 @@ class AlertEngine {
         $pending[] = $event;
         $this->setPending($alert, $pending);
 
-        $intervalMinutes = $this->getIntervalMinutes();
+        $intervalMinutes = $this->getIntervalMinutes($alert);
         $lastSentAt = $this->getLastSentAt($alert);
         $shouldSendNow = $intervalMinutes === 0
             || $lastSentAt === null

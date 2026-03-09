@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Models\Alert;
 use App\Models\HorizonFailedJob;
 use App\Models\HorizonJob;
+use App\Models\HorizonSupervisorState;
 use App\Models\Service;
 use App\Services\AlertRuleEvaluator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -133,6 +134,64 @@ class AlertRuleEvaluatorTest extends TestCase {
         $this->assertTrue($evaluator->evaluate($alert, $service->id, $job->id));
     }
 
+    public function test_job_specific_failure_returns_true_when_failed_job_matches_queue_filter(): void {
+        $service = $this->createService();
+        $alert = Alert::create([
+            'service_id' => $service->id,
+            'rule_type' => 'job_specific_failure',
+            'job_type' => null,
+            'queue' => 'emails',
+            'threshold' => [],
+        ]);
+        $job = HorizonJob::create([
+            'service_id' => $service->id,
+            'job_uuid' => 'uuid-q',
+            'queue' => 'emails',
+            'status' => 'failed',
+            'failed_at' => now(),
+        ]);
+        HorizonFailedJob::create([
+            'service_id' => $service->id,
+            'job_uuid' => 'uuid-q',
+            'queue' => 'emails',
+            'payload' => array(),
+            'exception' => 'err',
+            'failed_at' => now(),
+        ]);
+        $evaluator = new AlertRuleEvaluator();
+
+        $this->assertTrue($evaluator->evaluate($alert, $service->id, $job->id));
+    }
+
+    public function test_job_specific_failure_returns_false_when_failed_job_does_not_match_queue_filter(): void {
+        $service = $this->createService();
+        $alert = Alert::create([
+            'service_id' => $service->id,
+            'rule_type' => 'job_specific_failure',
+            'job_type' => null,
+            'queue' => 'emails',
+            'threshold' => [],
+        ]);
+        $job = HorizonJob::create([
+            'service_id' => $service->id,
+            'job_uuid' => 'uuid-q2',
+            'queue' => 'default',
+            'status' => 'failed',
+            'failed_at' => now(),
+        ]);
+        HorizonFailedJob::create([
+            'service_id' => $service->id,
+            'job_uuid' => 'uuid-q2',
+            'queue' => 'default',
+            'payload' => array(),
+            'exception' => 'err',
+            'failed_at' => now(),
+        ]);
+        $evaluator = new AlertRuleEvaluator();
+
+        $this->assertFalse($evaluator->evaluate($alert, $service->id, $job->id));
+    }
+
     public function test_job_type_failure_returns_true_when_recent_failed_job_matches_type(): void {
         $service = $this->createService();
         $alert = Alert::create([
@@ -209,6 +268,56 @@ class AlertRuleEvaluatorTest extends TestCase {
             'service_id' => $service->id,
             'rule_type' => 'failure_count',
             'threshold' => array('count' => 3, 'minutes' => 60),
+        ]);
+        HorizonFailedJob::create([
+            'service_id' => $service->id,
+            'job_uuid' => 'u1',
+            'queue' => 'default',
+            'payload' => [],
+            'exception' => 'e',
+            'failed_at' => now(),
+        ]);
+        $evaluator = new AlertRuleEvaluator();
+
+        $this->assertFalse($evaluator->evaluate($alert, $service->id, null));
+    }
+
+    public function test_failure_count_returns_true_when_threshold_met_for_specific_queue(): void {
+        $service = $this->createService();
+        $alert = Alert::create([
+            'service_id' => $service->id,
+            'rule_type' => 'failure_count',
+            'queue' => 'emails',
+            'threshold' => array('count' => 2, 'minutes' => 60),
+        ]);
+        HorizonFailedJob::create([
+            'service_id' => $service->id,
+            'job_uuid' => 'u1',
+            'queue' => 'emails',
+            'payload' => [],
+            'exception' => 'e',
+            'failed_at' => now(),
+        ]);
+        HorizonFailedJob::create([
+            'service_id' => $service->id,
+            'job_uuid' => 'u2',
+            'queue' => 'emails',
+            'payload' => [],
+            'exception' => 'e',
+            'failed_at' => now(),
+        ]);
+        $evaluator = new AlertRuleEvaluator();
+
+        $this->assertTrue($evaluator->evaluate($alert, $service->id, null));
+    }
+
+    public function test_failure_count_returns_false_when_count_in_queue_below_threshold(): void {
+        $service = $this->createService();
+        $alert = Alert::create([
+            'service_id' => $service->id,
+            'rule_type' => 'failure_count',
+            'queue' => 'emails',
+            'threshold' => array('count' => 2, 'minutes' => 60),
         ]);
         HorizonFailedJob::create([
             'service_id' => $service->id,
@@ -315,6 +424,38 @@ class AlertRuleEvaluatorTest extends TestCase {
         $this->assertFalse($evaluator->evaluate($alert, $service->id, null));
     }
 
+    public function test_queue_blocked_returns_true_when_last_processed_on_queue_too_old(): void {
+        $service = $this->createService();
+        $alert = Alert::create([
+            'service_id' => $service->id,
+            'rule_type' => 'queue_blocked',
+            'queue' => 'emails',
+            'threshold' => array('minutes' => 30),
+        ]);
+        HorizonJob::create([
+            'service_id' => $service->id,
+            'job_uuid' => 'j1',
+            'queue' => 'emails',
+            'status' => 'processed',
+            'processed_at' => now()->subMinutes(45),
+        ]);
+        $evaluator = new AlertRuleEvaluator();
+
+        $this->assertTrue($evaluator->evaluate($alert, $service->id, null));
+    }
+
+    public function test_queue_blocked_returns_false_when_no_processed_jobs(): void {
+        $service = $this->createService();
+        $alert = Alert::create([
+            'service_id' => $service->id,
+            'rule_type' => 'queue_blocked',
+            'threshold' => array('minutes' => 30),
+        ]);
+        $evaluator = new AlertRuleEvaluator();
+
+        $this->assertFalse($evaluator->evaluate($alert, $service->id, null));
+    }
+
     public function test_worker_offline_returns_true_when_last_seen_too_old(): void {
         $service = $this->createService(array('last_seen_at' => now()->subMinutes(10)));
         $alert = Alert::create([
@@ -332,6 +473,52 @@ class AlertRuleEvaluatorTest extends TestCase {
         $alert = Alert::create([
             'service_id' => $service->id,
             'rule_type' => 'worker_offline',
+            'threshold' => array('minutes' => 5),
+        ]);
+        $evaluator = new AlertRuleEvaluator();
+
+        $this->assertFalse($evaluator->evaluate($alert, $service->id, null));
+    }
+
+    public function test_worker_offline_returns_false_when_service_has_no_last_seen_at(): void {
+        $service = $this->createService(array('last_seen_at' => null));
+        $alert = Alert::create([
+            'service_id' => $service->id,
+            'rule_type' => 'worker_offline',
+            'threshold' => array('minutes' => 5),
+        ]);
+        $evaluator = new AlertRuleEvaluator();
+
+        $this->assertFalse($evaluator->evaluate($alert, $service->id, null));
+    }
+
+    public function test_supervisor_offline_returns_true_when_supervisor_stale(): void {
+        $service = $this->createService();
+        HorizonSupervisorState::create([
+            'service_id' => $service->id,
+            'name' => 'supervisor-default',
+            'last_seen_at' => now()->subMinutes(10),
+        ]);
+        $alert = Alert::create([
+            'service_id' => $service->id,
+            'rule_type' => 'supervisor_offline',
+            'threshold' => array('minutes' => 5),
+        ]);
+        $evaluator = new AlertRuleEvaluator();
+
+        $this->assertTrue($evaluator->evaluate($alert, $service->id, null));
+    }
+
+    public function test_supervisor_offline_returns_false_when_all_supervisors_recent(): void {
+        $service = $this->createService();
+        HorizonSupervisorState::create([
+            'service_id' => $service->id,
+            'name' => 'supervisor-default',
+            'last_seen_at' => now()->subMinutes(2),
+        ]);
+        $alert = Alert::create([
+            'service_id' => $service->id,
+            'rule_type' => 'supervisor_offline',
             'threshold' => array('minutes' => 5),
         ]);
         $evaluator = new AlertRuleEvaluator();
