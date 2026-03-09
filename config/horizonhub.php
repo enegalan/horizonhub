@@ -26,6 +26,7 @@ return [
     */
     'horizon' => [
         'api_base_path' => \env('HORIZON_HUB_HORIZON_API_BASE_PATH', '/horizon/api'),
+        'dashboard_path' => \env('HORIZON_HUB_HORIZON_DASHBOARD_PATH', '/horizon'),
         'retry_path' => '/jobs/retry/{id}',
         'ping_path' => '/stats',
         'workload_path' => '/workload',

@@ -8,6 +8,7 @@ use App\Models\Service;
 use App\Services\HorizonSyncService;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 
 class Metrics extends Component {
@@ -45,6 +46,27 @@ class Metrics extends Component {
      * @var int
      */
     private const TOP_N_SERVICES = 10;
+
+    /**
+     * Normalize a queue name to avoid duplicates caused by different connection prefixes.
+     *
+     * For example, "redis.default" becomes "default".
+     *
+     * @param string|null $queue
+     * @return string|null
+     */
+    private function normalizeQueueName(?string $queue): ?string {
+        if ($queue === null || $queue === '') {
+            return $queue;
+        }
+
+        if (\str_starts_with($queue, 'redis.')) {
+            $suffix = \substr($queue, \strlen('redis.'));
+            return $suffix !== '' ? $suffix : $queue;
+        }
+
+        return $queue;
+    }
 
     /**
      * Get the listeners for the metrics component.
@@ -117,20 +139,52 @@ class Metrics extends Component {
      */
     public function getFailuresByServiceQueue(): array {
         $since = \now()->subDays(7);
-        $rows = HorizonFailedJob::with('service')
+
+        $rows = HorizonFailedJob::query()
             ->where('failed_at', '>=', $since)
+            ->selectRaw('service_id, queue, COUNT(*) as cnt')
+            ->groupBy('service_id', 'queue')
+            ->orderByDesc('cnt')
+            ->limit(200)
             ->get();
-        $agg = [];
-        foreach ($rows as $r) {
-            $s = $r->service?->name ?? (string) $r->service_id;
-            $q = $r->queue;
-            $key = "$s|$q";
-            if (! isset($agg[$key])) {
-                $agg[$key] = ['service' => $s, 'queue' => $q, 'cnt' => 0];
-            }
-            $agg[$key]['cnt']++;
+
+        if ($rows->isEmpty()) {
+            return [];
         }
-        \usort($agg, fn ($a, $b) => $b['cnt'] <=> $a['cnt']);
+
+        $serviceIds = $rows
+            ->pluck('service_id')
+            ->filter(static fn ($id) => $id !== null)
+            ->unique()
+            ->all();
+
+        $serviceNames = $serviceIds === []
+            ? []
+            : Service::whereIn('id', $serviceIds)->pluck('name', 'id')->all();
+
+        $agg = [];
+        foreach ($rows as $row) {
+            $serviceId = $row->service_id;
+            $serviceName = $serviceId !== null
+                ? ($serviceNames[$serviceId] ?? (string) $serviceId)
+                : 'Unknown';
+
+            $queue = $this->normalizeQueueName($row->queue);
+            $key = "$serviceName|$queue";
+
+            if (! isset($agg[$key])) {
+                $agg[$key] = [
+                    'service' => $serviceName,
+                    'queue' => $queue,
+                    'cnt' => 0,
+                ];
+            }
+
+            $agg[$key]['cnt'] += (int) $row->cnt;
+        }
+
+        \usort($agg, static fn (array $a, array $b): int => $b['cnt'] <=> $a['cnt']);
+
         return \array_slice($agg, 0, 15);
     }
 
@@ -292,12 +346,28 @@ class Metrics extends Component {
             ->groupBy('queue')
             ->pluck('cnt', 'queue')
             ->all();
-        $allQueues = \array_unique(\array_merge(\array_keys($processedByQueue), \array_keys($failedByQueue)));
+        $normalizedProcessed = [];
+        foreach ($processedByQueue as $queue => $cnt) {
+            $normalized = $this->normalizeQueueName($queue);
+            if (! isset($normalizedProcessed[$normalized])) {
+                $normalizedProcessed[$normalized] = 0;
+            }
+            $normalizedProcessed[$normalized] += $cnt;
+        }
+        $normalizedFailed = [];
+        foreach ($failedByQueue as $queue => $cnt) {
+            $normalized = $this->normalizeQueueName($queue);
+            if (! isset($normalizedFailed[$normalized])) {
+                $normalizedFailed[$normalized] = 0;
+            }
+            $normalizedFailed[$normalized] += $cnt;
+        }
+        $allQueues = \array_unique(\array_merge(\array_keys($normalizedProcessed), \array_keys($normalizedFailed)));
         $agg = [];
         foreach ($allQueues as $q) {
             $agg[$q] = [
-                'processed' => $processedByQueue[$q] ?? 0,
-                'failed' => $failedByQueue[$q] ?? 0,
+                'processed' => $normalizedProcessed[$q] ?? 0,
+                'failed' => $normalizedFailed[$q] ?? 0,
             ];
         }
         \uasort($agg, fn ($a, $b) => ($b['processed'] + $b['failed']) <=> ($a['processed'] + $a['failed']));

@@ -39,8 +39,20 @@ class JobDetail extends Component {
      * @return HorizonJob|HorizonFailedJob|null
      */
     public function getJobProperty(): HorizonJob|HorizonFailedJob|null {
-        return HorizonFailedJob::with('service')->find($this->jobId)
-            ?? HorizonJob::with('service')->find($this->jobId);
+        $failed = HorizonFailedJob::with('service')->find($this->jobId);
+        if ($failed) {
+            $matchingJob = null;
+            if ($failed->service_id && $failed->job_uuid) {
+                $matchingJob = HorizonJob::with('service')
+                    ->where('service_id', $failed->service_id)
+                    ->where('job_uuid', $failed->job_uuid)
+                    ->first();
+            }
+
+            return $matchingJob ?? $failed;
+        }
+
+        return HorizonJob::with('service')->find($this->jobId);
     }
 
     /**

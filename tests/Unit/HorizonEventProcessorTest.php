@@ -70,7 +70,7 @@ class HorizonEventProcessorTest extends TestCase {
             'status' => 'paused',
         ]);
 
-        $state = HorizonQueueState::where('service_id', $service->id)->where('queue', 'redis.default')->first();
+        $state = HorizonQueueState::where('service_id', $service->id)->where('queue', 'default')->first();
         $this->assertNotNull($state);
         $this->assertTrue($state->is_paused);
     }
@@ -86,7 +86,7 @@ class HorizonEventProcessorTest extends TestCase {
         ]);
         HorizonQueueState::create([
             'service_id' => $service->id,
-            'queue' => 'redis.default',
+            'queue' => 'default',
             'is_paused' => true,
         ]);
 
@@ -98,7 +98,7 @@ class HorizonEventProcessorTest extends TestCase {
             'status' => 'resumed',
         ]);
 
-        $state = HorizonQueueState::where('service_id', $service->id)->where('queue', 'redis.default')->first();
+        $state = HorizonQueueState::where('service_id', $service->id)->where('queue', 'default')->first();
         $this->assertNotNull($state);
         $this->assertFalse($state->is_paused);
     }

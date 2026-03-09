@@ -30,6 +30,62 @@ class HorizonEventProcessor {
     }
 
     /**
+     * Parse a timestamp value coming from Horizon events.
+     *
+     * Accepts ISO8601 strings, database datetime strings or numeric Unix timestamps
+     * (seconds or milliseconds). Returns a Carbon instance or null on failure.
+     *
+     * @param mixed $value
+     * @return Carbon|null
+     */
+    private function parseEventTime(mixed $value): ?Carbon {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (\is_numeric($value)) {
+            $numeric = (float) $value;
+            // Heuristic: timestamps larger than current time * 100 likely in milliseconds
+            $nowSeconds = (float) \time();
+            if ($numeric > $nowSeconds * 100) {
+                $timestampMs = (int) \round($numeric);
+                return Carbon::createFromTimestampMs($timestampMs);
+            }
+
+            return Carbon::createFromTimestamp((int) \round($numeric));
+        }
+
+        try {
+            return Carbon::parse((string) $value);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Normalize a queue name to avoid duplicates caused by different connection prefixes.
+     *
+     * For example, "redis.default" becomes "default", "redis.notifications"
+     * becomes "notifications", etc. Queues without a dot or with a different
+     * scheme are returned unchanged.
+     *
+     * @param string|null $queue
+     * @return string|null
+     */
+    private function normalizeQueueName(?string $queue): ?string {
+        if ($queue === null || $queue === '') {
+            return $queue;
+        }
+
+        if (\str_starts_with($queue, 'redis.')) {
+            $suffix = \substr($queue, \strlen('redis.'));
+            return $suffix !== '' ? $suffix : $queue;
+        }
+
+        return $queue;
+    }
+
+    /**
      * Process an event.
      *
      * @param Service $service
@@ -50,7 +106,8 @@ class HorizonEventProcessor {
         }
 
         $jobId = $event['job_id'] ?? '';
-        $queue = $event['queue'] ?? '';
+        $queueRaw = $event['queue'] ?? '';
+        $queue = $this->normalizeQueueName($queueRaw);
         $name = $event['name'] ?? null;
         $payload = $event['payload'] ?? null;
         $attempts = isset($event['attempts']) ? (int) $event['attempts'] : 0;
@@ -58,16 +115,24 @@ class HorizonEventProcessor {
         $status = (\is_string($statusRaw) && $statusRaw !== '') ? $statusRaw : $eventType;
         $processedAt = $event['processed_at'] ?? null;
         $failedAt = $event['failed_at'] ?? null;
-        $queuedAt = $event['queued_at'] ?? null;
+        $queuedAt = $event['queued_at'] ?? ($event['pushed_at'] ?? null);
         $runtimeSeconds = isset($event['runtime_seconds']) ? (float) $event['runtime_seconds'] : null;
         $exception = $event['exception'] ?? null;
 
         if ($queuedAt === null && isset($payload) && \is_array($payload)) {
             $pushedAtRaw = $payload['pushedAt'] ?? null;
-            if ($pushedAtRaw !== null && \is_numeric($pushedAtRaw)) {
-                $pushedAtFloat = (float) $pushedAtRaw;
-                if ($pushedAtFloat > 0) {
-                    $queuedAt = Carbon::createFromTimestamp((int) $pushedAtFloat)->toIso8601String();
+            if ($pushedAtRaw !== null) {
+                if (\is_numeric($pushedAtRaw)) {
+                    $pushedAtFloat = (float) $pushedAtRaw;
+                    if ($pushedAtFloat > 0) {
+                        $queuedAt = Carbon::createFromTimestampMs((int) \round($pushedAtFloat * 1000))->toIso8601String();
+                    }
+                } elseif (\is_string($pushedAtRaw) && $pushedAtRaw !== '') {
+                    try {
+                        $queuedAt = Carbon::parse($pushedAtRaw)->toIso8601String();
+                    } catch (\Throwable $e) {
+                        // ignore parse errors and leave queuedAt as null
+                    }
                 }
             }
         }
@@ -80,14 +145,14 @@ class HorizonEventProcessor {
                     'queue' => $queue,
                     'payload' => $payload,
                     'exception' => $exception,
-                    'failed_at' => $failedAt ? \now()->parse($failedAt) : \now(),
+                    'failed_at' => $this->parseEventTime($failedAt) ?? \now(),
                 ]);
             }
 
-            $failedAtParsed = $failedAt ? \now()->parse($failedAt) : null;
+            $failedAtParsed = $this->parseEventTime($failedAt);
             $existing = HorizonJob::where('service_id', $service->id)->where('job_uuid', $jobId)->lockForUpdate()->first();
 
-            $processedAtParsed = $processedAt ? \now()->parse($processedAt) : null;
+            $processedAtParsed = $this->parseEventTime($processedAt);
 
             $existingStatus = $existing ? $existing->status : null;
             $statusForAttributes = $status !== null ? $status : $existingStatus;
@@ -107,7 +172,7 @@ class HorizonEventProcessor {
                     : ($processedAtParsed !== null ? $processedAtParsed : ($existing ? $existing->processed_at : null)),
                 'failed_at' => $existing ? $existing->failed_at : null,
                 'runtime_seconds' => $runtimeSeconds !== null ? $runtimeSeconds : ($existing ? $existing->runtime_seconds : null),
-                'queued_at' => $queuedAt !== null ? \now()->parse($queuedAt) : ($existing ? $existing->queued_at : null),
+                'queued_at' => $queuedAt !== null ? $this->parseEventTime($queuedAt) : ($existing ? $existing->queued_at : null),
                 'exception' => $existing ? $existing->exception : null,
             ];
 
@@ -172,7 +237,8 @@ class HorizonEventProcessor {
      * @return void
      */
     private function processQueuePauseResume(Service $service, array $event): void {
-        $queue = isset($event['queue']) && (string) $event['queue'] !== '' ? (string) $event['queue'] : 'redis.default';
+        $queueRaw = isset($event['queue']) && (string) $event['queue'] !== '' ? (string) $event['queue'] : 'redis.default';
+        $queue = $this->normalizeQueueName($queueRaw);
         $isPaused = ($event['event_type'] ?? '') === 'QueuePaused';
 
         HorizonQueueState::updateOrCreate(
