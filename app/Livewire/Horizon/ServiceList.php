@@ -23,6 +23,13 @@ class ServiceList extends Component {
     public string $baseUrl = '';
 
     /**
+     * The public URL of the service.
+     *
+     * @var string
+     */
+    public string $publicUrl = '';
+
+    /**
      * The ID of the service being edited.
      *
      * @var int|null
@@ -42,6 +49,13 @@ class ServiceList extends Component {
      * @var string
      */
     public string $editBaseUrl = '';
+
+    /**
+     * The public URL of the service being edited.
+     *
+     * @var string
+     */
+    public string $editPublicUrl = '';
 
     /**
      * The ID of the service being confirmed for deletion.
@@ -72,6 +86,7 @@ class ServiceList extends Component {
     protected $rules = [
         'name' => 'required|string|max:255|unique:services,name',
         'baseUrl' => 'required|url',
+        'publicUrl' => 'nullable|url',
     ];
 
     /**
@@ -98,9 +113,10 @@ class ServiceList extends Component {
             'name' => $this->name,
             'api_key' => $apiKey,
             'base_url' => \rtrim($this->baseUrl, '/'),
+            'public_url' => $this->publicUrl !== '' ? \rtrim($this->publicUrl, '/') : null,
             'status' => 'online',
         ]);
-        $this->reset('name', 'baseUrl');
+        $this->reset('name', 'baseUrl', 'publicUrl');
         $this->dispatch('service-created');
     }
 
@@ -118,6 +134,7 @@ class ServiceList extends Component {
         $this->editingServiceId = $serviceId;
         $this->editName = $service->name;
         $this->editBaseUrl = $service->base_url ?? '';
+        $this->editPublicUrl = $service->public_url ?? '';
     }
 
     /**
@@ -126,7 +143,7 @@ class ServiceList extends Component {
      * @return void
      */
     public function cancelEdit(): void {
-        $this->reset('editingServiceId', 'editName', 'editBaseUrl');
+        $this->reset('editingServiceId', 'editName', 'editBaseUrl', 'editPublicUrl');
     }
 
     /**
@@ -138,6 +155,7 @@ class ServiceList extends Component {
         $this->validate([
             'editName' => 'required|string|max:255|unique:services,name,' . (int) $this->editingServiceId,
             'editBaseUrl' => 'required|url',
+            'editPublicUrl' => 'nullable|url',
         ]);
         $service = Service::find($this->editingServiceId);
         if (! $service) {
@@ -145,7 +163,8 @@ class ServiceList extends Component {
         }
         $service->update([
             'name' => $this->editName,
-            'base_url' => rtrim($this->editBaseUrl, '/'),
+            'base_url' => \rtrim($this->editBaseUrl, '/'),
+            'public_url' => $this->editPublicUrl !== '' ? \rtrim($this->editPublicUrl, '/') : null,
         ]);
         $this->cancelEdit();
         $this->dispatch('toast', type: 'success', message: 'Service updated.');

@@ -20,9 +20,8 @@ class JobList extends Component {
      */
     protected $queryString = [
         'serviceFilter' => ['except' => ''],
-        'queueFilter' => ['except' => ''],
         'statusFilter' => ['except' => ''],
-        'jobTypeFilter' => ['except' => ''],
+        'search' => ['except' => ''],
     ];
 
     /**
@@ -33,11 +32,11 @@ class JobList extends Component {
     public string $serviceFilter = '';
 
     /**
-     * The queue filter.
+     * The unified search term for queue, job type and UUID.
      *
      * @var string
      */
-    public string $queueFilter = '';
+    public string $search = '';
 
     /**
      * The status filter.
@@ -45,13 +44,6 @@ class JobList extends Component {
      * @var string
      */
     public string $statusFilter = '';
-
-    /**
-     * The job type filter.
-     *
-     * @var string
-     */
-    public string $jobTypeFilter = '';
 
     /**
      * Whether to show the clean modal.
@@ -213,28 +205,27 @@ class JobList extends Component {
         if ($this->serviceFilter) {
             $query->where('service_id', $this->serviceFilter);
         }
-        if ($this->queueFilter) {
-            $query->where('queue', 'like', '%' . $this->queueFilter . '%');
-        }
         if ($this->statusFilter) {
             $query->where('status', $this->statusFilter);
         }
-        if ($this->jobTypeFilter) {
-            $query->where('name', 'like', '%' . $this->jobTypeFilter . '%');
+        if ($this->search) {
+            $search = $this->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('queue', 'like', "%$search%")
+                    ->orWhere('name', 'like', "%$search%")
+                    ->orWhere('job_uuid', 'like', "%$search%");
+            });
         }
 
         $appendQuery = [];
         if ($this->serviceFilter !== '') {
             $appendQuery['serviceFilter'] = $this->serviceFilter;
         }
-        if ($this->queueFilter !== '') {
-            $appendQuery['queueFilter'] = $this->queueFilter;
-        }
         if ($this->statusFilter !== '') {
             $appendQuery['statusFilter'] = $this->statusFilter;
         }
-        if ($this->jobTypeFilter !== '') {
-            $appendQuery['jobTypeFilter'] = $this->jobTypeFilter;
+        if ($this->search !== '') {
+            $appendQuery['search'] = $this->search;
         }
 
         $jobs = $query->paginate(20)->appends($appendQuery);
