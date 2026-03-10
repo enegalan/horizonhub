@@ -99,26 +99,6 @@
                 <div id="service-distribution-chart" class="h-80"></div>
             </div>
         </div>
-
-        <div class="card p-4">
-            <h3 class="text-section-title text-foreground mb-2">Failed by service × queue (past 7 days, top 15)</h3>
-            <div class="overflow-x-auto">
-                <div id="metrics-loader-failures-table" class="flex items-center justify-center py-12">
-                    <x-loader class="size-8 text-muted-foreground" />
-                </div>
-                <table class="min-w-full text-sm" id="metrics-failures-table" style="display: none;">
-                    <thead>
-                        <tr class="border-b border-border">
-                            <th class="table-header px-4 py-2.5 text-left">Service</th>
-                            <th class="table-header px-4 py-2.5 text-left">Queue</th>
-                            <th class="table-header px-4 py-2.5 text-right">Count</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-border" id="metrics-failures-tbody">
-                    </tbody>
-                </table>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -128,15 +108,14 @@
                 processedVsFailed: {{ Js::from(route('horizon.metrics.data.processed-vs-failed')) }},
                 avgRuntime: {{ Js::from(route('horizon.metrics.data.avg-runtime')) }},
                 byQueue: {{ Js::from(route('horizon.metrics.data.by-queue')) }},
-                byService: {{ Js::from(route('horizon.metrics.data.by-service')) }},
-                failuresTable: {{ Js::from(route('horizon.metrics.data.failures-table')) }}
+                byService: {{ Js::from(route('horizon.metrics.data.by-service')) }}
             };
 
             var allLoaderIds = [
                 'metrics-loader-jobs-minute', 'metrics-loader-jobs-hour', 'metrics-loader-failed-seven',
                 'metrics-loader-processed-24', 'metrics-loader-failure-rate', 'metrics-loader-processed-failed',
                 'metrics-loader-failure-rate-chart', 'metrics-loader-runtime-chart', 'metrics-loader-queue-chart',
-                'metrics-loader-service-chart', 'metrics-loader-failures-table'
+                'metrics-loader-service-chart'
             ];
 
             function getUrl(base, serviceId) {
@@ -154,8 +133,6 @@
                 var el = document.getElementById(id);
                 if (!el) return;
                 if (id === 'metrics-loader-processed-failed' || id === 'metrics-loader-failure-rate-chart' || id === 'metrics-loader-runtime-chart' || id === 'metrics-loader-queue-chart' || id === 'metrics-loader-service-chart') {
-                    el.style.display = 'flex';
-                } else if (id === 'metrics-loader-failures-table') {
                     el.style.display = 'flex';
                 } else {
                     el.style.display = '';
@@ -213,16 +190,13 @@
             function loadAllMetrics(serviceId) {
                 allLoaderIds.forEach(showLoader);
                 setSummaryPlaceholders();
-                var table = document.getElementById('metrics-failures-table');
-                if (table) table.style.display = 'none';
 
                 var urls = {
                     summary: getUrl(baseUrls.summary, serviceId),
                     processedVsFailed: getUrl(baseUrls.processedVsFailed, serviceId),
                     avgRuntime: getUrl(baseUrls.avgRuntime, serviceId),
                     byQueue: getUrl(baseUrls.byQueue, serviceId),
-                    byService: getUrl(baseUrls.byService, serviceId),
-                    failuresTable: getUrl(baseUrls.failuresTable, serviceId)
+                    byService: getUrl(baseUrls.byService, serviceId)
                 };
 
                 fetchSection(urls.summary, function (d) {
@@ -261,29 +235,6 @@
                     hideLoader('metrics-loader-service-chart');
                     renderChart({ byService: d });
                 }, null);
-
-                fetchSection(urls.failuresTable, function (d) {
-                    var loader = document.getElementById('metrics-loader-failures-table');
-                    var tableEl = document.getElementById('metrics-failures-table');
-                    var tbody = document.getElementById('metrics-failures-tbody');
-                    if (!tbody) return;
-                    if (loader) loader.style.display = 'none';
-                    if (tableEl) tableEl.style.display = 'table';
-                    var rows = d.failuresTable || [];
-                    tbody.innerHTML = '';
-                    if (rows.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-6 text-center text-muted-foreground text-sm">No failures in the past 7 days</td></tr>';
-                        return;
-                    }
-                    rows.forEach(function (r) {
-                        var tr = document.createElement('tr');
-                        tr.className = 'hover:bg-muted/30';
-                        tr.innerHTML = '<td class="px-4 py-2.5 font-medium text-foreground">' + esc(r.service) + '</td>' +
-                            '<td class="px-4 py-2.5 font-mono text-xs text-muted-foreground">' + esc(r.queue) + '</td>' +
-                            '<td class="px-4 py-2.5 text-right text-muted-foreground">' + formatNum(r.cnt) + '</td>';
-                        tbody.appendChild(tr);
-                    });
-                }, ['metrics-loader-failures-table']);
             }
 
             var filterEl = document.getElementById('metrics-service-filter');
