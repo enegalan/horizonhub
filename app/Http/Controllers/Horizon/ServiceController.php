@@ -203,7 +203,7 @@ class ServiceController extends Controller {
             'processedPast24Hours' => $processedPast24Hours,
             'supervisors' => $supervisors,
             'jobs' => $jobs,
-            'header' => 'Horizon Hub – ' . $service->name,
+            'header' => "Horizon Hub – {$service->name}",
         ]);
     }
 

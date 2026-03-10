@@ -156,7 +156,7 @@
                             id="enabled"
                             name="enabled"
                             value="1"
-                            @checked(old('enabled', $alert->enabled ?? true))
+                            :checked="old('enabled', $alert->enabled ?? true)"
                         />
                         <x-input-label for="enabled" class="text-sm font-normal cursor-pointer">Alert enabled</x-input-label>
                     </div>
@@ -202,7 +202,7 @@
                                         id="provider-{{ $provider->id }}"
                                         name="provider_ids[]"
                                         value="{{ $provider->id }}"
-                                        @checked(in_array($provider->id, $oldProviderIds, true))
+                                        :checked="in_array($provider->id, $oldProviderIds, true)"
                                     />
                                     <span class="text-sm font-medium">{{ $provider->name }}</span>
                                     <span class="text-xs text-muted-foreground">({{ $provider->type }})</span>

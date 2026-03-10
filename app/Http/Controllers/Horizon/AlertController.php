@@ -150,7 +150,7 @@ class AlertController extends Controller {
                 'service_id' => $serviceFilter !== null ? (string) $serviceFilter : '',
                 'per_page' => $perPage,
             ],
-            'header' => 'Horizon Hub – ' . $alertName,
+            'header' => "Horizon Hub – $alertName",
         ]);
     }
 
@@ -212,7 +212,7 @@ class AlertController extends Controller {
             'providers' => $providers,
             'ruleTypes' => $ruleTypes,
             'selectedProviderIds' => $alert->exists ? $alert->notificationProviders()->pluck('notification_providers.id')->all() : [],
-            'header' => 'Horizon Hub – ' . $header,
+            'header' => "Horizon Hub – $header",
         ]);
     }
 
