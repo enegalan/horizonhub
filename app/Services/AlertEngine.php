@@ -145,7 +145,7 @@ class AlertEngine {
         if ($alert->email_interval_minutes !== null) {
             return (int) $alert->email_interval_minutes;
         }
-        return (int) config('horizonhub.alert_email_interval_minutes');
+        throw new \RuntimeException('Alert email interval minutes is not set for alert ' . $alert->id);
     }
 
     /**

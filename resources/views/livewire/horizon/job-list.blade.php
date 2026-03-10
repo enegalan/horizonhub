@@ -3,7 +3,7 @@
 
     @if($showRetryModal)
         @php
-            $retryModalSelectableIds = array_values(array_column(array_filter($retryModalFailedJobsList, function ($j) { return ! empty($j['has_service'] ?? false); }), 'id'));
+            $retryModalSelectableIds = \array_values(\array_column(\array_filter($retryModalFailedJobsList, function ($j) { return ! empty($j['has_service'] ?? false); }), 'id'));
         @endphp
         @teleport('body')
             <x-confirm-modal

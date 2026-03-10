@@ -61,7 +61,7 @@ class JobActionController extends Controller {
      * @return JsonResponse
      */
     public function retryBatch(RetryJobsRequest $request): JsonResponse {
-        $ids = array_values(array_unique($request->validated('ids')));
+        $ids = \array_values(\array_unique($request->validated('ids')));
         $results = [];
         $succeeded = 0;
         $failed = 0;

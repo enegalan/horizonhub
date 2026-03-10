@@ -224,7 +224,7 @@ class AlertRuleEvaluator {
      */
     private function evaluateSupervisorOffline(Alert $alert, int $serviceId): bool {
         $threshold = $alert->threshold ?? [];
-        $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 5);
+        $minutes = (int) ($threshold['minutes'] ?? 5);
 
         $stale_at = \now()->subMinutes($minutes);
         $stale_count = HorizonSupervisorState::where('service_id', $serviceId)

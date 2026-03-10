@@ -79,13 +79,4 @@ return [
     */
     'hot_reload_interval' => (int) env('HORIZON_HUB_HOT_RELOAD_INTERVAL', 5),
 
-    /*
-    |--------------------------------------------------------------------------
-    | Alert Email Interval Minutes
-    |--------------------------------------------------------------------------
-    |
-    | This is the number of minutes after which an alert will be sent.
-    |
-    */
-    'alert_email_interval_minutes' => (int) env('HORIZON_HUB_ALERT_EMAIL_INTERVAL_MINUTES', 5),
 ];
