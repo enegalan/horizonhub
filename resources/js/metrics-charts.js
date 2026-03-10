@@ -130,6 +130,12 @@ export function initAlertDetailCharts(data) {
 
 function applyChartOptions(el, options) {
     var existing = window.echarts.getInstanceByDom(el);
-    if (existing) existing.setOption(options);
-    else window.echarts.init(el).setOption(options);
+    if (existing) {
+        existing.setOption(options);
+        existing.resize();
+    } else {
+        var chart = window.echarts.init(el);
+        chart.setOption(options);
+        chart.resize();
+    }
 }

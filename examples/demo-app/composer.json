@@ -5,7 +5,6 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
-        "horizonhub/agent": "@dev",
         "laravel/framework": "^12.0",
         "laravel/horizon": "^5.24",
         "laravel/tinker": "^2.10"

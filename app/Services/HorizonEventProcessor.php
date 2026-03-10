@@ -10,6 +10,7 @@ use App\Models\HorizonSupervisorState;
 use App\Models\Service;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class HorizonEventProcessor {
     /**
@@ -110,7 +111,8 @@ class HorizonEventProcessor {
         $queue = $this->normalizeQueueName($queueRaw);
         $name = $event['name'] ?? null;
         $payload = $event['payload'] ?? null;
-        $attempts = isset($event['attempts']) ? (int) $event['attempts'] : 0;
+        $attemptsRaw = $event['attempts'] ?? null;
+        $attempts = isset($attemptsRaw) ? (int) $attemptsRaw : 0;
         $statusRaw = $event['status'] ?? null;
         $status = (\is_string($statusRaw) && $statusRaw !== '') ? $statusRaw : $eventType;
         $processedAt = $event['processed_at'] ?? null;
@@ -227,6 +229,12 @@ class HorizonEventProcessor {
                 'last_seen_at' => \now(),
             ]
         );
+
+        // Treat supervisor loop as a heartbeat for the service itself.
+        $service->forceFill([
+            'last_seen_at' => \now(),
+            'status' => 'online',
+        ])->saveQuietly();
     }
 
     /**

@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Service;
+use App\Models\HorizonSupervisorState;
+use Illuminate\Support\Facades\Log;
 
 class HorizonSyncService {
     private HorizonApiProxyService $horizonApi;
@@ -48,6 +50,11 @@ class HorizonSyncService {
             return;
         }
 
+        $masters = $this->horizonApi->getMasters($service);
+        if ($masters['success'] ?? false) {
+            $this->syncSupervisorsFromMasters($service, $masters);
+        }
+
         $failed = $this->horizonApi->getFailedJobs($service);
         if ($failed['success'] ?? false) {
             $this->upsertJobsFromResponse($service, $failed, 'JobFailed');
@@ -62,6 +69,60 @@ class HorizonSyncService {
         if ($pending['success'] ?? false) {
             $this->upsertJobsFromResponse($service, $pending, 'JobProcessing');
         }
+    }
+
+    /**
+     * Sync supervisor states for a service from the Horizon masters API response.
+     *
+     * @param Service $service
+     * @param array{success: bool, data?: array} $response
+     * @return void
+     */
+    private function syncSupervisorsFromMasters(Service $service, array $response): void {
+        $data = $response['data'] ?? null;
+        if (! \is_array($data)) {
+            return;
+        }
+
+        $now = now();
+
+        foreach ($data as $master) {
+            if (! \is_array($master)) {
+                continue;
+            }
+
+            $supervisors = $master['supervisors'] ?? null;
+            if (! \is_array($supervisors)) {
+                continue;
+            }
+
+            foreach ($supervisors as $supervisor) {
+                if (! \is_array($supervisor)) {
+                    continue;
+                }
+
+                $name = isset($supervisor['name']) ? (string) $supervisor['name'] : '';
+                if ($name === '') {
+                    continue;
+                }
+
+                HorizonSupervisorState::updateOrCreate(
+                    [
+                        'service_id' => $service->id,
+                        'name' => $name,
+                    ],
+                    [
+                        'last_seen_at' => $now,
+                    ]
+                );
+            }
+        }
+
+        // Any successful supervisors sync counts as a heartbeat for the service.
+        $service->forceFill([
+            'last_seen_at' => $now,
+            'status' => 'online',
+        ])->saveQuietly();
     }
 
     /**
@@ -98,8 +159,24 @@ class HorizonSyncService {
             $queue = (string) ($job['queue'] ?? $job['queue_name'] ?? '');
             $name = isset($job['name']) && (string) $job['name'] !== '' ? (string) $job['name'] : null;
             $payload = $job['payload'] ?? null;
-            $attempts = isset($job['attempts']) ? (int) $job['attempts'] : 0;
-            // Normalize status to the values expected by the Hub:
+
+            $attemptsRaw = $job['attempts'] ?? null;
+            if ($attemptsRaw === null && \is_array($payload)) {
+                $attemptsRaw = $payload['attempts'] ?? null;
+            }
+            // Fallback: Horizon HTTP API exposes "retried_by" for failed jobs,
+            // which we can use to approximate the total attempts as
+            // (number of retries + 1 initial attempt).
+            if ($attemptsRaw === null && isset($job['retried_by']) && \is_array($job['retried_by'])) {
+                $attemptsRaw = \count($job['retried_by']) + 1;
+            }
+            // As a very last resort, treat known jobs as having at least 1 attempt.
+            if ($attemptsRaw === null && $eventType === 'JobFailed') {
+                $attemptsRaw = 1;
+            }
+            $attempts = isset($attemptsRaw) ? (int) $attemptsRaw : 0;
+
+            // Normalize status to the values expected by Horizon Hub:
             // - "failed" for failed jobs
             // - "processed" for completed jobs
             // - "processing" for pending/processing jobs
@@ -122,9 +199,7 @@ class HorizonSyncService {
                 'payload' => $payload,
                 'attempts' => $attempts,
                 'status' => $status,
-                // Let HorizonEventProcessor infer queued_at from payload->pushedAt
-                // or leave it null so we do not insert invalid or synthetic dates.
-                'queued_at' => null,
+                'queued_at' => $reservedAt,
                 'processed_at' => $completedAt,
                 'failed_at' => $failedAt,
                 'runtime_seconds' => $job['runtime'] ?? $job['runtime_seconds'] ?? null,

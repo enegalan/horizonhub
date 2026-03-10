@@ -1,4 +1,4 @@
-@props(['disabled' => false])
+@props(['disabled' => false, 'checked' => false])
 
 @php
     $inputAttrs = $attributes->merge([
@@ -7,6 +7,9 @@
     ]);
     if ($disabled) {
         $inputAttrs = $inputAttrs->merge(['disabled' => true]);
+    }
+    if ($checked) {
+        $inputAttrs = $inputAttrs->merge(['checked' => true]);
     }
 @endphp
 <div

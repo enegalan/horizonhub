@@ -29,7 +29,7 @@ docker compose exec hub php artisan key:generate
 docker compose exec hub php artisan migrate --force
 ```
 
-Open http://localhost (redirects to the Horizon dashboard at `/horizon`). The UI is Livewire-based and does not require authentication. Register a service under **Services** and configure its base URL so Horizon Hub can reach its Horizon HTTP API.
+Open http://localhost (redirects to the Horizon dashboard at `/horizon`). Register a service under **Services** and configure its base URL so Horizon Hub can reach its Horizon HTTP API.
 
 ## Hub configuration
 
