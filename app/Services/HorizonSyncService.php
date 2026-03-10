@@ -178,17 +178,7 @@ class HorizonSyncService {
             }
             $attempts = isset($attemptsRaw) ? (int) $attemptsRaw : 0;
 
-            Log::debug('Horizon Hub: sync job from Horizon API', [
-                'service_id' => $service->id,
-                'event_type' => $eventType,
-                'job_id' => $jobId,
-                'queue' => $queue,
-                'attempts_raw' => $attemptsRaw,
-                'attempts_int' => $attempts,
-                'raw_keys' => \array_keys($job),
-            ]);
-
-            // Normalize status to the values expected by the Hub:
+            // Normalize status to the values expected by Horizon Hub:
             // - "failed" for failed jobs
             // - "processed" for completed jobs
             // - "processing" for pending/processing jobs

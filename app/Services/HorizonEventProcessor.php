@@ -121,18 +121,6 @@ class HorizonEventProcessor {
         $runtimeSeconds = isset($event['runtime_seconds']) ? (float) $event['runtime_seconds'] : null;
         $exception = $event['exception'] ?? null;
 
-        Log::debug('Horizon Hub: processing job event', [
-            'service_id' => $service->id,
-            'event_type' => $eventType,
-            'job_id' => $jobId,
-            'queue_raw' => $queueRaw,
-            'queue_normalized' => $queue,
-            'attempts_raw' => $attemptsRaw,
-            'attempts_int' => $attempts,
-            'status_raw' => $statusRaw,
-            'status' => $status,
-        ]);
-
         if ($queuedAt === null && isset($payload) && \is_array($payload)) {
             $pushedAtRaw = $payload['pushedAt'] ?? null;
             if ($pushedAtRaw !== null) {

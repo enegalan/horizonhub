@@ -125,6 +125,12 @@ window.horizon.http = createHttpHelpers();
 // Expose page helpers globally for Alpine x-data initialisation.
 window.horizonJobsPage = horizonJobsPage;
 window.horizonJobDetail = horizonJobDetail;
+window.hydrateMetricsChartsFromDom = hydrateMetricsChartsFromDom;
+window.initMetricsCharts = initMetricsCharts;
+window.processMetricsChartQueue = processMetricsChartQueue;
+if (window.__metricsChartQueue && window.__metricsChartQueue.length) {
+    processMetricsChartQueue();
+}
 
 window.Alpine = Alpine;
 Alpine.start();
@@ -147,6 +153,18 @@ function hydrateMetricsChartsFromDom() {
     if (!data) return;
 
     initMetricsCharts(data);
+}
+
+function processMetricsChartQueue() {
+    if (typeof window.echarts === 'undefined' || typeof initMetricsCharts !== 'function') return;
+    var queue = window.__metricsChartQueue;
+    if (!queue || !queue.length) return;
+    requestAnimationFrame(function () {
+        while (queue.length) {
+            var data = queue.shift();
+            if (data) initMetricsCharts(data);
+        }
+    });
 }
 
 function hydrateAlertDetailChartsFromDom() {

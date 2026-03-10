@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\HorizonFailedJob;
 use App\Models\HorizonJob;
 use App\Models\Service;
-use App\Services\HorizonSyncService;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 
 class MetricsController extends Controller {
     private const HOURS_24 = 24;
@@ -19,42 +19,107 @@ class MetricsController extends Controller {
     /**
      * Show the metrics dashboard.
      *
-     * @param HorizonSyncService $sync
      * @return View
      */
-    public function index(HorizonSyncService $sync): View {
-        $sync->syncRecentJobs(null);
-
-        $jobsPastMinute = $this->getJobsPastMinute();
-        $jobsPastHour = $this->getJobsPastHour();
-        $failedPastSevenDays = $this->getFailedPastSevenDays();
-        $processedPast24Hours = $this->getProcessedPast24Hours();
-        $failuresTable = $this->getFailuresByServiceQueue();
-        $failureRate24h = $this->getFailureRate24h();
-        $processedVsFailed = $this->getProcessedVsFailedOverTime();
-        $failureRateOverTime = $this->getFailureRateOverTime($processedVsFailed);
-        $avgRuntimeOverTime = $this->getAvgRuntimeOverTime();
-        $byQueue = $this->getProcessedFailedByQueue();
-        $byService = $this->getProcessedFailedByService();
-
-        $metricsChartData = [
-            'processedVsFailed' => $processedVsFailed,
-            'failureRateOverTime' => $failureRateOverTime,
-            'avgRuntimeOverTime' => $avgRuntimeOverTime,
-            'byQueue' => $byQueue,
-            'byService' => $byService,
-        ];
-
+    public function index(): View {
         return \view('horizon.metrics.index', [
-            'jobsPastMinute' => $jobsPastMinute,
-            'jobsPastHour' => $jobsPastHour,
-            'failedPastSevenDays' => $failedPastSevenDays,
-            'processedPast24Hours' => $processedPast24Hours,
-            'failuresTable' => $failuresTable,
-            'failureRate24h' => $failureRate24h,
-            'metricsChartData' => $metricsChartData,
+            'jobsPastMinute' => null,
+            'jobsPastHour' => null,
+            'failedPastSevenDays' => null,
+            'processedPast24Hours' => null,
+            'failuresTable' => null,
+            'failureRate24h' => null,
             'header' => 'Horizon Hub – Metrics',
         ]);
+    }
+
+    /**
+     * Get the summary data for the metrics dashboard.
+     * 
+     * @return JsonResponse
+     */
+    public function dataSummary(): JsonResponse {
+        return $this->jsonOrFail(function (): array {
+            return [
+                'jobsPastMinute' => $this->getJobsPastMinute(),
+                'jobsPastHour' => $this->getJobsPastHour(),
+                'failedPastSevenDays' => $this->getFailedPastSevenDays(),
+                'processedPast24Hours' => $this->getProcessedPast24Hours(),
+                'failureRate24h' => $this->getFailureRate24h(),
+            ];
+        });
+    }
+
+    /**
+     * Get the processed vs failed data for the metrics dashboard.
+     * 
+     * @return JsonResponse
+     */
+    public function dataProcessedVsFailed(): JsonResponse {
+        return $this->jsonOrFail(function (): array {
+            $processedVsFailed = $this->getProcessedVsFailedOverTime();
+            $failureRateOverTime = $this->getFailureRateOverTime($processedVsFailed);
+            return [
+                'processedVsFailed' => $processedVsFailed,
+                'failureRateOverTime' => $failureRateOverTime,
+            ];
+        });
+    }
+
+    /**
+     * Get the average runtime data for the metrics dashboard.
+     * 
+     * @return JsonResponse
+     */
+    public function dataAvgRuntime(): JsonResponse {
+        return $this->jsonOrFail(function (): array {
+            return $this->getAvgRuntimeOverTime();
+        });
+    }
+
+    /**
+     * @return JsonResponse
+     */
+    public function dataByQueue(): JsonResponse {
+        return $this->jsonOrFail(function (): array {
+            return $this->getProcessedFailedByQueue();
+        });
+    }
+
+    /**
+     * @return JsonResponse
+     */
+    public function dataByService(): JsonResponse {
+        return $this->jsonOrFail(function (): array {
+            return $this->getProcessedFailedByService();
+        });
+    }
+
+    /**
+     * @return JsonResponse
+     */
+    public function dataFailuresTable(): JsonResponse {
+        return $this->jsonOrFail(function (): array {
+            return [
+                'failuresTable' => $this->getFailuresByServiceQueue(),
+            ];
+        });
+    }
+
+    /**
+     * @param callable(): array $fn
+     * @return JsonResponse
+     */
+    private function jsonOrFail(callable $fn): JsonResponse {
+        try {
+            return \response()->json($fn());
+        } catch (\Throwable $e) {
+            \Log::error('MetricsController failed', [
+                'message' => $e->getMessage(),
+                'trace'   => $e->getTraceAsString(),
+            ]);
+            return \response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     private function normalizeQueueName(?string $queue): ?string {
@@ -180,18 +245,25 @@ class MetricsController extends Controller {
         }
         $processed = HorizonJob::where('status', 'processed')
             ->where('processed_at', '>=', $since)
-            ->get(['processed_at']);
-        foreach ($processed as $j) {
-            $key = $j->processed_at->format($bucketFormat);
-            if (isset($buckets[$key])) {
-                $buckets[$key]['processed']++;
+            ->selectRaw('DATE_FORMAT(processed_at, "%Y-%m-%d %H:00") as bucket, COUNT(*) as cnt')
+            ->groupBy('bucket')
+            ->orderBy('bucket')
+            ->get();
+        foreach ($processed as $row) {
+            $bucket = $row->bucket;
+            if (isset($buckets[$bucket])) {
+                $buckets[$bucket]['processed'] = (int) $row->cnt;
             }
         }
-        $failed = HorizonFailedJob::where('failed_at', '>=', $since)->get(['failed_at']);
-        foreach ($failed as $j) {
-            $key = $j->failed_at->format($bucketFormat);
-            if (isset($buckets[$key])) {
-                $buckets[$key]['failed']++;
+        $failed = HorizonFailedJob::where('failed_at', '>=', $since)
+            ->selectRaw('DATE_FORMAT(failed_at, "%Y-%m-%d %H:00") as bucket, COUNT(*) as cnt')
+            ->groupBy('bucket')
+            ->orderBy('bucket')
+            ->get();
+        foreach ($failed as $row) {
+            $bucket = $row->bucket;
+            if (isset($buckets[$bucket])) {
+                $buckets[$bucket]['failed'] = (int) $row->cnt;
             }
         }
         $xAxis = [];
@@ -242,29 +314,30 @@ class MetricsController extends Controller {
             $buckets[$key] = ['total' => 0.0, 'count' => 0];
         }
 
-        $jobs = HorizonJob::where('status', 'processed')
+        $rows = HorizonJob::where('status', 'processed')
             ->where('processed_at', '>=', $since)
+            ->whereNotNull('processed_at')
+            ->where('runtime_seconds', '>=', 0)
+            ->selectRaw('DATE_FORMAT(processed_at, "%Y-%m-%d %H:00") as bucket, AVG(runtime_seconds) as avg_seconds, COUNT(*) as cnt')
+            ->groupBy('bucket')
+            ->orderBy('bucket')
             ->get();
 
-        foreach ($jobs as $job) {
-            if ($job->processed_at === null) {
-                continue;
-            }
-
-            $bucket = $job->processed_at->copy()->setMinute(0)->setSecond(0)->format($bucketFormat);
+        foreach ($rows as $row) {
+            $bucket = $row->bucket;
 
             if (! isset($buckets[$bucket])) {
                 continue;
             }
 
-            $runtime = $job->getRuntimeSeconds();
+            $avg = $row->avg_seconds !== null ? (float) $row->avg_seconds : null;
 
-            if ($runtime === null) {
+            if ($avg === null) {
                 continue;
             }
 
-            $buckets[$bucket]['total'] += $runtime;
-            $buckets[$bucket]['count']++;
+            $buckets[$bucket]['total'] = $avg;
+            $buckets[$bucket]['count'] = 1;
         }
 
         $xAxis = [];
