@@ -4,7 +4,6 @@
 
 @layer base {
     :root {
-        --livewire-progress-bar-color: var(--primary-40) !important;
         --primary-40: #7746ec40;
         --background: 60 9% 96%;
         --foreground: 30 9% 10%;

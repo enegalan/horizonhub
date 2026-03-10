@@ -109,6 +109,12 @@ class HorizonApiProxyService {
                     }
                 }
 
+                // Any successful call to the service counts as a heartbeat.
+                $service->forceFill([
+                    'last_seen_at' => \now(),
+                    'status' => 'online',
+                ])->saveQuietly();
+
                 return $data === null
                     ? ['success' => true]
                     : ['success' => true, 'data' => $data];
@@ -403,6 +409,18 @@ class HorizonApiProxyService {
     }
 
     /**
+     * Get Horizon masters (and their supervisors) from the Horizon HTTP API for a service.
+     *
+     * @param Service $service
+     * @return array{success: bool, message?: string, status?: int, data?: array}
+     */
+    public function getMasters(Service $service): array {
+        $relativePath = (string) \config('horizonhub.horizon.masters_path', '/masters');
+
+        return $this->call($service, $relativePath, 'get');
+    }
+
+    /**
      * Get failed jobs from the Horizon HTTP API for a service.
      *
      * @param Service $service
@@ -417,6 +435,19 @@ class HorizonApiProxyService {
         $queryString = \http_build_query($query);
 
         return $this->call($service, $path . '?' . $queryString, 'get');
+    }
+
+    /**
+     * Get a single failed job by UUID from the Horizon HTTP API for a service.
+     *
+     * @param Service $service
+     * @param string $jobUuid
+     * @return array{success: bool, message?: string, status?: int, data?: array}
+     */
+    public function getFailedJob(Service $service, string $jobUuid): array {
+        $relativePath = $this->parseTemplate('horizonhub.horizon.failed_job_path', '{id}', $jobUuid);
+
+        return $this->call($service, $relativePath, 'get');
     }
 
     /**

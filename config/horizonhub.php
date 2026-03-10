@@ -18,6 +18,8 @@ return [
     | - workload_path: the relative path used to read queue workload from
     |   the Horizon API.
     | - failed_jobs_path: the relative path to list failed jobs.
+    | - failed_job_path: the relative path to read a single failed job
+    |   by UUID; the "{id}" placeholder will be replaced with the job UUID.
     | - completed_jobs_path: the relative path to list completed jobs.
     | - pending_jobs_path: the relative path to list pending/processing jobs.
     | - headers: optional headers to send to the Horizon API on each request
@@ -31,8 +33,11 @@ return [
         'ping_path' => '/stats',
         'workload_path' => '/workload',
         'failed_jobs_path' => '/jobs/failed',
+        'failed_job_path' => '/jobs/failed/{id}',
         'completed_jobs_path' => '/jobs/completed',
         'pending_jobs_path' => '/jobs/pending',
+        // Horizon masters endpoint used to derive supervisors when agents are not used.
+        'masters_path' => '/masters',
         'headers' => [],
     ],
 
@@ -78,5 +83,15 @@ return [
     |
     */
     'hot_reload_interval' => (int) env('HORIZON_HUB_HOT_RELOAD_INTERVAL', 5),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Jobs Per Page
+    |--------------------------------------------------------------------------
+    |
+    | Default page size for paginated job listings in the Horizon Hub UI.
+    |
+    */
+    'jobs_per_page' => (int) env('HORIZON_HUB_JOBS_PER_PAGE', 20),
 
 ];

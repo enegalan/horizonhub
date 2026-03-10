@@ -1,5 +1,4 @@
 import { onDocumentReady, schedule } from './utils/init';
-import { withLivewireInitialized, onLivewireNavigated, onLivewireRequestSuccess } from './utils/livewire';
 import { parseJson } from './utils/parse';
 
 (function () {
@@ -301,20 +300,5 @@ import { parseJson } from './utils/parse';
     onDocumentReady(() => {
         setupDelegatedDragOver();
         init();
-    });
-
-    onLivewireNavigated(() => {
-        schedule(init);
-    });
-
-    withLivewireInitialized(() => {
-        onLivewireRequestSuccess(() => {
-            schedule(init);
-        });
-        var morphRafId;
-        window.Livewire.hook('morph.updated', () => {
-            cancelAnimationFrame(morphRafId);
-            morphRafId = requestAnimationFrame(init);
-        });
     });
 })();
