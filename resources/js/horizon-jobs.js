@@ -71,9 +71,7 @@ export function horizonJobsPage(config) {
                     this.retryLastPage = 1;
                     this.retryTotal = this.failedJobs.length;
                 }
-                this.selectedFailedIds = this.selectedFailedIds.filter(function (id) {
-                    return data.data.some(function (j) { return j.id === id && j.has_service; });
-                });
+                // Do not clear selectedFailedIds on pagination so selection is kept across pages.
             }).catch(function (error) {
                 console.error('[horizonJobsPage] failedList request error', error);
             });
