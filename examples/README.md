@@ -1,6 +1,6 @@
 # Demo Laravel apps for Horizon Hub
 
-Example Laravel apps with Horizon, used to test the hub with real job events (processed, failed, multiple queues) in development. The hub UI is Livewire-based at `/horizon` (root `/` redirects there); no authentication is required.
+Example Laravel apps with Horizon, used to test the hub with real job events (processed, failed, multiple queues) in development.
 
 ## Overview
 
