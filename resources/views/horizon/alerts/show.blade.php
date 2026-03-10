@@ -131,7 +131,7 @@
                     <x-input-label for="perPage">Per page</x-input-label>
                     <x-select id="perPage" name="per_page" class="w-24" onchange="this.form.submit()">
                         @foreach([10,20,50] as $size)
-                            <option value="{{ $size }}" @selected((int) ($filters['per_page'] ?? 20) === $size)>{{ $size }}</option>
+                            <option value="{{ $size }}" @selected((int) ($filters['per_page'] ?? \config('horizonhub.alerts_per_page')) === $size)>{{ $size }}</option>
                         @endforeach
                     </x-select>
                 </div>
@@ -227,8 +227,8 @@
                 $key = (string) $id;
                 $totals[$key] = ($totals[$key] ?? 0) + 1;
             }
-            $jobIdsLimited = array_slice(array_keys($totals), 0, 25);
-            $jobIdsMore = count($totals) > 25 ? count($totals) - 25 : 0;
+            $jobIdsLimited = array_slice(array_keys($totals), 0, config('horizonhub.alerts_per_page'));
+            $jobIdsMore = count($totals) > config('horizonhub.alerts_per_page') ? count($totals) - config('horizonhub.alerts_per_page') : 0;
         @endphp
         @teleport('body')
             <div id="alert-log-modal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto px-4" role="dialog" aria-modal="true" aria-labelledby="alert-log-modal-title">
@@ -307,4 +307,3 @@
         @endteleport
     @endif
 @endsection
-

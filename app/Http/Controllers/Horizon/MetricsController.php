@@ -89,6 +89,8 @@ class MetricsController extends Controller {
     }
 
     /**
+     * Get the processed vs failed data for the metrics dashboard.
+     *
      * @param Request $request
      * @return JsonResponse
      */
@@ -100,6 +102,8 @@ class MetricsController extends Controller {
     }
 
     /**
+     * Get the processed vs failed data by queue for the metrics dashboard.
+     *
      * @param Request $request
      * @return JsonResponse
      */
@@ -111,6 +115,8 @@ class MetricsController extends Controller {
     }
 
     /**
+     * Get the failures table data for the metrics dashboard.
+     * 
      * @param Request $request
      * @return JsonResponse
      */
@@ -124,6 +130,8 @@ class MetricsController extends Controller {
     }
 
     /**
+     * Return a JSON response or fail with an error.
+     *
      * @param callable(): array $fn
      * @return JsonResponse
      */
@@ -157,6 +165,12 @@ class MetricsController extends Controller {
         return Service::where('id', $id)->exists() ? $id : null;
     }
 
+    /**
+     * Normalize the queue name.
+     *
+     * @param string|null $queue
+     * @return string|null
+     */
     private function normalizeQueueName(?string $queue): ?string {
         if ($queue === null || $queue === '') {
             return $queue;
@@ -171,6 +185,12 @@ class MetricsController extends Controller {
         return $queue;
     }
 
+    /**
+     * Get the number of jobs past minute.
+     *
+     * @param int|null $service_id
+     * @return int
+     */
     private function getJobsPastMinute(?int $service_id = null): int {
         return HorizonJob::where('status', 'processed')
             ->where('processed_at', '>=', \now()->subMinute())
@@ -178,6 +198,12 @@ class MetricsController extends Controller {
             ->count();
     }
 
+    /**
+     * Get the number of jobs past hour.
+     *
+     * @param int|null $service_id
+     * @return int
+     */
     private function getJobsPastHour(?int $service_id = null): int {
         return HorizonJob::where('status', 'processed')
             ->where('processed_at', '>=', \now()->subHour())
@@ -185,12 +211,24 @@ class MetricsController extends Controller {
             ->count();
     }
 
+    /**
+     * Get the number of failed jobs past seven days.
+     *
+     * @param int|null $service_id
+     * @return int
+     */
     private function getFailedPastSevenDays(?int $service_id = null): int {
         return HorizonFailedJob::where('failed_at', '>=', \now()->subDays(7))
             ->when($service_id !== null, fn ($q) => $q->where('service_id', $service_id))
             ->count();
     }
 
+    /**
+     * Get the number of processed jobs past 24 hours.
+     *
+     * @param int|null $service_id
+     * @return int
+     */
     private function getProcessedPast24Hours(?int $service_id = null): int {
         return HorizonJob::where('status', 'processed')
             ->where('processed_at', '>=', \now()->subDay())
@@ -199,6 +237,9 @@ class MetricsController extends Controller {
     }
 
     /**
+     * Get the failures by service and queue.
+     *
+     * @param int|null $service_id
      * @return array<int, array{service: string, queue: string, cnt: int}>
      */
     private function getFailuresByServiceQueue(?int $service_id = null): array {
@@ -254,6 +295,9 @@ class MetricsController extends Controller {
     }
 
     /**
+     * Get the failure rate for the past 24 hours.
+     *
+     * @param int|null $service_id
      * @return array{rate: float, processed: int, failed: int}
      */
     private function getFailureRate24h(?int $service_id = null): array {
@@ -276,6 +320,9 @@ class MetricsController extends Controller {
     }
 
     /**
+     * Get the processed vs failed data over time.
+     *
+     * @param int|null $service_id
      * @return array{xAxis: list<string>, processed: list<int>, failed: list<int>}
      */
     private function getProcessedVsFailedOverTime(?int $service_id = null): array {
@@ -328,6 +375,8 @@ class MetricsController extends Controller {
     }
 
     /**
+     * Get the failure rate over time.
+     *
      * @param array{xAxis: list<string>, processed: list<int>, failed: list<int>} $data
      * @return array{xAxis: list<string>, rate: list<float>}
      */
@@ -347,6 +396,9 @@ class MetricsController extends Controller {
     }
 
     /**
+     * Get the average runtime over time.
+     *
+     * @param int|null $service_id
      * @return array{xAxis: list<string>, avgSeconds: list<float|null>}
      */
     private function getAvgRuntimeOverTime(?int $service_id = null): array {
@@ -399,6 +451,9 @@ class MetricsController extends Controller {
     }
 
     /**
+     * Get the processed vs failed data by queue.
+     *
+     * @param int|null $service_id
      * @return array{queues: list<string>, processed: list<int>, failed: list<int>}
      */
     private function getProcessedFailedByQueue(?int $service_id = null): array {
@@ -454,6 +509,9 @@ class MetricsController extends Controller {
     }
 
     /**
+     * Get the processed vs failed data by service.
+     *
+     * @param int|null $service_id
      * @return array{services: list<string>, processed: list<int>, failed: list[int]}
      */
     private function getProcessedFailedByService(?int $service_id = null): array {
@@ -493,4 +551,3 @@ class MetricsController extends Controller {
         return ['services' => $services, 'processed' => $processed, 'failed' => $failed];
     }
 }
-

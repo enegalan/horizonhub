@@ -36,7 +36,6 @@ return [
         'failed_job_path' => '/jobs/failed/{id}',
         'completed_jobs_path' => '/jobs/completed',
         'pending_jobs_path' => '/jobs/pending',
-        // Horizon masters endpoint used to derive supervisors when agents are not used.
         'masters_path' => '/masters',
         'headers' => [],
     ],

@@ -71,7 +71,6 @@ class JobActionController extends Controller {
             'per_page' => 'nullable|integer|min:1|max:100',
         ]);
 
-        // Use HorizonJob with status=failed so the modal matches the main jobs table
         $query = HorizonJob::with('service')
             ->where('status', 'failed')
             ->orderByDesc('failed_at');

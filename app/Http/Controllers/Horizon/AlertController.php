@@ -84,7 +84,7 @@ class AlertController extends Controller {
     }
 
     /**
-     * Show alert detail (charts + delivery logs).
+     * Show alert detail.
      *
      * @param Alert $alert
      * @param Request $request
@@ -93,9 +93,9 @@ class AlertController extends Controller {
     public function show(Alert $alert, Request $request): View {
         $statusFilter = (string) $request->query('status', '');
         $serviceFilter = $request->query('service_id');
-        $perPage = (int) $request->query('per_page', 20);
+        $perPage = (int) $request->query('per_page', \config('horizonhub.alerts_per_page'));
         if ($perPage <= 0) {
-            $perPage = 20;
+            $perPage = \config('horizonhub.alerts_per_page');
         }
 
         $logsQuery = $alert->alertLogs()

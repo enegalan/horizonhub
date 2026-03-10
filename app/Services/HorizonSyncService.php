@@ -50,8 +50,6 @@ class HorizonSyncService {
             return;
         }
 
-        // First, sync supervisors based on Horizon masters API so that
-        // service dashboards can display supervisor information without agents.
         $masters = $this->horizonApi->getMasters($service);
         if ($masters['success'] ?? false) {
             $this->syncSupervisorsFromMasters($service, $masters);

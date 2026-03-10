@@ -157,7 +157,6 @@ class ServiceController extends Controller {
      * @return View
      */
     public function show(Service $service): View {
-        // Ensure we have fresh supervisors / jobs for this service using Horizon HTTP API.
         $this->horizonSync->syncRecentJobs((int) $service->id);
 
         $serviceId = $service->id;
@@ -220,4 +219,3 @@ class ServiceController extends Controller {
         return $apiKey;
     }
 }
-

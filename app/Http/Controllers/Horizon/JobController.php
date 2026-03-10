@@ -31,13 +31,7 @@ class JobController extends Controller {
         $statusFilter = (string) $request->query('statusFilter', '');
         $search = (string) $request->query('search', '');
 
-        // Always try to sync recent jobs from the Horizon HTTP API so the
-        // local database reflects the latest state, even without agents.
-        if ($serviceFilter !== '') {
-            $this->horizonSync->syncRecentJobs((int) $serviceFilter);
-        } else {
-            $this->horizonSync->syncRecentJobs(null);
-        }
+        $this->horizonSync->syncRecentJobs($serviceFilter !== '' ? (int) $serviceFilter : null);
 
         $query = HorizonJob::query()
             ->with('service')
@@ -144,7 +138,7 @@ class JobController extends Controller {
     }
 
     /**
-     * Fetch live job metadata (attempts, connection, retries, tags, uuid) from Horizon HTTP API.
+     * Fetch live job metadata from Horizon HTTP API.
      *
      * @param HorizonJob|HorizonFailedJob $job
      * @return array<string, mixed>|null
@@ -167,13 +161,7 @@ class JobController extends Controller {
             return null;
         }
 
-        // Horizon's single-job endpoint may return either the job object directly
-        // or wrap it in a "job" key; handle both.
-        if (isset($data['job']) && \is_array($data['job'])) {
-            $jobData = $data['job'];
-        } else {
-            $jobData = $data;
-        }
+        $jobData = $data['job'] && \is_array($data['job']) ? $data['job'] : $data;
 
         $attemptsRaw = $jobData['attempts'] ?? null;
 

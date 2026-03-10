@@ -7,6 +7,7 @@
             failedListUrl: '{{ route('api.horizon.jobs.failed') }}',
             retryBatchUrl: '{{ route('api.jobs.retry-batch') }}',
             cleanUrl: '{{ route('api.horizon.jobs.clean') }}',
+            jobsPerPage: {{ config('horizonhub.jobs_per_page') }},
         }) : {}"
         x-init="
             if (typeof cleanFilters !== 'undefined') {
@@ -439,6 +440,6 @@
     </div>
 
     <script>
-        window.__horizonInitialCleanCount = {{ (int) $jobs->total() }};
+        // window.__horizonInitialCleanCount = {{ (int) $jobs->total() }};
     </script>
 @endsection

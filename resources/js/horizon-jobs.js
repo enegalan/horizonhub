@@ -13,7 +13,7 @@ export function horizonJobsPage(config) {
         retryPage: 1,
         retryLastPage: 1,
         retryTotal: 0,
-        retryPerPage: 25,
+        retryPerPage: config.jobsPerPage,
         retryFilters: {
             service_id: '',
             search: '',
@@ -27,23 +27,20 @@ export function horizonJobsPage(config) {
         },
         init() {
             var self = this;
-            // Soft hot-reload: refresh only the jobs table via AJAX,
-            // without a full page reload or closing modals.
             window.addEventListener('horizonhub-refresh', function () {
                 if (self.showRetryModal || self.showCleanModal) return;
                 if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
                 self.refreshJobsTable();
             });
 
-            if (typeof window.__horizonInitialCleanCount === 'number' && this.cleanCount === 0) {
-                this.cleanCount = window.__horizonInitialCleanCount;
-            }
+            // if (typeof window.__horizonInitialCleanCount === 'number' && this.cleanCount === 0) {
+            //     this.cleanCount = window.__horizonInitialCleanCount;
+            // }
         },
         openRetryModal() {
             this.showRetryModal = true;
             this.selectedFailedIds = [];
             this.retryPage = 1;
-            console.log('[horizonJobsPage] openRetryModal: calling loadFailedJobs');
             this.loadFailedJobs();
         },
         closeRetryModal() {
@@ -63,12 +60,7 @@ export function horizonJobsPage(config) {
             if (this.retryPage) params.append('page', this.retryPage);
             if (this.retryPerPage) params.append('per_page', this.retryPerPage);
             var url = config.failedListUrl + (params.toString() ? ('?' + params.toString()) : '');
-            console.log('[horizonJobsPage] GET failedList', url);
             window.horizon.http.get(url).then((data) => {
-                console.log('[horizonJobsPage] failedList response', {
-                    length: Array.isArray(data.data) ? data.data.length : null,
-                    meta: data.meta || null,
-                });
                 this.failedJobs = Array.isArray(data.data) ? data.data : [];
                 if (data.meta) {
                     this.retryPage = typeof data.meta.current_page === 'number' ? data.meta.current_page : 1;
@@ -201,7 +193,6 @@ export function horizonJobsPage(config) {
                 var currentTbody = currentTable.querySelector('tbody');
                 if (newTbody && currentTbody) {
                     currentTbody.replaceWith(newTbody);
-                    // Reformat datetime cells inside the updated table body
                     formatDateTimeElements(currentTable);
                 }
             }).catch(function () {
@@ -215,8 +206,6 @@ export function horizonJobDetail(config) {
         retrying: false,
         init() {
             var self = this;
-            // Soft hot-reload for job detail: refresh the detail card via AJAX
-            // instead of forcing a full page reload.
             window.addEventListener('horizonhub-refresh', function () {
                 if (self.retrying) return;
                 if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
@@ -231,8 +220,6 @@ export function horizonJobDetail(config) {
                 if (window.toast && window.toast.success) {
                     window.toast.success('Retry requested.');
                 }
-                // After a successful retry request, trigger a soft hot-reload
-                // so the job detail reflects the latest data from Horizon.
                 if (typeof window !== 'undefined') {
                     window.dispatchEvent(new Event('horizonhub-refresh'));
                 }
@@ -260,11 +247,9 @@ export function horizonJobDetail(config) {
                 if (!newRoot || !currentRoot) return;
 
                 currentRoot.replaceWith(newRoot);
-                // Reformat datetime elements within the refreshed detail card.
                 formatDateTimeElements(newRoot);
             }).catch(function () {
             });
         },
     };
 }
-
