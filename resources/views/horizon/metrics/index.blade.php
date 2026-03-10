@@ -114,8 +114,7 @@
             var allLoaderIds = [
                 'metrics-loader-jobs-minute', 'metrics-loader-jobs-hour', 'metrics-loader-failed-seven',
                 'metrics-loader-processed-24', 'metrics-loader-failure-rate', 'metrics-loader-processed-failed',
-                'metrics-loader-failure-rate-chart', 'metrics-loader-runtime-chart', 'metrics-loader-queue-chart',
-                'metrics-loader-service-chart'
+                'metrics-loader-failure-rate-chart', 'metrics-loader-runtime-chart', 'metrics-loader-queue-chart'
             ];
 
             function getUrl(base, serviceId) {
@@ -132,7 +131,7 @@
             function showLoader(id) {
                 var el = document.getElementById(id);
                 if (!el) return;
-                if (id === 'metrics-loader-processed-failed' || id === 'metrics-loader-failure-rate-chart' || id === 'metrics-loader-runtime-chart' || id === 'metrics-loader-queue-chart' || id === 'metrics-loader-service-chart') {
+                if (id === 'metrics-loader-processed-failed' || id === 'metrics-loader-failure-rate-chart' || id === 'metrics-loader-runtime-chart' || id === 'metrics-loader-queue-chart') {
                     el.style.display = 'flex';
                 } else {
                     el.style.display = '';
@@ -196,7 +195,7 @@
                     processedVsFailed: getUrl(baseUrls.processedVsFailed, serviceId),
                     avgRuntime: getUrl(baseUrls.avgRuntime, serviceId),
                     byQueue: getUrl(baseUrls.byQueue, serviceId),
-                    byService: getUrl(baseUrls.byService, serviceId)
+                    byService: getUrl(baseUrls.byService, null)
                 };
 
                 fetchSection(urls.summary, function (d) {
