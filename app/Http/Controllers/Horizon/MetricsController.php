@@ -9,6 +9,8 @@ use App\Models\Service;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class MetricsController extends Controller {
     private const HOURS_24 = 24;
@@ -22,6 +24,8 @@ class MetricsController extends Controller {
      * @return View
      */
     public function index(): View {
+        $services = Service::orderBy('name')->get(['id', 'name']);
+
         return \view('horizon.metrics.index', [
             'jobsPastMinute' => null,
             'jobsPastHour' => null,
@@ -30,34 +34,39 @@ class MetricsController extends Controller {
             'failuresTable' => null,
             'failureRate24h' => null,
             'header' => 'Horizon Hub – Metrics',
+            'services' => $services,
         ]);
     }
 
     /**
      * Get the summary data for the metrics dashboard.
-     * 
+     *
+     * @param Request $request
      * @return JsonResponse
      */
-    public function dataSummary(): JsonResponse {
-        return $this->jsonOrFail(function (): array {
+    public function dataSummary(Request $request): JsonResponse {
+        $service_id = $this->resolveServiceId($request);
+        return $this->jsonOrFail(function () use ($service_id): array {
             return [
-                'jobsPastMinute' => $this->getJobsPastMinute(),
-                'jobsPastHour' => $this->getJobsPastHour(),
-                'failedPastSevenDays' => $this->getFailedPastSevenDays(),
-                'processedPast24Hours' => $this->getProcessedPast24Hours(),
-                'failureRate24h' => $this->getFailureRate24h(),
+                'jobsPastMinute' => $this->getJobsPastMinute($service_id),
+                'jobsPastHour' => $this->getJobsPastHour($service_id),
+                'failedPastSevenDays' => $this->getFailedPastSevenDays($service_id),
+                'processedPast24Hours' => $this->getProcessedPast24Hours($service_id),
+                'failureRate24h' => $this->getFailureRate24h($service_id),
             ];
         });
     }
 
     /**
      * Get the processed vs failed data for the metrics dashboard.
-     * 
+     *
+     * @param Request $request
      * @return JsonResponse
      */
-    public function dataProcessedVsFailed(): JsonResponse {
-        return $this->jsonOrFail(function (): array {
-            $processedVsFailed = $this->getProcessedVsFailedOverTime();
+    public function dataProcessedVsFailed(Request $request): JsonResponse {
+        $service_id = $this->resolveServiceId($request);
+        return $this->jsonOrFail(function () use ($service_id): array {
+            $processedVsFailed = $this->getProcessedVsFailedOverTime($service_id);
             $failureRateOverTime = $this->getFailureRateOverTime($processedVsFailed);
             return [
                 'processedVsFailed' => $processedVsFailed,
@@ -68,40 +77,48 @@ class MetricsController extends Controller {
 
     /**
      * Get the average runtime data for the metrics dashboard.
-     * 
+     *
+     * @param Request $request
      * @return JsonResponse
      */
-    public function dataAvgRuntime(): JsonResponse {
-        return $this->jsonOrFail(function (): array {
-            return $this->getAvgRuntimeOverTime();
+    public function dataAvgRuntime(Request $request): JsonResponse {
+        $service_id = $this->resolveServiceId($request);
+        return $this->jsonOrFail(function () use ($service_id): array {
+            return $this->getAvgRuntimeOverTime($service_id);
         });
     }
 
     /**
+     * @param Request $request
      * @return JsonResponse
      */
-    public function dataByQueue(): JsonResponse {
-        return $this->jsonOrFail(function (): array {
-            return $this->getProcessedFailedByQueue();
+    public function dataByQueue(Request $request): JsonResponse {
+        $service_id = $this->resolveServiceId($request);
+        return $this->jsonOrFail(function () use ($service_id): array {
+            return $this->getProcessedFailedByQueue($service_id);
         });
     }
 
     /**
+     * @param Request $request
      * @return JsonResponse
      */
-    public function dataByService(): JsonResponse {
-        return $this->jsonOrFail(function (): array {
-            return $this->getProcessedFailedByService();
+    public function dataByService(Request $request): JsonResponse {
+        $service_id = $this->resolveServiceId($request);
+        return $this->jsonOrFail(function () use ($service_id): array {
+            return $this->getProcessedFailedByService($service_id);
         });
     }
 
     /**
+     * @param Request $request
      * @return JsonResponse
      */
-    public function dataFailuresTable(): JsonResponse {
-        return $this->jsonOrFail(function (): array {
+    public function dataFailuresTable(Request $request): JsonResponse {
+        $service_id = $this->resolveServiceId($request);
+        return $this->jsonOrFail(function () use ($service_id): array {
             return [
-                'failuresTable' => $this->getFailuresByServiceQueue(),
+                'failuresTable' => $this->getFailuresByServiceQueue($service_id),
             ];
         });
     }
@@ -122,6 +139,24 @@ class MetricsController extends Controller {
         }
     }
 
+    /**
+     * Resolve optional service_id from request. Returns null for "all services".
+     *
+     * @param Request $request
+     * @return int|null
+     */
+    private function resolveServiceId(Request $request): ?int {
+        $raw = $request->query('service_id');
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+        $id = \filter_var($raw, \FILTER_VALIDATE_INT);
+        if ($id === false || $id < 1) {
+            return null;
+        }
+        return Service::where('id', $id)->exists() ? $id : null;
+    }
+
     private function normalizeQueueName(?string $queue): ?string {
         if ($queue === null || $queue === '') {
             return $queue;
@@ -136,36 +171,42 @@ class MetricsController extends Controller {
         return $queue;
     }
 
-    private function getJobsPastMinute(): int {
+    private function getJobsPastMinute(?int $service_id = null): int {
         return HorizonJob::where('status', 'processed')
             ->where('processed_at', '>=', \now()->subMinute())
+            ->when($service_id !== null, fn ($q) => $q->where('service_id', $service_id))
             ->count();
     }
 
-    private function getJobsPastHour(): int {
+    private function getJobsPastHour(?int $service_id = null): int {
         return HorizonJob::where('status', 'processed')
             ->where('processed_at', '>=', \now()->subHour())
+            ->when($service_id !== null, fn ($q) => $q->where('service_id', $service_id))
             ->count();
     }
 
-    private function getFailedPastSevenDays(): int {
-        return HorizonFailedJob::where('failed_at', '>=', \now()->subDays(7))->count();
+    private function getFailedPastSevenDays(?int $service_id = null): int {
+        return HorizonFailedJob::where('failed_at', '>=', \now()->subDays(7))
+            ->when($service_id !== null, fn ($q) => $q->where('service_id', $service_id))
+            ->count();
     }
 
-    private function getProcessedPast24Hours(): int {
+    private function getProcessedPast24Hours(?int $service_id = null): int {
         return HorizonJob::where('status', 'processed')
             ->where('processed_at', '>=', \now()->subDay())
+            ->when($service_id !== null, fn ($q) => $q->where('service_id', $service_id))
             ->count();
     }
 
     /**
      * @return array<int, array{service: string, queue: string, cnt: int}>
      */
-    private function getFailuresByServiceQueue(): array {
+    private function getFailuresByServiceQueue(?int $service_id = null): array {
         $since = \now()->subDays(7);
 
         $rows = HorizonFailedJob::query()
             ->where('failed_at', '>=', $since)
+            ->when($service_id !== null, fn ($q) => $q->where('service_id', $service_id))
             ->selectRaw('service_id, queue, COUNT(*) as cnt')
             ->groupBy('service_id', 'queue')
             ->orderByDesc('cnt')
@@ -215,12 +256,14 @@ class MetricsController extends Controller {
     /**
      * @return array{rate: float, processed: int, failed: int}
      */
-    private function getFailureRate24h(): array {
+    private function getFailureRate24h(?int $service_id = null): array {
         $since = \now()->subDay();
         $processed = HorizonJob::where('created_at', '>=', $since)
             ->where('status', 'processed')
+            ->when($service_id !== null, fn ($q) => $q->where('service_id', $service_id))
             ->count();
         $failed = HorizonFailedJob::where('failed_at', '>=', $since)
+            ->when($service_id !== null, fn ($q) => $q->where('service_id', $service_id))
             ->count();
         $total = $processed + $failed;
         $rate = $total > 0 ? \round(100 * $failed / $total, 1) : 0;
@@ -235,7 +278,7 @@ class MetricsController extends Controller {
     /**
      * @return array{xAxis: list<string>, processed: list<int>, failed: list<int>}
      */
-    private function getProcessedVsFailedOverTime(): array {
+    private function getProcessedVsFailedOverTime(?int $service_id = null): array {
         $since = \now()->subHours(self::HOURS_24);
         $bucketFormat = 'Y-m-d H:00';
         $buckets = [];
@@ -245,6 +288,7 @@ class MetricsController extends Controller {
         }
         $processed = HorizonJob::where('status', 'processed')
             ->where('processed_at', '>=', $since)
+            ->when($service_id !== null, fn ($q) => $q->where('service_id', $service_id))
             ->selectRaw('DATE_FORMAT(processed_at, "%Y-%m-%d %H:00") as bucket, COUNT(*) as cnt')
             ->groupBy('bucket')
             ->orderBy('bucket')
@@ -256,6 +300,7 @@ class MetricsController extends Controller {
             }
         }
         $failed = HorizonFailedJob::where('failed_at', '>=', $since)
+            ->when($service_id !== null, fn ($q) => $q->where('service_id', $service_id))
             ->selectRaw('DATE_FORMAT(failed_at, "%Y-%m-%d %H:00") as bucket, COUNT(*) as cnt')
             ->groupBy('bucket')
             ->orderBy('bucket')
@@ -304,21 +349,30 @@ class MetricsController extends Controller {
     /**
      * @return array{xAxis: list<string>, avgSeconds: list<float|null>}
      */
-    private function getAvgRuntimeOverTime(): array {
+    private function getAvgRuntimeOverTime(?int $service_id = null): array {
         $since = \now()->subHours(self::HOURS_24);
         $bucketFormat = 'Y-m-d H:00';
 
         $buckets = [];
         for ($i = 0; $i < self::HOURS_24; $i++) {
             $key = \now()->subHours(self::HOURS_24 - 1 - $i)->format($bucketFormat);
-            $buckets[$key] = ['total' => 0.0, 'count' => 0];
+            $buckets[$key] = ['avg_seconds' => null];
         }
+
+        $driver = DB::connection()->getDriverName();
+        $runtimeExpr = $driver === 'mysql'
+            ? 'AVG(COALESCE(runtime_seconds, TIMESTAMPDIFF(SECOND, queued_at, processed_at)))'
+            : 'AVG(COALESCE(runtime_seconds, (julianday(processed_at) - julianday(queued_at)) * 86400))';
+        $bucketExpr = $driver === 'mysql'
+            ? 'DATE_FORMAT(processed_at, "%Y-%m-%d %H:00")'
+            : "strftime('%Y-%m-%d %H:00', processed_at)";
 
         $rows = HorizonJob::where('status', 'processed')
             ->where('processed_at', '>=', $since)
             ->whereNotNull('processed_at')
-            ->where('runtime_seconds', '>=', 0)
-            ->selectRaw('DATE_FORMAT(processed_at, "%Y-%m-%d %H:00") as bucket, AVG(runtime_seconds) as avg_seconds, COUNT(*) as cnt')
+            ->whereNotNull('queued_at')
+            ->when($service_id !== null, fn ($q) => $q->where('service_id', $service_id))
+            ->selectRaw("{$bucketExpr} as bucket, {$runtimeExpr} as avg_seconds, COUNT(*) as cnt")
             ->groupBy('bucket')
             ->orderBy('bucket')
             ->get();
@@ -330,14 +384,7 @@ class MetricsController extends Controller {
                 continue;
             }
 
-            $avg = $row->avg_seconds !== null ? (float) $row->avg_seconds : null;
-
-            if ($avg === null) {
-                continue;
-            }
-
-            $buckets[$bucket]['total'] = $avg;
-            $buckets[$bucket]['count'] = 1;
+            $buckets[$bucket]['avg_seconds'] = $row->avg_seconds !== null ? (float) $row->avg_seconds : null;
         }
 
         $xAxis = [];
@@ -345,7 +392,7 @@ class MetricsController extends Controller {
 
         foreach ($buckets as $k => $v) {
             $xAxis[] = Carbon::parse($k)->format('H:i');
-            $series[] = $v['count'] > 0 ? \round($v['total'] / $v['count'], 2) : null;
+            $series[] = $v['avg_seconds'] !== null ? \round($v['avg_seconds'], 2) : null;
         }
 
         return ['xAxis' => $xAxis, 'avgSeconds' => $series];
@@ -354,15 +401,17 @@ class MetricsController extends Controller {
     /**
      * @return array{queues: list<string>, processed: list<int>, failed: list<int>}
      */
-    private function getProcessedFailedByQueue(): array {
+    private function getProcessedFailedByQueue(?int $service_id = null): array {
         $since = \now()->subDays(self::DAYS_7);
         $processedByQueue = HorizonJob::where('status', 'processed')
             ->where('processed_at', '>=', $since)
+            ->when($service_id !== null, fn ($q) => $q->where('service_id', $service_id))
             ->selectRaw('queue, COUNT(*) as cnt')
             ->groupBy('queue')
             ->pluck('cnt', 'queue')
             ->all();
         $failedByQueue = HorizonFailedJob::where('failed_at', '>=', $since)
+            ->when($service_id !== null, fn ($q) => $q->where('service_id', $service_id))
             ->selectRaw('queue, COUNT(*) as cnt')
             ->groupBy('queue')
             ->pluck('cnt', 'queue')
@@ -407,15 +456,17 @@ class MetricsController extends Controller {
     /**
      * @return array{services: list<string>, processed: list<int>, failed: list[int]}
      */
-    private function getProcessedFailedByService(): array {
+    private function getProcessedFailedByService(?int $service_id = null): array {
         $since = \now()->subDays(self::DAYS_7);
         $processedByService = HorizonJob::where('status', 'processed')
             ->where('processed_at', '>=', $since)
+            ->when($service_id !== null, fn ($q) => $q->where('service_id', $service_id))
             ->selectRaw('service_id, COUNT(*) as cnt')
             ->groupBy('service_id')
             ->pluck('cnt', 'service_id')
             ->all();
         $failedByService = HorizonFailedJob::where('failed_at', '>=', $since)
+            ->when($service_id !== null, fn ($q) => $q->where('service_id', $service_id))
             ->selectRaw('service_id, COUNT(*) as cnt')
             ->groupBy('service_id')
             ->pluck('cnt', 'service_id')

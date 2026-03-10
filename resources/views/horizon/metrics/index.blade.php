@@ -1,6 +1,15 @@
 @extends('layouts.app')
 
 @section('content')
+    <div class="mb-4 flex flex-wrap items-center gap-3">
+        <label for="metrics-service-filter" class="label-muted text-sm">Filter by service</label>
+        <x-select id="metrics-service-filter" class="w-48" placeholder="All services">
+            @foreach($services ?? [] as $service)
+                <option value="{{ $service->id }}">{{ $service->name }}</option>
+            @endforeach
+        </x-select>
+    </div>
+
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
         <div class="card p-4">
             <h3 class="label-muted">Jobs past minute</h3>
@@ -114,7 +123,7 @@
 
     <script>
         (function () {
-            var urls = {
+            var baseUrls = {
                 summary: {{ Js::from(route('horizon.metrics.data.summary')) }},
                 processedVsFailed: {{ Js::from(route('horizon.metrics.data.processed-vs-failed')) }},
                 avgRuntime: {{ Js::from(route('horizon.metrics.data.avg-runtime')) }},
@@ -123,9 +132,34 @@
                 failuresTable: {{ Js::from(route('horizon.metrics.data.failures-table')) }}
             };
 
+            var allLoaderIds = [
+                'metrics-loader-jobs-minute', 'metrics-loader-jobs-hour', 'metrics-loader-failed-seven',
+                'metrics-loader-processed-24', 'metrics-loader-failure-rate', 'metrics-loader-processed-failed',
+                'metrics-loader-failure-rate-chart', 'metrics-loader-runtime-chart', 'metrics-loader-queue-chart',
+                'metrics-loader-service-chart', 'metrics-loader-failures-table'
+            ];
+
+            function getUrl(base, serviceId) {
+                if (!serviceId) return base;
+                var sep = base.indexOf('?') === -1 ? '?' : '&';
+                return base + sep + 'service_id=' + encodeURIComponent(serviceId);
+            }
+
             function hideLoader(id) {
                 var el = document.getElementById(id);
                 if (el) el.style.display = 'none';
+            }
+
+            function showLoader(id) {
+                var el = document.getElementById(id);
+                if (!el) return;
+                if (id === 'metrics-loader-processed-failed' || id === 'metrics-loader-failure-rate-chart' || id === 'metrics-loader-runtime-chart' || id === 'metrics-loader-queue-chart' || id === 'metrics-loader-service-chart') {
+                    el.style.display = 'flex';
+                } else if (id === 'metrics-loader-failures-table') {
+                    el.style.display = 'flex';
+                } else {
+                    el.style.display = '';
+                }
             }
 
             function formatNum(n) {
@@ -163,65 +197,103 @@
                     });
             }
 
-            fetchSection(urls.summary, function (d) {
+            function setSummaryPlaceholders() {
                 var v = document.getElementById('metrics-value-jobs-minute');
-                if (v) v.textContent = formatNum(d.jobsPastMinute);
+                if (v) v.textContent = '—';
                 v = document.getElementById('metrics-value-jobs-hour');
-                if (v) v.textContent = formatNum(d.jobsPastHour);
+                if (v) v.textContent = '—';
                 v = document.getElementById('metrics-value-failed-seven');
-                if (v) v.textContent = formatNum(d.failedPastSevenDays);
+                if (v) v.textContent = '—';
                 v = document.getElementById('metrics-value-processed-24');
-                if (v) v.textContent = formatNum(d.processedPast24Hours);
+                if (v) v.textContent = '—';
                 v = document.getElementById('metrics-value-failure-rate');
-                if (v && d.failureRate24h) {
-                    var r = d.failureRate24h;
-                    v.innerHTML = r.rate + '% <span class="text-xs font-normal text-muted-foreground">(' + r.failed + ' failed / ' + r.processed + ' processed)</span>';
-                }
-            }, ['metrics-loader-jobs-minute', 'metrics-loader-jobs-hour', 'metrics-loader-failed-seven', 'metrics-loader-processed-24', 'metrics-loader-failure-rate']);
+                if (v) v.textContent = '—';
+            }
 
-            fetchSection(urls.processedVsFailed, function (d) {
-                hideLoader('metrics-loader-processed-failed');
-                hideLoader('metrics-loader-failure-rate-chart');
-                renderChart(d);
-            }, null);
-
-            fetchSection(urls.avgRuntime, function (d) {
-                hideLoader('metrics-loader-runtime-chart');
-                renderChart({ avgRuntimeOverTime: d });
-            }, null);
-
-            fetchSection(urls.byQueue, function (d) {
-                hideLoader('metrics-loader-queue-chart');
-                renderChart({ byQueue: d });
-            }, null);
-
-            fetchSection(urls.byService, function (d) {
-                hideLoader('metrics-loader-service-chart');
-                renderChart({ byService: d });
-            }, null);
-
-            fetchSection(urls.failuresTable, function (d) {
-                var loader = document.getElementById('metrics-loader-failures-table');
+            function loadAllMetrics(serviceId) {
+                allLoaderIds.forEach(showLoader);
+                setSummaryPlaceholders();
                 var table = document.getElementById('metrics-failures-table');
-                var tbody = document.getElementById('metrics-failures-tbody');
-                if (!tbody) return;
-                if (loader) loader.style.display = 'none';
-                if (table) table.style.display = 'table';
-                var rows = d.failuresTable || [];
-                tbody.innerHTML = '';
-                if (rows.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-6 text-center text-muted-foreground text-sm">No failures in the past 7 days</td></tr>';
-                    return;
-                }
-                rows.forEach(function (r) {
-                    var tr = document.createElement('tr');
-                    tr.className = 'hover:bg-muted/30';
-                    tr.innerHTML = '<td class="px-4 py-2.5 font-medium text-foreground">' + esc(r.service) + '</td>' +
-                        '<td class="px-4 py-2.5 font-mono text-xs text-muted-foreground">' + esc(r.queue) + '</td>' +
-                        '<td class="px-4 py-2.5 text-right text-muted-foreground">' + formatNum(r.cnt) + '</td>';
-                    tbody.appendChild(tr);
+                if (table) table.style.display = 'none';
+
+                var urls = {
+                    summary: getUrl(baseUrls.summary, serviceId),
+                    processedVsFailed: getUrl(baseUrls.processedVsFailed, serviceId),
+                    avgRuntime: getUrl(baseUrls.avgRuntime, serviceId),
+                    byQueue: getUrl(baseUrls.byQueue, serviceId),
+                    byService: getUrl(baseUrls.byService, serviceId),
+                    failuresTable: getUrl(baseUrls.failuresTable, serviceId)
+                };
+
+                fetchSection(urls.summary, function (d) {
+                    var v = document.getElementById('metrics-value-jobs-minute');
+                    if (v) v.textContent = formatNum(d.jobsPastMinute);
+                    v = document.getElementById('metrics-value-jobs-hour');
+                    if (v) v.textContent = formatNum(d.jobsPastHour);
+                    v = document.getElementById('metrics-value-failed-seven');
+                    if (v) v.textContent = formatNum(d.failedPastSevenDays);
+                    v = document.getElementById('metrics-value-processed-24');
+                    if (v) v.textContent = formatNum(d.processedPast24Hours);
+                    v = document.getElementById('metrics-value-failure-rate');
+                    if (v && d.failureRate24h) {
+                        var r = d.failureRate24h;
+                        v.innerHTML = r.rate + '% <span class="text-xs font-normal text-muted-foreground">(' + r.failed + ' failed / ' + r.processed + ' processed)</span>';
+                    }
+                }, ['metrics-loader-jobs-minute', 'metrics-loader-jobs-hour', 'metrics-loader-failed-seven', 'metrics-loader-processed-24', 'metrics-loader-failure-rate']);
+
+                fetchSection(urls.processedVsFailed, function (d) {
+                    hideLoader('metrics-loader-processed-failed');
+                    hideLoader('metrics-loader-failure-rate-chart');
+                    renderChart(d);
+                }, null);
+
+                fetchSection(urls.avgRuntime, function (d) {
+                    hideLoader('metrics-loader-runtime-chart');
+                    renderChart({ avgRuntimeOverTime: d });
+                }, null);
+
+                fetchSection(urls.byQueue, function (d) {
+                    hideLoader('metrics-loader-queue-chart');
+                    renderChart({ byQueue: d });
+                }, null);
+
+                fetchSection(urls.byService, function (d) {
+                    hideLoader('metrics-loader-service-chart');
+                    renderChart({ byService: d });
+                }, null);
+
+                fetchSection(urls.failuresTable, function (d) {
+                    var loader = document.getElementById('metrics-loader-failures-table');
+                    var tableEl = document.getElementById('metrics-failures-table');
+                    var tbody = document.getElementById('metrics-failures-tbody');
+                    if (!tbody) return;
+                    if (loader) loader.style.display = 'none';
+                    if (tableEl) tableEl.style.display = 'table';
+                    var rows = d.failuresTable || [];
+                    tbody.innerHTML = '';
+                    if (rows.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-6 text-center text-muted-foreground text-sm">No failures in the past 7 days</td></tr>';
+                        return;
+                    }
+                    rows.forEach(function (r) {
+                        var tr = document.createElement('tr');
+                        tr.className = 'hover:bg-muted/30';
+                        tr.innerHTML = '<td class="px-4 py-2.5 font-medium text-foreground">' + esc(r.service) + '</td>' +
+                            '<td class="px-4 py-2.5 font-mono text-xs text-muted-foreground">' + esc(r.queue) + '</td>' +
+                            '<td class="px-4 py-2.5 text-right text-muted-foreground">' + formatNum(r.cnt) + '</td>';
+                        tbody.appendChild(tr);
+                    });
+                }, ['metrics-loader-failures-table']);
+            }
+
+            var filterEl = document.getElementById('metrics-service-filter');
+            if (filterEl) {
+                filterEl.addEventListener('change', function () {
+                    loadAllMetrics(this.value || null);
                 });
-            }, ['metrics-loader-failures-table']);
+            }
+
+            loadAllMetrics(filterEl ? filterEl.value || null : null);
         })();
     </script>
 @endsection
