@@ -438,8 +438,4 @@
             </div>
         </template>
     </div>
-
-    <script>
-        // window.__horizonInitialCleanCount = {{ (int) $jobs->total() }};
-    </script>
 @endsection

@@ -32,10 +32,6 @@ export function horizonJobsPage(config) {
                 if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
                 self.refreshJobsTable();
             });
-
-            // if (typeof window.__horizonInitialCleanCount === 'number' && this.cleanCount === 0) {
-            //     this.cleanCount = window.__horizonInitialCleanCount;
-            // }
         },
         openRetryModal() {
             this.showRetryModal = true;

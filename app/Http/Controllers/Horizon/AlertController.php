@@ -341,4 +341,3 @@ class AlertController extends Controller {
         return ['xAxis' => $xAxis, 'sent' => $sent, 'failed' => $failed];
     }
 }
-

@@ -29,4 +29,3 @@ class SettingsController extends Controller {
         ]);
     }
 }
-

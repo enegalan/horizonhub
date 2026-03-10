@@ -133,4 +133,3 @@ class ProviderController extends Controller {
         ];
     }
 }
-
