@@ -67,6 +67,23 @@
                 var isDark = t === 'system' ? window.matchMedia('(prefers-color-scheme: dark)').matches : (t === 'dark');
                 document.documentElement.classList.toggle('dark', isDark);
             })();
+            window.addEventListener('horizonhub-refresh', () => {
+                var main = document.querySelector('main');
+                if (!main) return;
+                if (main.querySelector('table[data-resizable-table]') || window.horizonTableInteracting) return;
+                if (!window.Livewire) return;
+                var el = main.querySelector('[wire\\:id]');
+                if (!el) return;
+                var id = el.getAttribute('wire:id');
+                if (id) {
+                    try {
+                        var component = window.Livewire.find(id);
+                        if (component && component.$wire && typeof component.$wire.$refresh === 'function') {
+                            component.$wire.$refresh();
+                        }
+                    } catch (e) {}
+                }
+            });
             document.body.addEventListener('click', e => {
                 var btn = e.target.closest('[data-queue-action]');
                 if (!btn || !btn.closest('[data-table-body="horizon-queue-list"]')) return;
@@ -110,7 +127,7 @@
             });
         </script>
         <div class="app-layout flex min-h-screen flex-1 flex-row lg:flex-row">
-            @include('partials.navigation')
+            <livewire:layout.navigation />
             <div class="flex min-h-0 min-w-0 flex-1 flex-col pt-12 lg:pt-0">
             @if (isset($header))
                 <header class="shrink-0 border-b border-border bg-card">
@@ -120,10 +137,7 @@
                 </header>
             @endif
             <main class="flex-1 p-4 lg:p-6">
-                @yield('content')
-                @isset($slot)
-                    {{ $slot }}
-                @endisset
+                {{ $slot }}
             </main>
             </div>
         </div>

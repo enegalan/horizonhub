@@ -10,7 +10,6 @@ use App\Models\HorizonSupervisorState;
 use App\Models\Service;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class HorizonEventProcessor {
     /**
@@ -111,8 +110,7 @@ class HorizonEventProcessor {
         $queue = $this->normalizeQueueName($queueRaw);
         $name = $event['name'] ?? null;
         $payload = $event['payload'] ?? null;
-        $attemptsRaw = $event['attempts'] ?? null;
-        $attempts = isset($attemptsRaw) ? (int) $attemptsRaw : 0;
+        $attempts = isset($event['attempts']) ? (int) $event['attempts'] : 0;
         $statusRaw = $event['status'] ?? null;
         $status = (\is_string($statusRaw) && $statusRaw !== '') ? $statusRaw : $eventType;
         $processedAt = $event['processed_at'] ?? null;
@@ -120,18 +118,6 @@ class HorizonEventProcessor {
         $queuedAt = $event['queued_at'] ?? ($event['pushed_at'] ?? null);
         $runtimeSeconds = isset($event['runtime_seconds']) ? (float) $event['runtime_seconds'] : null;
         $exception = $event['exception'] ?? null;
-
-        Log::debug('Horizon Hub: processing job event', [
-            'service_id' => $service->id,
-            'event_type' => $eventType,
-            'job_id' => $jobId,
-            'queue_raw' => $queueRaw,
-            'queue_normalized' => $queue,
-            'attempts_raw' => $attemptsRaw,
-            'attempts_int' => $attempts,
-            'status_raw' => $statusRaw,
-            'status' => $status,
-        ]);
 
         if ($queuedAt === null && isset($payload) && \is_array($payload)) {
             $pushedAtRaw = $payload['pushedAt'] ?? null;
@@ -241,12 +227,6 @@ class HorizonEventProcessor {
                 'last_seen_at' => \now(),
             ]
         );
-
-        // Treat supervisor loop as a heartbeat for the service itself.
-        $service->forceFill([
-            'last_seen_at' => \now(),
-            'status' => 'online',
-        ])->saveQuietly();
     }
 
     /**

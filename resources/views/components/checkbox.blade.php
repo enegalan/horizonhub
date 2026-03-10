@@ -3,7 +3,7 @@
 @php
     $inputAttrs = $attributes->merge([
         'type' => 'checkbox',
-        'class' => 'peer',
+        'class' => 'peer sr-only',
     ]);
     if ($disabled) {
         $inputAttrs = $inputAttrs->merge(['disabled' => true]);

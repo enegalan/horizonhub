@@ -1,13 +1,12 @@
 import './bootstrap';
 import './resizable-table';
-import { horizonJobsPage, horizonJobDetail } from './horizon-jobs';
 
-import Alpine from 'alpinejs';
 import { createRoot } from 'react-dom/client';
 import React from 'react';
 import { Toaster, toast } from 'sonner';
 import 'sonner/dist/styles.css';
 import { onDocumentReady, schedule } from './utils/init';
+import { withLivewireInitialized, onLivewireNavigated, onLivewireRequestSuccess } from './utils/livewire';
 import { parseJsonFromElement } from './utils/parse';
 import { initMetricsCharts, initAlertDetailCharts } from './metrics-charts';
 import { registerToastEventListeners } from './toast-events';
@@ -58,82 +57,32 @@ function syncTheme() {
     window.dispatchEvent(new CustomEvent('apply-theme'));
 }
 
-function getCsrfToken() {
-    var token = document.querySelector('meta[name="csrf-token"]');
-    return token ? token.getAttribute('content') : '';
-}
-
-function defaultApiErrorHandler(error) {
-    var message = 'Request failed';
-    if (error && error.response && error.response.data && error.response.data.message) {
-        message = error.response.data.message;
-    }
-    if (window.toast && window.toast.error) {
-        window.toast.error(message);
-    } else {
-        alert(message);
-    }
-}
-
-function createHttpHelpers() {
-    function request(method, url, data, config) {
-        if (!window.axios) {
-            return Promise.reject(new Error('axios is not available'));
-        }
-
-        var finalConfig = Object.assign(
-            {
-                method: method,
-                url: url,
-                data: data || {},
-                headers: {
-                    'X-CSRF-TOKEN': getCsrfToken(),
-                },
-            },
-            config || {},
-        );
-
-        return window.axios(finalConfig)
-            .then(function (response) {
-                return response.data;
-            })
-            .catch(function (error) {
-                defaultApiErrorHandler(error);
-                throw error;
-            });
-    }
-
-    return {
-        get: function (url, config) {
-            return request('get', url, null, config);
-        },
-        post: function (url, data, config) {
-            return request('post', url, data, config);
-        },
-        delete: function (url, config) {
-            return request('delete', url, null, config);
-        },
-    };
-}
-
-if (!window.horizon) {
-    window.horizon = {};
-}
-
-window.horizon.http = createHttpHelpers();
-
-// Expose page helpers globally for Alpine x-data initialisation.
-window.horizonJobsPage = horizonJobsPage;
-window.horizonJobDetail = horizonJobDetail;
-
-window.Alpine = Alpine;
-Alpine.start();
-
 onDocumentReady(() => {
     mountToaster();
     registerToastEventListeners();
     syncTheme();
     hydratePage();
+});
+
+onLivewireNavigated(() => {
+    mountToaster();
+    syncTheme();
+    hydratePage();
+});
+
+document.addEventListener('livewire:navigating', e => {
+    e.detail.onSwap(syncTheme);
+});
+
+withLivewireInitialized(() => {
+    onLivewireRequestSuccess(hydratePage);
+    window.Livewire.hook('morph.updated', () => {
+        if (document.getElementById('alert-detail-chart-data')) {
+            var alertData = parseJsonFromElement('alert-detail-chart-data');
+            initAlertDetailCharts(alertData);
+        }
+        formatDateTimeElements();
+    });
 });
 
 window.addEventListener('apply-theme', () => {
