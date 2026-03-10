@@ -16,6 +16,7 @@ $sizes = [
     'sm' => 'max-w-sm',
     'md' => 'max-w-md',
     'lg' => 'max-w-lg',
+    'xl' => 'max-w-2xl',
 ];
 
 $defaultSize = 'md';
@@ -41,7 +42,7 @@ $dialogTitle = $title;
     @include('components.backdrop', ['variant' => $backdropVariant, 'wireClick' => $backdropAction])
 
     <div class="relative z-10 flex min-h-full items-center justify-center py-4">
-        <div class="card w-full {{ $sizeClass }} p-4 bg-card">
+        <div class="card w-full {{ $sizeClass }} p-4 bg-card {{ $size === 'xl' ? 'max-h-[90vh] flex flex-col overflow-hidden' : '' }}">
         @if(isset($header))
             {{ $header }}
         @elseif($dialogTitle)
@@ -49,14 +50,14 @@ $dialogTitle = $title;
         @endif
 
         @if(trim((string) $slot) !== '')
-            <div class="mb-4">
+            <div class="{{ $size === 'xl' ? 'min-h-0 flex-1 overflow-hidden mb-4' : 'mb-4' }}">
                 {{ $slot }}
             </div>
         @elseif($message)
             <p class="text-sm text-muted-foreground mb-4">{{ $message }}</p>
         @endif
 
-        <div class="flex gap-2 pt-1">
+        <div class="flex shrink-0 gap-2 pt-1">
             @isset($footer)
                 {{ $footer }}
             @else

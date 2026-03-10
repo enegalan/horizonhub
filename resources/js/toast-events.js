@@ -23,6 +23,19 @@ export function registerToastEventListeners() {
     window.addEventListener('toast', onToast, opts);
     window.addEventListener('service-created', () => { showToast('success', 'Service registered.'); }, opts);
     window.addEventListener('job-retried', () => { showToast('success', 'Job retried.'); }, opts);
+    window.addEventListener('jobs-retried', function (e) {
+        var d = e && e.detail;
+        var succeeded = (d && d.succeeded) || 0;
+        var failed = (d && d.failed) || 0;
+        var messages = (d && d.messages) || [];
+        if (failed === 0) {
+            showToast('success', succeeded === 1 ? 'Job retried.' : succeeded + ' job(s) retried.');
+        } else if (succeeded === 0) {
+            showToast('error', messages.length ? messages[0] : failed + ' job(s) failed.');
+        } else {
+            showToast('warning', succeeded + ' retried, ' + failed + ' failed.');
+        }
+    }, opts);
     window.addEventListener('job-action-failed', e => {
         showToast('error', (e && e.detail && e.detail.message) || 'Action failed.');
     }, opts);

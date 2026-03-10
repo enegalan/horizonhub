@@ -1,123 +1,126 @@
 <div>
-    <div class="card">
-        <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
-            <div class="space-y-2">
-                <x-input-label>Service</x-input-label>
-                <x-select wire:model.live="serviceFilter" class="w-44">
-                    <option value="">All</option>
-                    @foreach($services as $s)
-                        <option value="{{ $s->id }}">{{ $s->name }} ({{ $s->status }})</option>
-                    @endforeach
-                </x-select>
-            </div>
-            <div class="space-y-2">
-                <x-input-label>Status</x-input-label>
-                <x-select wire:model.live="statusFilter" class="w-32" :options="['' => 'All', 'processed' => 'Processed', 'failed' => 'Failed', 'processing' => 'Processing']" />
-            </div>
-            <div class="space-y-2">
-                <x-input-label>Search</x-input-label>
-                <x-text-input
-                    type="text"
-                    wire:model.live.debounce.300ms="search"
-                    placeholder="Queue, job or UUID"
-                    class="w-56"
-                />
-            </div>
-            <div class="ml-auto flex items-center gap-2">
+    <livewire:horizon.job-table :show-list-actions="true" />
+
+    @if($showRetryModal)
+        @php
+            $retryModalSelectableIds = \array_values(\array_column(\array_filter($retryModalFailedJobsList, function ($j) { return ! empty($j['has_service'] ?? false); }), 'id'));
+        @endphp
+        @teleport('body')
+            <x-confirm-modal
+                title="Retry jobs"
+                size="xl"
+                cancelText="Cancel"
+                cancelAction="closeRetryModal"
+                backdropAction="closeRetryModal"
+            >
                 <div
-                    wire:loading.flex
-                    wire:target="serviceFilter,statusFilter,search"
-                    class="items-center gap-1 text-xs text-muted-foreground"
+                    class="flex min-h-0 flex-1 flex-col overflow-hidden p-2"
+                    x-data
+                    x-init="
+                        if (!Alpine.store('retryModalSelection')) {
+                            Alpine.store('retryModalSelection', {
+                                selectedIds: [],
+                                selectableIds: [],
+                                toggle(id) {
+                                    const i = this.selectedIds.indexOf(id);
+                                    if (i >= 0) this.selectedIds.splice(i, 1);
+                                    else this.selectedIds.push(id);
+                                },
+                                selectAll() { this.selectedIds = [...this.selectableIds]; },
+                                clear() { this.selectedIds = []; }
+                            });
+                        }
+                        Alpine.store('retryModalSelection').selectableIds = @js($retryModalSelectableIds);
+                        Alpine.store('retryModalSelection').selectedIds = [];
+                    "
                 >
-                    <x-loader class="size-3" />
-                    <span>Loading…</span>
+                    <p class="text-sm text-muted-foreground mb-3">Select failed jobs to retry. Filter by service, search or date range.</p>
+                    <div class="mb-3 flex shrink-0 flex-wrap items-end gap-3">
+                        <div class="space-y-2">
+                            <x-input-label for="retry-modal-service">Service</x-input-label>
+                            <x-select id="retry-modal-service" wire:model.blur="retryModalServiceFilter" class="w-44">
+                                <option value="">All services</option>
+                                @foreach($services as $s)
+                                    <option value="{{ $s->id }}">{{ $s->name }}</option>
+                                @endforeach
+                            </x-select>
+                        </div>
+                        <div class="space-y-2">
+                            <x-input-label for="retry-modal-search">Search</x-input-label>
+                            <x-text-input id="retry-modal-search" type="text" wire:model.blur="retryModalSearch" placeholder="Queue, job or UUID" class="w-48" />
+                        </div>
+                        <div class="space-y-2">
+                            <x-input-label for="retry-modal-date-from">From</x-input-label>
+                            <x-input-date id="retry-modal-date-from" wire:model.blur="retryModalDateFrom" class="w-40" />
+                        </div>
+                        <div class="space-y-2">
+                            <x-input-label for="retry-modal-date-to">To</x-input-label>
+                            <x-input-date id="retry-modal-date-to" wire:model.blur="retryModalDateTo" class="w-40" />
+                        </div>
+                        <div class="flex items-end gap-2">
+                            <x-button type="button" variant="outline" class="h-9 text-sm" @click="$store.retryModalSelection.selectAll()">Select all</x-button>
+                            <x-button type="button" variant="ghost" class="h-9 text-sm" @click="$store.retryModalSelection.clear()">Clear selection</x-button>
+                        </div>
+                    </div>
+                    <div class="min-h-0 flex-1 overflow-x-auto overflow-y-auto rounded-md border border-border" style="max-height: min(45vh, 320px);">
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-muted/50 sticky top-0">
+                                <tr class="border-b border-border">
+                                    <th class="w-10 px-3 py-2 text-left"></th>
+                                    <th class="px-3 py-2 text-left font-medium text-foreground">Service</th>
+                                    <th class="px-3 py-2 text-left font-medium text-foreground">Queue</th>
+                                    <th class="px-3 py-2 text-left font-medium text-foreground">Job</th>
+                                    <th class="px-3 py-2 text-left font-medium text-foreground">Failed at</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-border">
+                                @forelse($retryModalFailedJobsList as $job)
+                                    <tr class="hover:bg-muted/30">
+                                        <td class="px-3 py-2">
+                                            @if($job['has_service'] ?? false)
+                                                <x-checkbox
+                                                    ::checked="$store.retryModalSelection.selectedIds.includes({{ $job['id'] }})"
+                                                    @change="$store.retryModalSelection.toggle({{ $job['id'] }})"
+                                                    aria-label="Select job {{ $job['id'] }}"
+                                                />
+                                            @else
+                                                <span class="text-muted-foreground" title="No service">–</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-3 py-2 text-muted-foreground">{{ $job['service_name'] ?? '–' }}</td>
+                                        <td class="px-3 py-2 font-mono text-xs text-muted-foreground">{{ $job['queue'] ?? '–' }}</td>
+                                        <td class="px-3 py-2 text-muted-foreground truncate max-w-[200px]" title="{{ $job['name'] ?? '' }}">{{ $job['name'] ?? '–' }}</td>
+                                        <td class="px-3 py-2 text-muted-foreground" data-datetime="{{ $job['failed_at_iso'] ?? '' }}">{{ $job['failed_at_formatted'] ?? '–' }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="px-3 py-6 text-center text-muted-foreground">No failed jobs to show.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <x-button type="button" variant="outline" wire:click="openCleanModal" class="h-9 text-sm">Clean jobs</x-button>
-            </div>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full" data-resizable-table="horizon-job-list" data-column-ids="service,queue,job,status,attempts,queued_at,processed,failed_at,runtime,actions">
-                <thead wire:ignore>
-                    <tr class="border-b border-border bg-muted/50">
-                        <th class="table-header px-4 py-2.5" data-column-id="service">Service</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="queue">Queue</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="status">Status</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="attempts">Attempts</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="queued_at">Queued at</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="processed">Processed</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="failed_at">Failed at</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="runtime">Runtime</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="actions">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-border">
-                    @forelse($jobs as $job)
-                        <tr class="transition-colors hover:bg-muted/30">
-                            <td class="px-4 py-2.5 text-sm font-medium text-foreground" data-column-id="service">{{ $job->service?->name ?? '–' }}</td>
-                            <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground" data-column-id="queue">{{ $job->queue }}</td>
-                            <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="job">{{ $job->name ?? $job->job_uuid }}</td>
-                            <td class="px-4 py-2.5" data-column-id="status">
-                                @php $jobStatus = $job->status ?? '–'; @endphp
-                                @if($jobStatus === 'failed')
-                                    <span class="badge-danger">{{ $jobStatus }}</span>
-                                @elseif($jobStatus === 'processed')
-                                    <span class="badge-success">{{ $jobStatus }}</span>
-                                @else
-                                    <span class="badge-muted">{{ $jobStatus }}</span>
-                                @endif
-                            </td>
-                            <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="attempts">{{ $job->attempts ?? '–' }}</td>
-                            <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="queued_at" data-datetime="{{ $job->queued_at?->toIso8601String() ?? '' }}">{{ $job->queued_at ? '…' : '–' }}</td>
-                            <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="processed" data-datetime="{{ $job->processed_at?->toIso8601String() ?? '' }}">{{ $job->processed_at ? '…' : '–' }}</td>
-                            <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="failed_at" data-datetime="{{ $job->failed_at?->toIso8601String() ?? '' }}">{{ $job->failed_at ? '…' : '–' }}</td>
-                            <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="runtime">
-                                {{ $job->getFormattedRuntime() ?? '–' }}
-                            </td>
-                            <td class="px-4 py-2.5" data-column-id="actions">
-                                <div class="flex items-center gap-2">
-                                    <x-button
-                                        variant="outline"
-                                        type="button"
-                                        onclick="window.location.href='{{ route('horizon.jobs.show', ['job' => $job->id]) }}'"
-                                        class="h-8 min-h-8 p-2 rounded-md"
-                                        aria-label="View"
-                                        title="View"
-                                    >
-                                        <x-heroicon-o-eye class="size-4" />
-                                    </x-button>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="10" data-column-id="service">
-                                <div class="empty-state">
-                                    <x-heroicon-o-document-text class="empty-state-icon" />
-                                    <p class="empty-state-title">No jobs yet</p>
-                                    @if(count($services) === 0)
-                                    <p class="empty-state-description">Register a service and push events from the Agent to see jobs here.</p>
-                                        <x-button
-                                            type="button"
-                                            class="text-xs"
-                                            onclick="window.location.href='{{ route('horizon.services.index') }}'"
-                                        >
-                                            Register a service
-                                        </x-button>
-                                    @else
-                                        <p class="empty-state-description">No jobs match the current filters.</p>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        <div class="border-t border-border px-4 py-2">
-            <x-pagination :paginator="$jobs" />
-        </div>
-    </div>
+                <x-slot:footer>
+                    <div class="flex w-full flex-wrap items-center justify-end gap-2" x-data="{ retrying: false }">
+                        <x-button type="button" variant="ghost" wire:click="closeRetryModal">Cancel</x-button>
+                        <button
+                            type="button"
+                            class="inline-flex h-9 items-center justify-center gap-1 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+                            :disabled="$store.retryModalSelection.selectedIds.length === 0 || retrying"
+                            @click="retrying = true; $wire.retrySelectedInModal($store.retryModalSelection.selectedIds)"
+                        >
+                            <span x-show="!retrying" x-text="'Retry selected (' + $store.retryModalSelection.selectedIds.length + ')'"></span>
+                            <span x-show="retrying" class="inline-flex items-center gap-1">
+                                <x-loader class="size-4" />
+                                Retrying…
+                            </span>
+                        </button>
+                    </div>
+                </x-slot:footer>
+            </x-confirm-modal>
+        @endteleport
+    @endif
 
     @if($showCleanModal)
         @teleport('body')

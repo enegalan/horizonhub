@@ -3,7 +3,6 @@
 namespace App\Livewire\Horizon;
 
 use App\Models\NotificationProvider;
-use App\Models\Setting;
 use Livewire\Component;
 use Illuminate\Contracts\View\View;
 
@@ -14,13 +13,6 @@ class Settings extends Component {
      * @var string
      */
     public string $tab = 'appearance';
-
-    /**
-     * The email interval minutes for alerts.
-     *
-     * @var string
-     */
-    public string $alert_email_interval_minutes = '5';
 
     /**
      * The ID of the provider being confirmed for deletion.
@@ -50,24 +42,9 @@ class Settings extends Component {
      */
     public function mount(): void {
         $queryTab = request()->query('tab', '');
-        if (\in_array($queryTab, ['appearance', 'alerts', 'providers'], true)) {
+        if (\in_array($queryTab, ['appearance', 'providers'], true)) {
             $this->tab = $queryTab;
         }
-        $interval = Setting::get('alerts.email_interval_minutes');
-        $this->alert_email_interval_minutes = $interval !== null ? (string) $interval : '5';
-    }
-
-    /**
-     * Save the alerts.
-     *
-     * @return void
-     */
-    public function saveAlerts(): void {
-        $this->validate([
-            'alert_email_interval_minutes' => 'required|integer|min:0|max:1440',
-        ]);
-        Setting::set('alerts.email_interval_minutes', (int) $this->alert_email_interval_minutes);
-        $this->dispatch('alerts-saved');
     }
 
     /**

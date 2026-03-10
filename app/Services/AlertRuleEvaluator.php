@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Alert;
 use App\Models\HorizonFailedJob;
 use App\Models\HorizonJob;
+use App\Models\HorizonSupervisorState;
 use App\Models\Service;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +27,7 @@ class AlertRuleEvaluator {
             'avg_execution_time' => $this->evaluateAvgExecutionTime($alert, $serviceId),
             'queue_blocked' => $this->evaluateQueueBlocked($alert, $serviceId),
             'worker_offline' => $this->evaluateWorkerOffline($alert, $serviceId),
+            'supervisor_offline' => $this->evaluateSupervisorOffline($alert, $serviceId),
             default => false,
         };
     }
@@ -59,8 +61,8 @@ class AlertRuleEvaluator {
 
         if ($alert->job_type !== null && (string) $alert->job_type !== '') {
             $payload = $failedJob->payload ?? [];
-            $displayName = isset($payload['displayName']) ?? $payload['displayName'];
-            $rawJob = isset($payload['job']) ?? $payload['job'];
+            $displayName = $payload['displayName'] ?? null;
+            $rawJob = $payload['job'] ?? null;
             $haystack = (string) ($displayName ?? $rawJob ?? '');
             if (! \str_contains($haystack, $alert->job_type)) {
                 return false;
@@ -93,8 +95,8 @@ class AlertRuleEvaluator {
             ->get()
             ->filter(function ($job) use ($alert) {
                 $payload = $job->payload ?? [];
-                $displayName = isset($payload['displayName']) ?? $payload['displayName'];
-                $rawJob = isset($payload['job']) ?? $payload['job'];
+                $displayName = $payload['displayName'] ?? null;
+                $rawJob = $payload['job'] ?? null;
                 $haystack = (string) ($displayName ?? $rawJob ?? '');
 
                 return \str_contains($haystack, $alert->job_type);
@@ -210,5 +212,27 @@ class AlertRuleEvaluator {
         $triggered = $service->last_seen_at->addMinutes($minutes)->isPast();
 
         return $triggered;
+    }
+
+    /**
+     * Evaluate the supervisor offline rule.
+     * Triggers when the service has at least one supervisor whose last_seen_at is older than the threshold.
+     *
+     * @param Alert $alert
+     * @param int $serviceId
+     * @return bool
+     */
+    private function evaluateSupervisorOffline(Alert $alert, int $serviceId): bool {
+        $threshold = $alert->threshold ?? [];
+        $minutes = (int) ($threshold['minutes'] ?? 5);
+
+        $stale_at = \now()->subMinutes($minutes);
+        $stale_count = HorizonSupervisorState::where('service_id', $serviceId)
+            ->where(function ($q) use ($stale_at) {
+                $q->whereNull('last_seen_at')->orWhere('last_seen_at', '<', $stale_at);
+            })
+            ->count();
+
+        return $stale_count > 0;
     }
 }

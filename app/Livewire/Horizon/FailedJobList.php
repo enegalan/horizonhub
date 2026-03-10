@@ -76,19 +76,33 @@ class FailedJobList extends Component {
     public function deleteOne(int $id): void {}
 
     /**
-     * Retry the selected failed jobs.
+     * Retry the selected failed jobs (one by one; result is granular).
      *
+     * @param HorizonApiProxyService $horizonApi
      * @return void
      */
-    public function retrySelected(): void {
+    public function retrySelected(HorizonApiProxyService $horizonApi): void {
         $jobs = HorizonFailedJob::with('service')->whereIn('id', $this->selectedIds)->get();
+        $succeeded = 0;
+        $failed = 0;
+        $messages = [];
         foreach ($jobs as $job) {
-            if ($job->service) {
-                // Horizon API retry is supported on a single job from the detail view.
+            if (! $job->service) {
+                $failed++;
+                $messages[] = "Job {$job->id}: no service.";
+                continue;
+            }
+            $result = $horizonApi->retryJob($job->service, $job->job_uuid);
+            if ($result['success']) {
+                $succeeded++;
+            } else {
+                $failed++;
+                $msg = $result['message'] ?? 'Unknown error';
+                $messages[] = "Job {$job->id}: " . $msg;
             }
         }
         $this->selectedIds = [];
-        $this->dispatch('jobs-retried');
+        $this->dispatch('jobs-retried', succeeded: $succeeded, failed: $failed, messages: $messages);
     }
 
     /**

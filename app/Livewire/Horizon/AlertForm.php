@@ -87,6 +87,13 @@ class AlertForm extends Component {
     public array $provider_ids = [];
 
     /**
+     * Minimum minutes between notifications (throttle). 0 = send on every trigger.
+     *
+     * @var string
+     */
+    public string $email_interval_minutes = '5';
+
+    /**
      * Get the rule types.
      *
      * @return array<string, string>
@@ -99,6 +106,7 @@ class AlertForm extends Component {
             'avg_execution_time' => 'Avg execution time exceeded',
             'queue_blocked' => 'Queue blocked',
             'worker_offline' => 'Worker offline',
+            'supervisor_offline' => 'Supervisor offline',
         ];
     }
 
@@ -121,6 +129,8 @@ class AlertForm extends Component {
             $this->job_type = (string) $this->alert->job_type;
             $this->enabled = (bool) $this->alert->enabled;
             $this->provider_ids = $this->alert->notificationProviders->pluck('id')->all();
+            $interval = $this->alert->email_interval_minutes;
+            $this->email_interval_minutes = $interval !== null ? (string) $interval : '5';
         }
     }
 
@@ -134,6 +144,7 @@ class AlertForm extends Component {
         $this->validate([
             'provider_ids' => 'required|array|min:1',
             'provider_ids.*' => 'integer|exists:notification_providers,id',
+            'email_interval_minutes' => 'required|integer|min:0|max:1440',
         ]);
 
         $threshold = $this->buildThreshold();
@@ -147,6 +158,7 @@ class AlertForm extends Component {
             'job_type' => $this->job_type ?: null,
             'notification_channels' => [],
             'enabled' => $this->enabled,
+            'email_interval_minutes' => (int) $this->email_interval_minutes,
         ];
 
         if ($this->alert) {
@@ -169,7 +181,7 @@ class AlertForm extends Component {
      */
     private function validateRuleType(): void {
         $rules = [
-            'rule_type' => 'required|in:job_specific_failure,job_type_failure,failure_count,avg_execution_time,queue_blocked,worker_offline',
+            'rule_type' => 'required|in:job_specific_failure,job_type_failure,failure_count,avg_execution_time,queue_blocked,worker_offline,supervisor_offline',
             'service_id' => 'nullable|exists:services,id',
             'queue' => 'nullable|string|max:255',
             'job_type' => 'nullable|string|max:255',
@@ -181,7 +193,7 @@ class AlertForm extends Component {
         if ($this->rule_type === 'job_type_failure') {
             $rules['job_type'] = 'required|string|max:255';
         }
-        if (\in_array($this->rule_type, ['failure_count', 'avg_execution_time', 'queue_blocked', 'worker_offline'], true)) {
+        if (\in_array($this->rule_type, ['failure_count', 'avg_execution_time', 'queue_blocked', 'worker_offline', 'supervisor_offline'], true)) {
             $rules['thresholdMinutes'] = 'required|integer|min:1';
         }
         if ($this->rule_type === 'failure_count') {
@@ -201,7 +213,7 @@ class AlertForm extends Component {
      */
     private function buildThreshold(): array {
         $t = [];
-        if (\in_array($this->rule_type, ['failure_count', 'avg_execution_time', 'queue_blocked', 'worker_offline'], true)) {
+        if (\in_array($this->rule_type, ['failure_count', 'avg_execution_time', 'queue_blocked', 'worker_offline', 'supervisor_offline'], true)) {
             $t['minutes'] = $this->thresholdMinutes;
         }
         if ($this->rule_type === 'failure_count') {

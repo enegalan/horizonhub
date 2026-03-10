@@ -27,12 +27,6 @@
             Appearance
         </button>
         <button no-ring type="button"
-            @click="tab = 'alerts'"
-            :class="tab === 'alerts' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
-            class="border-b-2 px-3 py-2 text-sm font-medium transition-colors">
-            Alerts
-        </button>
-        <button no-ring type="button"
             @click="tab = 'providers'"
             :class="tab === 'providers' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'"
             class="border-b-2 px-3 py-2 text-sm font-medium transition-colors">
@@ -79,51 +73,6 @@
                     System
                 </button>
             </div>
-        </div>
-        </div>
-        <div x-show="tab === 'alerts'"
-            x-ref="alertsPanel"
-            x-transition:enter="transition ease-out duration-200"
-            x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100"
-            x-transition:leave="transition ease-in duration-150"
-            x-transition:leave-start="opacity-100"
-            x-transition:leave-end="opacity-0"
-            :class="(measureMode && tab === 'alerts') ? 'relative' : 'absolute inset-x-0 top-0'"
-            class="card">
-        <div class="px-4 py-4">
-            <h2 class="text-section-title text-foreground mb-3">Alert email throttle</h2>
-            <p class="text-sm text-muted-foreground mb-4">Minimum minutes between alert emails. Multiple failed jobs in that window are combined into one email. Use 0 to send on every trigger.</p>
-            <form wire:submit="saveAlerts" class="flex flex-wrap items-end gap-3">
-                <div class="flex flex-col gap-1.5">
-                    <x-input-label for="alert_email_interval_minutes">Minutes between emails</x-input-label>
-                    <x-text-input type="number"
-                        id="alert_email_interval_minutes"
-                        wire:model="alert_email_interval_minutes"
-                        min="0"
-                        max="1440"
-                        class="w-24" />
-                    @error('alert_email_interval_minutes')
-                        <p class="text-sm text-destructive">{{ $message }}</p>
-                    @enderror
-                </div>
-                <x-button
-                    type="submit"
-                    class="h-9 text-sm relative inline-flex items-center justify-center"
-                    wire:loading.attr="disabled"
-                    wire:target="saveAlerts"
-                >
-                    <span wire:loading.remove wire:target="saveAlerts">
-                        Save
-                    </span>
-                    <span wire:loading wire:target="saveAlerts" class="inline-flex" aria-hidden="true">
-                        <x-loader />
-                    </span>
-                </x-button>
-            </form>
-            @if($alert_email_interval_minutes === '0')
-                <p class="text-xs text-muted-foreground mt-2">With 0, one email is sent per trigger (no batching).</p>
-            @endif
         </div>
         </div>
         <div x-show="tab === 'providers'"
