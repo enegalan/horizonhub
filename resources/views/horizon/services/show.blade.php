@@ -7,6 +7,60 @@
         <span class="text-foreground">{{ $service->name }}</span>
     </p>
 
+    <div class="mb-4 flex flex-wrap items-center gap-2">
+        <span class="label-muted mr-2">Service actions</span>
+        @php
+            $dashboardBase = $service->public_url ?: $service->base_url;
+        @endphp
+        @if($dashboardBase)
+            <x-button
+                variant="ghost"
+                type="button"
+                onclick="window.open('{{ rtrim($dashboardBase, '/') . \config('horizonhub.horizon.dashboard_path') }}', '_blank')"
+                class="h-8 min-h-8 p-2"
+                aria-label="Open Horizon dashboard"
+                title="Open Horizon dashboard"
+            >
+                <x-heroicon-o-window class="size-4" />
+            </x-button>
+        @endif
+        <form method="POST" action="{{ route('horizon.services.test-connection', $service) }}">
+            @csrf
+            <x-button
+                variant="ghost"
+                type="submit"
+                class="h-8 min-h-8 p-2"
+                aria-label="Test connection"
+                title="Test connection"
+            >
+                <x-heroicon-o-signal class="size-4" />
+            </x-button>
+        </form>
+        <x-button
+            variant="ghost"
+            type="button"
+            onclick="window.location.href='{{ route('horizon.services.edit', $service) }}'"
+            class="h-8 min-h-8 p-2"
+            aria-label="Edit service"
+            title="Edit service"
+        >
+            <x-heroicon-o-pencil-square class="size-4" />
+        </x-button>
+        <form method="POST" action="{{ route('horizon.services.destroy', $service) }}" onsubmit="return confirm('Delete service {{ $service->name }}?');">
+            @csrf
+            @method('DELETE')
+            <x-button
+                variant="ghost"
+                type="submit"
+                class="h-8 min-h-8 p-2 text-destructive hover:text-destructive"
+                aria-label="Delete service"
+                title="Delete service"
+            >
+                <x-heroicon-o-trash class="size-4" />
+            </x-button>
+        </form>
+    </div>
+
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
         <div class="card p-4">
             <h3 class="label-muted">Jobs past minute</h3>
