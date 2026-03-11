@@ -161,7 +161,7 @@ class JobController extends Controller {
             return null;
         }
 
-        $jobData = $data['job'] && \is_array($data['job']) ? $data['job'] : $data;
+        $jobData = isset($data['job']) && \is_array($data['job']) ? $data['job'] : $data;
 
         $attemptsRaw = $jobData['attempts'] ?? null;
 
