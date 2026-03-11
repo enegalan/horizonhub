@@ -409,6 +409,21 @@ class HorizonApiProxyService {
     }
 
     /**
+     * Get high-level dashboard statistics (including jobs per minute and recent jobs)
+     * from the Horizon HTTP API for a service.
+     *
+     * This proxies the Horizon `/stats` endpoint and returns its decoded payload.
+     *
+     * @param Service $service
+     * @return array{success: bool, message?: string, status?: int, data?: array}
+     */
+    public function getStats(Service $service): array {
+        $relativePath = (string) \config('horizonhub.horizon.ping_path');
+
+        return $this->call($service, $relativePath, 'get');
+    }
+
+    /**
      * Get Horizon masters (and their supervisors) from the Horizon HTTP API for a service.
      *
      * @param Service $service

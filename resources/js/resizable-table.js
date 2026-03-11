@@ -297,6 +297,10 @@ import { parseJson } from './utils/parse';
         });
     }
 
+    if (!window.horizonInitResizableTables) {
+        window.horizonInitResizableTables = init;
+    }
+
     onDocumentReady(() => {
         setupDelegatedDragOver();
         init();

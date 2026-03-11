@@ -142,7 +142,7 @@ class HorizonSyncService {
         $jobs = [];
         if (isset($data['jobs']) && \is_array($data['jobs'])) {
             $jobs = $data['jobs'];
-        } elseif (\array_is_list($data)) {
+        } elseif ($data === [] || \array_values($data) === $data) {
             $jobs = $data;
         }
 
@@ -191,6 +191,13 @@ class HorizonSyncService {
             $failedAt = $job['failed_at'] ?? null;
             $exception = $job['exception'] ?? null;
 
+            $runtimeSecondsRaw = null;
+            if ($reservedAt !== null && $completedAt !== null) {
+                $runtimeSecondsRaw = (float) $completedAt - (float) $reservedAt;
+            } elseif ($reservedAt !== null && $failedAt !== null) {
+                $runtimeSecondsRaw = (float) $failedAt - (float) $reservedAt;
+            }
+
             $event = [
                 'event_type' => $eventType,
                 'job_id' => $jobId,
@@ -202,7 +209,7 @@ class HorizonSyncService {
                 'queued_at' => $reservedAt,
                 'processed_at' => $completedAt,
                 'failed_at' => $failedAt,
-                'runtime_seconds' => $job['runtime'] ?? $job['runtime_seconds'] ?? null,
+                'runtime_seconds' => $runtimeSecondsRaw,
                 'exception' => $exception,
             ];
 

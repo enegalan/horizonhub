@@ -4,7 +4,7 @@
     <div class="mb-4 flex flex-wrap items-center gap-3">
         <label for="metrics-service-filter" class="label-muted text-sm">Filter by service</label>
         <x-select id="metrics-service-filter" class="w-48" placeholder="All services">
-            @foreach($services ?? [] as $service)
+            @foreach($services as $service)
                 <option value="{{ $service->id }}">{{ $service->name }}</option>
             @endforeach
         </x-select>
@@ -99,6 +99,69 @@
                 <div id="service-distribution-chart" class="h-80"></div>
             </div>
         </div>
+
+        <div class="card">
+            <div class="flex items-center justify-between border-b border-border px-4 py-3">
+                <h3 class="text-section-title text-foreground">Current workload</h3>
+                <p id="metrics-workload-summary" class="text-xs text-muted-foreground"></p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full" data-resizable-table="horizon-metrics-queues" data-column-ids="service,queue,jobs,processes,wait">
+                    <thead>
+                        <tr class="border-b border-border bg-muted/50">
+                            <th class="table-header px-4 py-2.5 min-w-[140px]" data-column-id="service">Service</th>
+                            <th class="table-header px-4 py-2.5 min-w-[120px]" data-column-id="queue">Queue</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="jobs">Jobs</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="processes">Processes</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="wait">Wait</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border" data-table-body="horizon-metrics-queues" id="metrics-workload-body">
+                        <tr id="metrics-workload-empty">
+                            <td colspan="5" data-column-id="service">
+                                <div class="empty-state">
+                                    <x-heroicon-o-queue-list class="empty-state-icon" />
+                                    <p class="empty-state-title">No queues yet</p>
+                                    <p class="empty-state-description">Queues will appear here once jobs are dispatched to your services.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="flex items-center justify-between border-b border-border px-4 py-3">
+                <h3 class="text-section-title text-foreground">Supervisors</h3>
+                <p id="metrics-supervisors-summary" class="text-xs text-muted-foreground"></p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full" data-resizable-table="horizon-metrics-supervisors" data-column-ids="service,supervisor,status,last_seen">
+                    <thead>
+                        <tr class="border-b border-border bg-muted/50">
+                            <th class="table-header px-4 py-2.5 min-w-[140px]" data-column-id="service">Service</th>
+                            <th class="table-header px-4 py-2.5 min-w-[160px]" data-column-id="supervisor">Supervisor</th>
+                            <th class="table-header px-4 py-2.5 min-w-[80px]" data-column-id="status">Status</th>
+                            <th class="table-header px-4 py-2.5 min-w-[160px]" data-column-id="last_seen">Last seen</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border" data-table-body="horizon-metrics-supervisors" id="metrics-supervisors-body">
+                        <tr id="metrics-supervisors-empty">
+                            <td colspan="4" data-column-id="service">
+                                <div class="empty-state">
+                                    <x-heroicon-o-queue-list class="empty-state-icon" />
+                                    <p class="empty-state-title">No supervisor data yet</p>
+                                    <p class="empty-state-description">
+                                        Supervisors will appear here once Horizon is running on your services and the Hub agent has synced data.
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -108,7 +171,9 @@
                 processedVsFailed: {{ Js::from(route('horizon.metrics.data.processed-vs-failed')) }},
                 avgRuntime: {{ Js::from(route('horizon.metrics.data.avg-runtime')) }},
                 byQueue: {{ Js::from(route('horizon.metrics.data.by-queue')) }},
-                byService: {{ Js::from(route('horizon.metrics.data.by-service')) }}
+                byService: {{ Js::from(route('horizon.metrics.data.by-service')) }},
+                supervisors: {{ Js::from(route('horizon.metrics.data.supervisors')) }},
+                workload: {{ Js::from(route('horizon.metrics.data.workload')) }}
             };
 
             var allLoaderIds = [
@@ -186,16 +251,205 @@
                 if (v) v.textContent = '—';
             }
 
+            function clearWorkloadTable() {
+                var body = document.getElementById('metrics-workload-body');
+                var empty = document.getElementById('metrics-workload-empty');
+                var summary = document.getElementById('metrics-workload-summary');
+                if (!body) return;
+                while (body.firstChild) {
+                    body.removeChild(body.firstChild);
+                }
+                if (empty) {
+                    body.appendChild(empty);
+                    empty.style.display = '';
+                }
+                if (summary) {
+                    summary.textContent = '';
+                }
+            }
+
+            function clearSupervisorsTable() {
+                var body = document.getElementById('metrics-supervisors-body');
+                var empty = document.getElementById('metrics-supervisors-empty');
+                var summary = document.getElementById('metrics-supervisors-summary');
+                if (!body) return;
+                while (body.firstChild) {
+                    body.removeChild(body.firstChild);
+                }
+                if (empty) {
+                    body.appendChild(empty);
+                    empty.style.display = '';
+                }
+                if (summary) {
+                    summary.textContent = '';
+                }
+            }
+
+            function renderWorkloadRows(rows) {
+                var body = document.getElementById('metrics-workload-body');
+                var empty = document.getElementById('metrics-workload-empty');
+                var summary = document.getElementById('metrics-workload-summary');
+                if (!body) return;
+
+                if (!rows || !rows.length) {
+                    if (empty) empty.style.display = '';
+                    if (summary) summary.textContent = '';
+                    return;
+                }
+
+                if (empty) {
+                    empty.style.display = 'none';
+                }
+
+                var totalQueues = rows.length;
+                var totalJobs = 0;
+
+                rows.forEach(function (row) {
+                    totalJobs += row.jobs || 0;
+                    var tr = document.createElement('tr');
+                    tr.className = 'transition-colors hover:bg-muted/30';
+
+                    var tdService = document.createElement('td');
+                    tdService.className = 'px-4 py-2.5 text-sm text-muted-foreground break-all';
+                    tdService.setAttribute('data-column-id', 'service');
+                    tdService.textContent = row.service || '';
+                    tr.appendChild(tdService);
+
+                    var tdQueue = document.createElement('td');
+                    tdQueue.className = 'px-4 py-2.5 font-mono text-xs text-muted-foreground break-all';
+                    tdQueue.setAttribute('data-column-id', 'queue');
+                    tdQueue.textContent = row.queue || '';
+                    tr.appendChild(tdQueue);
+
+                    var tdJobs = document.createElement('td');
+                    tdJobs.className = 'px-4 py-2.5 text-sm text-muted-foreground';
+                    tdJobs.setAttribute('data-column-id', 'jobs');
+                    tdJobs.textContent = formatNum(row.jobs || 0);
+                    tr.appendChild(tdJobs);
+
+                    var tdProcesses = document.createElement('td');
+                    tdProcesses.className = 'px-4 py-2.5 text-sm text-muted-foreground';
+                    tdProcesses.setAttribute('data-column-id', 'processes');
+                    if (row.processes !== null && row.processes !== undefined) {
+                        tdProcesses.textContent = formatNum(row.processes);
+                    } else {
+                        tdProcesses.textContent = '–';
+                    }
+                    tr.appendChild(tdProcesses);
+
+                    var tdWait = document.createElement('td');
+                    tdWait.className = 'px-4 py-2.5 text-sm text-muted-foreground';
+                    tdWait.setAttribute('data-column-id', 'wait');
+                    if (row.wait !== null && row.wait !== undefined) {
+                        var span = document.createElement('span');
+                        span.setAttribute('data-wait-seconds', String(row.wait));
+                        span.textContent = row.wait.toFixed(2) + ' s';
+                        tdWait.appendChild(span);
+                    } else {
+                        tdWait.textContent = '–';
+                    }
+                    tr.appendChild(tdWait);
+
+                    body.appendChild(tr);
+                });
+
+                if (summary) {
+                    summary.textContent = totalQueues + ' queue(s), ' + formatNum(totalJobs) + ' job(s) total';
+                }
+
+                if (window.formatQueueWaitElements) {
+                    window.formatQueueWaitElements(body);
+                }
+            }
+
+            function renderSupervisorsRows(rows) {
+                var body = document.getElementById('metrics-supervisors-body');
+                var empty = document.getElementById('metrics-supervisors-empty');
+                var summary = document.getElementById('metrics-supervisors-summary');
+                if (!body) return;
+
+                if (!rows || !rows.length) {
+                    if (empty) empty.style.display = '';
+                    if (summary) summary.textContent = '';
+                    return;
+                }
+
+                if (empty) {
+                    empty.style.display = 'none';
+                }
+
+                var total = rows.length;
+                var online = 0;
+
+                rows.forEach(function (row) {
+                    if (row.status === 'online') online++;
+
+                    var tr = document.createElement('tr');
+                    tr.className = 'transition-colors hover:bg-muted/30';
+
+                    var tdService = document.createElement('td');
+                    tdService.className = 'px-4 py-2.5 text-sm text-muted-foreground break-all';
+                    tdService.setAttribute('data-column-id', 'service');
+                    tdService.textContent = row.service || '';
+                    tr.appendChild(tdService);
+
+                    var tdName = document.createElement('td');
+                    tdName.className = 'px-4 py-2.5 font-mono text-xs text-muted-foreground break-all';
+                    tdName.setAttribute('data-column-id', 'supervisor');
+                    tdName.textContent = row.name || '';
+                    tr.appendChild(tdName);
+
+                    var tdStatus = document.createElement('td');
+                    tdStatus.className = 'px-4 py-2.5 text-xs';
+                    tdStatus.setAttribute('data-column-id', 'status');
+                    var badge = document.createElement('span');
+                    if (row.status === 'online') {
+                        badge.className = 'badge-success';
+                        badge.textContent = 'Online';
+                    } else {
+                        badge.className = 'badge-warning';
+                        badge.textContent = 'Stale';
+                    }
+                    tdStatus.appendChild(badge);
+                    tr.appendChild(tdStatus);
+
+                    var tdLastSeen = document.createElement('td');
+                    tdLastSeen.className = 'px-4 py-2.5 text-xs text-muted-foreground';
+                    tdLastSeen.setAttribute('data-column-id', 'last_seen');
+                    if (row.last_seen_iso) {
+                        tdLastSeen.setAttribute('data-datetime', row.last_seen_iso);
+                        tdLastSeen.textContent = row.last_seen_human || '…';
+                    } else {
+                        tdLastSeen.textContent = '–';
+                    }
+                    tr.appendChild(tdLastSeen);
+
+                    body.appendChild(tr);
+                });
+
+                if (summary) {
+                    summary.textContent = total + ' supervisor(s), ' + online + ' online';
+                }
+
+                if (window.formatDateTimeElements) {
+                    window.formatDateTimeElements(body);
+                }
+            }
+
             function loadAllMetrics(serviceId) {
                 allLoaderIds.forEach(showLoader);
                 setSummaryPlaceholders();
+                clearWorkloadTable();
+                clearSupervisorsTable();
 
                 var urls = {
                     summary: getUrl(baseUrls.summary, serviceId),
                     processedVsFailed: getUrl(baseUrls.processedVsFailed, serviceId),
                     avgRuntime: getUrl(baseUrls.avgRuntime, serviceId),
                     byQueue: getUrl(baseUrls.byQueue, serviceId),
-                    byService: getUrl(baseUrls.byService, null)
+                    byService: getUrl(baseUrls.byService, null),
+                    supervisors: getUrl(baseUrls.supervisors, serviceId),
+                    workload: getUrl(baseUrls.workload, serviceId)
                 };
 
                 fetchSection(urls.summary, function (d) {
@@ -233,6 +487,14 @@
                 fetchSection(urls.byService, function (d) {
                     hideLoader('metrics-loader-service-chart');
                     renderChart({ byService: d });
+                }, null);
+
+                fetchSection(urls.workload, function (d) {
+                    renderWorkloadRows(d.workload || []);
+                }, null);
+
+                fetchSection(urls.supervisors, function (d) {
+                    renderSupervisorsRows(d.supervisors || []);
                 }, null);
             }
 

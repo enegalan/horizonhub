@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\HorizonFailedJob;
 use App\Models\HorizonJob;
 use App\Models\Service;
+use App\Models\HorizonSupervisorState;
+use App\Services\HorizonApiProxyService;
+use App\Services\HorizonMetricsService;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -44,15 +47,25 @@ class MetricsController extends Controller {
      * @param Request $request
      * @return JsonResponse
      */
+    private HorizonApiProxyService $horizonApi;
+    private HorizonMetricsService $metrics;
+
+    public function __construct(HorizonApiProxyService $horizonApi, HorizonMetricsService $metrics) {
+        $this->horizonApi = $horizonApi;
+        $this->metrics = $metrics;
+    }
+
     public function dataSummary(Request $request): JsonResponse {
         $service_id = $this->resolveServiceId($request);
-        return $this->jsonOrFail(function () use ($service_id): array {
+        $service = $service_id !== null ? Service::find($service_id) : null;
+
+        return $this->jsonOrFail(function () use ($service): array {
             return [
-                'jobsPastMinute' => $this->getJobsPastMinute($service_id),
-                'jobsPastHour' => $this->getJobsPastHour($service_id),
-                'failedPastSevenDays' => $this->getFailedPastSevenDays($service_id),
-                'processedPast24Hours' => $this->getProcessedPast24Hours($service_id),
-                'failureRate24h' => $this->getFailureRate24h($service_id),
+                'jobsPastMinute' => $this->metrics->getJobsPastMinute($service),
+                'jobsPastHour' => $this->metrics->getJobsPastHour($service),
+                'failedPastSevenDays' => $this->metrics->getFailedPastSevenDays($service),
+                'processedPast24Hours' => $this->metrics->getProcessedPast24Hours($service),
+                'failureRate24h' => $this->getFailureRate24h($service?->id),
             ];
         });
     }
@@ -130,6 +143,38 @@ class MetricsController extends Controller {
     }
 
     /**
+     * Get the supervisors data for the metrics dashboard.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function dataSupervisors(Request $request): JsonResponse {
+        $service_id = $this->resolveServiceId($request);
+
+        return $this->jsonOrFail(function () use ($service_id): array {
+            return [
+                'supervisors' => $this->getSupervisorsData($service_id),
+            ];
+        });
+    }
+
+    /**
+     * Get the current workload data for the metrics dashboard.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function dataWorkload(Request $request): JsonResponse {
+        $service_id = $this->resolveServiceId($request);
+
+        return $this->jsonOrFail(function () use ($service_id): array {
+            return [
+                'workload' => $this->getWorkloadData($service_id),
+            ];
+        });
+    }
+
+    /**
      * Return a JSON response or fail with an error.
      *
      * @param callable(): array $fn
@@ -183,57 +228,6 @@ class MetricsController extends Controller {
         }
 
         return $queue;
-    }
-
-    /**
-     * Get the number of jobs past minute.
-     *
-     * @param int|null $service_id
-     * @return int
-     */
-    private function getJobsPastMinute(?int $service_id = null): int {
-        return HorizonJob::where('status', 'processed')
-            ->where('processed_at', '>=', \now()->subMinute())
-            ->when($service_id !== null, fn ($q) => $q->where('service_id', $service_id))
-            ->count();
-    }
-
-    /**
-     * Get the number of jobs past hour.
-     *
-     * @param int|null $service_id
-     * @return int
-     */
-    private function getJobsPastHour(?int $service_id = null): int {
-        return HorizonJob::where('status', 'processed')
-            ->where('processed_at', '>=', \now()->subHour())
-            ->when($service_id !== null, fn ($q) => $q->where('service_id', $service_id))
-            ->count();
-    }
-
-    /**
-     * Get the number of failed jobs past seven days.
-     *
-     * @param int|null $service_id
-     * @return int
-     */
-    private function getFailedPastSevenDays(?int $service_id = null): int {
-        return HorizonFailedJob::where('failed_at', '>=', \now()->subDays(7))
-            ->when($service_id !== null, fn ($q) => $q->where('service_id', $service_id))
-            ->count();
-    }
-
-    /**
-     * Get the number of processed jobs past 24 hours.
-     *
-     * @param int|null $service_id
-     * @return int
-     */
-    private function getProcessedPast24Hours(?int $service_id = null): int {
-        return HorizonJob::where('status', 'processed')
-            ->where('processed_at', '>=', \now()->subDay())
-            ->when($service_id !== null, fn ($q) => $q->where('service_id', $service_id))
-            ->count();
     }
 
     /**
@@ -292,6 +286,116 @@ class MetricsController extends Controller {
         \usort($agg, static fn (array $a, array $b): int => $b['cnt'] <=> $a['cnt']);
 
         return \array_slice($agg, 0, 15);
+    }
+
+    /**
+     * Get supervisors aggregated across services (optionally filtered by service).
+     *
+     * @param int|null $service_id
+     * @return array<int, array{
+     *     service_id: int,
+     *     service: string,
+     *     name: string,
+     *     last_seen_iso: string|null,
+     *     last_seen_human: string|null,
+     *     status: string
+     * }>
+     */
+    private function getSupervisorsData(?int $service_id = null): array {
+        $deadThreshold = \now()->subMinutes((int) \config('horizonhub.dead_service_minutes'));
+
+        $query = HorizonSupervisorState::query()
+            ->where('last_seen_at', '>=', $deadThreshold)
+            ->with('service:id,name');
+
+        if ($service_id !== null) {
+            $query->where('service_id', $service_id);
+        }
+
+        $rows = $query
+            ->orderBy('service_id')
+            ->orderBy('name')
+            ->get();
+
+        $result = [];
+
+        foreach ($rows as $row) {
+            $service = $row->service;
+            if (! $service) {
+                continue;
+            }
+
+            $lastSeen = $row->last_seen_at;
+            $lastSeenIso = $lastSeen ? $lastSeen->toIso8601String() : null;
+            $lastSeenHuman = $lastSeen ? $lastSeen->diffForHumans() : null;
+
+            $minutesAgo = $lastSeen ? (int) $lastSeen->diffInMinutes(\now(), true) : 0;
+            $staleMinutes = (int) \config('horizonhub.stale_minutes');
+            $status = $minutesAgo > $staleMinutes ? 'stale' : 'online';
+
+            $result[] = [
+                'service_id' => (int) $service->id,
+                'service' => (string) $service->name,
+                'name' => (string) $row->name,
+                'last_seen_iso' => $lastSeenIso,
+                'last_seen_human' => $lastSeenHuman,
+                'status' => $status,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get current workload aggregated across services (optionally filtered by service).
+     *
+     * @param int|null $service_id
+     * @return array<int, array{
+     *     service_id: int,
+     *     service: string,
+     *     queue: string,
+     *     jobs: int,
+     *     processes: int|null,
+     *     wait: float|null
+     * }>
+     */
+    private function getWorkloadData(?int $service_id = null): array {
+        $servicesQuery = Service::query()->whereNotNull('base_url');
+
+        if ($service_id !== null) {
+            $servicesQuery->where('id', $service_id);
+        }
+
+        $services = $servicesQuery->orderBy('name')->get();
+        if ($services->isEmpty()) {
+            return [];
+        }
+
+        $result = [];
+
+        foreach ($services as $service) {
+            if (! $service instanceof Service) {
+                continue;
+            }
+
+            $rows = $this->metrics->getWorkloadForService($service);
+            if ($rows === []) {
+                continue;
+            }
+
+            foreach ($rows as $row) {
+                $result[] = [
+                    'service_id' => (int) $service->id,
+                    'service' => (string) $service->name,
+                    'queue' => $row['queue'],
+                    'jobs' => $row['jobs'],
+                    'processes' => $row['processes'],
+                    'wait' => $row['wait'],
+                ];
+            }
+        }
+
+        return $result;
     }
 
     /**

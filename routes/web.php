@@ -22,6 +22,8 @@ Route::prefix('horizon')->name('horizon.')->group(function (): void {
     Route::get('/metrics/data/by-queue', [MetricsController::class, 'dataByQueue'])->name('metrics.data.by-queue');
     Route::get('/metrics/data/by-service', [MetricsController::class, 'dataByService'])->name('metrics.data.by-service');
     Route::get('/metrics/data/failures-table', [MetricsController::class, 'dataFailuresTable'])->name('metrics.data.failures-table');
+    Route::get('/metrics/data/supervisors', [MetricsController::class, 'dataSupervisors'])->name('metrics.data.supervisors');
+    Route::get('/metrics/data/workload', [MetricsController::class, 'dataWorkload'])->name('metrics.data.workload');
     Route::get('/jobs/{job}', [JobController::class, 'show'])->name('jobs.show');
     Route::get('/queues', [QueueController::class, 'index'])->name('queues.index');
     Route::get('/services', [ServiceController::class, 'index'])->name('services.index');

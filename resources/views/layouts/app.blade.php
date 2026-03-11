@@ -25,7 +25,7 @@
                 document.documentElement.classList.toggle('dark', isDark);
             })();
         </script>
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>{{ config('app.name') }}</title>
         <link rel="icon" type="image/svg+xml" href="{{ asset('logo.svg') }}">
         <link rel="preload" href="{{ asset('logo.svg') }}" as="image">
         <link rel="preconnect" href="https://fonts.bunny.net">

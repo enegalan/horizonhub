@@ -46,14 +46,15 @@ class HorizonEventProcessor {
 
         if (\is_numeric($value)) {
             $numeric = (float) $value;
-            // Heuristic: timestamps larger than current time * 100 likely in milliseconds
-            $nowSeconds = (float) \time();
-            if ($numeric > $nowSeconds * 100) {
+            // Heuristic: very large values are treated as milliseconds since epoch,
+            // smaller values are treated as seconds (possibly with fractions).
+            if ($numeric > 1000000000000) {
                 $timestampMs = (int) \round($numeric);
                 return Carbon::createFromTimestampMs($timestampMs);
             }
 
-            return Carbon::createFromTimestamp((int) \round($numeric));
+            $timestampMs = (int) \round($numeric * 1000);
+            return Carbon::createFromTimestampMs($timestampMs);
         }
 
         try {
