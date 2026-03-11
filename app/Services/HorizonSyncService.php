@@ -192,10 +192,20 @@ class HorizonSyncService {
             $exception = $job['exception'] ?? null;
 
             $runtimeSecondsRaw = null;
-            if ($reservedAt !== null && $completedAt !== null) {
-                $runtimeSecondsRaw = (float) $completedAt - (float) $reservedAt;
-            } elseif ($reservedAt !== null && $failedAt !== null) {
-                $runtimeSecondsRaw = (float) $failedAt - (float) $reservedAt;
+            $reservedNumeric = \is_numeric($reservedAt) ? (float) $reservedAt : null;
+            $completedNumeric = \is_numeric($completedAt) ? (float) $completedAt : null;
+            $failedNumeric = \is_numeric($failedAt) ? (float) $failedAt : null;
+
+            if ($reservedNumeric !== null && $completedNumeric !== null) {
+                $runtimeSecondsRaw = $completedNumeric - $reservedNumeric;
+            } elseif ($reservedNumeric !== null && $failedNumeric !== null) {
+                $runtimeSecondsRaw = $failedNumeric - $reservedNumeric;
+            }
+
+            if ($runtimeSecondsRaw !== null) {
+                if ($runtimeSecondsRaw < 0 || $runtimeSecondsRaw > 9999999) {
+                    $runtimeSecondsRaw = null;
+                }
             }
 
             $event = [
