@@ -40,6 +40,8 @@ return [
         'masters' => '/masters',
     ],
 
+    'timeout' => (int) env('HORIZON_HUB_TIMEOUT', 10),
+
     /*
     |--------------------------------------------------------------------------
     | Stale Minutes
