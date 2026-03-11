@@ -227,8 +227,8 @@
                 $key = (string) $id;
                 $totals[$key] = ($totals[$key] ?? 0) + 1;
             }
-            $jobIdsLimited = array_slice(array_keys($totals), 0, config('horizonhub.alerts_per_page'));
-            $jobIdsMore = count($totals) > config('horizonhub.alerts_per_page') ? count($totals) - config('horizonhub.alerts_per_page') : 0;
+            $jobIdsLimited = \array_slice(\array_keys($totals), 0, \config('horizonhub.alerts_per_page'));
+            $jobIdsMore = \count($totals) > \config('horizonhub.alerts_per_page') ? \count($totals) - \config('horizonhub.alerts_per_page') : 0;
         @endphp
         @teleport('body')
             <div id="alert-log-modal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto px-4" role="dialog" aria-modal="true" aria-labelledby="alert-log-modal-title">

@@ -27,8 +27,8 @@ class AgentProxyServiceTest extends TestCase {
             'status' => 'online',
         ]);
 
-        \config()->set('horizonhub.horizon.paths.api', '/horizon/api');
-        \config()->set('horizonhub.horizon.paths.retry', '/jobs/retry/{id}');
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.retry', '/jobs/retry/{id}');
 
         $proxy = new HorizonApiProxyService();
 

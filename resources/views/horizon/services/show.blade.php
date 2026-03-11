@@ -39,7 +39,7 @@
                 <x-button
                     variant="ghost"
                     type="button"
-                    onclick="window.open('{{ rtrim($dashboardBase, '/') . \config('horizonhub.horizon.paths.dashboard') }}', '_blank')"
+                    onclick="window.open('{{ rtrim($dashboardBase, '/') . \config('horizonhub.horizon_paths.dashboard') }}', '_blank')"
                     class="h-8 min-h-8 p-2"
                     aria-label="Open Horizon dashboard"
                     title="Open Horizon dashboard"
@@ -137,8 +137,8 @@
                     @foreach($supervisors as $supervisor)
                         @php
                             $lastSeen = $supervisor->last_seen_at;
-                            $minutesAgo = $lastSeen ? max(0, (int) $lastSeen->diffInMinutes(now(), true)) : 0;
-                            $staleMinutes = (int) config('horizonhub.stale_minutes');
+                            $minutesAgo = $lastSeen ? \max(0, (int) $lastSeen->diffInMinutes(now(), true)) : 0;
+                            $staleMinutes = (int) \config('horizonhub.stale_minutes');
                             if ($minutesAgo > $staleMinutes) {
                                 $statusColor = 'bg-amber-500';
                                 $statusTitle = 'Stale';

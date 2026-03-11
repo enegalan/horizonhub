@@ -7,7 +7,7 @@
             failedListUrl: '{{ route('horizon.jobs.failed') }}',
             retryBatchUrl: '{{ route('horizon.jobs.retry-batch') }}',
             cleanUrl: '{{ route('horizon.jobs.clean') }}',
-            jobsPerPage: {{ config('horizonhub.jobs_per_page') }},
+            jobsPerPage: {{ \config('horizonhub.jobs_per_page') }},
         }) : {}"
         x-init="
             if (typeof cleanFilters !== 'undefined') {

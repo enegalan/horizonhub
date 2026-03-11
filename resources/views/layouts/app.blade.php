@@ -25,7 +25,7 @@
                 document.documentElement.classList.toggle('dark', isDark);
             })();
         </script>
-        <title>{{ config('app.name') }}</title>
+        <title>{{ \config('app.name') }}</title>
         <link rel="icon" type="image/svg+xml" href="{{ asset('logo.svg') }}">
         <link rel="preload" href="{{ asset('logo.svg') }}" as="image">
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -35,7 +35,7 @@
         <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <script>
-            window.horizonHubHotReloadInterval = {{ (int) config('horizonhub.hot_reload_interval', 5) }};
+            window.horizonHubHotReloadInterval = {{ (int) \config('horizonhub.hot_reload_interval') }};
             window.horizonHubHotReloadTimer = null;
             document.addEventListener('alpine:init', () => {
                 Alpine.store('hotReload', {

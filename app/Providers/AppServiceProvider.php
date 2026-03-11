@@ -30,7 +30,7 @@ class AppServiceProvider extends ServiceProvider {
     public function boot(): void {
         RateLimiter::for('hub-events', function (Request $request): Limit {
             $key = $request->header('X-Api-Key') ?: $request->ip();
-            return Limit::perMinute(config('horizonhub.events_rate_limit', 2000))->by($key);
+            return Limit::perMinute(\config('horizonhub.events_rate_limit'))->by($key);
         });
     }
 }

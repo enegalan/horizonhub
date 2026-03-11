@@ -7,46 +7,37 @@ return [
     |--------------------------------------------------------------------------
     |
     | Configuration for talking directly to each service's existing Horizon
-    | HTTP API. The Hub will proxy retry actions through these endpoints.
+    | HTTP API.
     |
-    | - api_base_path: the base path where Horizon's API is exposed.
-    | - dashboard_path: the base path where Horizon's dashboard is exposed.
-    | - retry_path: the relative path for retrying a failed job; the "{id}"
+    | Base paths:
+    | - dashboard: the base path where Horizon's dashboard is exposed.
+    | - api: the base path where Horizon's API is exposed.
+    |
+    | Relative paths:
+    | - retry: the relative path for retrying a failed job; the "{id}"
     |   placeholder will be replaced with the job UUID.
-    | - ping_path: the relative path used to test connectivity with Horizon
+    | - ping: the relative path used to test connectivity with Horizon
     |   API for a given service.
-    | - workload_path: the relative path used to read queue workload from
+    | - workload: the relative path used to read queue workload from
     |   Horizon API.
-    | - failed_jobs_path: the relative path to list failed jobs.
-    | - failed_job_path: the relative path to read a single failed job
+    | - failed_jobs: the relative path to list failed jobs.
+    | - failed_job: the relative path to read a single failed job
     |   by UUID; the "{id}" placeholder will be replaced with the job UUID.
-    | - completed_jobs_path: the relative path to list completed jobs.
-    | - pending_jobs_path: the relative path to list pending/processing jobs.
-    |
+    | - completed_jobs: the relative path to list completed jobs.
+    | - pending_jobs: the relative path to list pending/processing jobs.
+    | - masters: the relative path to list Horizon masters.
     */
-    'horizon' => [
-        'paths' => [
-            'dashboard' => '/horizon',
-            'api' => '/horizon/api',
-            'retry' => '/jobs/retry/{id}',
-            'ping' => '/stats',
-            'workload' => '/workload',
-            'failed_jobs' => '/jobs/failed',
-            'failed_job' => '/jobs/failed/{id}',
-            'completed_jobs' => '/jobs/completed',
-            'pending_jobs' => '/jobs/pending',
-            'masters' => '/masters',
-        ],
-        'api_base_path' => \env('HORIZON_HUB_HORIZON_API_BASE_PATH', '/horizon/api'),
-        'dashboard_path' => \env('HORIZON_HUB_HORIZON_DASHBOARD_PATH', '/horizon'),
-        'retry_path' => '/jobs/retry/{id}',
-        'ping_path' => '/stats',
-        'workload_path' => '/workload',
-        'failed_jobs_path' => '/jobs/failed',
-        'failed_job_path' => '/jobs/failed/{id}',
-        'completed_jobs_path' => '/jobs/completed',
-        'pending_jobs_path' => '/jobs/pending',
-        'masters_path' => '/masters',
+    'horizon_paths' => [
+        'dashboard' => '/horizon',
+        'api' => '/horizon/api',
+        'retry' => '/jobs/retry/{id}',
+        'ping' => '/stats',
+        'workload' => '/workload',
+        'failed_jobs' => '/jobs/failed',
+        'failed_job' => '/jobs/failed/{id}',
+        'completed_jobs' => '/jobs/completed',
+        'pending_jobs' => '/jobs/pending',
+        'masters' => '/masters',
     ],
 
     /*
@@ -55,7 +46,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | After this many minutes without events, a service is considered stand-by
-    | and a supervisor is considered stale. Supervisors older than 
+    | and a supervisor is considered stale. Supervisors older than
     | `dead_service_minutes` are removed; services become offline.
     |
     */
