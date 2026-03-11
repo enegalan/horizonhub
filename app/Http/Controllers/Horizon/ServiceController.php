@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Horizon;
 use App\Http\Controllers\Controller;
 use App\Models\HorizonJob;
 use App\Models\Service;
+use Illuminate\Support\Facades\DB;
 use App\Services\HorizonSyncService;
 use App\Services\HorizonApiProxyService;
 use App\Services\HorizonMetricsService;
@@ -26,7 +27,14 @@ class ServiceController extends Controller {
      * @return View
      */
     public function index(): View {
-        $services = Service::withCount(['horizonJobs', 'horizonFailedJobs'])
+        $this->horizonSync->syncRecentJobs();
+
+        $services = Service::withCount([
+                'horizonJobs',
+                'horizonFailedJobs as horizon_failed_jobs_count' => function ($query) {
+                    $query->select(DB::raw('COUNT(DISTINCT job_uuid)'));
+                },
+            ])
             ->orderBy('name')
             ->get();
 
