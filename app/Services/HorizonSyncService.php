@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Service;
 use App\Models\HorizonSupervisorState;
-use Illuminate\Support\Facades\Log;
 
 class HorizonSyncService {
     private HorizonApiProxyService $horizonApi;

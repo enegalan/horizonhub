@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\V1\JobActionController;
+use App\Http\Controllers\Horizon\JobActionController;
 use App\Http\Controllers\Horizon\JobController;
 use App\Http\Controllers\Horizon\AlertController;
 use App\Http\Controllers\Horizon\ServiceController;
@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 Route::redirect('/', '/horizon');
 Route::get('/dashboard', fn () => redirect()->route('horizon.index'))->name('dashboard');
 
-Route::prefix('horizon')->name('horizon.')->group(function (): void {
+Route::prefix('horizon')->name('horizon.')->middleware(['throttle:60,1'])->group(function (): void {
     Route::get('/', [JobController::class, 'index'])->name('index');
     Route::get('/metrics', [MetricsController::class, 'index'])->name('metrics');
     Route::get('/metrics/data/summary', [MetricsController::class, 'dataSummary'])->name('metrics.data.summary');
@@ -24,6 +24,10 @@ Route::prefix('horizon')->name('horizon.')->group(function (): void {
     Route::get('/metrics/data/failures-table', [MetricsController::class, 'dataFailuresTable'])->name('metrics.data.failures-table');
     Route::get('/metrics/data/supervisors', [MetricsController::class, 'dataSupervisors'])->name('metrics.data.supervisors');
     Route::get('/metrics/data/workload', [MetricsController::class, 'dataWorkload'])->name('metrics.data.workload');
+    Route::get('/jobs/failed', [JobActionController::class, 'failedList'])->name('jobs.failed');
+    Route::post('/jobs/retry-batch', [JobActionController::class, 'retryBatch'])->name('jobs.retry-batch');
+    Route::post('/jobs/clean', [JobActionController::class, 'clean'])->name('jobs.clean');
+    Route::post('/jobs/{id}/retry', [JobActionController::class, 'retry'])->name('jobs.retry');
     Route::get('/jobs/{job}', [JobController::class, 'show'])->name('jobs.show');
     Route::get('/queues', [QueueController::class, 'index'])->name('queues.index');
     Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
@@ -40,6 +44,7 @@ Route::prefix('horizon')->name('horizon.')->group(function (): void {
     Route::get('/alerts/{alert}/edit', [AlertController::class, 'edit'])->name('alerts.edit');
     Route::put('/alerts/{alert}', [AlertController::class, 'update'])->name('alerts.update');
     Route::delete('/alerts/{alert}', [AlertController::class, 'destroy'])->name('alerts.destroy');
+    Route::post('/alerts/logs/{log}/retry', [AlertController::class, 'retryLog'])->name('alerts.logs.retry');
     Route::redirect('/providers', '/horizon/settings?tab=providers')->name('providers.index');
     Route::get('/providers/create', [ProviderController::class, 'create'])->name('providers.create');
     Route::post('/providers', [ProviderController::class, 'store'])->name('providers.store');
@@ -47,12 +52,4 @@ Route::prefix('horizon')->name('horizon.')->group(function (): void {
     Route::put('/providers/{provider}', [ProviderController::class, 'update'])->name('providers.update');
     Route::delete('/providers/{provider}', [ProviderController::class, 'destroy'])->name('providers.destroy');
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
-});
-
-Route::prefix('api/v1')->middleware(['throttle:60,1'])->group(function (): void {
-    Route::post('jobs/{id}/retry', [JobActionController::class, 'retry'])->name('api.jobs.retry');
-    Route::post('jobs/retry-batch', [JobActionController::class, 'retryBatch'])->name('api.jobs.retry-batch');
-    Route::get('horizon/jobs/failed', [JobActionController::class, 'failedList'])->name('api.horizon.jobs.failed');
-    Route::post('horizon/jobs/clean', [JobActionController::class, 'clean'])->name('api.horizon.jobs.clean');
-    Route::post('alerts/logs/{log}/retry', [AlertController::class, 'retryLog'])->name('api.alerts.logs.retry');
 });

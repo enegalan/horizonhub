@@ -4,9 +4,9 @@
     <div
         class="card"
         x-data="window.horizonJobsPage ? window.horizonJobsPage({
-            failedListUrl: '{{ route('api.horizon.jobs.failed') }}',
-            retryBatchUrl: '{{ route('api.jobs.retry-batch') }}',
-            cleanUrl: '{{ route('api.horizon.jobs.clean') }}',
+            failedListUrl: '{{ route('horizon.jobs.failed') }}',
+            retryBatchUrl: '{{ route('horizon.jobs.retry-batch') }}',
+            cleanUrl: '{{ route('horizon.jobs.clean') }}',
             jobsPerPage: {{ config('horizonhub.jobs_per_page') }},
         }) : {}"
         x-init="

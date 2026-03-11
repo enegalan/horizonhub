@@ -39,7 +39,7 @@
                 <x-button
                     variant="ghost"
                     type="button"
-                    onclick="window.open('{{ rtrim($dashboardBase, '/') . \config('horizonhub.horizon.dashboard_path') }}', '_blank')"
+                    onclick="window.open('{{ rtrim($dashboardBase, '/') . \config('horizonhub.horizon.paths.dashboard') }}', '_blank')"
                     class="h-8 min-h-8 p-2"
                     aria-label="Open Horizon dashboard"
                     title="Open Horizon dashboard"

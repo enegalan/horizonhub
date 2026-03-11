@@ -20,7 +20,7 @@ class HorizonApiProxyService {
             throw new \RuntimeException('Service has no base_url configured.');
         }
 
-        $apiBasePath = (string) \config('horizonhub.horizon.api_base_path');
+        $apiBasePath = (string) \config('horizonhub.horizon.paths.api');
         $apiBasePath = '/' . \ltrim($apiBasePath, '/');
 
         return $serviceBase . \rtrim($apiBasePath, '/');
@@ -38,7 +38,7 @@ class HorizonApiProxyService {
             throw new \RuntimeException('Service has no base_url configured.');
         }
 
-        $dashboardPath = (string) \config('horizonhub.horizon.dashboard_path');
+        $dashboardPath = (string) \config('horizonhub.horizon.paths.dashboard');
         $dashboardPath = \ltrim($dashboardPath, '/');
 
         return "$serviceBase/$dashboardPath";
@@ -87,11 +87,6 @@ class HorizonApiProxyService {
 
         try {
             $request = Http::timeout(10);
-
-            $headers = \config('horizonhub.horizon.headers');
-            if (\is_array($headers) && $headers !== []) {
-                $request = $request->withHeaders($headers);
-            }
 
             $response = match (\strtolower($method)) {
                 'get' => $request->get($url),
@@ -274,16 +269,11 @@ class HorizonApiProxyService {
                 return null;
             }
 
-            $headers = \config('horizonhub.horizon.headers');
-            if (! \is_array($headers)) {
-                $headers = [];
-            }
-
-            $headers['X-CSRF-TOKEN'] = $bootstrap['csrf_token'];
-
             $request = Http::timeout(10)
                 ->withOptions(['cookies' => $bootstrap['cookies']])
-                ->withHeaders($headers);
+                ->withHeaders([
+                    'X-CSRF-TOKEN' => $bootstrap['csrf_token'],
+                ]);
 
             return match (\strtolower($method)) {
                 'get' => $request->get($url),
@@ -379,7 +369,7 @@ class HorizonApiProxyService {
      * @return array{success: bool, message?: string, status?: int}
      */
     public function retryJob(Service $service, string $jobUuid): array {
-        $relativePath = $this->parseTemplate('horizonhub.horizon.retry_path', '{id}', $jobUuid);
+        $relativePath = $this->parseTemplate('horizonhub.horizon.paths.retry', '{id}', $jobUuid);
 
         return $this->callWithDashboardSession($service, $relativePath, 'post');
     }
@@ -391,7 +381,7 @@ class HorizonApiProxyService {
      * @return array{success: bool, message?: string, status?: int}
      */
     public function ping(Service $service): array {
-        $relativePath = (string) \config('horizonhub.horizon.ping_path');
+        $relativePath = (string) \config('horizonhub.horizon.paths.ping');
 
         return $this->call($service, $relativePath, 'get');
     }
@@ -403,7 +393,7 @@ class HorizonApiProxyService {
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     public function getWorkload(Service $service): array {
-        $relativePath = (string) \config('horizonhub.horizon.workload_path');
+        $relativePath = (string) \config('horizonhub.horizon.paths.workload');
 
         return $this->call($service, $relativePath, 'get');
     }
@@ -418,7 +408,7 @@ class HorizonApiProxyService {
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     public function getStats(Service $service): array {
-        $relativePath = (string) \config('horizonhub.horizon.ping_path');
+        $relativePath = (string) \config('horizonhub.horizon.paths.ping');
 
         return $this->call($service, $relativePath, 'get');
     }
@@ -430,7 +420,7 @@ class HorizonApiProxyService {
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     public function getMasters(Service $service): array {
-        $relativePath = (string) \config('horizonhub.horizon.masters_path');
+        $relativePath = (string) \config('horizonhub.horizon.paths.masters');
 
         return $this->call($service, $relativePath, 'get');
     }
@@ -443,13 +433,13 @@ class HorizonApiProxyService {
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     public function getFailedJobs(Service $service, array $query = []): array {
-        $path = (string) \config('horizonhub.horizon.failed_jobs_path');
+        $path = (string) \config('horizonhub.horizon.paths.failed_jobs');
         if ($query === []) {
             $query = ['starting_at' => 0, 'limit' => 50];
         }
         $queryString = \http_build_query($query);
 
-        return $this->call($service, $path . '?' . $queryString, 'get');
+        return $this->call($service, "$path?$queryString", 'get');
     }
 
     /**
@@ -460,7 +450,7 @@ class HorizonApiProxyService {
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     public function getFailedJob(Service $service, string $jobUuid): array {
-        $relativePath = $this->parseTemplate('horizonhub.horizon.failed_job_path', '{id}', $jobUuid);
+        $relativePath = $this->parseTemplate('horizonhub.horizon.paths.failed_job', '{id}', $jobUuid);
 
         return $this->call($service, $relativePath, 'get');
     }
@@ -473,13 +463,13 @@ class HorizonApiProxyService {
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     public function getCompletedJobs(Service $service, array $query = []): array {
-        $path = (string) \config('horizonhub.horizon.completed_jobs_path');
+        $path = (string) \config('horizonhub.horizon.paths.completed_jobs');
         if ($query === []) {
             $query = ['starting_at' => 0, 'limit' => 50];
         }
         $queryString = \http_build_query($query);
 
-        return $this->call($service, $path . '?' . $queryString, 'get');
+        return $this->call($service, "$path?$queryString", 'get');
     }
 
     /**
@@ -490,12 +480,12 @@ class HorizonApiProxyService {
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     public function getPendingJobs(Service $service, array $query = []): array {
-        $path = (string) \config('horizonhub.horizon.pending_jobs_path');
+        $path = (string) \config('horizonhub.horizon.paths.pending_jobs');
         if ($query === []) {
             $query = ['starting_at' => 0, 'limit' => 50];
         }
         $queryString = \http_build_query($query);
 
-        return $this->call($service, $path . '?' . $queryString, 'get');
+        return $this->call($service, "$path?$queryString", 'get');
     }
 }

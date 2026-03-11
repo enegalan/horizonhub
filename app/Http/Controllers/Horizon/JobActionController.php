@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Http\Controllers\Horizon;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Api\V1\RetryJobsRequest;
+use App\Http\Requests\RetryJobsRequest;
 use App\Models\HorizonFailedJob;
 use App\Models\HorizonJob;
 use App\Services\HorizonApiProxyService;

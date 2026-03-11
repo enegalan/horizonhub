@@ -75,7 +75,7 @@
                 var serviceId = btn.getAttribute('data-service-id');
                 var queue = btn.getAttribute('data-queue');
                 if (!action || !serviceId || !queue) return;
-                var apiUrl = '/api/v1/queues/' + encodeURIComponent(queue) + '/' + action;
+                var apiUrl = '/horizon/queues/' + encodeURIComponent(queue) + '/' + action;
                 var token = document.querySelector('meta[name="csrf-token"]');
                 btn.disabled = true;
                 btn.setAttribute('data-loading', 'true');

@@ -3,7 +3,7 @@
 @section('content')
     <div
         x-data="window.horizonJobDetail({
-            retryUrl: '{{ route('api.jobs.retry', ['id' => $job->id]) }}',
+            retryUrl: '{{ route('horizon.jobs.retry', ['id' => $job->id]) }}',
             canRetry: {{ $job->service && $job->service->base_url && $job->status === 'failed' ? 'true' : 'false' }},
         })"
         x-init="typeof init === 'function' ? init() : null"
