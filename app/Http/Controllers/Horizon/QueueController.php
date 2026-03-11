@@ -6,11 +6,22 @@ use App\Http\Controllers\Controller;
 use App\Models\HorizonJob;
 use App\Models\HorizonQueueState;
 use App\Models\Service;
+use App\Services\HorizonSyncService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class QueueController extends Controller {
+    private HorizonSyncService $horizonSync;
+
+    /**
+     * Construct the queue controller.
+     *
+     * @param HorizonSyncService $horizonSync
+     */
+    public function __construct(HorizonSyncService $horizonSync) {
+        $this->horizonSync = $horizonSync;
+    }
     /**
      * Normalize a queue name to avoid duplicates caused by different connection prefixes.
      *
@@ -39,6 +50,8 @@ class QueueController extends Controller {
      */
     public function index(Request $request): View {
         $serviceFilter = (string) $request->query('service', '');
+
+        $this->horizonSync->syncRecentJobs($serviceFilter !== '' ? (int) $serviceFilter : null);
 
         $query = HorizonJob::query()
             ->select('service_id', 'queue', DB::raw('count(*) as job_count'))

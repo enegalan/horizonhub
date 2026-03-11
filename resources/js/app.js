@@ -2,6 +2,7 @@ import './bootstrap';
 import './resizable-table';
 import { horizonJobsPage, horizonJobDetail } from './horizon-jobs';
 import { horizonServiceDashboard, horizonServiceList } from './horizon-services';
+import { horizonQueueList } from './horizon-queues';
 
 import Alpine from 'alpinejs';
 import { createRoot } from 'react-dom/client';
@@ -134,6 +135,7 @@ window.horizonJobsPage = horizonJobsPage;
 window.horizonJobDetail = horizonJobDetail;
 window.horizonServiceDashboard = horizonServiceDashboard;
 window.horizonServiceList = horizonServiceList;
+window.horizonQueueList = horizonQueueList;
 window.hydrateMetricsChartsFromDom = hydrateMetricsChartsFromDom;
 window.initMetricsCharts = initMetricsCharts;
 window.processMetricsChartQueue = processMetricsChartQueue;
