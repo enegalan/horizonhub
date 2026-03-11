@@ -122,6 +122,13 @@ class MetricsController extends Controller {
      */
     public function dataByService(Request $request): JsonResponse {
         $service_id = $this->resolveServiceId($request);
+
+        if ($service_id === null) {
+            return $this->jsonOrFail(function (): array {
+                return $this->getProcessedFailedByServiceAll();
+            });
+        }
+
         return $this->jsonOrFail(function () use ($service_id): array {
             return $this->getProcessedFailedByService($service_id);
         });
@@ -647,6 +654,57 @@ class MetricsController extends Controller {
         $services = \array_keys($agg);
         $processed = [];
         $failed = [];
+        foreach ($agg as $v) {
+            $processed[] = $v['processed'];
+            $failed[] = $v['failed'];
+        }
+
+        return ['services' => $services, 'processed' => $processed, 'failed' => $failed];
+    }
+
+    /**
+     * Get the processed vs failed data by service for all services (last 7 days).
+     *
+     * @return array{services: list<string>, processed: list[int], failed: list[int]}
+     */
+    private function getProcessedFailedByServiceAll(): array {
+        $since = \now()->subDays(self::DAYS_7);
+
+        $processedByService = HorizonJob::where('status', 'processed')
+            ->where('processed_at', '>=', $since)
+            ->selectRaw('service_id, COUNT(*) as cnt')
+            ->groupBy('service_id')
+            ->pluck('cnt', 'service_id')
+            ->all();
+
+        $failedByService = HorizonFailedJob::where('failed_at', '>=', $since)
+            ->selectRaw('service_id, COUNT(*) as cnt')
+            ->groupBy('service_id')
+            ->pluck('cnt', 'service_id')
+            ->all();
+
+        $allIds = \array_unique(\array_merge(\array_keys($processedByService), \array_keys($failedByService)));
+        if ($allIds === []) {
+            return ['services' => [], 'processed' => [], 'failed' => []];
+        }
+
+        $names = Service::whereIn('id', $allIds)->pluck('name', 'id')->all();
+        $agg = [];
+
+        foreach ($allIds as $id) {
+            $name = $names[$id] ?? (string) $id;
+            $p = $processedByService[$id] ?? 0;
+            $f = $failedByService[$id] ?? 0;
+            $agg[$name] = ['processed' => $p, 'failed' => $f, 'total' => $p + $f];
+        }
+
+        \uasort($agg, fn ($a, $b) => $b['total'] <=> $a['total']);
+        $agg = \array_slice($agg, 0, self::TOP_N_SERVICES, true);
+
+        $services = \array_keys($agg);
+        $processed = [];
+        $failed = [];
+
         foreach ($agg as $v) {
             $processed[] = $v['processed'];
             $failed[] = $v['failed'];
