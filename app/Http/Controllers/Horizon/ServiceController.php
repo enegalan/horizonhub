@@ -27,16 +27,18 @@ class ServiceController extends Controller {
      * @return View
      */
     public function index(): View {
-        $this->horizonSync->syncRecentJobs();
-
-        $services = Service::withCount([
-                'horizonJobs',
-                'horizonFailedJobs as horizon_failed_jobs_count' => function ($query) {
-                    $query->select(DB::raw('COUNT(DISTINCT job_uuid)'));
-                },
-            ])
+        $services = Service::withCount('horizonJobs')
             ->orderBy('name')
             ->get();
+
+        $failedJobCounts = DB::table('horizon_failed_jobs')
+            ->select('service_id', DB::raw('COUNT(DISTINCT job_uuid) as failed_jobs_count'))
+            ->groupBy('service_id')
+            ->pluck('failed_jobs_count', 'service_id');
+
+        foreach ($services as $service) {
+            $service->horizon_failed_jobs_count = (int) ($failedJobCounts[$service->id] ?? 0);
+        }
 
         return \view('horizon.services.index', [
             'services' => $services,
