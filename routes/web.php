@@ -17,11 +17,9 @@ Route::prefix('horizon')->name('horizon.')->middleware(['throttle:60,1'])->group
     Route::get('/', [JobController::class, 'index'])->name('index');
     Route::get('/metrics', [MetricsController::class, 'index'])->name('metrics');
     Route::get('/metrics/data/summary', [MetricsController::class, 'dataSummary'])->name('metrics.data.summary');
-    Route::get('/metrics/data/processed-vs-failed', [MetricsController::class, 'dataProcessedVsFailed'])->name('metrics.data.processed-vs-failed');
     Route::get('/metrics/data/avg-runtime', [MetricsController::class, 'dataAvgRuntime'])->name('metrics.data.avg-runtime');
+    Route::get('/metrics/data/failure-rate-over-time', [MetricsController::class, 'dataFailureRateOverTime'])->name('metrics.data.failure-rate-over-time');
     Route::get('/metrics/data/by-queue', [MetricsController::class, 'dataByQueue'])->name('metrics.data.by-queue');
-    Route::get('/metrics/data/by-service', [MetricsController::class, 'dataByService'])->name('metrics.data.by-service');
-    Route::get('/metrics/data/failures-table', [MetricsController::class, 'dataFailuresTable'])->name('metrics.data.failures-table');
     Route::get('/metrics/data/supervisors', [MetricsController::class, 'dataSupervisors'])->name('metrics.data.supervisors');
     Route::get('/metrics/data/workload', [MetricsController::class, 'dataWorkload'])->name('metrics.data.workload');
     Route::get('/jobs/failed', [JobActionController::class, 'failedList'])->name('jobs.failed');

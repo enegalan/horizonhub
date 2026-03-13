@@ -51,16 +51,6 @@
         </div>
 
         <div class="card p-4">
-            <h3 class="text-section-title text-foreground mb-2">Processed vs failed (last 24h, by hour)</h3>
-            <div class="relative h-56">
-                <div id="metrics-loader-processed-failed" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded">
-                    <x-loader class="size-8 text-muted-foreground" />
-                </div>
-                <div id="processed-failed-chart" class="h-56"></div>
-            </div>
-        </div>
-
-        <div class="card p-4">
             <h3 class="text-section-title text-foreground mb-2">Failure rate over time (last 24h, %)</h3>
             <div class="relative h-56">
                 <div id="metrics-loader-failure-rate-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded">
@@ -77,26 +67,6 @@
                     <x-loader class="size-8 text-muted-foreground" />
                 </div>
                 <div id="runtime-chart" class="h-56"></div>
-            </div>
-        </div>
-
-        <div class="card p-4">
-            <h3 class="text-section-title text-foreground mb-2">Jobs by queue (last 7 days, top 12)</h3>
-            <div class="relative h-80">
-                <div id="metrics-loader-queue-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded">
-                    <x-loader class="size-8 text-muted-foreground" />
-                </div>
-                <div id="queue-distribution-chart" class="h-80"></div>
-            </div>
-        </div>
-
-        <div class="card p-4">
-            <h3 class="text-section-title text-foreground mb-2">Jobs by service (last 7 days, top 10)</h3>
-            <div class="relative h-80">
-                <div id="metrics-loader-service-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded">
-                    <x-loader class="size-8 text-muted-foreground" />
-                </div>
-                <div id="service-distribution-chart" class="h-80"></div>
             </div>
         </div>
 
@@ -137,13 +107,14 @@
                 <p id="metrics-supervisors-summary" class="text-xs text-muted-foreground"></p>
             </div>
             <div class="overflow-x-auto">
-                <table class="min-w-full" data-resizable-table="horizon-metrics-supervisors" data-column-ids="service,supervisor,status,last_seen">
+                <table class="min-w-full" data-resizable-table="horizon-metrics-supervisors" data-column-ids="service,supervisor,jobs,processes,status">
                     <thead>
                         <tr class="border-b border-border bg-muted/50">
                             <th class="table-header px-4 py-2.5 min-w-[140px]" data-column-id="service">Service</th>
                             <th class="table-header px-4 py-2.5 min-w-[160px]" data-column-id="supervisor">Supervisor</th>
+                            <th class="table-header px-4 py-2.5 min-w-[80px]" data-column-id="jobs">Jobs</th>
+                            <th class="table-header px-4 py-2.5 min-w-[80px]" data-column-id="processes">Processes</th>
                             <th class="table-header px-4 py-2.5 min-w-[80px]" data-column-id="status">Status</th>
-                            <th class="table-header px-4 py-2.5 min-w-[160px]" data-column-id="last_seen">Last seen</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-border" data-table-body="horizon-metrics-supervisors" id="metrics-supervisors-body">
@@ -168,18 +139,16 @@
         (function () {
             var baseUrls = {
                 summary: {{ Js::from(route('horizon.metrics.data.summary')) }},
-                processedVsFailed: {{ Js::from(route('horizon.metrics.data.processed-vs-failed')) }},
                 avgRuntime: {{ Js::from(route('horizon.metrics.data.avg-runtime')) }},
-                byQueue: {{ Js::from(route('horizon.metrics.data.by-queue')) }},
-                byService: {{ Js::from(route('horizon.metrics.data.by-service')) }},
+                failureRate: {{ Js::from(route('horizon.metrics.data.failure-rate-over-time')) }},
                 supervisors: {{ Js::from(route('horizon.metrics.data.supervisors')) }},
                 workload: {{ Js::from(route('horizon.metrics.data.workload')) }}
             };
 
             var allLoaderIds = [
                 'metrics-loader-jobs-minute', 'metrics-loader-jobs-hour', 'metrics-loader-failed-seven',
-                'metrics-loader-processed-24', 'metrics-loader-failure-rate', 'metrics-loader-processed-failed',
-                'metrics-loader-failure-rate-chart', 'metrics-loader-runtime-chart', 'metrics-loader-queue-chart'
+                'metrics-loader-processed-24', 'metrics-loader-failure-rate',
+                'metrics-loader-failure-rate-chart', 'metrics-loader-runtime-chart'
             ];
 
             function getUrl(base, serviceId) {
@@ -196,7 +165,7 @@
             function showLoader(id) {
                 var el = document.getElementById(id);
                 if (!el) return;
-                if (id === 'metrics-loader-processed-failed' || id === 'metrics-loader-failure-rate-chart' || id === 'metrics-loader-runtime-chart' || id === 'metrics-loader-queue-chart') {
+                if (id === 'metrics-loader-failure-rate-chart' || id === 'metrics-loader-runtime-chart') {
                     el.style.display = 'flex';
                 } else {
                     el.style.display = '';
@@ -399,6 +368,18 @@
                     tdName.textContent = row.name || '';
                     tr.appendChild(tdName);
 
+                    var tdJobs = document.createElement('td');
+                    tdJobs.className = 'px-4 py-2.5 text-sm text-muted-foreground text-right';
+                    tdJobs.setAttribute('data-column-id', 'jobs');
+                    tdJobs.textContent = typeof row.jobs === 'number' ? formatNum(row.jobs) : '';
+                    tr.appendChild(tdJobs);
+
+                    var tdProcesses = document.createElement('td');
+                    tdProcesses.className = 'px-4 py-2.5 text-sm text-muted-foreground text-right';
+                    tdProcesses.setAttribute('data-column-id', 'processes');
+                    tdProcesses.textContent = typeof row.processes === 'number' ? formatNum(row.processes) : '';
+                    tr.appendChild(tdProcesses);
+
                     var tdStatus = document.createElement('td');
                     tdStatus.className = 'px-4 py-2.5 text-xs';
                     tdStatus.setAttribute('data-column-id', 'status');
@@ -412,17 +393,6 @@
                     }
                     tdStatus.appendChild(badge);
                     tr.appendChild(tdStatus);
-
-                    var tdLastSeen = document.createElement('td');
-                    tdLastSeen.className = 'px-4 py-2.5 text-xs text-muted-foreground';
-                    tdLastSeen.setAttribute('data-column-id', 'last_seen');
-                    if (row.last_seen_iso) {
-                        tdLastSeen.setAttribute('data-datetime', row.last_seen_iso);
-                        tdLastSeen.textContent = row.last_seen_human || '…';
-                    } else {
-                        tdLastSeen.textContent = '–';
-                    }
-                    tr.appendChild(tdLastSeen);
 
                     body.appendChild(tr);
                 });
@@ -444,10 +414,8 @@
 
                 var urls = {
                     summary: getUrl(baseUrls.summary, serviceId),
-                    processedVsFailed: getUrl(baseUrls.processedVsFailed, serviceId),
                     avgRuntime: getUrl(baseUrls.avgRuntime, serviceId),
-                    byQueue: getUrl(baseUrls.byQueue, serviceId),
-                    byService: getUrl(baseUrls.byService, null),
+                    failureRate: getUrl(baseUrls.failureRate, serviceId),
                     supervisors: getUrl(baseUrls.supervisors, serviceId),
                     workload: getUrl(baseUrls.workload, serviceId)
                 };
@@ -468,29 +436,52 @@
                     }
                 }, ['metrics-loader-jobs-minute', 'metrics-loader-jobs-hour', 'metrics-loader-failed-seven', 'metrics-loader-processed-24', 'metrics-loader-failure-rate']);
 
-                fetchSection(urls.processedVsFailed, function (d) {
-                    hideLoader('metrics-loader-processed-failed');
-                    hideLoader('metrics-loader-failure-rate-chart');
-                    renderChart(d);
-                }, null);
-
                 fetchSection(urls.avgRuntime, function (d) {
                     hideLoader('metrics-loader-runtime-chart');
                     renderChart({ avgRuntimeOverTime: d });
                 }, null);
 
-                fetchSection(urls.byQueue, function (d) {
-                    hideLoader('metrics-loader-queue-chart');
-                    renderChart({ byQueue: d });
-                }, null);
-
-                fetchSection(urls.byService, function (d) {
-                    hideLoader('metrics-loader-service-chart');
-                    renderChart({ byService: d });
-                }, null);
+                fetchSection(urls.failureRate, function (d) {
+                    hideLoader('metrics-loader-failure-rate-chart');
+                    renderChart({ failureRateOverTime: d });
+                }, ['metrics-loader-failure-rate-chart']);
 
                 fetchSection(urls.workload, function (d) {
-                    renderWorkloadRows(d.workload || []);
+                    var rows = d.workload || [];
+                    renderWorkloadRows(rows);
+
+                    // Build queue wait time snapshot for chart.
+                    var waits = {};
+                    if (Array.isArray(rows)) {
+                        rows.forEach(function (row) {
+                            if (!row || typeof row.queue !== 'string') return;
+                            if (row.wait === null || row.wait === undefined) return;
+                            var q = row.queue;
+                            var w = Number(row.wait);
+                            if (!isFinite(w)) return;
+                            if (waits[q] === undefined || w > waits[q]) {
+                                waits[q] = w;
+                            }
+                        });
+                    }
+
+                    var names = Object.keys(waits);
+                    if (names.length > 0) {
+                        // Sort by wait descending and take top 12.
+                        names.sort(function (a, b) { return waits[b] - waits[a]; });
+                        names = names.slice(0, 12);
+                        var waitValues = names.map(function (name) { return waits[name]; });
+
+                        hideLoader('metrics-loader-service-chart');
+                        renderChart({
+                            waitByQueue: {
+                                queues: names,
+                                wait: waitValues
+                            }
+                        });
+                    } else {
+                        hideLoader('metrics-loader-service-chart');
+                    }
                 }, null);
 
                 fetchSection(urls.supervisors, function (d) {

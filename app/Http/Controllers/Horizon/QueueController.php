@@ -3,24 +3,21 @@
 namespace App\Http\Controllers\Horizon;
 
 use App\Http\Controllers\Controller;
-use App\Models\HorizonJob;
-use App\Models\HorizonQueueState;
 use App\Models\Service;
-use App\Services\HorizonSyncService;
+use App\Services\HorizonMetricsService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class QueueController extends Controller {
-    private HorizonSyncService $horizonSync;
+    private HorizonMetricsService $metrics;
 
     /**
      * Construct the queue controller.
      *
-     * @param HorizonSyncService $horizonSync
+     * @param HorizonMetricsService $metrics
      */
-    public function __construct(HorizonSyncService $horizonSync) {
-        $this->horizonSync = $horizonSync;
+    public function __construct(HorizonMetricsService $metrics) {
+        $this->metrics = $metrics;
     }
     /**
      * Normalize a queue name to avoid duplicates caused by different connection prefixes.
@@ -51,80 +48,39 @@ class QueueController extends Controller {
     public function index(Request $request): View {
         $serviceFilter = (string) $request->query('service', '');
 
-        $this->horizonSync->syncRecentJobs($serviceFilter !== '' ? (int) $serviceFilter : null);
+        $serviceIdFilter = $serviceFilter !== '' ? (int) $serviceFilter : null;
 
-        $query = HorizonJob::query()
-            ->select('service_id', 'queue', DB::raw('count(*) as job_count'))
-            ->groupBy('service_id', 'queue')
-            ->with('service');
+        $workloadRows = $this->metrics->getWorkloadData($serviceIdFilter);
 
-        if ($serviceFilter !== '') {
-            $query->where('service_id', (int) $serviceFilter);
-        }
+        $serviceIds = \array_values(\array_unique(\array_map(
+            static fn (array $row): int => (int) $row['service_id'],
+            $workloadRows
+        )));
 
-        $queuesFromJobsRaw = $query->get();
+        $servicesById = $serviceIds === []
+            ? \collect()
+            : Service::whereIn('id', $serviceIds)->get()->keyBy('id');
 
-        $aggregatedQueues = \collect();
-        foreach ($queuesFromJobsRaw as $row) {
-            $normalizedQueue = $this->normalizeQueueName($row->queue ?? '');
-            $key = $row->service_id . '|' . $normalizedQueue;
+        $queues = \collect($workloadRows)
+            ->map(function (array $row) use ($servicesById) {
+                $normalizedQueue = $this->normalizeQueueName($row['queue'] ?? '');
 
-            if (! $aggregatedQueues->has($key)) {
-                $aggregatedQueues[$key] = (object) [
-                    'service_id' => $row->service_id,
+                return (object) [
+                    'service_id' => (int) $row['service_id'],
                     'queue' => $normalizedQueue,
-                    'job_count' => 0,
-                    'service' => $row->service,
+                    'job_count' => (int) $row['jobs'],
+                    'service' => $servicesById->get((int) $row['service_id']),
                 ];
-            }
+            })
+            ->sortBy(fn ($r) => $r->queue)
+            ->values();
 
-            $aggregatedQueues[$key]->job_count += $row->job_count;
-        }
-
-        $queuesFromJobs = $aggregatedQueues->values();
-        $queueKeys = $queuesFromJobs->keyBy(fn ($r) => "{$r->service_id}|{$r->queue}")->keys();
-
-        $statesQuery = HorizonQueueState::query();
-        if ($serviceFilter !== '') {
-            $statesQuery->where('service_id', (int) $serviceFilter);
-        }
-        $queueStatesAll = $statesQuery->get();
-
-        foreach ($queueStatesAll as $state) {
-            $normalizedQueue = $this->normalizeQueueName($state->queue);
-            $key = "{$state->service_id}|{$normalizedQueue}";
-            if ($queueKeys->contains($key)) {
-                continue;
-            }
-            $queueKeys->push($key);
-            $queuesFromJobs->push((object) [
-                'service_id' => $state->service_id,
-                'queue' => $normalizedQueue,
-                'job_count' => 0,
-                'service' => Service::find($state->service_id),
-            ]);
-        }
-
-        $queues = $queuesFromJobs->sortBy(fn ($r) => $r->queue)->values();
         $services = Service::orderBy('name')->get();
         $totalJobs = $queues->sum('job_count');
-
-        $serviceIds = $queues->pluck('service_id')->unique()->filter()->values()->all();
-        $queueStates = empty($serviceIds)
-            ? \collect()
-            : HorizonQueueState::whereIn('service_id', $serviceIds)
-                ->get()
-                ->map(function ($state) {
-                    $state->queue = $this->normalizeQueueName($state->queue);
-
-                    return $state;
-                })
-                ->keyBy(fn ($s) => "$s->service_id|$s->queue");
 
         return \view('horizon.queues.index', [
             'queueCount' => $queues->count(),
             'queues' => $queues,
-            'queueStates' => $queueStates,
             'services' => $services,
             'totalJobs' => $totalJobs,
             'serviceFilter' => $serviceFilter,

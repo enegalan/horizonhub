@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Horizon;
 use App\Http\Controllers\Controller;
 use App\Models\HorizonJob;
 use App\Models\Service;
-use Illuminate\Support\Facades\DB;
 use App\Services\HorizonSyncService;
 use App\Services\HorizonApiProxyService;
 use App\Services\HorizonMetricsService;
@@ -26,15 +25,29 @@ class ServiceController extends Controller {
      *
      * @return View
      */
-    public function index(): View {
+    public function index(HorizonApiProxyService $horizonApi): View {
         $services = Service::withCount('horizonJobs')
             ->orderBy('name')
             ->get();
 
-        $failedJobCounts = DB::table('horizon_failed_jobs')
-            ->select('service_id', DB::raw('COUNT(DISTINCT job_uuid) as failed_jobs_count'))
-            ->groupBy('service_id')
-            ->pluck('failed_jobs_count', 'service_id');
+        $failedJobCounts = [];
+
+        /** @var Service $service */
+        foreach ($services as $service) {
+            if (! $service->base_url) {
+                $failedJobCounts[$service->id] = 0;
+                continue;
+            }
+
+            $response = $horizonApi->getStats($service);
+            $data = $response['data'] ?? null;
+
+            if (($response['success'] ?? false) && \is_array($data) && isset($data['failedJobs'])) {
+                $failedJobCounts[$service->id] = (int) $data['failedJobs'];
+            } else {
+                $failedJobCounts[$service->id] = 0;
+            }
+        }
 
         foreach ($services as $service) {
             $service->horizon_failed_jobs_count = (int) ($failedJobCounts[$service->id] ?? 0);

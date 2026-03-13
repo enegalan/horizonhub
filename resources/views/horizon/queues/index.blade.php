@@ -33,7 +33,6 @@
                     </thead>
                     <tbody class="divide-y divide-border" data-table-body="horizon-queue-list">
                         @forelse($queues as $row)
-                            @php $state = $queueStates->get($row->service_id . '|' . $row->queue); @endphp
                             <tr class="transition-colors hover:bg-muted/30">
                                 <td class="px-4 py-2.5 text-sm font-medium text-foreground" data-column-id="service">
                                     @if($row->service)

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Horizon;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RetryJobsRequest;
+use App\Models\Service;
 use App\Models\HorizonFailedJob;
 use App\Models\HorizonJob;
 use App\Services\HorizonApiProxyService;
@@ -71,57 +72,171 @@ class JobActionController extends Controller {
             'per_page' => 'nullable|integer|min:1|max:100',
         ]);
 
-        $query = HorizonJob::with('service')
-            ->where('status', 'failed')
-            ->orderByDesc('failed_at');
-
-        if (! empty($validated['service_id'] ?? null)) {
-            $query->where('service_id', (int) $validated['service_id']);
+        $perPage = (int) ($validated['per_page'] ?? \config('horizonhub.jobs_per_page'));
+        $page = (int) ($validated['page'] ?? 1);
+        if ($page < 1) {
+            $page = 1;
         }
+
+        $returnData = [
+            'data' => [],
+            'meta' => [
+                'current_page' => $page,
+                'last_page' => 1,
+                'per_page' => $perPage,
+                'total' => 0,
+            ],
+        ];
+
+        $serviceIdFilter = $validated['service_id'] ?? null;
+
+        $servicesQuery = Service::query()->whereNotNull('base_url');
+        if ($serviceIdFilter !== null && $serviceIdFilter !== '') {
+            $servicesQuery->where('id', (int) $serviceIdFilter);
+        }
+
+        /** @var \Illuminate\Support\Collection<int, Service> $services */
+        $services = $servicesQuery->get();
+
+        if ($services->count() === 0) {
+            return \response()->json($returnData);
+        }
+
+        $jobEntries = [];
+
+        foreach ($services as $service) {
+            $apiQuery = [
+                'starting_at' => 0,
+                'limit' => $perPage,
+            ];
+
+            $apiResponse = $this->horizonApi->getFailedJobs($service, $apiQuery);
+            $apiData = $apiResponse['data'] ?? null;
+
+            if (! ($apiResponse['success'] ?? false) || ! \is_array($apiData)) {
+                continue;
+            }
+
+            foreach ($apiData['jobs'] ?? [] as $job) {
+                $jobId = (string) $job['id'];
+
+                if ( \empty($jobId) ) {
+                    continue;
+                }
+
+                $jobEntries[] = [
+                    'service_id' => $service->id,
+                    'job_uuid' => $jobId,
+                ];
+            }
+        }
+
+        if ($jobEntries === []) {
+            return \response()->json($returnData);
+        }
+
+        $uuids = [];
+        foreach ($jobEntries as $entry) {
+            $uuids[] = $entry['job_uuid'];
+        }
+        $uuids = \array_values(\array_unique($uuids));
+
+        $jobs = HorizonJob::with('service')
+            ->where('status', 'failed')
+            ->whereIn('job_uuid', $uuids)
+            ->get()
+            ->keyBy('job_uuid');
 
         $search = \trim((string) ($validated['search'] ?? ''));
-        if ($search !== '') {
-            $term = "%$search%";
-            $query->where(function ($q) use ($term): void {
-                $q->where('queue', 'like', $term)
-                    ->orWhere('name', 'like', $term)
-                    ->orWhere('job_uuid', 'like', $term)
-                    ->orWhere('payload->displayName', 'like', $term);
-            });
-        }
+        $dateFrom = $validated['date_from'] ?? null;
+        $dateTo = $validated['date_to'] ?? null;
 
-        if (! empty($validated['date_from'] ?? null)) {
-            $query->whereDate('failed_at', '>=', $validated['date_from']);
-        }
+        $rows = [];
 
-        if (! empty($validated['date_to'] ?? null)) {
-            $query->whereDate('failed_at', '<=', $validated['date_to']);
-        }
+        foreach ($jobEntries as $entry) {
+            /** @var HorizonJob|null $job */
+            $job = $jobs->get($entry['job_uuid']);
 
-        $perPage = (int) ($validated['per_page'] ?? \config('horizonhub.jobs_per_page'));
-        $paginator = $query->paginate($perPage);
+            if ($job === null) {
+                continue;
+            }
 
-        $data = \collect($paginator->items())->map(static function (HorizonJob $j): array {
-            return [
-                'id' => $j->id,
-                'service_name' => $j->service?->name,
-                'queue' => $j->queue,
-                'name' => $j->name ?? $j->job_uuid,
-                'failed_at_formatted' => $j->failed_at?->format('Y-m-d H:i'),
-                'failed_at_iso' => $j->failed_at?->toIso8601String(),
-                'has_service' => $j->service !== null,
+            if ($serviceIdFilter !== null && $serviceIdFilter !== '' && (int) $job->service_id !== (int) $serviceIdFilter) {
+                continue;
+            }
+
+            if ($search !== '') {
+                $matches = false;
+
+                if (\stripos((string) $job->queue, $search) !== false) {
+                    $matches = true;
+                } elseif (\stripos((string) $job->name, $search) !== false) {
+                    $matches = true;
+                } elseif (\stripos((string) $job->job_uuid, $search) !== false) {
+                    $matches = true;
+                }
+
+                if (! $matches) {
+                    continue;
+                }
+            }
+
+            if ($dateFrom !== null && $job->failed_at !== null && $job->failed_at->toDateString() < $dateFrom) {
+                continue;
+            }
+
+            if ($dateTo !== null && $job->failed_at !== null && $job->failed_at->toDateString() > $dateTo) {
+                continue;
+            }
+
+            $rows[] = [
+                'id' => $job->id,
+                'service_name' => $job->service?->name,
+                'queue' => $job->queue,
+                'name' => $job->name ?? $job->job_uuid,
+                'failed_at' => $job->failed_at,
+                'failed_at_formatted' => $job->failed_at?->format('Y-m-d H:i'),
+                'failed_at_iso' => $job->failed_at?->toIso8601String(),
+                'has_service' => $job->service !== null,
             ];
-        })->all();
+        }
 
-        return \response()->json([
-            'data' => $data,
-            'meta' => [
-                'current_page' => $paginator->currentPage(),
-                'last_page' => $paginator->lastPage(),
-                'per_page' => $paginator->perPage(),
-                'total' => $paginator->total(),
-            ],
-        ]);
+        \usort($rows, static function (array $a, array $b): int {
+            $aTime = $a['failed_at'];
+            $bTime = $b['failed_at'];
+
+            if ($aTime === null && $bTime === null) {
+                return 0;
+            }
+            if ($aTime === null) {
+                return 1;
+            }
+            if ($bTime === null) {
+                return -1;
+            }
+
+            if ($aTime->eq($bTime)) {
+                return 0;
+            }
+
+            return $aTime->lt($bTime) ? 1 : -1;
+        });
+
+        $total = \count($rows);
+        $lastPage = $perPage > 0 ? (int) \max(1, \ceil($total / $perPage)) : 1;
+        $offset = ($page - 1) * $perPage;
+        $pageRows = $perPage > 0 ? \array_slice($rows, $offset, $perPage) : $rows;
+
+        $data = [];
+        foreach ($pageRows as $row) {
+            unset($row['failed_at']);
+            $data[] = $row;
+        }
+
+        $returnData['data'] = $data;
+        $returnData['meta']['last_page'] = $lastPage;
+        $returnData['meta']['total'] = $total;
+        return \response()->json($returnData);
     }
 
     /**
