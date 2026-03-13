@@ -120,7 +120,7 @@ class JobActionController extends Controller {
             foreach ($apiData['jobs'] ?? [] as $job) {
                 $jobId = (string) $job['id'];
 
-                if ( \empty($jobId) ) {
+                if ( empty($jobId) ) {
                     continue;
                 }
 

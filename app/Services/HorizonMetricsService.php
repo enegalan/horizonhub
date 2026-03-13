@@ -242,7 +242,9 @@ class HorizonMetricsService {
      *     service_id: int,
      *     service: string,
      *     name: string,
-     *     status: string
+     *     status: string,
+     *     jobs: int,
+     *     processes: int|null
      * }>
      */
     public function getSupervisorsData(?int $service_id = null): array {
@@ -261,6 +263,12 @@ class HorizonMetricsService {
 
         /** @var Service $service */
         foreach ($services as $service) {
+            $workloadRows = $this->getWorkloadForService($service);
+            $jobsByQueue = [];
+            foreach ($workloadRows as $wr) {
+                $jobsByQueue[$wr['queue']] = ($jobsByQueue[$wr['queue']] ?? 0) + $wr['jobs'];
+            }
+
             $mastersResponse = $this->horizonApi->getMasters($service);
             $mastersData = $mastersResponse['data'] ?? null;
 
@@ -288,11 +296,36 @@ class HorizonMetricsService {
                         continue;
                     }
 
+                    $processes = null;
+                    if (isset($supervisor['processes']) && \is_array($supervisor['processes'])) {
+                        $sum = 0;
+                        foreach ($supervisor['processes'] as $value) {
+                            if (\is_numeric($value)) {
+                                $sum += (int) $value;
+                            }
+                        }
+                        $processes = $sum;
+                    }
+
+                    $options = isset($supervisor['options']) && \is_array($supervisor['options']) ? $supervisor['options'] : [];
+                    $queues = $options['queue'] ?? null;
+                    if (! \is_array($queues)) {
+                        $queues = $queues !== null && $queues !== '' ? [(string) $queues] : [];
+                    } else {
+                        $queues = \array_map('strval', $queues);
+                    }
+                    $jobs = 0;
+                    foreach ($queues as $q) {
+                        $jobs += $jobsByQueue[$q] ?? 0;
+                    }
+
                     $result[] = [
                         'service_id' => (int) $service->id,
                         'service' => (string) $service->name,
                         'name' => $name,
                         'status' => $service->status,
+                        'jobs' => $jobs,
+                        'processes' => $processes,
                     ];
                 }
             }

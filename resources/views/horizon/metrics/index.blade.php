@@ -119,7 +119,7 @@
                     </thead>
                     <tbody class="divide-y divide-border" data-table-body="horizon-metrics-supervisors" id="metrics-supervisors-body">
                         <tr id="metrics-supervisors-empty">
-                            <td colspan="4" data-column-id="service">
+                            <td colspan="5" data-column-id="service">
                                 <div class="empty-state">
                                     <x-heroicon-o-queue-list class="empty-state-icon" />
                                     <p class="empty-state-title">No supervisor data yet</p>
@@ -371,13 +371,13 @@
                     var tdJobs = document.createElement('td');
                     tdJobs.className = 'px-4 py-2.5 text-sm text-muted-foreground text-right';
                     tdJobs.setAttribute('data-column-id', 'jobs');
-                    tdJobs.textContent = typeof row.jobs === 'number' ? formatNum(row.jobs) : '';
+                    tdJobs.textContent = typeof row.jobs === 'number' ? formatNum(row.jobs) : '–';
                     tr.appendChild(tdJobs);
 
                     var tdProcesses = document.createElement('td');
                     tdProcesses.className = 'px-4 py-2.5 text-sm text-muted-foreground text-right';
                     tdProcesses.setAttribute('data-column-id', 'processes');
-                    tdProcesses.textContent = typeof row.processes === 'number' ? formatNum(row.processes) : '';
+                    tdProcesses.textContent = typeof row.processes === 'number' ? formatNum(row.processes) : '–';
                     tr.appendChild(tdProcesses);
 
                     var tdStatus = document.createElement('td');
