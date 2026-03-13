@@ -497,6 +497,14 @@
             }
 
             loadAllMetrics(filterEl ? filterEl.value || null : null);
+
+            if (typeof window !== 'undefined') {
+                window.addEventListener('horizonhub-refresh', function () {
+                    if (typeof document === 'undefined') return;
+                    if (document.visibilityState !== 'visible') return;
+                    loadAllMetrics(filterEl ? (filterEl.value || null) : null);
+                });
+            }
         })();
     </script>
 @endsection
