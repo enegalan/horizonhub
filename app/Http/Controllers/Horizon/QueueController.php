@@ -9,6 +9,12 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
 class QueueController extends Controller {
+
+    /**
+     * The Horizon metrics service.
+     *
+     * @var HorizonMetricsService
+     */
     private HorizonMetricsService $metrics;
 
     /**

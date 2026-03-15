@@ -12,6 +12,7 @@
         @theme-changed.window="theme = $event.detail; if (theme) { localStorage.setItem('horizonhub_theme', theme); window.__horizonhub_theme = theme }"
         @apply-theme.window="theme = (window.__horizonhub_theme || (function(){ var t = localStorage.getItem('horizonhub_theme'); if (t === 'light' || t === 'dark' || t === 'system') return t; })()); window.__horizonhub_theme = theme"
         @toggle-dark.window="theme = theme === 'dark' ? 'light' : 'dark'; localStorage.setItem('horizonhub_theme', theme); window.__horizonhub_theme = theme">
+    @php($horizonStreamMode = $horizonStreamMode ?? 'refresh')
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -36,19 +37,14 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <script>
             window.horizonHubHotReloadInterval = {{ (int) \config('horizonhub.hot_reload_interval') }};
-            window.horizonHubHotReloadTimer = null;
+            window.horizonHubStreamMode = {{ Js::from($horizonStreamMode) }};
+            window.horizonHubStreamUrl = {{ Js::from(url()->route('horizon.refresh.stream')) }};
+            window.horizonHubMetricsStreamUrl = {{ Js::from(url()->route('horizon.metrics.stream')) }};
             document.addEventListener('alpine:init', () => {
                 Alpine.store('hotReload', {
                     enabled: localStorage.getItem('horizonhub_hotreload') !== 'false',
                     interval: Math.max(1, window.horizonHubHotReloadInterval || 5)
                 });
-                function tick() {
-                    if (typeof Alpine !== 'undefined' && Alpine.store && Alpine.store('hotReload') && Alpine.store('hotReload').enabled) {
-                        window.dispatchEvent(new CustomEvent('horizonhub-refresh'));
-                    }
-                }
-                var sec = Math.max(1, (Alpine.store('hotReload').interval || window.horizonHubHotReloadInterval || 5));
-                window.horizonHubHotReloadTimer = setInterval(tick, sec * 1000);
             });
         </script>
     </head>

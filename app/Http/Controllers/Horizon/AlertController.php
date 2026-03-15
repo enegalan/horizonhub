@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class AlertController extends Controller {
+
     /**
      * Display the list of alerts.
      *

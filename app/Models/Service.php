@@ -7,6 +7,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Builder;
 
 class Service extends Model {
+
+    /**
+     * The fillable attributes of the service.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'name',
         'api_key',
@@ -16,6 +22,11 @@ class Service extends Model {
         'last_seen_at',
     ];
 
+    /**
+     * The casts of the service.
+     *
+     * @var array<string, string>
+     */
     protected $casts = [
         'last_seen_at' => 'datetime',
     ];

@@ -87,6 +87,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Stream Connections Rate Limit
+    |--------------------------------------------------------------------------
+    |
+    | Maximum number of SSE stream connections per minute
+    | per user or IP. Each new connection or reconnect counts.
+    |
+    */
+    'stream_rate_limit' => (int) env('HORIZON_HUB_STREAM_RATE_LIMIT', 20),
+
+    /*
+    |--------------------------------------------------------------------------
     | Default Jobs Per Page
     |--------------------------------------------------------------------------
     |

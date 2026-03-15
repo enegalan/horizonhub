@@ -6,8 +6,19 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class NotificationProvider extends Model {
+
+    /**
+     * The type of the provider.
+     *
+     * @var string
+     */
     public const TYPE_SLACK = 'slack';
 
+    /**
+     * The type of the provider.
+     *
+     * @var string
+     */
     public const TYPE_EMAIL = 'email';
 
     protected $fillable = [

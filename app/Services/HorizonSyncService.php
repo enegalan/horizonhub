@@ -6,11 +6,23 @@ use App\Models\Service;
 use App\Models\HorizonSupervisorState;
 
 class HorizonSyncService {
+
+    /**
+     * The Horizon API proxy service.
+     *
+     * @var HorizonApiProxyService
+     */
     private HorizonApiProxyService $horizonApi;
+
+    /**
+     * The Horizon event processor.
+     *
+     * @var HorizonEventProcessor
+     */
     private HorizonEventProcessor $eventProcessor;
 
     /**
-     * Construct the horizon sync service.
+     * Construct the Horizon sync service.
      *
      * @param HorizonApiProxyService $horizonApi
      * @param HorizonEventProcessor $eventProcessor
@@ -226,4 +238,3 @@ class HorizonSyncService {
         }
     }
 }
-

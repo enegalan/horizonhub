@@ -13,9 +13,27 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class ServiceController extends Controller {
+
+    /**
+     * The Horizon sync service.
+     *
+     * @var HorizonSyncService
+     */
     private HorizonSyncService $horizonSync;
+
+    /**
+     * The Horizon metrics service.
+     *
+     * @var HorizonMetricsService
+     */
     private HorizonMetricsService $metrics;
 
+    /**
+     * Construct the service controller.
+     *
+     * @param HorizonSyncService $horizonSync
+     * @param HorizonMetricsService $metrics
+     */
     public function __construct(HorizonSyncService $horizonSync, HorizonMetricsService $metrics) {
         $this->horizonSync = $horizonSync;
         $this->metrics = $metrics;

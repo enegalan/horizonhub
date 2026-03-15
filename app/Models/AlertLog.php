@@ -6,6 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AlertLog extends Model {
+
+    /**
+     * The fillable attributes of the alert log.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'alert_id',
         'service_id',
@@ -16,6 +22,11 @@ class AlertLog extends Model {
         'sent_at',
     ];
 
+    /**
+     * The casts of the alert log.
+     *
+     * @var array<string, string>
+     */
     protected $casts = [
         'sent_at' => 'datetime',
         'job_ids' => 'array',

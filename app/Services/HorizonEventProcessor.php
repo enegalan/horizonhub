@@ -10,17 +10,18 @@ use App\Models\HorizonSupervisorState;
 use App\Models\Service;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class HorizonEventProcessor {
+
     /**
      * The alert engine.
      *
      * @var AlertEngine
      */
     private AlertEngine $alertEngine;
+
     /**
-     * Construct the horizon event processor.
+     * Construct the Horizon event processor.
      *
      * @param AlertEngine $alertEngine
      */

@@ -7,16 +7,25 @@ use App\Mail\AlertBatchedMail;
 use App\Models\Alert;
 use App\Models\HorizonJob;
 use App\Models\Service;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class EmailNotifier implements EmailAlertNotifier {
+
     /**
-     * The maximum length of the exception.
+     * Maximum length of exception text in the email body (keeps MIME encoding within memory limits).
      *
      * @var int
      */
-    private const EXCEPTION_MAX_LENGTH = 4000;
+    private const EMAIL_EXCEPTION_MAX_LENGTH = 500;
+
+    /**
+     * Maximum number of events to include in the email body (avoids memory exhaustion).
+     *
+     * @var int
+     */
+    private const MAX_EVENTS_IN_EMAIL = 20;
 
     /**
      * Send an alert.
@@ -48,11 +57,15 @@ class EmailNotifier implements EmailAlertNotifier {
             return;
         }
 
-        $enrichedEvents = $this->enrichEvents($events);
+        $count = \count($events);
+        $eventsToEnrich = $count > self::MAX_EVENTS_IN_EMAIL
+            ? \array_slice($events, 0, self::MAX_EVENTS_IN_EMAIL)
+            : $events;
+        $enrichedEvents = $this->enrichEvents($eventsToEnrich);
+
         $first = $events[0];
         $serviceId = (int) $first['service_id'];
         $service = Service::find($serviceId);
-        $count = \count($events);
 
         $subject = '[Horizon Hub] Alert: ' . $alert->rule_type . ($service ? " - {$service->name}" : '');
         if ($count > 1) {
@@ -61,7 +74,7 @@ class EmailNotifier implements EmailAlertNotifier {
 
         Log::info('Horizon Hub: sending alert email', ['alert_id' => $alert->id, 'to' => $to, 'event_count' => $count]);
 
-        Mail::to($to)->send(new AlertBatchedMail($alert, $enrichedEvents, $service, $subject));
+        Mail::to($to)->send(new AlertBatchedMail($alert, $enrichedEvents, $service, $subject, $count));
     }
 
     /**
@@ -73,7 +86,7 @@ class EmailNotifier implements EmailAlertNotifier {
     private function enrichEvents(array $events): array {
         $enriched = [];
         $jobIds = \array_values(\array_filter(\array_column($events, 'job_id')));
-        $jobs = empty($jobIds) ? [] : HorizonJob::whereIn('id', $jobIds)->get()->keyBy('id');
+        $jobs = empty($jobIds) ? [] : $this->getJobsForEmail($jobIds);
 
         foreach ($events as $event) {
             $jobId = isset($event['job_id']) ? (int) $event['job_id'] : null;
@@ -115,24 +128,41 @@ class EmailNotifier implements EmailAlertNotifier {
     }
 
     /**
+     * Load jobs for email with exception truncated at DB level to avoid loading huge blobs.
+     *
+     * @param array<int, int> $jobIds
+     * @return \Illuminate\Support\Collection<int, HorizonJob>
+     */
+    private function getJobsForEmail(array $jobIds): \Illuminate\Support\Collection {
+        $max = self::EMAIL_EXCEPTION_MAX_LENGTH;
+        $driver = DB::connection()->getDriverName();
+        $exceptionExpr = ($driver === 'mysql' || $driver === 'pgsql')
+            ? "LEFT(exception, {$max})"
+            : "SUBSTR(exception, 1, {$max})";
+
+        return HorizonJob::whereIn('id', $jobIds)
+            ->selectRaw("id, name, queue, failed_at, attempts, {$exceptionExpr} as exception, payload")
+            ->get()
+            ->keyBy('id');
+    }
+
+    /**
      * Truncate the exception.
      *
      * @param string $text
      * @return string
      */
     private function truncateException(string $text): string {
-        if (\strlen($text) <= self::EXCEPTION_MAX_LENGTH) {
+        if (\strlen($text) <= self::EMAIL_EXCEPTION_MAX_LENGTH) {
             return $text;
         }
-    
-        $truncated = \substr($text, 0, self::EXCEPTION_MAX_LENGTH);
-    
-        // Avoid cutting mid-line
+
+        $truncated = \substr($text, 0, self::EMAIL_EXCEPTION_MAX_LENGTH);
         $lastNewLine = \strrpos($truncated, "\n");
         if ($lastNewLine !== false) {
             $truncated = \substr($truncated, 0, $lastNewLine);
         }
-    
+
         return \rtrim($truncated) . "\n\n…";
     }
 }

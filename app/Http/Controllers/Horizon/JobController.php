@@ -12,9 +12,27 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class JobController extends Controller {
+
+    /**
+     * The Horizon sync service.
+     *
+     * @var HorizonSyncService
+     */
     private HorizonSyncService $horizonSync;
+
+    /**
+     * The Horizon API proxy service.
+     *
+     * @var HorizonApiProxyService
+     */
     private HorizonApiProxyService $horizonApi;
 
+    /**
+     * Construct the job controller.
+     *
+     * @param HorizonSyncService $horizonSync
+     * @param HorizonApiProxyService $horizonApi
+     */
     public function __construct(HorizonSyncService $horizonSync, HorizonApiProxyService $horizonApi) {
         $this->horizonSync = $horizonSync;
         $this->horizonApi = $horizonApi;

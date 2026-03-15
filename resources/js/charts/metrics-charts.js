@@ -1,5 +1,10 @@
-import { getCssHsl } from './utils/styles';
+import { getCssHsl } from '../utils/styles';
+import { parseJsonFromElement } from '../utils/parse';
 
+/**
+ * Get the chart colors.
+ * @returns {object}
+ */
 function getChartColors() {
     return {
         axis: getCssHsl('--muted-foreground'),
@@ -9,7 +14,12 @@ function getChartColors() {
     };
 }
 
-export function initMetricsCharts(data) {
+/**
+ * Initialize the metrics charts.
+ * @param {object} data
+ * @returns {void}
+ */
+function initMetricsCharts(data) {
     if (typeof window.echarts === 'undefined' || !data) return;
 
     var c = getChartColors();
@@ -120,12 +130,21 @@ export function initMetricsCharts(data) {
     }
 }
 
+/**
+ * Alert detail charts.
+ * @type {object}
+ */
 var ALERT_DETAIL_CHARTS = [
     { key: 'chart24h', id: 'alert-detail-chart-24h' },
     { key: 'chart7d', id: 'alert-detail-chart-7d' },
     { key: 'chart30d', id: 'alert-detail-chart-30d' }
 ];
 
+/**
+ * Initialize the alert detail charts.
+ * @param {object} data
+ * @returns {void}
+ */
 export function initAlertDetailCharts(data) {
     if (typeof window.echarts === 'undefined' || !data) return;
 
@@ -156,6 +175,12 @@ export function initAlertDetailCharts(data) {
     }
 }
 
+/**
+ * Apply the chart options.
+ * @param {Element} el
+ * @param {object} options
+ * @returns {void}
+ */
 function applyChartOptions(el, options) {
     var existing = window.echarts.getInstanceByDom(el);
     if (existing) {
@@ -166,4 +191,42 @@ function applyChartOptions(el, options) {
         chart.setOption(options);
         chart.resize();
     }
+}
+
+/**
+ * Hydrate the metrics charts from the DOM.
+ * @returns {void}
+ */
+export function hydrateMetricsChartsFromDom() {
+    if (typeof window.echarts === 'undefined') return;
+    var data = parseJsonFromElement('metrics-chart-data');
+    if (!data) return;
+    initMetricsCharts(data);
+}
+
+/**
+ * Process the metrics chart queue.
+ * @returns {void}
+ */
+export function processMetricsChartQueue() {
+    if (typeof window.echarts === 'undefined') return;
+    var queue = window.__metricsChartQueue;
+    if (!queue || !queue.length) return;
+    requestAnimationFrame(function () {
+        while (queue.length) {
+            var data = queue.shift();
+            if (data) initMetricsCharts(data);
+        }
+    });
+}
+
+/**
+ * Hydrate the alert detail charts from the DOM.
+ * @returns {void}
+ */
+export function hydrateAlertDetailChartsFromDom() {
+    if (typeof window.echarts === 'undefined') return;
+    var data = parseJsonFromElement('alert-detail-chart-data');
+    if (!data) return;
+    initAlertDetailCharts(data);
 }

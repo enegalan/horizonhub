@@ -8,6 +8,7 @@ use App\Models\Service;
 use Illuminate\Support\Facades\Http;
 
 class SlackNotifier implements SlackAlertNotifier {
+
     /**
      * Send an alert.
      *

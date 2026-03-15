@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class HorizonApiProxyService {
+
     /**
      * @param Service $service
      * @return string

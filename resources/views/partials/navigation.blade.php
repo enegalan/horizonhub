@@ -72,6 +72,9 @@
                     if (typeof $store !== 'undefined' && $store.hotReload) {
                         $store.hotReload.enabled = this.enabled;
                     }
+                    if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('horizonhub-hotreload-changed', { detail: { enabled: this.enabled } }));
+                    }
                 }
             }"
             >

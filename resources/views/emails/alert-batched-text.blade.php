@@ -4,12 +4,16 @@ Horizon Hub Alert
 @if($service)
 · {{ $service->name }}
 @endif
-@if(count($enrichedEvents) > 1)
-· {{ count($enrichedEvents) }} events
+@if($totalEventCount > 1)
+· {{ $totalEventCount }} events
+@endif
+@if($totalEventCount > count($enrichedEvents))
+
+Showing first {{ count($enrichedEvents) }} of {{ $totalEventCount }}. View full list: {{ route('horizon.alerts.show', $alert) }}
 @endif
 
 @foreach($enrichedEvents as $index => $ev)
----- {{ count($enrichedEvents) > 1 ? 'Event ' . ($index + 1) : 'Failed job' }} ----
+---- {{ $totalEventCount > 1 ? 'Event ' . ($index + 1) : 'Failed job' }} ----
 @if(!empty($ev['job_class']))
 Job: {{ $ev['job_class'] }}
 @endif

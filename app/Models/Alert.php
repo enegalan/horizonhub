@@ -8,6 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Alert extends Model {
+
+    /**
+     * The fillable attributes of the alert.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'name',
         'service_id',
@@ -20,6 +26,11 @@ class Alert extends Model {
         'email_interval_minutes',
     ];
 
+    /**
+     * The casts of the alert.
+     *
+     * @var array<string, string>
+     */
     protected $casts = [
         'threshold' => 'array',
         'notification_channels' => 'array',

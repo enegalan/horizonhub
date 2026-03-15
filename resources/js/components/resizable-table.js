@@ -1,14 +1,43 @@
-import { onDocumentReady, schedule } from './utils/init';
-import { parseJson } from './utils/parse';
+import { onDocumentReady } from '../utils/init';
+import { parseJson } from '../utils/parse';
 
 (function () {
+    /**
+     * Storage prefix.
+     * @type {string}
+     */
     var STORAGE_PREFIX = 'horizon_table_';
+
+    /**
+     * Minimum width.
+     * @type {number}
+     */
     var MIN_WIDTH = 60;
+
+    /**
+     * Resize handle width.
+     * @type {number}
+     */
     var RESIZE_HANDLE_WIDTH = 8;
+
+    /**
+     * Initted attribute.
+     * @type {string}
+     */
     var INITTED_ATTR = 'data-resizable-initted';
 
+    /**
+     * Interacting flag.
+     * @type {boolean}
+     */
     window.horizonTableInteracting = false;
 
+    /**
+     * Load the state from localStorage.
+     * @param {string} storageKey
+     * @param {string[]} columnIds
+     * @returns {object}
+     */
     function loadState(storageKey, columnIds) {
         try {
             var raw = localStorage.getItem(STORAGE_PREFIX + storageKey);
@@ -28,12 +57,24 @@ import { parseJson } from './utils/parse';
         }
     }
 
+    /**
+     * Save the state to localStorage.
+     * @param {string} storageKey
+     * @param {string[]} order
+     * @param {object} widths
+     * @returns {void}
+     */
     function saveState(storageKey, order, widths) {
         try {
             localStorage.setItem(STORAGE_PREFIX + storageKey, JSON.stringify({ order: order, widths: widths || {} }));
         } catch (e) {}
     }
 
+    /**
+     * Get the column IDs from the table.
+     * @param {HTMLElement} table
+     * @returns {string[]}
+     */
     function getColumnIds(table) {
         var raw = table.getAttribute('data-column-ids');
         if (raw) return raw.split(',').map(s => s.trim());
@@ -42,6 +83,12 @@ import { parseJson } from './utils/parse';
         return Array.from(ths).map(th => th.getAttribute('data-column-id'));
     }
 
+    /**
+     * Apply the state to the table.
+     * @param {HTMLElement} table
+     * @param {object} state
+     * @returns {void}
+     */
     function applyState(table, state) {
         var theadRow = table.querySelector('thead tr');
         var bodyRows = table.querySelectorAll('tbody tr');
@@ -81,6 +128,10 @@ import { parseJson } from './utils/parse';
         });
     }
 
+    /**
+     * Get the drag overlay.
+     * @returns {HTMLElement}
+     */
     function getDragOverlay() {
         var id = 'horizon-drag-overlay';
         var el = document.getElementById(id);
@@ -94,6 +145,11 @@ import { parseJson } from './utils/parse';
         return el;
     }
 
+    /**
+     * Show the overlay over the th.
+     * @param {HTMLElement} th
+     * @returns {void}
+     */
     function showOverlayOver(th) {
         var overlay = getDragOverlay();
         var r = th.getBoundingClientRect();
@@ -105,11 +161,23 @@ import { parseJson } from './utils/parse';
         overlay.style.opacity = '1';
     }
 
+    /**
+     * Hide the drag overlay.
+     * @returns {void}
+     */
     function hideDragOverlay() {
         var el = document.getElementById('horizon-drag-overlay');
         if (el) el.style.display = 'none';
     }
 
+    /**
+     * Setup the resize.
+     * @param {HTMLElement} table
+     * @param {string} storageKey
+     * @param {object} state
+     * @param {string[]} columnIds
+     * @returns {void}
+     */
     function setupResize(table, storageKey, state, columnIds) {
         var theadRow = table.querySelector('thead tr');
         if (!theadRow) return;
@@ -164,6 +232,14 @@ import { parseJson } from './utils/parse';
         });
     }
 
+    /**
+     * Setup the reorder.
+     * @param {HTMLElement} table
+     * @param {string} storageKey
+     * @param {object} state
+     * @param {string[]} columnIds
+     * @returns {void}
+     */
     function setupReorder(table, storageKey, state, columnIds) {
         var theadRow = table.querySelector('thead tr');
         if (!theadRow) return;
@@ -230,6 +306,11 @@ import { parseJson } from './utils/parse';
         });
     }
 
+    /**
+     * Initialize the table.
+     * @param {HTMLElement} table
+     * @returns {void}
+     */
     function initTable(table) {
         var storageKey = table.getAttribute('data-resizable-table');
         if (!storageKey) return;
@@ -255,10 +336,18 @@ import { parseJson } from './utils/parse';
         table.setAttribute(INITTED_ATTR, '1');
     }
 
+    /**
+     * Initialize the resizable tables.
+     * @returns {void}
+     */
     function init() {
         document.querySelectorAll('table[data-resizable-table]').forEach(initTable);
     }
 
+    /**
+     * Setup the delegated drag over.
+     * @returns {void}
+     */
     function setupDelegatedDragOver() {
         if (window._horizonDragOverDelegated) return;
 
@@ -297,10 +386,18 @@ import { parseJson } from './utils/parse';
         });
     }
 
+    /**
+     * Initialize the resizable tables.
+     * @returns {void}
+     */
     if (!window.horizonInitResizableTables) {
         window.horizonInitResizableTables = init;
     }
 
+    /**
+     * Initialize the resizable tables.
+     * @returns {void}
+     */
     onDocumentReady(() => {
         setupDelegatedDragOver();
         init();

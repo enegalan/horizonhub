@@ -7,11 +7,12 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable {
+
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
     /**
-     * The attributes that are mass assignable.
+     * The fillable attributes of the user.
      *
      * @var list<string>
      */
@@ -22,7 +23,7 @@ class User extends Authenticatable {
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
+     * The hidden attributes of the user.
      *
      * @var list<string>
      */
@@ -32,7 +33,7 @@ class User extends Authenticatable {
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The casts of the user.
      *
      * @return array<string, string>
      */

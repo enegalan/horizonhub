@@ -8,8 +8,19 @@ use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
 
 class HorizonJob extends Model {
+
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
     protected $table = 'horizon_jobs';
 
+    /**
+     * The fillable attributes of the job.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'service_id',
         'job_uuid',
@@ -25,6 +36,11 @@ class HorizonJob extends Model {
         'exception',
     ];
 
+    /**
+     * The casts of the job.
+     *
+     * @var array<string, string>
+     */
     protected $casts = [
         'payload' => 'array',
         'queued_at' => 'datetime',

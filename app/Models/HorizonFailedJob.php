@@ -7,8 +7,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Builder;
 
 class HorizonFailedJob extends Model {
+
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
     protected $table = 'horizon_failed_jobs';
 
+    /**
+     * The fillable attributes of the failed job.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'service_id',
         'job_uuid',
@@ -18,6 +29,11 @@ class HorizonFailedJob extends Model {
         'failed_at',
     ];
 
+    /**
+     * The casts of the failed job.
+     *
+     * @var array<string, string>
+     */
     protected $casts = [
         'payload' => 'array',
         'failed_at' => 'datetime',
