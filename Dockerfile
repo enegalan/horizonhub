@@ -23,6 +23,9 @@ RUN composer dump-autoload --optimize
 COPY nginx/default.conf /etc/nginx/http.d/default.conf
 RUN rm -f /etc/nginx/http.d/default.conf.bak 2>/dev/null; true
 
+COPY php-fpm/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY php-fpm/opcache.ini /usr/local/etc/php/conf.d/10-opcache.ini
+
 RUN mkdir -p /run/nginx
 
 COPY docker-entrypoint.sh /usr/local/bin/

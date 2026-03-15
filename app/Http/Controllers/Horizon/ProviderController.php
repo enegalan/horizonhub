@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class ProviderController extends Controller {
+
     /**
      * Show the form to create a new provider.
      *

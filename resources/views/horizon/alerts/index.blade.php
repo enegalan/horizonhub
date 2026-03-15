@@ -1,7 +1,11 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="card mb-4">
+    <div
+        class="card mb-4"
+        x-data="window.horizonAlertsList ? window.horizonAlertsList() : {}"
+        x-init="typeof init === 'function' && init()"
+    >
         <div class="px-4 py-3 flex items-center justify-between">
             <h2 class="text-section-title text-foreground">Alert rules</h2>
             <x-button
@@ -21,7 +25,7 @@
 
     <div class="card">
         <div class="overflow-x-auto">
-            <table class="min-w-full">
+            <table class="min-w-full" data-resizable-table="horizon-alerts-list">
                 <thead>
                     <tr class="border-b border-border bg-muted/50">
                         <th class="table-header px-4 py-2.5">Name</th>

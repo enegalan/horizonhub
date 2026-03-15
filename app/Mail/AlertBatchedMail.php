@@ -42,23 +42,33 @@ class AlertBatchedMail extends Mailable {
     public string $mailSubject;
 
     /**
+     * Total number of events (may exceed count of enrichedEvents when capped).
+     *
+     * @var int
+     */
+    public int $totalEventCount;
+
+    /**
      * Construct the alert batched mail.
      *
      * @param Alert $alert
      * @param array<int, array{service_id: int, job_id: int|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}> $enrichedEvents
      * @param Service|null $service
      * @param string $mailSubject
+     * @param int $totalEventCount
      */
     public function __construct(
         Alert $alert,
         array $enrichedEvents,
         ?Service $service,
-        string $mailSubject
+        string $mailSubject,
+        int $totalEventCount
     ) {
         $this->alert = $alert;
         $this->enrichedEvents = $enrichedEvents;
         $this->service = $service;
         $this->mailSubject = $mailSubject;
+        $this->totalEventCount = $totalEventCount;
     }
 
     /**

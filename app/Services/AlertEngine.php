@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class AlertEngine {
+
     /**
      * The cache prefix for pending alerts.
      *
@@ -98,6 +99,14 @@ class AlertEngine {
         }
     }
 
+    /**
+     * Evaluate the alert after an event.
+     *
+     * @param int $serviceId
+     * @param string $eventType
+     * @param int|null $jobId
+     * @return void
+     */
     public function evaluateAfterEvent(int $serviceId, string $eventType, ?int $jobId = null): void {
         /** @var \Illuminate\Database\Eloquent\Collection<int, Alert> $alerts */
         $alerts = Alert::where('enabled', true)
@@ -116,6 +125,11 @@ class AlertEngine {
         }
     }
 
+    /**
+     * Evaluate the scheduled alerts.
+     *
+     * @return void
+     */
     public function evaluateScheduled(): void {
         $this->flushPendingAlerts();
 

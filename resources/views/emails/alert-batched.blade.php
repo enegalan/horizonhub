@@ -18,10 +18,13 @@
                             @if($service)
                                 · {{ $service->name }}
                             @endif
-                            @if(count($enrichedEvents) > 1)
-                                · {{ count($enrichedEvents) }} events
+                            @if($totalEventCount > 1)
+                                · {{ $totalEventCount }} events
                             @endif
                         </p>
+                        @if($totalEventCount > count($enrichedEvents))
+                            <p style="margin: 8px 0 0 0; font-size: 12px; color: #6b7280;">Showing first {{ count($enrichedEvents) }} of {{ $totalEventCount }}. <a href="{{ route('horizon.alerts.show', $alert) }}" style="color: #2563eb;">View full list in Horizon Hub</a></p>
+                        @endif
                     </td>
                 </tr>
                 <tr>
@@ -32,7 +35,7 @@
                                     <tr>
                                         <td>
                                             <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.02em;">
-                                                @if(count($enrichedEvents) > 1)
+                                                @if($totalEventCount > 1)
                                                     Event {{ $index + 1 }}
                                                 @else
                                                     Failed job

@@ -7,14 +7,37 @@ use App\Models\Service;
 use Carbon\Carbon;
 
 class HorizonMetricsService {
+
+    /**
+     * The number of hours in a day.
+     *
+     * @var int
+     */
     private const HOURS_24 = 24;
+
+    /**
+     * The number of days in a week.
+     *
+     * @var int
+     */
     private const DAYS_7 = 7;
+
+    /**
+     * The number of top queues to return.
+     *
+     * @var int
+     */
     private const TOP_N_QUEUES = 12;
 
+    /**
+     * The Horizon API proxy service.
+     *
+     * @var HorizonApiProxyService
+     */
     private HorizonApiProxyService $horizonApi;
 
     /**
-     * Construct the horizon metrics service.
+     * Construct the Horizon metrics service.
      *
      * @param HorizonApiProxyService $horizonApi
      */
@@ -849,5 +872,4 @@ class HorizonMetricsService {
 
         return ['services' => $names, 'jobsPastHour' => $values];
     }
-
 }

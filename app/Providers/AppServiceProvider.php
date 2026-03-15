@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider {
+
     /**
      * Register services.
      *
@@ -31,6 +32,11 @@ class AppServiceProvider extends ServiceProvider {
         RateLimiter::for('hub-events', function (Request $request): Limit {
             $key = $request->header('X-Api-Key') ?: $request->ip();
             return Limit::perMinute(\config('horizonhub.events_rate_limit'))->by($key);
+        });
+
+        RateLimiter::for('horizon-stream', function (Request $request): Limit {
+            $limit = \config('horizonhub.stream_rate_limit');
+            return Limit::perMinute(\max(1, $limit))->by($request->user()?->id ?: $request->ip());
         });
     }
 }

@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class AlertRuleEvaluator {
+
     /**
      * Evaluate the given alert rule for the provided context.
      *
@@ -69,7 +70,7 @@ class AlertRuleEvaluator {
             }
         }
 
-        if (!empty($alert->queue)) {
+        if ( !empty($alert->queue) ) {
             if ((string) $failedJob->queue !== (string) $alert->queue) {
                 return false;
             }

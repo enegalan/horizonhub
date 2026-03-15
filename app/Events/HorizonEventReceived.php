@@ -42,7 +42,7 @@ class HorizonEventReceived implements ShouldBroadcast {
     public array $payload;
 
     /**
-     * Construct the horizon event received event.
+     * Construct the Horizon event received event.
      *
      * @param string $eventType
      * @param int $serviceId

@@ -1,48 +1,125 @@
-import { formatDateTimeElements } from './datetime-format';
+import { formatDateTimeElements } from '../lib/datetime-format';
 
+/**
+ * Horizon jobs page.
+ * @param {object} config
+ * @returns {object}
+ */
 export function horizonJobsPage(config) {
     return {
+        /*
+        * Show retry modal.
+        * @type {boolean}
+        */
         showRetryModal: false,
+        /**
+         * Show clean modal.
+         * @type {boolean}
+         */
         showCleanModal: false,
+        /**
+         * Retrying.
+         * @type {boolean}
+         */
         retrying: false,
+        /**
+         * Cleaning.
+         * @type {boolean}
+         */
         cleaning: false,
+        /**
+         * Clean step.
+         * @type {number}
+         */
         cleanStep: 1,
+        /**
+         * Failed jobs.
+         * @type {object[]}
+         */
         failedJobs: [],
+        /**
+         * Selected failed IDs.
+         * @type {number[]}
+         */
         selectedFailedIds: [],
+        /**
+         * Clean count.
+         * @type {number}
+         */
         cleanCount: 0,
+        /**
+         * Retry page.
+         * @type {number}
+         */
         retryPage: 1,
+        /**
+         * Retry last page.
+         * @type {number}
+         */
         retryLastPage: 1,
+        /**
+         * Retry total.
+         * @type {number}
+         */
         retryTotal: 0,
+        /**
+         * Retry per page.
+         * @type {number}
+         */
         retryPerPage: config.jobsPerPage,
+        /**
+         * Retry filters.
+         * @type {object}
+         */
         retryFilters: {
             service_id: '',
             search: '',
             date_from: '',
             date_to: '',
         },
+        /**
+         * Clean filters.
+         * @type {object}
+         */
         cleanFilters: {
             service_id: '',
             status: '',
             job_type: '',
         },
+        /**
+         * Initialize the jobs page.
+         * @returns {void}
+         */
         init() {
             var self = this;
-            window.addEventListener('horizonhub-refresh', function () {
+            window.addEventListener('horizonhub-refresh', function (e) {
                 if (self.showRetryModal || self.showCleanModal) return;
                 if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
-                self.refreshJobsTable();
+                self.refreshJobsTable(e.detail && e.detail.document);
             });
         },
+        /**
+         * Open the retry modal.
+         * @returns {void}
+         */
         openRetryModal() {
             this.showRetryModal = true;
             this.selectedFailedIds = [];
             this.retryPage = 1;
             this.loadFailedJobs();
         },
+        /**
+         * Close the retry modal.
+         * @returns {void}
+         */
         closeRetryModal() {
             this.showRetryModal = false;
             this.selectedFailedIds = [];
         },
+        /**
+         * Load the failed jobs.
+         * @returns {void}
+         */
         loadFailedJobs() {
             if (!window.horizon || !window.horizon.http) {
                 console.warn('[horizonJobsPage] window.horizon.http is not available');
@@ -72,30 +149,60 @@ export function horizonJobsPage(config) {
                 console.error('[horizonJobsPage] failedList request error', error);
             });
         },
+        /**
+         * Toggle the failed job.
+         * @param {number} id
+         * @returns {void}
+         */
         toggleFailed(id) {
             var i = this.selectedFailedIds.indexOf(id);
             if (i >= 0) this.selectedFailedIds.splice(i, 1);
             else this.selectedFailedIds.push(id);
         },
+        /**
+         * Select all failed jobs.
+         * @returns {void}
+         */
         selectAllFailed() {
             this.selectedFailedIds = this.failedJobs
                 .filter(function (j) { return j.has_service; })
                 .map(function (j) { return j.id; });
         },
+        /**
+         * Clear the selection.
+         * @returns {void}
+         */
         clearSelection() {
             this.selectedFailedIds = [];
         },
+        /**
+         * Set the retry page.
+         * @param {number} page
+         * @returns {void}
+         */
         setRetryPage(page) {
             if (!page || page < 1 || page > this.retryLastPage) return;
             this.retryPage = page;
             this.loadFailedJobs();
         },
+        /**
+         * Previous retry page.
+         * @returns {void}
+         */
         prevRetryPage() {
             this.setRetryPage(this.retryPage - 1);
         },
+        /**
+         * Next retry page.
+         * @returns {void}
+         */
         nextRetryPage() {
             this.setRetryPage(this.retryPage + 1);
         },
+        /**
+         * Retry selected jobs.
+         * @returns {void}
+         */
         retrySelected() {
             var self = this;
             if (!window.horizon || !window.horizon.http) return;
@@ -112,15 +219,27 @@ export function horizonJobsPage(config) {
                 self.retrying = false;
             });
         },
+        /**
+         * Open the clean modal.
+         * @returns {void}
+         */
         openCleanModal() {
             this.showCleanModal = true;
             this.cleanStep = 1;
             this.updateCleanCount();
         },
+        /**
+         * Close the clean modal.
+         * @returns {void}
+         */
         closeCleanModal() {
             this.showCleanModal = false;
             this.cleanStep = 1;
         },
+        /**
+         * Update the clean count.
+         * @returns {void}
+         */
         updateCleanCount() {
             if (!window.horizon || !window.horizon.http) return;
             var payload = {
@@ -138,10 +257,18 @@ export function horizonJobsPage(config) {
             }).catch(function () {
             });
         },
+        /**
+         * Confirm the clean.
+         * @returns {void}
+         */
         confirmClean() {
             if (this.cleanCount === 0) return;
             this.cleanStep = 2;
         },
+        /**
+         * Run the clean.
+         * @returns {void}
+         */
         runClean() {
             var self = this;
             if (!window.horizon || !window.horizon.http) return;
@@ -165,47 +292,51 @@ export function horizonJobsPage(config) {
                 self.cleaning = false;
             });
         },
-        refreshJobsTable() {
+        /**
+         * Refresh the jobs table.
+         * @param {Document} preloadedDoc
+         * @returns {void}
+         */
+        refreshJobsTable(preloadedDoc) {
             if (typeof window === 'undefined' || typeof document === 'undefined') return;
-            var url = window.location.href;
-            fetch(url, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-            }).then(function (response) {
-                if (!response.ok) return null;
-                return response.text();
-            }).then(function (html) {
-                if (!html) return;
-                var parser = new DOMParser();
-                var doc = parser.parseFromString(html, 'text/html');
-                var newTable = doc.querySelector('[data-resizable-table="horizon-job-list"]');
-                var currentTable = document.querySelector('[data-resizable-table="horizon-job-list"]');
-                if (!newTable || !currentTable) return;
-
-                var newTbody = newTable.querySelector('tbody');
-                var currentTbody = currentTable.querySelector('tbody');
-                if (newTbody && currentTbody) {
-                    currentTbody.replaceWith(newTbody);
-                    formatDateTimeElements(currentTable);
-                }
-            }).catch(function () {
-            });
+            if (!preloadedDoc) return;
+            var newTable = preloadedDoc.querySelector('[data-resizable-table="horizon-job-list"]');
+            var currentTable = document.querySelector('[data-resizable-table="horizon-job-list"]');
+            if (!newTable || !currentTable) return;
+            var newTbody = newTable.querySelector('tbody');
+            var currentTbody = currentTable.querySelector('tbody');
+            if (newTbody && currentTbody) {
+                currentTbody.replaceWith(newTbody);
+                formatDateTimeElements(currentTable);
+            }
         },
     };
 }
 
+/**
+ * Horizon job detail.
+ * @param {object} config
+ * @returns {object}
+ */
 export function horizonJobDetail(config) {
     return {
         retrying: false,
+        /**
+         * Initialize the job detail.
+         * @returns {void}
+         */
         init() {
             var self = this;
-            window.addEventListener('horizonhub-refresh', function () {
+            window.addEventListener('horizonhub-refresh', function (e) {
                 if (self.retrying) return;
                 if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
-                self.refreshJobDetail();
+                self.refreshJobDetail(e.detail && e.detail.document);
             });
         },
+        /**
+         * Retry the job.
+         * @returns {void}
+         */
         retry() {
             if (!config.canRetry || !window.horizon || !window.horizon.http) return;
             this.retrying = true;
@@ -222,28 +353,19 @@ export function horizonJobDetail(config) {
                 self.retrying = false;
             });
         },
-        refreshJobDetail() {
+        /**
+         * Refresh the job detail.
+         * @param {Document} preloadedDoc
+         * @returns {void}
+         */
+        refreshJobDetail(preloadedDoc) {
             if (typeof window === 'undefined' || typeof document === 'undefined') return;
-            var url = window.location.href;
-            fetch(url, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-            }).then(function (response) {
-                if (!response.ok) return null;
-                return response.text();
-            }).then(function (html) {
-                if (!html) return;
-                var parser = new DOMParser();
-                var doc = parser.parseFromString(html, 'text/html');
-                var newRoot = doc.querySelector('[data-horizon-job-detail-root="1"]');
-                var currentRoot = document.querySelector('[data-horizon-job-detail-root="1"]');
-                if (!newRoot || !currentRoot) return;
-
-                currentRoot.replaceWith(newRoot);
-                formatDateTimeElements(newRoot);
-            }).catch(function () {
-            });
+            if (!preloadedDoc) return;
+            var newRoot = preloadedDoc.querySelector('[data-horizon-job-detail-root="1"]');
+            var currentRoot = document.querySelector('[data-horizon-job-detail-root="1"]');
+            if (!newRoot || !currentRoot) return;
+            currentRoot.replaceWith(newRoot);
+            formatDateTimeElements(newRoot);
         },
     };
 }

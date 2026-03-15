@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Horizon;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\RetryJobsRequest;
 use App\Models\Service;
 use App\Models\HorizonFailedJob;
 use App\Models\HorizonJob;
@@ -13,12 +12,14 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class JobActionController extends Controller {
+
     /**
      * The Horizon API proxy service.
      *
      * @var HorizonApiProxyService
      */
     private HorizonApiProxyService $horizonApi;
+
     /**
      * Construct the job action controller.
      *
@@ -305,11 +306,15 @@ class JobActionController extends Controller {
     /**
      * Retry multiple jobs by ID (granular: one request per job, per-job result).
      *
-     * @param RetryJobsRequest $request
+     * @param Request $request
      * @return JsonResponse
      */
-    public function retryBatch(RetryJobsRequest $request): JsonResponse {
-        $ids = \array_values(\array_unique($request->validated('ids')));
+    public function retryBatch(Request $request): JsonResponse {
+        $validated = $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer', 'min:1'],
+        ]);
+        $ids = \array_values(\array_unique($validated['ids']));
         $results = [];
         $succeeded = 0;
         $failed = 0;

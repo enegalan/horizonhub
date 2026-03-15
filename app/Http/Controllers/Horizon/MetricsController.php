@@ -11,8 +11,18 @@ use Illuminate\Http\Request;
 
 class MetricsController extends Controller {
 
+    /**
+     * The Horizon metrics service.
+     *
+     * @var HorizonMetricsService
+     */
     private HorizonMetricsService $metrics;
 
+    /**
+     * Construct the metrics controller.
+     *
+     * @param HorizonMetricsService $metrics
+     */
     public function __construct(HorizonMetricsService $metrics) {
         $this->metrics = $metrics;
     }
@@ -44,10 +54,10 @@ class MetricsController extends Controller {
      * @return JsonResponse
      */
     public function dataSummary(Request $request): JsonResponse {
-        $service_id = $this->resolveServiceId($request);
+        $service_id = $request->query('service_id');
         $service = $service_id !== null ? Service::find($service_id) : null;
 
-        return $this->jsonOrFail(function () use ($service, $service_id): array {
+        return \response()->json(function () use ($service, $service_id): array {
             return [
                 'jobsPastMinute' => $this->metrics->getJobsPastMinute($service),
                 'jobsPastHour' => $this->metrics->getJobsPastHour($service),
@@ -65,8 +75,11 @@ class MetricsController extends Controller {
      * @return JsonResponse
      */
     public function dataAvgRuntime(Request $request): JsonResponse {
-        $service_id = $this->resolveServiceId($request);
-        return $this->jsonOrFail(function () use ($service_id): array {
+        $service_id = $request->query('service_id');
+        if (!Service::find($service_id)) {
+            $service_id = null;
+        }
+        return \response()->json(function () use ($service_id): array {
             return $this->metrics->getAvgRuntimeOverTime($service_id);
         });
     }
@@ -78,22 +91,12 @@ class MetricsController extends Controller {
      * @return JsonResponse
      */
     public function dataFailureRateOverTime(Request $request): JsonResponse {
-        $service_id = $this->resolveServiceId($request);
-        return $this->jsonOrFail(function () use ($service_id): array {
+        $service_id = $request->query('service_id');
+        if (!Service::find($service_id)) {
+            $service_id = null;
+        }
+        return \response()->json(function () use ($service_id): array {
             return $this->metrics->getFailureRateOverTime($service_id);
-        });
-    }
-
-    /**
-     * Get the processed vs failed data by queue for the metrics dashboard.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
-    public function dataByQueue(Request $request): JsonResponse {
-        $service_id = $this->resolveServiceId($request);
-        return $this->jsonOrFail(function () use ($service_id): array {
-            return ['queues' => [], 'processed' => [], 'failed' => []];
         });
     }
 
@@ -104,9 +107,11 @@ class MetricsController extends Controller {
      * @return JsonResponse
      */
     public function dataSupervisors(Request $request): JsonResponse {
-        $service_id = $this->resolveServiceId($request);
-
-        return $this->jsonOrFail(function () use ($service_id): array {
+        $service_id = $request->query('service_id');
+        if (!Service::find($service_id)) {
+            $service_id = null;
+        }
+        return \response()->json(function () use ($service_id): array {
             return [
                 'supervisors' => $this->metrics->getSupervisorsData($service_id),
             ];
@@ -120,48 +125,15 @@ class MetricsController extends Controller {
      * @return JsonResponse
      */
     public function dataWorkload(Request $request): JsonResponse {
-        $service_id = $this->resolveServiceId($request);
-
-        return $this->jsonOrFail(function () use ($service_id): array {
+        $service_id = $request->query('service_id');
+        if (!Service::find($service_id)) {
+            $service_id = null;
+        }
+        return \response()->json(function () use ($service_id): array {
             return [
                 'workload' => $this->metrics->getWorkloadData($service_id),
             ];
         });
     }
 
-    /**
-     * Return a JSON response or fail with an error.
-     *
-     * @param callable(): array $fn
-     * @return JsonResponse
-     */
-    private function jsonOrFail(callable $fn): JsonResponse {
-        try {
-            return \response()->json($fn());
-        } catch (\Throwable $e) {
-            \Log::error('MetricsController failed', [
-                'message' => $e->getMessage(),
-                'trace'   => $e->getTraceAsString(),
-            ]);
-            return \response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * Resolve optional service_id from request. Returns null for "all services".
-     *
-     * @param Request $request
-     * @return int|null
-     */
-    private function resolveServiceId(Request $request): ?int {
-        $raw = $request->query('service_id');
-        if ($raw === null || $raw === '') {
-            return null;
-        }
-        $id = \filter_var($raw, \FILTER_VALIDATE_INT);
-        if ($id === false || $id < 1) {
-            return null;
-        }
-        return Service::where('id', $id)->exists() ? $id : null;
-    }
 }

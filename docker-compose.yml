@@ -19,6 +19,8 @@ services:
       - DB_PASSWORD=secret
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - CACHE_STORE=redis
+      - SESSION_DRIVER=redis
       - BROADCAST_CONNECTION=reverb
       - REVERB_APP_ID=horizonhub
       - REVERB_APP_KEY=key
@@ -71,6 +73,10 @@ services:
     image: mysql:8.0
     container_name: horizonhub-mysql
     restart: unless-stopped
+    command:
+      - mysqld
+      - --innodb-redo-log-capacity=134217728
+      - --innodb-flush-method=fsync
     environment:
       MYSQL_DATABASE: horizonhub
       MYSQL_USER: horizonhub

@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
 class SettingsController extends Controller {
+
     /**
      * Display the settings page.
      *
