@@ -25,25 +25,6 @@ class QueueController extends Controller {
     public function __construct(HorizonMetricsService $metrics) {
         $this->metrics = $metrics;
     }
-    /**
-     * Normalize a queue name to avoid duplicates caused by different connection prefixes.
-     *
-     * @param string|null $queue
-     * @return string|null
-     */
-    private function normalizeQueueName(?string $queue): ?string {
-        if ($queue === null || $queue === '') {
-            return $queue;
-        }
-
-        if (\str_starts_with($queue, 'redis.')) {
-            $suffix = \substr($queue, \strlen('redis.'));
-
-            return $suffix !== '' ? $suffix : $queue;
-        }
-
-        return $queue;
-    }
 
     /**
      * Display the queue list.
@@ -69,7 +50,7 @@ class QueueController extends Controller {
 
         $queues = \collect($workloadRows)
             ->map(function (array $row) use ($servicesById) {
-                $normalizedQueue = $this->normalizeQueueName($row['queue'] ?? '');
+                $normalizedQueue = $this->private__normalizeQueueName($row['queue'] ?? '');
 
                 return (object) [
                     'service_id' => (int) $row['service_id'],
@@ -93,4 +74,21 @@ class QueueController extends Controller {
             'header' => 'Horizon Hub – Queues',
         ]);
     }
+
+
+    /**
+     * Normalize a queue name to avoid duplicates that might be caused by different connection prefixes.
+     *
+     * @param string|null $queue
+     * @return string|null
+     */
+    private function private__normalizeQueueName(?string $queue): ?string {
+        if (! empty($queue) && \str_starts_with($queue, 'redis.')) {
+            $suffix = \substr($queue, \strlen('redis.'));
+            return $suffix !== '' ? $suffix : $queue;
+        }
+
+        return $queue;
+    }
+
 }

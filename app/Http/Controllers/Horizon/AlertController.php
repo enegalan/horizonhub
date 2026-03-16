@@ -38,7 +38,7 @@ class AlertController extends Controller {
      * @return View
      */
     public function create(): View {
-        return $this->formView(new Alert());
+        return $this->private__formView(new Alert());
     }
 
     /**
@@ -48,7 +48,7 @@ class AlertController extends Controller {
      * @return RedirectResponse
      */
     public function store(Request $request): RedirectResponse {
-        $data = $this->validateAlert($request, null);
+        $data = $this->private__validateAlert($request, null);
         $alert = Alert::create($data['alert']);
         $alert->notificationProviders()->sync($data['provider_ids']);
 
@@ -64,7 +64,7 @@ class AlertController extends Controller {
      * @return View
      */
     public function edit(Alert $alert): View {
-        return $this->formView($alert);
+        return $this->private__formView($alert);
     }
 
     /**
@@ -75,7 +75,7 @@ class AlertController extends Controller {
      * @return RedirectResponse
      */
     public function update(Request $request, Alert $alert): RedirectResponse {
-        $data = $this->validateAlert($request, $alert);
+        $data = $this->private__validateAlert($request, $alert);
         $alert->update($data['alert']);
         $alert->notificationProviders()->sync($data['provider_ids']);
 
@@ -113,9 +113,9 @@ class AlertController extends Controller {
         $logs = $logsQuery->paginate($perPage)->withQueryString();
 
         $chartData = [
-            'chart24h' => $this->buildChart($alert, 1),
-            'chart7d' => $this->buildChart($alert, 7),
-            'chart30d' => $this->buildChart($alert, 30),
+            'chart24h' => $this->private__buildChart($alert, 1),
+            'chart7d' => $this->private__buildChart($alert, 7),
+            'chart30d' => $this->private__buildChart($alert, 30),
         ];
 
         $alertName = $alert->name ?: 'Alert #' . $alert->id;
@@ -193,7 +193,7 @@ class AlertController extends Controller {
      * @param Alert $alert
      * @return View
      */
-    private function formView(Alert $alert): View {
+    private function private__formView(Alert $alert): View {
         $services = Service::orderBy('name')->get();
         $providers = NotificationProvider::orderBy('type')->orderBy('name')->get();
         $ruleTypes = [
@@ -224,7 +224,7 @@ class AlertController extends Controller {
      * @param Alert|null $alert
      * @return array{alert: array<string, mixed>, provider_ids: array<int>}
      */
-    private function validateAlert(Request $request, ?Alert $alert): array {
+    private function private__validateAlert(Request $request, ?Alert $alert): array {
         $baseRules = [
             'rule_type' => 'required|in:job_specific_failure,job_type_failure,failure_count,avg_execution_time,queue_blocked,worker_offline,supervisor_offline',
             'service_id' => 'nullable|exists:services,id',
@@ -238,6 +238,7 @@ class AlertController extends Controller {
             'email_interval_minutes' => 'required|integer|min:0|max:1440',
             'enabled' => 'required|boolean',
             'name' => 'nullable|string|max:255',
+            'notification_channels' => 'nullable|array',
         ];
 
         $ruleType = (string) $request->input('rule_type', 'failure_count');
@@ -275,7 +276,7 @@ class AlertController extends Controller {
             'threshold' => $threshold,
             'queue' => ! empty($validated['queue']) ? $validated['queue'] : null,
             'job_type' => ! empty($validated['job_type']) ? $validated['job_type'] : null,
-            'notification_channels' => [],
+            'notification_channels' => $validated['notification_channels'] ?? [],
             'enabled' => (bool) $validated['enabled'],
             'email_interval_minutes' => (int) $validated['email_interval_minutes'],
         ];
@@ -293,7 +294,7 @@ class AlertController extends Controller {
      * @param int $days
      * @return array{xAxis: list<string>, sent: list<int>, failed: list<int>}
      */
-    private function buildChart(Alert $alert, int $days): array {
+    private function private__buildChart(Alert $alert, int $days): array {
         $since = $days === 1
             ? \now()->subDay()
             : \now()->subDays($days - 1)->startOfDay();
@@ -312,7 +313,7 @@ class AlertController extends Controller {
 
         $logs = AlertLog::where('alert_id', $alert->id)
             ->where('sent_at', '>=', $since)
-            ->selectRaw("DATE_FORMAT(sent_at, '" . $bucketFormatSql . "') as bucket, status, COUNT(*) as total")
+            ->selectRaw("DATE_FORMAT(sent_at, '$bucketFormatSql') as bucket, status, COUNT(*) as total")
             ->groupBy('bucket', 'status')
             ->get();
 

@@ -26,8 +26,8 @@ class JobRuntimeHelper {
             return $runtimeSeconds;
         }
 
-        $start = self::normalizeToCarbon($queuedAt);
-        $end = self::normalizeToCarbon($processedAt) ?? self::normalizeToCarbon($failedAt);
+        $start = self::private__normalizeToCarbon($queuedAt);
+        $end = self::private__normalizeToCarbon($processedAt) ?? self::private__normalizeToCarbon($failedAt);
 
         if ($start === null || $end === null) {
             return null;
@@ -56,7 +56,7 @@ class JobRuntimeHelper {
      * @param Carbon|string|null $value
      * @return Carbon|null
      */
-    private static function normalizeToCarbon($value): ?Carbon {
+    private static function private__normalizeToCarbon($value): ?Carbon {
         if ($value instanceof Carbon) {
             return $value;
         }

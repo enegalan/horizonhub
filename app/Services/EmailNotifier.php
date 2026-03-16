@@ -84,7 +84,7 @@ class EmailNotifier implements EmailAlertNotifier {
 
         $subject = '[Horizon Hub] Alert: ' . $alert->rule_type . ($service ? " - {$service->name}" : '');
         if ($count > 1) {
-            $subject .= " ({$count} events)";
+            $subject .= " ($count events)";
         }
 
         Log::info('Horizon Hub: sending alert email', ['alert_id' => $alert->id, 'to' => $to, 'event_count' => $count]);

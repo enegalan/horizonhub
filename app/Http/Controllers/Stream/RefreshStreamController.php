@@ -8,6 +8,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class RefreshStreamController extends StreamController {
 
+    /** @var array<int, string> Allowed query param names when fetching page HTML. */
+    private const ALLOWED_QUERY_KEYS = ['service', 'service_id', 'serviceFilter', 'statusFilter', 'search', 'page'];
+
     /**
      * Open the generic Horizon Hub refresh stream (SSE).
      *
@@ -22,12 +25,9 @@ class RefreshStreamController extends StreamController {
      * @param Request $request
      * @return StreamedResponse
      */
-    /** @var array<int, string> Allowed query param names when fetching page HTML. */
-    private const ALLOWED_QUERY_KEYS = ['service', 'service_id', 'serviceFilter', 'statusFilter', 'search', 'page'];
-
     public function stream(Request $request): StreamedResponse {
-        $path = $this->resolvePath($request);
-        $query = $this->resolveQuery($request);
+        $path = $this->private__resolvePath($request);
+        $query = $this->private__resolveQuery($request);
         $pushHtml = $path !== null;
         $baseUrl = $pushHtml ? $request->getSchemeAndHttpHost() : null;
 
@@ -39,7 +39,7 @@ class RefreshStreamController extends StreamController {
 
             if ($pushHtml && $path !== null && $baseUrl !== null) {
                 $url = $query !== '' ? "$baseUrl$path?$query" : "$baseUrl$path";
-                $html = $this->fetchPageHtml($url, $cookies, $server);
+                $html = $this->private__fetchPageHtml($url, $cookies, $server);
                 if ($html !== null) {
                     $payload['html'] = $html;
                 }
@@ -54,7 +54,7 @@ class RefreshStreamController extends StreamController {
      * @param Request $request
      * @return string|null
      */
-    private function resolvePath(Request $request): ?string {
+    private function private__resolvePath(Request $request): ?string {
         $path = $request->query('path');
         if ($path === null || $path === '') {
             return null;
@@ -75,7 +75,7 @@ class RefreshStreamController extends StreamController {
      * @param Request $request
      * @return string
      */
-    private function resolveQuery(Request $request): string {
+    private function private__resolveQuery(Request $request): string {
         $raw = $request->query('query');
         if ($raw === null || $raw === '' || ! \is_string($raw)) {
             return '';
@@ -105,7 +105,7 @@ class RefreshStreamController extends StreamController {
      * @param array<string, mixed> $server
      * @return string|null
      */
-    private function fetchPageHtml(string $url, array $cookies, array $server): ?string {
+    private function private__fetchPageHtml(string $url, array $cookies, array $server): ?string {
         try {
             $subRequest = Request::create($url, 'GET', [], $cookies, [], $server);
             $subRequest->headers->set('X-Requested-With', 'XMLHttpRequest');

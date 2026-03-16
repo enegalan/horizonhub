@@ -11,11 +11,156 @@ use Illuminate\Support\Facades\Log;
 class HorizonApiProxyService {
 
     /**
+     * Retry a job through the Horizon HTTP API.
+     *
+     * @param Service $service
+     * @param string $jobUuid
+     * @return array{success: bool, message?: string, status?: int}
+     */
+    public function retryJob(Service $service, string $jobUuid): array {
+        $relativePath = $this->private__parseTemplate('horizonhub.horizon_paths.retry', '{id}', $jobUuid);
+
+        return $this->callWithDashboardSession($service, $relativePath, 'post');
+    }
+
+    /**
+     * Test connectivity with the Horizon HTTP API for a service.
+     *
+     * @param Service $service
+     * @return array{success: bool, message?: string, status?: int}
+     */
+    public function ping(Service $service): array {
+        $relativePath = (string) \config('horizonhub.horizon_paths.ping');
+
+        return $this->call($service, $relativePath, 'get');
+    }
+
+    /**
+     * Get the queue workload from the Horizon HTTP API for a service.
+     *
+     * @param Service $service
+     * @return array{success: bool, message?: string, status?: int, data?: array}
+     */
+    public function getWorkload(Service $service): array {
+        $relativePath = (string) \config('horizonhub.horizon_paths.workload');
+
+        $result = $this->call($service, $relativePath, 'get');
+        if (! ($result['success'] ?? false) && \in_array($result['status'] ?? 0, [401, 403], true)) {
+            $result = $this->callWithDashboardSession($service, $relativePath, 'get');
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get high-level dashboard statistics (including jobs per minute and recent jobs)
+     * from the Horizon HTTP API for a service.
+     *
+     * This proxies the Horizon `/stats` endpoint and returns its decoded payload.
+     *
+     * @param Service $service
+     * @return array{success: bool, message?: string, status?: int, data?: array}
+     */
+    public function getStats(Service $service): array {
+        $relativePath = (string) \config('horizonhub.horizon_paths.ping');
+
+        return $this->call($service, $relativePath, 'get');
+    }
+
+    /**
+     * Get Horizon masters (and their supervisors) from the Horizon HTTP API for a service.
+     *
+     * @param Service $service
+     * @return array{success: bool, message?: string, status?: int, data?: array}
+     */
+    public function getMasters(Service $service): array {
+        $relativePath = (string) \config('horizonhub.horizon_paths.masters');
+
+        return $this->call($service, $relativePath, 'get');
+    }
+
+    /**
+     * Get failed jobs from the Horizon HTTP API for a service.
+     *
+     * @param Service $service
+     * @param array<string, mixed> $query
+     * @return array{success: bool, message?: string, status?: int, data?: array}
+     */
+    public function getFailedJobs(Service $service, array $query = []): array {
+        $path = (string) \config('horizonhub.horizon_paths.failed_jobs');
+        if ($query === []) {
+            $query = ['starting_at' => 0, 'limit' => 50];
+        }
+        $queryString = \http_build_query($query);
+
+        return $this->call($service, "$path?$queryString", 'get');
+    }
+
+    /**
+     * Get a single failed job by UUID from the Horizon HTTP API for a service.
+     *
+     * @param Service $service
+     * @param string $jobUuid
+     * @return array{success: bool, message?: string, status?: int, data?: array}
+     */
+    public function getFailedJob(Service $service, string $jobUuid): array {
+        $relativePath = $this->private__parseTemplate('horizonhub.horizon_paths.failed_job', '{id}', $jobUuid);
+
+        return $this->call($service, $relativePath, 'get');
+    }
+
+    /**
+     * Get completed jobs from the Horizon HTTP API for a service.
+     *
+     * @param Service $service
+     * @param array<string, mixed> $query
+     * @return array{success: bool, message?: string, status?: int, data?: array}
+     */
+    public function getCompletedJobs(Service $service, array $query = []): array {
+        $path = (string) \config('horizonhub.horizon_paths.completed_jobs');
+        if ($query === []) {
+            $query = ['starting_at' => 0, 'limit' => 50];
+        }
+        $queryString = \http_build_query($query);
+
+        return $this->call($service, "$path?$queryString", 'get');
+    }
+
+    /**
+     * Get pending/processing jobs from the Horizon HTTP API for a service.
+     *
+     * @param Service $service
+     * @param array<string, mixed> $query
+     * @return array{success: bool, message?: string, status?: int, data?: array}
+     */
+    public function getPendingJobs(Service $service, array $query = []): array {
+        $path = (string) \config('horizonhub.horizon_paths.pending_jobs');
+        if ($query === []) {
+            $query = ['starting_at' => 0, 'limit' => 50];
+        }
+        $queryString = \http_build_query($query);
+
+        return $this->call($service, "$path?$queryString", 'get');
+    }
+
+    /**
+     * Get queue metrics from the Horizon HTTP API for a service (queue sizes, etc.).
+     *
+     * @param Service $service
+     * @return array{success: bool, message?: string, status?: int, data?: array}
+     */
+    public function getMetricsQueues(Service $service): array {
+        $relativePath = (string) \config('horizonhub.horizon_paths.metrics_queues', '/metrics/queues');
+
+        return $this->call($service, $relativePath, 'get');
+    }
+
+    /**
      * @param Service $service
      * @return string
      * @throws \RuntimeException
      */
-    private function getServiceBase(Service $service): string {
+    private function private__getServiceBase(Service $service): string {
         $serviceBase = \rtrim($service->base_url ?? '', '/');
         if ($serviceBase === '') {
             throw new \RuntimeException('Service has no base_url configured.');
@@ -29,11 +174,11 @@ class HorizonApiProxyService {
      * @param Service $service
      * @return string
      */
-    private function buildBaseUrl(Service $service): string {
+    private function private__buildBaseUrl(Service $service): string {
         $apiBasePath = (string) \config('horizonhub.horizon_paths.api');
         $apiBasePath = '/' . \ltrim($apiBasePath, '/');
 
-        return $this->getServiceBase($service) . \rtrim($apiBasePath, '/');
+        return $this->private__getServiceBase($service) . \rtrim($apiBasePath, '/');
     }
 
     /**
@@ -42,11 +187,11 @@ class HorizonApiProxyService {
      * @param Service $service
      * @return string
      */
-    private function buildDashboardUrl(Service $service): string {
+    private function private__buildDashboardUrl(Service $service): string {
         $dashboardPath = (string) \config('horizonhub.horizon_paths.dashboard');
         $dashboardPath = \ltrim($dashboardPath, '/');
 
-        return $this->getServiceBase($service) . '/' . $dashboardPath;
+        return $this->private__getServiceBase($service) . '/' . $dashboardPath;
     }
 
     /**
@@ -57,7 +202,7 @@ class HorizonApiProxyService {
      * @param mixed $value
      * @return string
      */
-    private function parseTemplate(string $templateKey, string $placeholder, mixed $value): string {
+    private function private__parseTemplate(string $templateKey, string $placeholder, mixed $value): string {
         $template = (string) \config($templateKey);
         if ($template === '') {
             throw new \RuntimeException("Invalid configuration: {$templateKey} is empty.");
@@ -155,7 +300,7 @@ class HorizonApiProxyService {
      */
     private function call(Service $service, string $path, string $method = 'post'): array {
         try {
-            $base = $this->buildBaseUrl($service);
+            $base = $this->private__buildBaseUrl($service);
         } catch (\Throwable $e) {
             return [
                 'success' => false,
@@ -200,7 +345,7 @@ class HorizonApiProxyService {
      */
     private function bootstrapDashboardSession(Service $service): ?array {
         try {
-            $dashboardUrl = $this->buildDashboardUrl($service);
+            $dashboardUrl = $this->private__buildDashboardUrl($service);
         } catch (\Throwable $e) {
             Log::warning('Horizon Hub: failed to build Horizon dashboard URL', [
                 'service_id' => $service->id ?? null,
@@ -278,7 +423,7 @@ class HorizonApiProxyService {
      */
     private function callWithDashboardSession(Service $service, string $path, string $method = 'post'): array {
         try {
-            $base = $this->buildBaseUrl($service);
+            $base = $this->private__buildBaseUrl($service);
         } catch (\Throwable $e) {
             return [
                 'success' => false,
@@ -332,150 +477,5 @@ class HorizonApiProxyService {
                 'status' => 502,
             ];
         }
-    }
-
-    /**
-     * Retry a job through the Horizon HTTP API.
-     *
-     * @param Service $service
-     * @param string $jobUuid
-     * @return array{success: bool, message?: string, status?: int}
-     */
-    public function retryJob(Service $service, string $jobUuid): array {
-        $relativePath = $this->parseTemplate('horizonhub.horizon_paths.retry', '{id}', $jobUuid);
-
-        return $this->callWithDashboardSession($service, $relativePath, 'post');
-    }
-
-    /**
-     * Test connectivity with the Horizon HTTP API for a service.
-     *
-     * @param Service $service
-     * @return array{success: bool, message?: string, status?: int}
-     */
-    public function ping(Service $service): array {
-        $relativePath = (string) \config('horizonhub.horizon_paths.ping');
-
-        return $this->call($service, $relativePath, 'get');
-    }
-
-    /**
-     * Get the queue workload from the Horizon HTTP API for a service.
-     *
-     * @param Service $service
-     * @return array{success: bool, message?: string, status?: int, data?: array}
-     */
-    public function getWorkload(Service $service): array {
-        $relativePath = (string) \config('horizonhub.horizon_paths.workload');
-
-        $result = $this->call($service, $relativePath, 'get');
-        if (! ($result['success'] ?? false) && \in_array($result['status'] ?? 0, [401, 403], true)) {
-            $result = $this->callWithDashboardSession($service, $relativePath, 'get');
-        }
-
-        return $result;
-    }
-
-    /**
-     * Get high-level dashboard statistics (including jobs per minute and recent jobs)
-     * from the Horizon HTTP API for a service.
-     *
-     * This proxies the Horizon `/stats` endpoint and returns its decoded payload.
-     *
-     * @param Service $service
-     * @return array{success: bool, message?: string, status?: int, data?: array}
-     */
-    public function getStats(Service $service): array {
-        $relativePath = (string) \config('horizonhub.horizon_paths.ping');
-
-        return $this->call($service, $relativePath, 'get');
-    }
-
-    /**
-     * Get Horizon masters (and their supervisors) from the Horizon HTTP API for a service.
-     *
-     * @param Service $service
-     * @return array{success: bool, message?: string, status?: int, data?: array}
-     */
-    public function getMasters(Service $service): array {
-        $relativePath = (string) \config('horizonhub.horizon_paths.masters');
-
-        return $this->call($service, $relativePath, 'get');
-    }
-
-    /**
-     * Get failed jobs from the Horizon HTTP API for a service.
-     *
-     * @param Service $service
-     * @param array<string, mixed> $query
-     * @return array{success: bool, message?: string, status?: int, data?: array}
-     */
-    public function getFailedJobs(Service $service, array $query = []): array {
-        $path = (string) \config('horizonhub.horizon_paths.failed_jobs');
-        if ($query === []) {
-            $query = ['starting_at' => 0, 'limit' => 50];
-        }
-        $queryString = \http_build_query($query);
-
-        return $this->call($service, "$path?$queryString", 'get');
-    }
-
-    /**
-     * Get a single failed job by UUID from the Horizon HTTP API for a service.
-     *
-     * @param Service $service
-     * @param string $jobUuid
-     * @return array{success: bool, message?: string, status?: int, data?: array}
-     */
-    public function getFailedJob(Service $service, string $jobUuid): array {
-        $relativePath = $this->parseTemplate('horizonhub.horizon_paths.failed_job', '{id}', $jobUuid);
-
-        return $this->call($service, $relativePath, 'get');
-    }
-
-    /**
-     * Get completed jobs from the Horizon HTTP API for a service.
-     *
-     * @param Service $service
-     * @param array<string, mixed> $query
-     * @return array{success: bool, message?: string, status?: int, data?: array}
-     */
-    public function getCompletedJobs(Service $service, array $query = []): array {
-        $path = (string) \config('horizonhub.horizon_paths.completed_jobs');
-        if ($query === []) {
-            $query = ['starting_at' => 0, 'limit' => 50];
-        }
-        $queryString = \http_build_query($query);
-
-        return $this->call($service, "$path?$queryString", 'get');
-    }
-
-    /**
-     * Get pending/processing jobs from the Horizon HTTP API for a service.
-     *
-     * @param Service $service
-     * @param array<string, mixed> $query
-     * @return array{success: bool, message?: string, status?: int, data?: array}
-     */
-    public function getPendingJobs(Service $service, array $query = []): array {
-        $path = (string) \config('horizonhub.horizon_paths.pending_jobs');
-        if ($query === []) {
-            $query = ['starting_at' => 0, 'limit' => 50];
-        }
-        $queryString = \http_build_query($query);
-
-        return $this->call($service, "$path?$queryString", 'get');
-    }
-
-    /**
-     * Get queue metrics from the Horizon HTTP API for a service (queue sizes, etc.).
-     *
-     * @param Service $service
-     * @return array{success: bool, message?: string, status?: int, data?: array}
-     */
-    public function getMetricsQueues(Service $service): array {
-        $relativePath = (string) \config('horizonhub.horizon_paths.metrics_queues', '/metrics/queues');
-
-        return $this->call($service, $relativePath, 'get');
     }
 }

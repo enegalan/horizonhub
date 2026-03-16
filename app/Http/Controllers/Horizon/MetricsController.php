@@ -137,5 +137,4 @@ class MetricsController extends Controller {
             ];
         });
     }
-
 }
