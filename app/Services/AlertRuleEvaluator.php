@@ -91,6 +91,35 @@ class AlertRuleEvaluator {
     }
 
     /**
+     * Parse failed_at from Horizon API (string, Unix timestamp, or Carbon) to Carbon.
+     *
+     * @param mixed $value
+     * @return Carbon|null
+     */
+    private function parseFailedAt(mixed $value): ?Carbon {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        try {
+            if ($value instanceof Carbon) {
+                return $value;
+            }
+            if ($value instanceof \DateTimeInterface) {
+                return Carbon::instance($value);
+            }
+            if (\is_numeric($value)) {
+                return Carbon::createFromTimestamp((int) $value);
+            }
+            if (\is_string($value)) {
+                return Carbon::parse($value);
+            }
+        } catch (\Throwable $e) {
+            return null;
+        }
+        return null;
+    }
+
+    /**
      * Evaluate the job type failure.
      *
      * @param Alert $alert
@@ -101,6 +130,9 @@ class AlertRuleEvaluator {
         if (! $alert->job_type) {
             return false;
         }
+
+        $threshold = $alert->threshold ?? [];
+        $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 15);
 
         $service = Service::find($serviceId);
         if (! $service || ! $service->base_url) {
@@ -114,25 +146,15 @@ class AlertRuleEvaluator {
             return false;
         }
 
-        $now = \now();
+        $cutoff = \now()->subMinutes($minutes);
         $recent = collect($data['jobs'] ?? [])
-            ->filter(function ($job) use ($alert, $now) {
+            ->filter(function ($job) use ($alert, $cutoff) {
                 if (! \is_array($job)) {
                     return false;
                 }
 
-                $failedAtRaw = $job['failed_at'] ?? null;
-                if (! \is_string($failedAtRaw) || $failedAtRaw === '') {
-                    return false;
-                }
-
-                try {
-                    $failedAt = Carbon::parse($failedAtRaw);
-                } catch (\Throwable $e) {
-                    return false;
-                }
-
-                if ($failedAt->lt($now->subMinutes(15))) {
+                $failedAt = $this->parseFailedAt($job['failed_at'] ?? null);
+                if ($failedAt === null || $failedAt->lt($cutoff)) {
                     return false;
                 }
 
@@ -172,7 +194,7 @@ class AlertRuleEvaluator {
             return false;
         }
 
-        $now = \now();
+        $cutoff = \now()->subMinutes($minutes);
         $jobs = collect($data['jobs'] ?? []);
 
         if ($alert->queue) {
@@ -181,20 +203,12 @@ class AlertRuleEvaluator {
             });
         }
 
-        $actual = $jobs->filter(function ($job) use ($minutes, $now) {
+        $actual = $jobs->filter(function ($job) use ($cutoff) {
             if (! \is_array($job)) {
                 return false;
             }
-            $failedAtRaw = $job['failed_at'] ?? null;
-            if (! \is_string($failedAtRaw) || $failedAtRaw === '') {
-                return false;
-            }
-            try {
-                $failedAt = Carbon::parse($failedAtRaw);
-            } catch (\Throwable $e) {
-                return false;
-            }
-            return $failedAt->gte($now->subMinutes($minutes));
+            $failedAt = $this->parseFailedAt($job['failed_at'] ?? null);
+            return $failedAt !== null && $failedAt->gte($cutoff);
         })->count();
 
         $triggered = $actual >= $count;
@@ -227,9 +241,9 @@ class AlertRuleEvaluator {
         }
 
         $jobs = collect($data['jobs'] ?? []);
-        $now = \now();
+        $cutoff = \now()->subMinutes($minutes);
 
-        $durations = $jobs->map(function ($job) use ($minutes, $now) {
+        $durations = $jobs->map(function ($job) use ($cutoff) {
             if (! \is_array($job)) {
                 return null;
             }
@@ -245,7 +259,7 @@ class AlertRuleEvaluator {
                 return null;
             }
 
-            if ($completed->lt($now->subMinutes($minutes))) {
+            if ($completed->lt($cutoff)) {
                 return null;
             }
 
@@ -312,7 +326,7 @@ class AlertRuleEvaluator {
             return false;
         }
 
-        $triggered = $lastProcessed->addMinutes($minutes)->isPast();
+        $triggered = $lastProcessed->copy()->addMinutes($minutes)->isPast();
 
         return $triggered;
     }
@@ -333,7 +347,7 @@ class AlertRuleEvaluator {
             return false;
         }
 
-        $triggered = $service->last_seen_at->addMinutes($minutes)->isPast();
+        $triggered = $service->last_seen_at->copy()->addMinutes($minutes)->isPast();
 
         return $triggered;
     }

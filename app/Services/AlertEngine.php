@@ -84,18 +84,22 @@ class AlertEngine {
         /** @var \Illuminate\Database\Eloquent\Collection<int, Alert> $alerts */
         $alerts = Alert::where('enabled', true)->get();
         foreach ($alerts as $alert) {
-            $pending = $this->getPending($alert);
-            if (empty($pending)) {
-                continue;
+            try {
+                $pending = $this->getPending($alert);
+                if (empty($pending)) {
+                    continue;
+                }
+                $intervalMinutes = $this->getIntervalMinutes($alert);
+                $lastSentAt = $this->getLastSentAt($alert);
+                if ($intervalMinutes > 0 && $lastSentAt !== null && \now()->lt($lastSentAt->copy()->addMinutes($intervalMinutes))) {
+                    continue;
+                }
+                $this->sendBatchedAlert($alert, $pending);
+                $this->clearPending($alert);
+                $this->setLastSentAt($alert);
+            } catch (\Throwable $e) {
+                Log::error('Horizon Hub: flush pending alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
             }
-            $intervalMinutes = $this->getIntervalMinutes($alert);
-            $lastSentAt = $this->getLastSentAt($alert);
-            if ($intervalMinutes > 0 && $lastSentAt !== null && \now()->lt($lastSentAt->copy()->addMinutes($intervalMinutes))) {
-                continue;
-            }
-            $this->sendBatchedAlert($alert, $pending);
-            $this->clearPending($alert);
-            $this->setLastSentAt($alert);
         }
     }
 
@@ -139,15 +143,28 @@ class AlertEngine {
         $services = Service::all();
 
         foreach ($alerts as $alert) {
-            $serviceIds = $alert->service_id ? [$alert->service_id] : $services->pluck('id')->all();
-            foreach ($serviceIds as $serviceId) {
-                if ($this->evaluateRule($alert, $serviceId, null)) {
-                    $this->triggerAlert($alert, $serviceId, null);
-                    break;
+            try {
+                $serviceIds = $alert->service_id ? [$alert->service_id] : $services->pluck('id')->all();
+                if (empty($serviceIds)) {
+                    Log::warning('Horizon Hub: no services to evaluate alert (add at least one service)', ['alert_id' => $alert->id]);
+                    continue;
                 }
+                foreach ($serviceIds as $serviceId) {
+                    if ($this->evaluateRule($alert, $serviceId, null)) {
+                        $this->triggerAlert($alert, $serviceId, null);
+                        break;
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::error('Horizon Hub: evaluate scheduled alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
             }
         }
     }
+
+    /**
+     * Default interval (minutes) when alert has none set.
+     */
+    private const DEFAULT_INTERVAL_MINUTES = 5;
 
     /**
      * Get the interval minutes for the given alert.
@@ -159,7 +176,8 @@ class AlertEngine {
         if ($alert->email_interval_minutes !== null) {
             return (int) $alert->email_interval_minutes;
         }
-        throw new \RuntimeException('Alert email interval minutes is not set for alert ' . $alert->id);
+        Log::warning('Horizon Hub: alert has no email_interval_minutes, using default', ['alert_id' => $alert->id]);
+        return self::DEFAULT_INTERVAL_MINUTES;
     }
 
     /**
