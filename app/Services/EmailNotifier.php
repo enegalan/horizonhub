@@ -5,9 +5,8 @@ namespace App\Services;
 use App\Contracts\EmailAlertNotifier;
 use App\Mail\AlertBatchedMail;
 use App\Models\Alert;
-use App\Models\HorizonJob;
 use App\Models\Service;
-use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -21,6 +20,22 @@ class EmailNotifier implements EmailAlertNotifier {
     private const EMAIL_EXCEPTION_MAX_LENGTH = 500;
 
     /**
+     * The Horizon API proxy service.
+     *
+     * @var HorizonApiProxyService
+     */
+    private HorizonApiProxyService $horizonApi;
+
+    /**
+     * Construct the email notifier.
+     *
+     * @param HorizonApiProxyService $horizonApi
+     */
+    public function __construct(HorizonApiProxyService $horizonApi) {
+        $this->horizonApi = $horizonApi;
+    }
+
+    /**
      * Maximum number of events to include in the email body (avoids memory exhaustion).
      *
      * @var int
@@ -32,13 +47,13 @@ class EmailNotifier implements EmailAlertNotifier {
      *
      * @param Alert $alert
      * @param int $serviceId
-     * @param int|null $jobId
+     * @param string|null $jobUuid
      * @param array $config
      * @return void
      */
-    public function send(Alert $alert, int $serviceId, ?int $jobId, array $config): void {
+    public function send(Alert $alert, int $serviceId, ?string $jobUuid, array $config): void {
         $this->sendBatched($alert, [
-            ['service_id' => $serviceId, 'job_id' => $jobId, 'triggered_at' => \now()->toIso8601String()],
+            ['service_id' => $serviceId, 'job_uuid' => $jobUuid, 'triggered_at' => \now()->toIso8601String()],
         ], $config);
     }
 
@@ -46,7 +61,7 @@ class EmailNotifier implements EmailAlertNotifier {
      * Send a batched alert.
      *
      * @param Alert $alert
-     * @param array<int, array{service_id: int, job_id: int|null, triggered_at: string}> $events
+     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events
      * @param array $config
      * @return void
      */
@@ -80,17 +95,22 @@ class EmailNotifier implements EmailAlertNotifier {
     /**
      * Enrich the events.
      *
-     * @param array<int, array{service_id: int, job_id: int|null, triggered_at: string}> $events
-     * @return array<int, array{service_id: int, job_id: int|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}>
+     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events
+     * @return array<int, array{service_id: int, job_uuid: string|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}>
      */
     private function enrichEvents(array $events): array {
         $enriched = [];
-        $jobIds = \array_values(\array_filter(\array_column($events, 'job_id')));
-        $jobs = empty($jobIds) ? [] : $this->getJobsForEmail($jobIds);
+        $jobUuids = \array_values(\array_filter(\array_column($events, 'job_uuid')));
+        $service = null;
+        if (! empty($events)) {
+            $serviceId = (int) ($events[0]['service_id'] ?? 0);
+            $service = Service::find($serviceId);
+        }
+        $jobs = (empty($jobUuids) || ! $service) ? \collect() : $this->getJobsForEmail($service, $jobUuids);
 
         foreach ($events as $event) {
-            $jobId = isset($event['job_id']) ? (int) $event['job_id'] : null;
-            $job = $jobId ? $jobs->get($jobId) : null;
+            $jobUuid = isset($event['job_uuid']) ? (string) $event['job_uuid'] : null;
+            $job = $jobUuid ? $jobs->get($jobUuid) : null;
 
             $jobClass = null;
             $queue = null;
@@ -114,7 +134,7 @@ class EmailNotifier implements EmailAlertNotifier {
 
             $enriched[] = [
                 'service_id' => (int) ($event['service_id'] ?? 0),
-                'job_id' => $jobId,
+                'job_uuid' => $jobUuid,
                 'triggered_at' => $event['triggered_at'] ?? '',
                 'job_class' => $jobClass,
                 'queue' => $queue,
@@ -128,22 +148,47 @@ class EmailNotifier implements EmailAlertNotifier {
     }
 
     /**
-     * Load jobs for email with exception truncated at DB level to avoid loading huge blobs.
+     * Load failed job details from the Horizon API for the given service and UUIDs.
      *
-     * @param array<int, int> $jobIds
-     * @return \Illuminate\Support\Collection<int, HorizonJob>
+     * @param Service $service
+     * @param array<int, string> $jobUuids
+     * @return \Illuminate\Support\Collection<string, object{payload: array, name: string|null, queue: string|null, failed_at: Carbon|null, exception: string, attempts: int|null}>
      */
-    private function getJobsForEmail(array $jobIds): \Illuminate\Support\Collection {
-        $max = self::EMAIL_EXCEPTION_MAX_LENGTH;
-        $driver = DB::connection()->getDriverName();
-        $exceptionExpr = ($driver === 'mysql' || $driver === 'pgsql')
-            ? "LEFT(exception, {$max})"
-            : "SUBSTR(exception, 1, {$max})";
-
-        return HorizonJob::whereIn('id', $jobIds)
-            ->selectRaw("id, name, queue, failed_at, attempts, {$exceptionExpr} as exception, payload")
-            ->get()
-            ->keyBy('id');
+    private function getJobsForEmail(Service $service, array $jobUuids): \Illuminate\Support\Collection {
+        $jobs = \collect();
+        foreach ($jobUuids as $jobUuid) {
+            if ($jobUuid === '') {
+                continue;
+            }
+            $response = $this->horizonApi->getFailedJob($service, $jobUuid);
+            $data = $response['data'] ?? null;
+            if (! ($response['success'] ?? false) || ! \is_array($data)) {
+                continue;
+            }
+            $payload = $data['payload'] ?? [];
+            $name = $data['name'] ?? ($payload['displayName'] ?? null);
+            if ($name === null && isset($payload['job'])) {
+                $name = \is_string($payload['job']) ? $payload['job'] : 'Unknown';
+            }
+            $failedAt = null;
+            if (isset($data['failed_at']) && (string) $data['failed_at'] !== '') {
+                try {
+                    $failedAt = Carbon::parse((string) $data['failed_at']);
+                } catch (\Throwable $e) {
+                    // leave null
+                }
+            }
+            $job = (object) [
+                'payload' => $payload,
+                'name' => $name,
+                'queue' => isset($data['queue']) ? (string) $data['queue'] : null,
+                'failed_at' => $failedAt,
+                'exception' => isset($data['exception']) ? (string) $data['exception'] : '',
+                'attempts' => isset($data['attempts']) ? (int) $data['attempts'] : null,
+            ];
+            $jobs->put($jobUuid, $job);
+        }
+        return $jobs;
     }
 
     /**

@@ -90,45 +90,7 @@ class HorizonSyncService {
      * @return void
      */
     private function syncSupervisorsFromMasters(Service $service, array $response): void {
-        $data = $response['data'] ?? null;
-        if (! \is_array($data)) {
-            return;
-        }
-
         $now = now();
-
-        foreach ($data as $master) {
-            if (! \is_array($master)) {
-                continue;
-            }
-
-            $supervisors = $master['supervisors'] ?? null;
-            if (! \is_array($supervisors)) {
-                continue;
-            }
-
-            foreach ($supervisors as $supervisor) {
-                if (! \is_array($supervisor)) {
-                    continue;
-                }
-
-                $name = isset($supervisor['name']) ? (string) $supervisor['name'] : '';
-                if ($name === '') {
-                    continue;
-                }
-
-                HorizonSupervisorState::updateOrCreate(
-                    [
-                        'service_id' => $service->id,
-                        'name' => $name,
-                    ],
-                    [
-                        'last_seen_at' => $now,
-                    ]
-                );
-            }
-        }
-
         // Any successful supervisors sync counts as a heartbeat for the service.
         $service->forceFill([
             'last_seen_at' => $now,
@@ -150,20 +112,14 @@ class HorizonSyncService {
             return;
         }
 
-        $jobs = [];
-        if (isset($data['jobs']) && \is_array($data['jobs'])) {
-            $jobs = $data['jobs'];
-        } elseif ($data === [] || \array_values($data) === $data) {
-            $jobs = $data;
-        }
-
+        $jobs = $data['jobs'];
         foreach ($jobs as $job) {
             if (! \is_array($job)) {
                 continue;
             }
 
-            $jobId = (string) ($job['id'] ?? $job['uuid'] ?? $job['job_uuid'] ?? '');
-            if ($jobId === '') {
+            $jobUuid = (string) $job['id'];
+            if (empty($jobUuid)) {
                 continue;
             }
 
@@ -221,7 +177,7 @@ class HorizonSyncService {
 
             $event = [
                 'event_type' => $eventType,
-                'job_id' => $jobId,
+                'job_uuid' => $jobUuid,
                 'queue' => $queue,
                 'name' => $name,
                 'payload' => $payload,

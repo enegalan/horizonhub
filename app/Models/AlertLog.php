@@ -16,7 +16,7 @@ class AlertLog extends Model {
         'alert_id',
         'service_id',
         'trigger_count',
-        'job_ids',
+        'job_uuids',
         'status',
         'failure_message',
         'sent_at',
@@ -29,7 +29,7 @@ class AlertLog extends Model {
      */
     protected $casts = [
         'sent_at' => 'datetime',
-        'job_ids' => 'array',
+        'job_uuids' => 'array',
     ];
 
     /**

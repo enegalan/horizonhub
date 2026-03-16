@@ -22,19 +22,24 @@ class RefreshStreamController extends StreamController {
      * @param Request $request
      * @return StreamedResponse
      */
+    /** @var array<int, string> Allowed query param names when fetching page HTML. */
+    private const ALLOWED_QUERY_KEYS = ['service', 'service_id', 'serviceFilter', 'statusFilter', 'search', 'page'];
+
     public function stream(Request $request): StreamedResponse {
         $path = $this->resolvePath($request);
+        $query = $this->resolveQuery($request);
         $pushHtml = $path !== null;
         $baseUrl = $pushHtml ? $request->getSchemeAndHttpHost() : null;
 
         $cookies = $pushHtml ? $request->cookies->all() : [];
         $server = $pushHtml ? $request->server->all() : [];
 
-        return $this->runStream(function () use ($pushHtml, $path, $baseUrl, $cookies, $server): array {
+        return $this->runStream(function () use ($pushHtml, $path, $query, $baseUrl, $cookies, $server): array {
             $payload = ['ts' => \time()];
 
             if ($pushHtml && $path !== null && $baseUrl !== null) {
-                $html = $this->fetchPageHtml("$baseUrl$path", $cookies, $server);
+                $url = $query !== '' ? "$baseUrl$path?$query" : "$baseUrl$path";
+                $html = $this->fetchPageHtml($url, $cookies, $server);
                 if ($html !== null) {
                     $payload['html'] = $html;
                 }
@@ -62,6 +67,34 @@ class RefreshStreamController extends StreamController {
             return $path;
         }
         return null;
+    }
+
+    /**
+     * Resolve and validate query string for page fetch (whitelist keys). Returns raw query string or empty.
+     *
+     * @param Request $request
+     * @return string
+     */
+    private function resolveQuery(Request $request): string {
+        $raw = $request->query('query');
+        if ($raw === null || $raw === '' || ! \is_string($raw)) {
+            return '';
+        }
+        $pairs = [];
+        foreach (\explode('&', $raw) as $segment) {
+            if ($segment === '') {
+                continue;
+            }
+            $eq = \strpos($segment, '=');
+            $key = $eq !== false ? \substr($segment, 0, $eq) : $segment;
+            $key = \trim($key);
+            if ($key === '' || ! \in_array($key, self::ALLOWED_QUERY_KEYS, true)) {
+                continue;
+            }
+            $value = $eq !== false ? \substr($segment, $eq + 1) : '';
+            $pairs[] = "$key=$value";
+        }
+        return \implode('&', $pairs);
     }
 
     /**

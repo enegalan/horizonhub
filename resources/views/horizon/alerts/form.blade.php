@@ -152,6 +152,7 @@
                     </template>
 
                     <div class="flex items-center gap-2 pt-2">
+                        <input type="hidden" name="enabled" value="0">
                         <x-checkbox
                             id="enabled"
                             name="enabled"

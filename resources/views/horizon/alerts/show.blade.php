@@ -227,10 +227,10 @@
                     $sl = $selectedLog;
                     $triggerCount = (int) ($sl->trigger_count ?? 0);
                     if ($triggerCount < 1) $triggerCount = 1;
-                    $jobIds = is_array($sl->job_ids ?? null) ? $sl->job_ids : [];
+                    $jobUuids = is_array($sl->job_uuids ?? null) ? $sl->job_uuids : [];
                     $totals = [];
-                    foreach ($jobIds as $id) {
-                        $key = (string) $id;
+                    foreach ($jobUuids as $uuid) {
+                        $key = (string) $uuid;
                         $totals[$key] = ($totals[$key] ?? 0) + 1;
                     }
                     $jobIdsLimited = \array_slice(\array_keys($totals), 0, \config('horizonhub.alerts_per_page'));

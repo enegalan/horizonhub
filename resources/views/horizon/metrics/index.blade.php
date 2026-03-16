@@ -10,14 +10,14 @@
 
 @section('content')
     <div
-        x-data="window.horizonMetricsPage ? window.horizonMetricsPage({ baseUrls: {{ Js::from($metricsBaseUrls) }} }) : {}"
+        x-data="window.horizonMetricsPage ? window.horizonMetricsPage({ baseUrls: {{ Js::from($metricsBaseUrls) }}, initialServiceId: {{ Js::from(isset($serviceFilter) && $serviceFilter !== '' ? $serviceFilter : null) }} }) : {}"
         x-init="typeof init === 'function' ? init() : null"
     >
         <div class="mb-4 flex flex-wrap items-center gap-3">
             <label for="metrics-service-filter" class="label-muted text-sm">Filter by service</label>
             <x-select id="metrics-service-filter" class="w-48" placeholder="All services">
                 @foreach($services as $service)
-                    <option value="{{ $service->id }}">{{ $service->name }}</option>
+                    <option value="{{ $service->id }}" @selected(isset($serviceFilter) && $serviceFilter !== '' && (int) $serviceFilter === (int) $service->id)>{{ $service->name }}</option>
                 @endforeach
             </x-select>
         </div>
@@ -42,13 +42,6 @@
                 <div class="mt-1 flex items-center gap-2 min-h-[2.5rem]">
                     <span id="metrics-loader-failed-seven"><x-loader class="size-5 shrink-0 text-muted-foreground" /></span>
                     <span id="metrics-value-failed-seven" class="text-2xl font-semibold text-foreground">—</span>
-                </div>
-            </div>
-            <div class="card p-4">
-                <h3 class="label-muted">Processed (24h)</h3>
-                <div class="mt-1 flex items-center gap-2 min-h-[2.5rem]">
-                    <span id="metrics-loader-processed-24"><x-loader class="size-5 shrink-0 text-muted-foreground" /></span>
-                    <span id="metrics-value-processed-24" class="text-2xl font-semibold text-foreground">—</span>
                 </div>
             </div>
         </div>

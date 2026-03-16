@@ -28,11 +28,11 @@ class HorizonEventReceived implements ShouldBroadcast {
     public int $serviceId;
 
     /**
-     * The job ID.
+     * The job UUID.
      *
-     * @var int|null
+     * @var string|null
      */
-    public ?int $jobId;
+    public ?string $jobUuid;
 
     /**
      * The payload.
@@ -46,18 +46,18 @@ class HorizonEventReceived implements ShouldBroadcast {
      *
      * @param string $eventType
      * @param int $serviceId
-     * @param int|null $jobId
+     * @param string|null $jobUuid
      * @param array $payload
      */
     public function __construct(
         string $eventType,
         int $serviceId,
-        ?int $jobId,
+        ?string $jobUuid,
         array $payload
     ) {
         $this->eventType = $eventType;
         $this->serviceId = $serviceId;
-        $this->jobId = $jobId;
+        $this->jobUuid = $jobUuid;
         $this->payload = $payload;
     }
 
@@ -90,7 +90,7 @@ class HorizonEventReceived implements ShouldBroadcast {
         return [
             'event_type' => $this->eventType,
             'service_id' => $this->serviceId,
-            'job_id' => $this->jobId,
+            'job_uuid' => $this->jobUuid,
             'payload' => $this->payload,
         ];
     }

@@ -97,10 +97,6 @@
                 <h3 class="label-muted">Failed (past 7 days)</h3>
                 <p class="mt-1 text-2xl font-semibold text-foreground">{{ number_format($failedPastSevenDays) }}</p>
             </div>
-            <div class="card p-4">
-                <h3 class="label-muted">Processed (24h)</h3>
-                <p class="mt-1 text-2xl font-semibold text-foreground">{{ number_format($processedPast24Hours) }}</p>
-            </div>
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -132,20 +128,35 @@
 
         <div class="card mb-4 p-4">
             <h3 class="text-section-title text-foreground mb-2">Supervisors</h3>
-            @if($supervisors->isNotEmpty())
+            @if(isset($supervisors) && $supervisors->isNotEmpty())
                 <div class="space-y-2">
                     @foreach($supervisors as $supervisor)
                         @php
                             $lastSeen = $supervisor->last_seen_at;
-                            $minutesAgo = $lastSeen ? \max(0, (int) $lastSeen->diffInMinutes(now(), true)) : 0;
+                            $minutesAgo = $lastSeen ? \max(0, (int) $lastSeen->diffInMinutes(now(), true)) : null;
                             $staleMinutes = (int) \config('horizonhub.stale_minutes');
-                            if ($minutesAgo > $staleMinutes) {
-                                $statusColor = 'bg-amber-500';
-                                $statusTitle = 'Stale';
-                                $statusBlink = true;
-                            } else {
+                            $apiStatus = $supervisor->status ?? '';
+                            if ($minutesAgo !== null) {
+                                if ($minutesAgo > $staleMinutes) {
+                                    $statusColor = 'bg-amber-500';
+                                    $statusTitle = 'Stale';
+                                    $statusBlink = true;
+                                } else {
+                                    $statusColor = 'bg-emerald-500';
+                                    $statusTitle = 'Online';
+                                    $statusBlink = false;
+                                }
+                            } elseif (\strtolower($apiStatus) === 'running') {
                                 $statusColor = 'bg-emerald-500';
                                 $statusTitle = 'Online';
+                                $statusBlink = false;
+                            } elseif (\strtolower($apiStatus) === 'inactive' || $apiStatus !== '') {
+                                $statusColor = 'bg-amber-500';
+                                $statusTitle = $apiStatus !== '' ? \ucfirst($apiStatus) : 'Unknown';
+                                $statusBlink = \strtolower($apiStatus) === 'inactive';
+                            } else {
+                                $statusColor = 'bg-slate-400';
+                                $statusTitle = 'Unknown';
                                 $statusBlink = false;
                             }
                         @endphp
@@ -154,7 +165,13 @@
                                 <span class="inline-flex shrink-0 size-2.5 rounded-full {{ $statusColor }} @if($statusBlink) animate-pulse @endif" title="{{ $statusTitle }}" aria-label="{{ $statusTitle }}"></span>
                                 <span class="font-mono text-sm text-foreground">{{ $supervisor->name }}</span>
                             </div>
-                            <span class="text-xs text-muted-foreground" title="Last seen">Last seen {{ $supervisor->last_seen_at->diffForHumans() }}</span>
+                            <span class="text-xs text-muted-foreground" title="Last seen">
+                                @if($supervisor->last_seen_at)
+                                    Last seen {{ $supervisor->last_seen_at->diffForHumans() }}
+                                @else
+                                    –
+                                @endif
+                            </span>
                         </div>
                     @endforeach
                 </div>
@@ -272,6 +289,36 @@
         @endif
 
         <div class="card">
+            <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
+                <div class="space-y-2">
+                    <x-input-label for="service-status-filter">Status</x-input-label>
+                    <form method="GET" action="{{ route('horizon.services.show', $service) }}" id="service-status-filter">
+                        <x-select
+                            name="statusFilter"
+                            class="w-36"
+                            onchange="this.form.submit()"
+                            placeholder="All"
+                            :options="['processed' => 'Processed', 'failed' => 'Failed', 'processing' => 'Processing']"
+                            :selected="$filters['statusFilter'] ?? ''"
+                        />
+                        <input type="hidden" name="search" value="{{ $filters['search'] ?? '' }}">
+                    </form>
+                </div>
+                <div class="space-y-2">
+                    <x-input-label for="service-jobs-search">Search</x-input-label>
+                    <form method="GET" action="{{ route('horizon.services.show', $service) }}" id="service-jobs-search" class="flex gap-2">
+                        <x-text-input
+                            type="text"
+                            name="search"
+                            value="{{ $filters['search'] ?? '' }}"
+                            placeholder="Queue, job or UUID"
+                            class="w-52"
+                        />
+                        <input type="hidden" name="statusFilter" value="{{ $filters['statusFilter'] ?? '' }}">
+                        <x-button type="submit" class="shrink-0">Search</x-button>
+                    </form>
+                </div>
+            </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full" data-resizable-table="horizon-service-dashboard-jobs" data-column-ids="queue,job,status,attempts,queued_at,processed,failed_at,runtime,actions">
                     <thead>
@@ -303,11 +350,11 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="attempts">{{ $job->attempts ?? '–' }}</td>
-                                <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="queued_at" data-datetime="{{ $job->queued_at?->toIso8601String() ?? '' }}">{{ $job->queued_at ? '…' : '–' }}</td>
-                                <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="processed" data-datetime="{{ $job->processed_at?->toIso8601String() ?? '' }}">{{ $job->processed_at ? '…' : '–' }}</td>
-                                <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="failed_at" data-datetime="{{ $job->failed_at?->toIso8601String() ?? '' }}">{{ $job->failed_at ? '…' : '–' }}</td>
+                                <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="queued_at" data-datetime="{{ $job->queued_at ? \Carbon\Carbon::parse($job->queued_at)->toIso8601String() : '' }}">{{ $job->queued_at ? '…' : '–' }}</td>
+                                <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="processed" data-datetime="{{ $job->processed_at ? \Carbon\Carbon::parse($job->processed_at)->toIso8601String() : '' }}">{{ $job->processed_at ? '…' : '–' }}</td>
+                                <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="failed_at" data-datetime="{{ $job->failed_at ? \Carbon\Carbon::parse($job->failed_at)->toIso8601String() : '' }}">{{ $job->failed_at ? '…' : '–' }}</td>
                                 <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="runtime">
-                                    {{ $job->getFormattedRuntime() ?? '–' }}
+                                    {{ $job->runtime ?? '–' }}
                                 </td>
                                 <td class="px-4 py-2.5" data-column-id="actions">
                                     <div class="flex items-center gap-2">

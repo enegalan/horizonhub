@@ -236,7 +236,7 @@ class AlertController extends Controller {
             'provider_ids' => 'required|array|min:1',
             'provider_ids.*' => 'integer|exists:notification_providers,id',
             'email_interval_minutes' => 'required|integer|min:0|max:1440',
-            'enabled' => 'sometimes|boolean',
+            'enabled' => 'required|boolean',
             'name' => 'nullable|string|max:255',
         ];
 
@@ -276,7 +276,7 @@ class AlertController extends Controller {
             'queue' => ! empty($validated['queue']) ? $validated['queue'] : null,
             'job_type' => ! empty($validated['job_type']) ? $validated['job_type'] : null,
             'notification_channels' => [],
-            'enabled' => (bool) ($validated['enabled'] ?? true),
+            'enabled' => (bool) $validated['enabled'],
             'email_interval_minutes' => (int) $validated['email_interval_minutes'],
         ];
 

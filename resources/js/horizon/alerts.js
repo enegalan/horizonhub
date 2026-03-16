@@ -75,6 +75,11 @@ export function horizonAlertDetail() {
             var currentRoot = document.querySelector('[data-horizon-alert-detail-root="1"]');
             if (!newRoot || !currentRoot) return;
 
+            var searchParams = typeof window !== 'undefined' && window.location && window.location.search
+                ? new URLSearchParams(window.location.search)
+                : null;
+            var modalOpen = searchParams && searchParams.has('log');
+
             function replaceSection(selector) {
                 var cur = currentRoot.querySelector(selector);
                 var neu = newRoot.querySelector(selector);
@@ -84,7 +89,9 @@ export function horizonAlertDetail() {
             replaceSection('[data-alert-detail-breadcrumb]');
             replaceSection('[data-alert-detail-stats]');
             replaceSection('[data-alert-detail-rule]');
-            replaceSection('[data-alert-detail-after-charts]');
+            if (!modalOpen) {
+                replaceSection('[data-alert-detail-after-charts]');
+            }
 
             var chartData = null;
             var scriptEl = document.getElementById('alert-detail-chart-data');

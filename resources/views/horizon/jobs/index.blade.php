@@ -6,16 +6,9 @@
         x-data="window.horizonJobsPage ? window.horizonJobsPage({
             failedListUrl: '{{ route('horizon.jobs.failed') }}',
             retryBatchUrl: '{{ route('horizon.jobs.retry-batch') }}',
-            cleanUrl: '{{ route('horizon.jobs.clean') }}',
             jobsPerPage: {{ \config('horizonhub.jobs_per_page') }},
         }) : {}"
-        x-init="
-            if (typeof cleanFilters !== 'undefined') {
-                cleanFilters.service_id = '{{ $filters['serviceFilter'] ?? '' }}';
-                cleanFilters.status = '{{ $filters['statusFilter'] ?? '' }}';
-            }
-            if (typeof init === 'function') { init(); }
-        "
+        x-init="if (typeof init === 'function') { init(); }"
     >
         <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
             <div class="space-y-2">
@@ -57,9 +50,6 @@
                 </form>
             </div>
             <div class="flex items-end gap-2 ml-auto">
-                <x-button type="button" variant="outline" class="h-9 text-sm" @click="openCleanModal()">
-                    Clean jobs
-                </x-button>
                 <x-button type="button" class="h-9 text-sm" @click="openRetryModal()">
                     Retry failed jobs
                 </x-button>
@@ -86,7 +76,7 @@
                         <tr class="transition-colors hover:bg-muted/30">
                             <td class="px-4 py-2.5 text-sm font-medium text-foreground" data-column-id="service">{{ $job->service?->name ?? '–' }}</td>
                             <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground" data-column-id="queue">{{ $job->queue }}</td>
-                            <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="job">{{ $job->name ?? $job->job_uuid }}</td>
+                            <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="job">{{ $job->name ?? $job->uuid }}</td>
                             <td class="px-4 py-2.5" data-column-id="status">
                                 @php $jobStatus = $job->status ?? '–'; @endphp
                                 @if($jobStatus === 'failed')
@@ -107,26 +97,26 @@
                             <td
                                 class="px-4 py-2.5 text-xs text-muted-foreground"
                                 data-column-id="queued_at"
-                                data-datetime="{{ $job->queued_at?->toIso8601String() ?? '' }}"
+                                data-datetime="{{ $job->queued_at?->format('c') ?? '' }}"
                             >
                                 {{ $job->queued_at?->format('Y-m-d H:i:s') ?? '–' }}
                             </td>
                             <td
                                 class="px-4 py-2.5 text-xs text-muted-foreground"
                                 data-column-id="processed"
-                                data-datetime="{{ $job->processed_at?->toIso8601String() ?? '' }}"
+                                data-datetime="{{ $job->processed_at?->format('c') ?? '' }}"
                             >
                                 {{ $job->processed_at?->format('Y-m-d H:i:s') ?? '–' }}
                             </td>
                             <td
                                 class="px-4 py-2.5 text-xs text-muted-foreground"
                                 data-column-id="failed_at"
-                                data-datetime="{{ $job->failed_at?->toIso8601String() ?? '' }}"
+                                data-datetime="{{ $job->failed_at?->format('c') ?? '' }}"
                             >
                                 {{ $job->failed_at?->format('Y-m-d H:i:s') ?? '–' }}
                             </td>
                             <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="runtime">
-                                {{ $job->getFormattedRuntime() ?? '–' }}
+                                {{ $job->runtime ?? '–' }}
                             </td>
                             <td class="px-4 py-2.5" data-column-id="actions">
                                 <div class="flex items-center gap-2">
@@ -135,7 +125,7 @@
                                         class="h-8 min-h-8 p-2 rounded-md"
                                         aria-label="View"
                                         title="View"
-                                        onclick="window.location.href='{{ route('horizon.jobs.show', ['job' => $job->id]) }}'"
+                                        onclick="window.location.href='{{ route('horizon.jobs.show', ['job' => $job->uuid]) }}'"
                                     >
                                         <x-heroicon-o-eye class="size-4" />
                                     </x-button>
@@ -267,18 +257,15 @@
                                                 </td>
                                             </tr>
                                         </template>
-                                        <template x-for="job in failedJobs" :key="job.id">
+                                        <template x-for="job in failedJobs" :key="job.uuid">
                                             <tr class="hover:bg-muted/30">
                                                 <td class="px-3 py-2">
-                                                    <template x-if="job.has_service">
+                                                    <template x-if="job.uuid">
                                                         <x-checkbox
-                                                            x-bind:checked="selectedFailedIds.includes(job.id)"
-                                                            @change="toggleFailed(job.id)"
-                                                            x-bind:aria-label="'Select job ' + job.id"
+                                                            x-bind:checked="selectedFailedIds.includes(job.uuid)"
+                                                            @change="toggleFailed(job.uuid)"
+                                                            x-bind:aria-label="'Select job ' + job.uuid"
                                                         />
-                                                    </template>
-                                                    <template x-if="!job.has_service">
-                                                        <span class="text-muted-foreground" title="No service">–</span>
                                                     </template>
                                                 </td>
                                                 <td class="px-3 py-2 text-muted-foreground" x-text="job.service_name || '–'"></td>
@@ -346,96 +333,5 @@
             </div>
         </template>
 
-        {{-- Clean jobs modal --}}
-        <template x-if="showCleanModal">
-            <div>
-                <x-confirm-modal
-                    title="Clean jobs"
-                    message=""
-                    variant="warning"
-                    backdropVariant="default"
-                    size="md"
-                    confirmText="Delete"
-                    :confirmAction="null"
-                    :cancelAction="null"
-                    :backdropAction="null"
-                    x-data
-                    x-on:close-modal.window="closeCleanModal()"
-                >
-                    <template x-if="cleanStep === 1">
-                        <div>
-                            <p class="text-xs text-muted-foreground mb-3">
-                                Choose filters. Matching jobs will be permanently deleted.
-                            </p>
-                            <div class="space-y-2">
-                                <div class="space-y-2">
-                                    <x-input-label>Service</x-input-label>
-                                    <x-select
-                                        class="w-full"
-                                        x-model="cleanFilters.service_id"
-                                        @change="updateCleanCount()"
-                                    >
-                                        <option value="">All</option>
-                                        @foreach($services as $s)
-                                            <option value="{{ $s->id }}">{{ $s->name }}</option>
-                                        @endforeach
-                                    </x-select>
-                                </div>
-                                <div class="space-y-2">
-                                    <x-input-label>Status</x-input-label>
-                                    <x-select
-                                        class="w-full"
-                                        x-model="cleanFilters.status"
-                                        @change="updateCleanCount()"
-                                    >
-                                        <option value="">All</option>
-                                        <option value="processed">Processed</option>
-                                        <option value="failed">Failed</option>
-                                        <option value="processing">Processing</option>
-                                    </x-select>
-                                </div>
-                                <div class="space-y-2">
-                                    <x-input-label>Job type</x-input-label>
-                                    <x-text-input
-                                        type="text"
-                                        placeholder="e.g. App\Jobs\SendEmail"
-                                        class="w-full"
-                                        x-model="cleanFilters.job_type"
-                                        @change.debounce.300ms="updateCleanCount()"
-                                    />
-                                </div>
-                                <p class="text-sm text-muted-foreground" x-text="cleanCount + ' job(s) match.'"></p>
-                            </div>
-                        </div>
-                    </template>
-                    <x-slot:footer>
-                        <div class="flex w-full flex-wrap items-center justify-end gap-2">
-                            <x-button type="button" variant="ghost" @click="closeCleanModal()">Cancel</x-button>
-                            <x-button
-                                type="button"
-                                x-show="cleanStep === 1"
-                                x-bind:disabled="cleanCount === 0 || cleaning"
-                                @click="confirmClean()"
-                            >
-                                Next
-                            </x-button>
-                            <x-button
-                                type="button"
-                                variant="destructive"
-                                x-show="cleanStep === 2"
-                                x-bind:disabled="cleaning"
-                                @click="runClean()"
-                            >
-                                <span x-show="!cleaning">Delete</span>
-                                <span x-show="cleaning" class="inline-flex items-center gap-1">
-                                    <x-loader class="size-4" />
-                                    Deleting…
-                                </span>
-                            </x-button>
-                        </div>
-                    </x-slot:footer>
-                </x-confirm-modal>
-            </div>
-        </template>
     </div>
 @endsection

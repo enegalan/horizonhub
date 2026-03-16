@@ -3,22 +3,15 @@
 namespace App\Http\Controllers\Horizon;
 
 use App\Http\Controllers\Controller;
-use App\Models\HorizonJob;
 use App\Models\Service;
 use App\Services\HorizonApiProxyService;
-use App\Services\HorizonSyncService;
+use App\Services\HorizonJobResolverService;
+use App\Support\Horizon\JobRuntimeHelper;
+use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 
 class JobController extends Controller {
-
-    /**
-     * The Horizon sync service.
-     *
-     * @var HorizonSyncService
-     */
-    private HorizonSyncService $horizonSync;
 
     /**
      * The Horizon API proxy service.
@@ -28,14 +21,21 @@ class JobController extends Controller {
     private HorizonApiProxyService $horizonApi;
 
     /**
+     * The job resolver.
+     *
+     * @var HorizonJobResolverService
+     */
+    private HorizonJobResolverService $jobResolver;
+
+    /**
      * Construct the job controller.
      *
-     * @param HorizonSyncService $horizonSync
      * @param HorizonApiProxyService $horizonApi
+     * @param HorizonJobResolverService $jobResolver
      */
-    public function __construct(HorizonSyncService $horizonSync, HorizonApiProxyService $horizonApi) {
-        $this->horizonSync = $horizonSync;
+    public function __construct(HorizonApiProxyService $horizonApi, HorizonJobResolverService $jobResolver) {
         $this->horizonApi = $horizonApi;
+        $this->jobResolver = $jobResolver;
     }
 
     /**
@@ -49,13 +49,7 @@ class JobController extends Controller {
         $statusFilter = (string) $request->query('statusFilter', '');
         $search = (string) $request->query('search', '');
 
-        $this->horizonSync->syncRecentJobs($serviceFilter !== '' ? (int) $serviceFilter : null);
-
         $perPage = (int) \config('horizonhub.jobs_per_page');
-        $page = (int) $request->query('page', 1);
-        if ($page < 1) {
-            $page = 1;
-        }
 
         $servicesQuery = Service::query()->whereNotNull('base_url');
         if ($serviceFilter !== '') {
@@ -65,104 +59,54 @@ class JobController extends Controller {
         /** @var \Illuminate\Support\Collection<int, Service> $servicesWithApi */
         $servicesWithApi = $servicesQuery->get();
 
-        $jobEntries = [];
+        $jobs = \collect();
 
         foreach ($servicesWithApi as $service) {
-            $endpoints = [];
+            $apiQuery = [
+                'starting_at' => 0,
+                'limit' => $perPage,
+            ];
 
-            if ($statusFilter === 'failed' || $statusFilter === '') {
-                $endpoints[] = 'failed';
+            $isFailed = $statusFilter === 'failed';
+            $isProcessed = $statusFilter === 'processed';
+            $isProcessing = $statusFilter === 'processing';
+
+            if ($statusFilter === '' || $isFailed) {
+                $response = $this->horizonApi->getFailedJobs($service, $apiQuery);
+                $this->appendJobsFromApi($jobs, $service, $response, 'failed', $search);
             }
-            if ($statusFilter === 'processed' || $statusFilter === '') {
-                $endpoints[] = 'processed';
+            if ($statusFilter === '' || $isProcessed) {
+                $response = $this->horizonApi->getCompletedJobs($service, $apiQuery);
+                $this->appendJobsFromApi($jobs, $service, $response, 'processed', $search);
             }
-            if ($statusFilter === 'processing' || $statusFilter === '') {
-                $endpoints[] = 'processing';
-            }
-
-            foreach ($endpoints as $endpoint) {
-                $apiQuery = [
-                    'starting_at' => 0,
-                    'limit' => $perPage,
-                ];
-
-                if ($endpoint === 'failed') {
-                    $apiResponse = $this->horizonApi->getFailedJobs($service, $apiQuery);
-                } elseif ($endpoint === 'processed') {
-                    $apiResponse = $this->horizonApi->getCompletedJobs($service, $apiQuery);
-                } else {
-                    $apiResponse = $this->horizonApi->getPendingJobs($service, $apiQuery);
-                }
-
-                $apiData = $apiResponse['data'] ?? null;
-
-                if (! ($apiResponse['success'] ?? false) || ! \is_array($apiData)) {
-                    continue;
-                }
-
-                foreach ($apiData['jobs'] ?? [] as $job) {
-                    $jobId = (string) $job['id'];
-
-                    if ( empty($jobId) ) {
-                        continue;
-                    }
-
-                    $jobEntries[] = [
-                        'service_id' => $service->id,
-                        'job_uuid' => $jobId,
-                    ];
-                }
+            if ($statusFilter === '' || $isProcessing) {
+                $response = $this->horizonApi->getPendingJobs($service, $apiQuery);
+                $this->appendJobsFromApi($jobs, $service, $response, 'processing', $search);
             }
         }
 
-        if (\count($jobEntries) === 0) {
-            $jobsCollection = \collect();
-        } else {
-            $uuids = [];
-            foreach ($jobEntries as $entry) {
-                $uuids[] = $entry['job_uuid'];
-            }
-            $uuids = \array_values(\array_unique($uuids));
-
-            $jobsCollection = HorizonJob::with('service')
-                ->whereIn('job_uuid', $uuids)
-                ->when($serviceFilter !== '', static function ($q) use ($serviceFilter): void {
-                    $q->where('service_id', (int) $serviceFilter);
-                })
-                ->when($statusFilter !== '', static function ($q) use ($statusFilter): void {
-                    $q->where('status', $statusFilter);
-                })
-                ->when($search !== '', static function ($q) use ($search): void {
-                    $q->where(function ($inner) use ($search): void {
-                        $inner->where('queue', 'like', "%$search%")
-                            ->orWhere('name', 'like', "%$search%")
-                            ->orWhere('job_uuid', 'like', "%$search%");
-                    });
-                })
-                ->get()
-                ->sortByDesc('created_at')
-                ->values();
+        $page = (int) $request->query('page', 1);
+        if ($page < 1) {
+            $page = 1;
         }
 
-        $total = $jobsCollection->count();
+        $total = $jobs->count();
         $offset = ($page - 1) * $perPage;
-        $pageItems = $perPage > 0 ? $jobsCollection->slice($offset, $perPage)->values() : $jobsCollection;
-
-        $jobs = new LengthAwarePaginator(
-            $pageItems,
-            $total,
-            $perPage,
-            $page,
-            [
-                'path' => $request->url(),
-                'query' => $request->query(),
-            ]
-        );
+        $pageItems = $perPage > 0 ? $jobs->slice($offset, $perPage)->values() : $jobs;
 
         $services = Service::orderBy('name')->get();
 
         return \view('horizon.jobs.index', [
-            'jobs' => $jobs,
+            'jobs' => new \Illuminate\Pagination\LengthAwarePaginator(
+                $pageItems,
+                $total,
+                $perPage,
+                $page,
+                [
+                    'path' => $request->url(),
+                    'query' => $request->query(),
+                ]
+            ),
             'services' => $services,
             'filters' => [
                 'serviceFilter' => $serviceFilter,
@@ -176,83 +120,185 @@ class JobController extends Controller {
     /**
      * Show a single job detail.
      *
-     * @param int $job
+     * @param string $job
      * @return View
      */
-    public function show(int $job): View {
-        $jobModel = HorizonJob::with('service')->find($job);
+    public function show(string $job): View {
+        $resolved = $this->jobResolver->getJobAndService($job);
 
-        if (! $jobModel || ! $jobModel->service || ! $jobModel->service->base_url) {
+        if ($resolved === null) {
             \abort(404);
         }
 
-        $service = $jobModel->service;
-        $jobUuid = $jobModel->job_uuid;
+        $service = $resolved['service'];
+        $jobData = $resolved['job'];
 
-        $horizonJob = null;
-        $exception = null;
+        $attemptsRaw = $jobData['attempts'] ?? null;
+        if ($attemptsRaw === null && isset($jobData['payload']) && \is_array($jobData['payload'])) {
+            $attemptsRaw = $jobData['payload']['attempts'] ?? null;
+        }
 
-        if ($service && $service->base_url && $jobUuid) {
-            $response = $this->horizonApi->getFailedJob($service, (string) $jobUuid);
-
-            if ($response['success'] ?? false) {
-                $jobData = $response['data'] ?? null;
-
-                if (\is_array($jobData)) {
-
-                    $attemptsRaw = $jobData['attempts'] ?? null;
-
-                    if ($attemptsRaw === null && \is_array($jobData['payload'])) {
-                        $attemptsRaw = $jobData['payload']['attempts'] ?? null;
-                    }
-
-                    $retries = null;
-                    if (isset($jobData['retried_by']) && \is_array($jobData['retried_by'])) {
-                        $retries = \count($jobData['retried_by']);
-                        if ($attemptsRaw === null) {
-                            $attemptsRaw = $retries + 1;
-                        }
-                    }
-
-                    $attempts = null;
-                    if ($attemptsRaw !== null) {
-                        $attemptsInt = (int) $attemptsRaw;
-                        if ($attemptsInt > 0) {
-                            $attempts = $attemptsInt;
-                        }
-                    }
-
-                    $connection = isset($jobData['connection']) ? (string) $jobData['connection'] : null;
-
-                    $tags = [];
-                    if (isset($jobData['tags']) && \is_array($jobData['tags'])) {
-                        $tags = \array_values(\array_filter($jobData['tags'], static function ($tag) {
-                            return \is_string($tag) && $tag !== '';
-                        }));
-                    }
-
-
-                    if (isset($jobData['exception']) && (string) $jobData['exception'] !== '') {
-                        $exception = (string) $jobData['exception'];
-                    }
-
-                    $horizonJob = [
-                        'attempts' => $attempts,
-                        'connection' => $connection,
-                        'retries' => $retries,
-                        'tags' => $tags,
-                        'uuid' => $jobUuid,
-                        'exception' => $exception,
-                    ];
-                }
+        $retries = null;
+        if (isset($jobData['retried_by']) && \is_array($jobData['retried_by'])) {
+            $retries = \count($jobData['retried_by']);
+            if ($attemptsRaw === null) {
+                $attemptsRaw = $retries + 1;
             }
         }
 
+        $attempts = null;
+        if ($attemptsRaw !== null) {
+            $attemptsInt = (int) $attemptsRaw;
+            if ($attemptsInt > 0) {
+                $attempts = $attemptsInt;
+            }
+        }
+
+        $connection = isset($jobData['connection']) ? (string) $jobData['connection'] : null;
+
+        $tags = [];
+        if (isset($jobData['tags']) && \is_array($jobData['tags'])) {
+            $tags = \array_values(\array_filter($jobData['tags'], static function ($tag) {
+                return \is_string($tag) && $tag !== '';
+            }));
+        }
+
+        $exception = null;
+        if (isset($jobData['exception']) && (string) $jobData['exception'] !== '') {
+            $exception = (string) $jobData['exception'];
+        }
+
+        $queuedAt = $jobData['pushedAt'] ?? null;
+        $processedAt = $jobData['completed_at'] ?? null;
+        $failedAt = $jobData['failed_at'] ?? null;
+        $runtimeSeconds = isset($jobData['runtime']) && \is_numeric($jobData['runtime'])
+            ? (float) $jobData['runtime']
+            : null;
+
+        $runtime = JobRuntimeHelper::getFormattedRuntime(
+            JobRuntimeHelper::getRuntimeSeconds($runtimeSeconds, $queuedAt, $processedAt, $failedAt)
+        );
+
+        $rawStatus = (string) ($jobData['status'] ?? 'failed');
+        $status = $rawStatus === 'completed' ? 'processed' : $rawStatus;
+
+        $jobView = (object) [
+            'uuid' => $jobData['uuid'] ?? $job,
+            'name' => $jobData['name'] ?? ($jobData['displayName'] ?? null),
+            'queue' => $jobData['queue'] ?? null,
+            'status' => $status,
+            'attempts' => $attempts,
+            'queued_at' => $queuedAt,
+            'processed_at' => $processedAt,
+            'failed_at' => $failedAt,
+            'runtime' => $runtime,
+            'payload' => $jobData['payload'] ?? null,
+            'service' => $service,
+        ];
+
+        $horizonJob = [
+            'attempts' => $attempts,
+            'connection' => $connection,
+            'retries' => $retries,
+            'tags' => $tags,
+            'uuid' => $jobView->uuid,
+            'exception' => $exception,
+        ];
+
         return \view('horizon.jobs.show', [
-            'job' => $jobModel,
+            'job' => $jobView,
             'exception' => $exception,
             'horizonJob' => $horizonJob,
-            'header' => 'Job: ' . ($jobModel->name ?? $jobModel->job_uuid),
+            'header' => 'Job: ' . ($jobView->name ?? $jobView->uuid),
         ]);
+    }
+
+    /**
+     * @param \Illuminate\Support\Collection $jobs
+     * @param Service $service
+     * @param array $response
+     * @param string $status
+     * @param string $search
+     * @return void
+     */
+    private function appendJobsFromApi($jobs, Service $service, array $response, string $status, string $search): void {
+        $data = $response['data'] ?? null;
+        if (! ($response['success'] ?? false) || ! \is_array($data)) {
+            return;
+        }
+
+        foreach ($data['jobs'] ?? [] as $job) {
+            if (! \is_array($job)) {
+                continue;
+            }
+
+            $uuid = (string) $job['id'];
+            if (empty($uuid)) {
+                continue;
+            }
+
+            $queue = (string) $job['queue'];
+            $name = (string) $job['name'];
+
+            if (! empty($search)) {
+                $haystack = "$queue $name $uuid";
+                if (\stripos($haystack, $search) === false) {
+                    continue;
+                }
+            }
+
+            $payload = $job['payload'] ?? [];
+
+            $pushedAt = $job['pushedAt'] ?? $payload['pushedAt'] ?? null;
+            $completedAt = $job['completed_at'] ?? null;
+            $failedAtRaw = $job['failed_at'] ?? null;
+            $queuedAt = $this->parseJobTimestamp($pushedAt);
+            $processedAt = $completedAt !== null && $completedAt !== '' ? Carbon::parse($completedAt) : null;
+            $failedAt = $failedAtRaw !== null && $failedAtRaw !== '' ? Carbon::parse($failedAtRaw) : null;
+
+            $attemptsRaw = $job['attempts'] ?? $payload['attempts'] ?? null;
+            $attempts = $attemptsRaw !== null && $attemptsRaw !== '' ? (int) $attemptsRaw : null;
+            if ($attempts !== null && $attempts < 1) {
+                $attempts = null;
+            }
+
+            $jobs->push((object) [
+                'uuid' => $uuid,
+                'queue' => $queue,
+                'name' => $name,
+                'status' => $status,
+                'attempts' => $attempts,
+                'queued_at' => $queuedAt,
+                'processed_at' => $processedAt,
+                'failed_at' => $failedAt,
+                'runtime' => JobRuntimeHelper::getFormattedRuntime(
+                    JobRuntimeHelper::getRuntimeSeconds(
+                        isset($job['runtime']) && \is_numeric($job['runtime']) ? (float) $job['runtime'] : null,
+                        $queuedAt,
+                        $processedAt,
+                        $failedAt
+                    )
+                ),
+                'service' => $service,
+            ]);
+        }
+    }
+
+    /**
+     * Parse a job timestamp (ISO string or Unix float).
+     *
+     * @param mixed $value
+     * @return \Carbon\Carbon|null
+     */
+    private function parseJobTimestamp($value): ?Carbon {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (\is_numeric($value)) {
+            $seconds = (float) $value;
+            return Carbon::createFromTimestampMs((int) \round($seconds * 1000));
+        }
+
+        return Carbon::parse($value);
     }
 }

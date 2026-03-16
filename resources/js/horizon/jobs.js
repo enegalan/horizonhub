@@ -13,25 +13,10 @@ export function horizonJobsPage(config) {
         */
         showRetryModal: false,
         /**
-         * Show clean modal.
-         * @type {boolean}
-         */
-        showCleanModal: false,
-        /**
          * Retrying.
          * @type {boolean}
          */
         retrying: false,
-        /**
-         * Cleaning.
-         * @type {boolean}
-         */
-        cleaning: false,
-        /**
-         * Clean step.
-         * @type {number}
-         */
-        cleanStep: 1,
         /**
          * Failed jobs.
          * @type {object[]}
@@ -39,14 +24,9 @@ export function horizonJobsPage(config) {
         failedJobs: [],
         /**
          * Selected failed IDs.
-         * @type {number[]}
+         * @type {string[]}
          */
         selectedFailedIds: [],
-        /**
-         * Clean count.
-         * @type {number}
-         */
-        cleanCount: 0,
         /**
          * Retry page.
          * @type {number}
@@ -78,22 +58,13 @@ export function horizonJobsPage(config) {
             date_to: '',
         },
         /**
-         * Clean filters.
-         * @type {object}
-         */
-        cleanFilters: {
-            service_id: '',
-            status: '',
-            job_type: '',
-        },
-        /**
          * Initialize the jobs page.
          * @returns {void}
          */
         init() {
             var self = this;
             window.addEventListener('horizonhub-refresh', function (e) {
-                if (self.showRetryModal || self.showCleanModal) return;
+                if (self.showRetryModal) return;
                 if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
                 self.refreshJobsTable(e.detail && e.detail.document);
             });
@@ -151,7 +122,7 @@ export function horizonJobsPage(config) {
         },
         /**
          * Toggle the failed job.
-         * @param {number} id
+         * @param {string} id
          * @returns {void}
          */
         toggleFailed(id) {
@@ -165,8 +136,7 @@ export function horizonJobsPage(config) {
          */
         selectAllFailed() {
             this.selectedFailedIds = this.failedJobs
-                .filter(function (j) { return j.has_service; })
-                .map(function (j) { return j.id; });
+                .map(function (j) { return j.uuid; });
         },
         /**
          * Clear the selection.
@@ -207,8 +177,13 @@ export function horizonJobsPage(config) {
             var self = this;
             if (!window.horizon || !window.horizon.http) return;
             if (this.selectedFailedIds.length === 0) return;
+            var jobs = this.selectedFailedIds.map(function (id) {
+                var job = self.failedJobs.find(function (j) { return j.uuid === id; });
+                return job && job.service_id != null ? { id: job.uuid, service_id: job.service_id } : null;
+            }).filter(Boolean);
+            if (jobs.length === 0) return;
             this.retrying = true;
-            window.horizon.http.post(config.retryBatchUrl, { ids: this.selectedFailedIds }).then(function (data) {
+            window.horizon.http.post(config.retryBatchUrl, { jobs: jobs }).then(function (data) {
                 self.retrying = false;
                 self.closeRetryModal();
                 if (window.toast && window.toast.success) {
@@ -217,79 +192,6 @@ export function horizonJobsPage(config) {
                 }
             }).catch(function () {
                 self.retrying = false;
-            });
-        },
-        /**
-         * Open the clean modal.
-         * @returns {void}
-         */
-        openCleanModal() {
-            this.showCleanModal = true;
-            this.cleanStep = 1;
-            this.updateCleanCount();
-        },
-        /**
-         * Close the clean modal.
-         * @returns {void}
-         */
-        closeCleanModal() {
-            this.showCleanModal = false;
-            this.cleanStep = 1;
-        },
-        /**
-         * Update the clean count.
-         * @returns {void}
-         */
-        updateCleanCount() {
-            if (!window.horizon || !window.horizon.http) return;
-            var payload = {
-                service_id: this.cleanFilters.service_id || null,
-                status: this.cleanFilters.status || null,
-                job_type: this.cleanFilters.job_type || null,
-                preview: true,
-            };
-            window.horizon.http.post(config.cleanUrl, payload).then((data) => {
-                if (typeof data.total_deleted === 'number') {
-                    this.cleanCount = data.total_deleted;
-                } else if (typeof data.deleted_jobs === 'number' || typeof data.deleted_failed_jobs === 'number') {
-                    this.cleanCount = (data.deleted_jobs || 0) + (data.deleted_failed_jobs || 0);
-                }
-            }).catch(function () {
-            });
-        },
-        /**
-         * Confirm the clean.
-         * @returns {void}
-         */
-        confirmClean() {
-            if (this.cleanCount === 0) return;
-            this.cleanStep = 2;
-        },
-        /**
-         * Run the clean.
-         * @returns {void}
-         */
-        runClean() {
-            var self = this;
-            if (!window.horizon || !window.horizon.http) return;
-            this.cleaning = true;
-            var payload = {
-                service_id: this.cleanFilters.service_id || null,
-                status: this.cleanFilters.status || null,
-                job_type: this.cleanFilters.job_type || null,
-            };
-            window.horizon.http.post(config.cleanUrl, payload).then(function (data) {
-                self.cleaning = false;
-                self.closeCleanModal();
-                if (window.toast && window.toast.success) {
-                    var msg = (data.total_deleted || 0) + ' job(s) cleaned.';
-                    window.toast.success(msg);
-                }
-                if (typeof window.location !== 'undefined') {
-                    window.location.reload();
-                }
-            }).catch(function () {
-                self.cleaning = false;
             });
         },
         /**

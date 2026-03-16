@@ -368,7 +368,12 @@ class HorizonApiProxyService {
     public function getWorkload(Service $service): array {
         $relativePath = (string) \config('horizonhub.horizon_paths.workload');
 
-        return $this->call($service, $relativePath, 'get');
+        $result = $this->call($service, $relativePath, 'get');
+        if (! ($result['success'] ?? false) && \in_array($result['status'] ?? 0, [401, 403], true)) {
+            $result = $this->callWithDashboardSession($service, $relativePath, 'get');
+        }
+
+        return $result;
     }
 
     /**
@@ -460,5 +465,17 @@ class HorizonApiProxyService {
         $queryString = \http_build_query($query);
 
         return $this->call($service, "$path?$queryString", 'get');
+    }
+
+    /**
+     * Get queue metrics from the Horizon HTTP API for a service (queue sizes, etc.).
+     *
+     * @param Service $service
+     * @return array{success: bool, message?: string, status?: int, data?: array}
+     */
+    public function getMetricsQueues(Service $service): array {
+        $relativePath = (string) \config('horizonhub.horizon_paths.metrics_queues', '/metrics/queues');
+
+        return $this->call($service, $relativePath, 'get');
     }
 }

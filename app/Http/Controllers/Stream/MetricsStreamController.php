@@ -33,7 +33,7 @@ class MetricsStreamController extends StreamController {
      * - Emits a "metrics" SSE event every config interval seconds.
      * - Each event carries a JSON payload with:
      *   - "summary": counters for jobs past minute/hour, failed past 7 days,
-     *     processed past 24 hours and 24h failure rate.
+     *     and 24h failure rate.
      *   - "avgRuntimeOverTime": time-series data used to draw the average
      *     runtime chart.
      *   - "failureRateOverTime": time-series data used to draw the failure
@@ -57,7 +57,6 @@ class MetricsStreamController extends StreamController {
                         'jobsPastMinute' => $this->metrics->getJobsPastMinute($service),
                         'jobsPastHour' => $this->metrics->getJobsPastHour($service),
                         'failedPastSevenDays' => $this->metrics->getFailedPastSevenDays($service),
-                        'processedPast24Hours' => $this->metrics->getProcessedPast24Hours($service),
                         'failureRate24h' => $this->metrics->getFailureRate24h($serviceId),
                     ],
                     'avgRuntimeOverTime' => $this->metrics->getAvgRuntimeOverTime($serviceId),

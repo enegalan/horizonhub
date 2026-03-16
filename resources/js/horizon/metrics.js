@@ -9,7 +9,6 @@ var ALL_LOADER_IDS = [
     'metrics-loader-jobs-minute',
     'metrics-loader-jobs-hour',
     'metrics-loader-failed-seven',
-    'metrics-loader-processed-24',
     'metrics-loader-failure-rate',
     'metrics-loader-failure-rate-chart',
     'metrics-loader-runtime-chart',
@@ -85,8 +84,6 @@ function setSummaryPlaceholders() {
     if (v) v.textContent = '—';
     v = document.getElementById('metrics-value-failed-seven');
     if (v) v.textContent = '—';
-    v = document.getElementById('metrics-value-processed-24');
-    if (v) v.textContent = '—';
     v = document.getElementById('metrics-value-failure-rate');
     if (v) v.textContent = '—';
 }
@@ -143,6 +140,11 @@ function renderWorkloadRows(rows) {
     var empty = document.getElementById('metrics-workload-empty');
     var summary = document.getElementById('metrics-workload-summary');
     if (!body) return;
+
+    while (body.firstChild) {
+        body.removeChild(body.firstChild);
+    }
+    if (empty) body.appendChild(empty);
 
     if (!rows || !rows.length) {
         if (empty) empty.style.display = '';
@@ -214,6 +216,11 @@ function renderSupervisorsRows(rows) {
     var empty = document.getElementById('metrics-supervisors-empty');
     var summary = document.getElementById('metrics-supervisors-summary');
     if (!body) return;
+
+    while (body.firstChild) {
+        body.removeChild(body.firstChild);
+    }
+    if (empty) body.appendChild(empty);
 
     if (!rows || !rows.length) {
         if (empty) empty.style.display = '';
@@ -289,8 +296,6 @@ function applyMetricsPayload(payload) {
         if (v) v.textContent = formatNum(s.jobsPastHour);
         v = document.getElementById('metrics-value-failed-seven');
         if (v) v.textContent = formatNum(s.failedPastSevenDays);
-        v = document.getElementById('metrics-value-processed-24');
-        if (v) v.textContent = formatNum(s.processedPast24Hours);
         v = document.getElementById('metrics-value-failure-rate');
         if (v && s.failureRate24h) {
             var r = s.failureRate24h;
@@ -363,12 +368,16 @@ var METRICS_STREAM_BACKOFF_MULTIPLIER = 2;
  * @param {string} streamUrl
  * @param {function} getServiceId
  * @param {function} onPayload
+ * @param {string|null} initialServiceId Service id for first connection (avoids DOM timing issues).
  * @returns {object}
  */
-function startMetricsStream(streamUrl, getServiceId, onPayload) {
+function startMetricsStream(streamUrl, getServiceId, onPayload, initialServiceId) {
     var eventSource = null;
     var reconnectTimeout = null;
     var backoffMs = METRICS_STREAM_BACKOFF_INITIAL_MS;
+    var isFirstConnect = true;
+    var connectionToken = 0;
+    var replaced = false;
 
     /**
      * Close the stream.
@@ -390,18 +399,29 @@ function startMetricsStream(streamUrl, getServiceId, onPayload) {
      * @returns {void}
      */
     function connect() {
-        if (!streamUrl || !isHotReloadEnabled()) return;
+        if (replaced || !streamUrl || !isHotReloadEnabled()) return;
         closeStream();
-        var sid = typeof getServiceId === 'function' ? getServiceId() : null;
+        connectionToken += 1;
+        var thisToken = connectionToken;
+        var sid = isFirstConnect && (initialServiceId !== undefined && initialServiceId !== null && initialServiceId !== '')
+            ? String(initialServiceId)
+            : (typeof getServiceId === 'function' ? getServiceId() : null);
+        if (isFirstConnect) isFirstConnect = false;
         var url = streamUrl + (sid ? (streamUrl.indexOf('?') === -1 ? '?' : '&') + 'service_id=' + encodeURIComponent(sid) : '');
         eventSource = new EventSource(url);
 
         eventSource.addEventListener('metrics', function (e) {
+            if (thisToken !== connectionToken) return;
             backoffMs = METRICS_STREAM_BACKOFF_INITIAL_MS;
             if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
             try {
                 var data = JSON.parse(e.data);
-                if (typeof onPayload === 'function') onPayload(data);
+                if (typeof onPayload !== 'function') return;
+                if (typeof requestAnimationFrame !== 'undefined') {
+                    requestAnimationFrame(function () { if (thisToken !== connectionToken) return; onPayload(data); });
+                } else {
+                    onPayload(data);
+                }
             } catch (err) {}
         });
 
@@ -418,11 +438,6 @@ function startMetricsStream(streamUrl, getServiceId, onPayload) {
         };
     }
 
-    /**
-     * Handle the hot reload changed event.
-     * @param {Event} e
-     * @returns {void}
-     */
     window.addEventListener('horizonhub-hotreload-changed', function (e) {
         if (e.detail && e.detail.enabled === true) {
             connect();
@@ -430,6 +445,30 @@ function startMetricsStream(streamUrl, getServiceId, onPayload) {
             closeStream();
         }
     });
+
+    var visibilityReconnectTimeout = null;
+    function scheduleReconnectOnVisible() {
+        if (visibilityReconnectTimeout) return;
+        visibilityReconnectTimeout = setTimeout(function () {
+            visibilityReconnectTimeout = null;
+            if (typeof document !== 'undefined' && document.visibilityState === 'visible' && isHotReloadEnabled()) {
+                connect();
+            }
+        }, 200);
+    }
+    if (typeof document !== 'undefined') {
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'hidden') {
+                closeStream();
+                if (visibilityReconnectTimeout) {
+                    clearTimeout(visibilityReconnectTimeout);
+                    visibilityReconnectTimeout = null;
+                }
+            } else if (document.visibilityState === 'visible') {
+                scheduleReconnectOnVisible();
+            }
+        });
+    }
 
     if (isHotReloadEnabled()) connect();
 
@@ -443,10 +482,13 @@ function startMetricsStream(streamUrl, getServiceId, onPayload) {
             if (isHotReloadEnabled()) connect();
         },
         /**
-         * Close the metrics stream.
+         * Close the metrics stream (e.g. when replaced by a new instance). Prevents further reconnects.
          * @returns {void}
          */
-        close: closeStream,
+        close: function () {
+            replaced = true;
+            closeStream();
+        },
     };
 }
 
@@ -510,12 +552,26 @@ function loadAllMetrics(baseUrls, serviceId) {
 }
 
 /**
+ * Get current service id from the metrics filter element.
+ * The id is on the hidden select (x-select puts attrs on the select), so filterEl may be the select itself.
+ * @param {HTMLElement|null} filterEl
+ * @returns {string|null}
+ */
+function getMetricsServiceId(filterEl) {
+    if (!filterEl) return null;
+    var sel = filterEl.tagName === 'SELECT' ? filterEl : filterEl.querySelector('select');
+    var v = sel ? sel.value : null;
+    return (v === undefined || v === null || v === '') ? null : String(v);
+}
+
+/**
  * Alpine component for the metrics page. Same pattern as horizonQueueList / horizonServiceDashboard.
- * @param {{ baseUrls: { summary: string, avgRuntime: string, failureRate: string, supervisors: string, workload: string } }} config
+ * @param {{ baseUrls: object, initialServiceId?: string|null }} config
  * @returns {object}
  */
 export function horizonMetricsPage(config) {
     var baseUrls = config && config.baseUrls ? config.baseUrls : {};
+    var initialServiceIdFromServer = config && (config.initialServiceId !== undefined && config.initialServiceId !== null && config.initialServiceId !== '') ? String(config.initialServiceId) : null;
     var streamApi = null;
 
     return {
@@ -528,7 +584,15 @@ export function horizonMetricsPage(config) {
 
             var filterEl = document.getElementById('metrics-service-filter');
             if (filterEl) {
-                filterEl.addEventListener('change', function () {
+                filterEl.addEventListener('change', function (e) {
+                    var sid = (e.target && e.target.tagName === 'SELECT' ? e.target.value : getMetricsServiceId(filterEl)) || '';
+                    var url = new URL(window.location.href);
+                    if (sid) {
+                        url.searchParams.set('service_id', sid);
+                    } else {
+                        url.searchParams.delete('service_id');
+                    }
+                    window.history.replaceState({}, '', url.toString());
                     ALL_LOADER_IDS.forEach(showLoader);
                     setSummaryPlaceholders();
                     clearWorkloadTable();
@@ -539,14 +603,20 @@ export function horizonMetricsPage(config) {
                 });
             }
 
+            var initialServiceId = initialServiceIdFromServer !== null ? initialServiceIdFromServer : getMetricsServiceId(filterEl);
             if (typeof window.horizonHubMetricsStreamUrl === 'string' && window.horizonHubMetricsStreamUrl) {
+                if (typeof window.__horizonHubMetricsStreamClose === 'function') {
+                    window.__horizonHubMetricsStreamClose();
+                }
                 streamApi = startMetricsStream(
                     window.horizonHubMetricsStreamUrl,
-                    function () { return filterEl ? filterEl.value : null; },
-                    applyMetricsPayload
+                    function () { return getMetricsServiceId(filterEl); },
+                    applyMetricsPayload,
+                    initialServiceId
                 );
+                window.__horizonHubMetricsStreamClose = streamApi.close;
             } else {
-                loadAllMetrics(baseUrls, filterEl ? filterEl.value : null);
+                loadAllMetrics(baseUrls, initialServiceId);
             }
         },
     };

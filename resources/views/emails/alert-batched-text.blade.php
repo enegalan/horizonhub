@@ -26,8 +26,8 @@ Failed at: {{ $ev['failed_at'] }}
 @if(isset($ev['attempts']) && $ev['attempts'] !== null)
 Attempts: {{ $ev['attempts'] }}
 @endif
-@if(isset($ev['job_id']) && $ev['job_id'])
-Job ID: {{ $ev['job_id'] }}
+@if(isset($ev['job_uuid']) && $ev['job_uuid'])
+Job UUID: {{ $ev['job_uuid'] }}
 @endif
 @if(!empty($ev['exception']))
 
