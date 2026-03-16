@@ -1,6 +1,6 @@
-@props(['paginator', 'onEachSide' => 2])
+@props(['paginator' => null, 'onEachSide' => 2])
 
-@if ($paginator->hasPages())
+@if (isset($paginator) && $paginator->hasPages())
     @php
         $current = $paginator->currentPage();
         $last = $paginator->lastPage();

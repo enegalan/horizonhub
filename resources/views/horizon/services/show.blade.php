@@ -97,10 +97,6 @@
                 <h3 class="label-muted">Failed (past 7 days)</h3>
                 <p class="mt-1 text-2xl font-semibold text-foreground">{{ number_format($failedPastSevenDays) }}</p>
             </div>
-            <div class="card p-4">
-                <h3 class="label-muted">Processed (24h)</h3>
-                <p class="mt-1 text-2xl font-semibold text-foreground">{{ number_format($processedPast24Hours) }}</p>
-            </div>
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -132,7 +128,7 @@
 
         <div class="card mb-4 p-4">
             <h3 class="text-section-title text-foreground mb-2">Supervisors</h3>
-            @if($supervisors->isNotEmpty())
+            @if(isset($supervisors) && $supervisors->isNotEmpty())
                 <div class="space-y-2">
                     @foreach($supervisors as $supervisor)
                         @php
@@ -303,9 +299,9 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="attempts">{{ $job->attempts ?? '–' }}</td>
-                                <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="queued_at" data-datetime="{{ $job->queued_at?->toIso8601String() ?? '' }}">{{ $job->queued_at ? '…' : '–' }}</td>
-                                <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="processed" data-datetime="{{ $job->processed_at?->toIso8601String() ?? '' }}">{{ $job->processed_at ? '…' : '–' }}</td>
-                                <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="failed_at" data-datetime="{{ $job->failed_at?->toIso8601String() ?? '' }}">{{ $job->failed_at ? '…' : '–' }}</td>
+                                <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="queued_at" data-datetime="{{ $job->queued_at ? \Carbon\Carbon::parse($job->queued_at)->toIso8601String() : '' }}">{{ $job->queued_at ? '…' : '–' }}</td>
+                                <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="processed" data-datetime="{{ $job->processed_at ? \Carbon\Carbon::parse($job->processed_at)->toIso8601String() : '' }}">{{ $job->processed_at ? '…' : '–' }}</td>
+                                <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="failed_at" data-datetime="{{ $job->failed_at ? \Carbon\Carbon::parse($job->failed_at)->toIso8601String() : '' }}">{{ $job->failed_at ? '…' : '–' }}</td>
                                 <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="runtime">
                                     {{ $job->getFormattedRuntime() ?? '–' }}
                                 </td>

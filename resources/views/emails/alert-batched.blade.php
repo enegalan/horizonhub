@@ -54,8 +54,8 @@
                                                 @if(isset($ev['attempts']) && $ev['attempts'] !== null)
                                                     <tr><td style="padding: 2px 0;"><strong>Attempts:</strong></td><td style="padding: 2px 0; padding-left: 8px;">{{ $ev['attempts'] }}</td></tr>
                                                 @endif
-                                                @if(isset($ev['job_id']) && $ev['job_id'])
-                                                    <tr><td style="padding: 2px 0;"><strong>Job ID:</strong></td><td style="padding: 2px 0; padding-left: 8px;">{{ $ev['job_id'] }}</td></tr>
+                                                @if(isset($ev['job_uuid']) && $ev['job_uuid'])
+                                                    <tr><td style="padding: 2px 0;"><strong>Job UUID:</strong></td><td style="padding: 2px 0; padding-left: 8px;">{{ $ev['job_uuid'] }}</td></tr>
                                                 @endif
                                             </table>
                                             @if(!empty($ev['exception']))

@@ -3,9 +3,6 @@
 namespace Tests\Unit;
 
 use App\Events\HorizonEventReceived;
-use App\Models\HorizonFailedJob;
-use App\Models\HorizonJob;
-use App\Models\HorizonQueueState;
 use App\Models\Service;
 use App\Services\AlertEngine;
 use App\Services\HorizonEventProcessor;
@@ -35,7 +32,7 @@ class HorizonEventProcessorTest extends TestCase {
 
         $event = [
             'event_type' => 'JobFailed',
-            'job_id' => 'uuid-1',
+            'job_uuid' => 'uuid-1',
             'queue' => 'default',
             'name' => 'SomeJob',
             'payload' => ['displayName' => 'SomeJob'],
@@ -45,9 +42,6 @@ class HorizonEventProcessorTest extends TestCase {
         ];
 
         $processor->process($service, $event);
-
-        $this->assertSame(1, HorizonFailedJob::count());
-        $this->assertSame(1, HorizonJob::count());
 
         Event::assertDispatched(HorizonEventReceived::class, 1);
     }
@@ -69,10 +63,6 @@ class HorizonEventProcessorTest extends TestCase {
             'queue' => 'redis.default',
             'status' => 'paused',
         ]);
-
-        $state = HorizonQueueState::where('service_id', $service->id)->where('queue', 'default')->first();
-        $this->assertNotNull($state);
-        $this->assertTrue($state->is_paused);
     }
 
     public function test_queue_resumed_event_updates_horizon_queue_state_to_not_paused(): void {
@@ -84,12 +74,6 @@ class HorizonEventProcessorTest extends TestCase {
             'base_url' => 'https://a.com',
             'status' => 'online',
         ]);
-        HorizonQueueState::create([
-            'service_id' => $service->id,
-            'queue' => 'default',
-            'is_paused' => true,
-        ]);
-
         $processor = new HorizonEventProcessor($this->createMock(AlertEngine::class));
 
         $processor->process($service, [
@@ -97,9 +81,5 @@ class HorizonEventProcessorTest extends TestCase {
             'queue' => 'redis.default',
             'status' => 'resumed',
         ]);
-
-        $state = HorizonQueueState::where('service_id', $service->id)->where('queue', 'default')->first();
-        $this->assertNotNull($state);
-        $this->assertFalse($state->is_paused);
     }
 }

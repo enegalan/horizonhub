@@ -38,6 +38,7 @@ return [
         'completed_jobs' => '/jobs/completed',
         'pending_jobs' => '/jobs/pending',
         'masters' => '/masters',
+        'metrics_queues' => '/metrics/queues',
     ],
 
     'timeout' => (int) env('HORIZON_HUB_TIMEOUT', 10),
@@ -105,5 +106,16 @@ return [
     |
     */
     'jobs_per_page' => (int) env('HORIZON_HUB_JOBS_PER_PAGE', 20),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Job resolver cache TTL (seconds)
+    |--------------------------------------------------------------------------
+    |
+    | How long to cache the mapping job_uuid => service_id so that resolving
+    | a job does not require iterating all services on every request.
+    |
+    */
+    'job_resolver_cache_ttl' => (int) env('HORIZON_HUB_JOB_RESOLVER_CACHE_TTL', 300),
 
 ];

@@ -11,6 +11,7 @@ npm ci
 npm run build
 
 php artisan migrate --force
+php artisan view:clear
 php artisan config:cache --no-interaction
 
 if [ "${DEMO_SERVICES:-0}" = "1" ]; then

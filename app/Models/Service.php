@@ -32,33 +32,6 @@ class Service extends Model {
     ];
 
     /**
-     * Get the jobs of the service.
-     *
-     * @return HasMany
-     */
-    public function horizonJobs(): HasMany {
-        return $this->hasMany(HorizonJob::class);
-    }
-
-    /**
-     * Get the failed jobs of the service.
-     *
-     * @return HasMany
-     */
-    public function horizonFailedJobs(): HasMany {
-        return $this->hasMany(HorizonFailedJob::class);
-    }
-
-    /**
-     * Get the supervisor states of the service.
-     *
-     * @return HasMany
-     */
-    public function horizonSupervisorStates(): HasMany {
-        return $this->hasMany(HorizonSupervisorState::class);
-    }
-
-    /**
      * Get the alerts of the service.
      *
      * @return HasMany

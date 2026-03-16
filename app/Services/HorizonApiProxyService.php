@@ -461,4 +461,16 @@ class HorizonApiProxyService {
 
         return $this->call($service, "$path?$queryString", 'get');
     }
+
+    /**
+     * Get queue metrics from the Horizon HTTP API for a service (queue sizes, etc.).
+     *
+     * @param Service $service
+     * @return array{success: bool, message?: string, status?: int, data?: array}
+     */
+    public function getMetricsQueues(Service $service): array {
+        $relativePath = (string) \config('horizonhub.horizon_paths.metrics_queues', '/metrics/queues');
+
+        return $this->call($service, $relativePath, 'get');
+    }
 }

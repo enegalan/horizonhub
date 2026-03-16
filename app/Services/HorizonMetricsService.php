@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\HorizonJob;
 use App\Models\Service;
 use Carbon\Carbon;
 
@@ -46,6 +45,123 @@ class HorizonMetricsService {
     }
 
     /**
+     * Extract the list of queue rows from a workload API payload.
+     * Handles top-level array [ {...}, {...} ] or wrapped {"data": [...]} / {"workload": [...]}.
+     *
+     * @param mixed $payload
+     * @return array<int, array<string, mixed>>
+     */
+    private function extractWorkloadQueueList(mixed $payload): array {
+        if (! \is_array($payload)) {
+            return [];
+        }
+        if (isset($payload['data']) && \is_array($payload['data'])) {
+            return $payload['data'];
+        }
+        if (isset($payload['workload']) && \is_array($payload['workload'])) {
+            return $payload['workload'];
+        }
+        if (isset($payload[0]) && \is_array($payload[0])) {
+            return $payload;
+        }
+        return [];
+    }
+
+    /**
+     * Extract job count from a workload queue row. Accepts length, size, pending, jobs.
+     *
+     * @param array<string, mixed> $row
+     * @return int
+     */
+    private function extractQueueJobCount(array $row): int {
+        $keys = ['length', 'size', 'pending', 'waiting', 'jobs', 'count'];
+        foreach ($keys as $key) {
+            if (isset($row[$key]) && \is_numeric($row[$key])) {
+                return (int) $row[$key];
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Get job count per queue from Horizon metrics/queues API when available.
+     *
+     * @param Service $service
+     * @return array<string, int> queue name (normalized) => count
+     */
+    private function getMetricsQueueCounts(Service $service): array {
+        $response = $this->horizonApi->getMetricsQueues($service);
+        $payload = $response['data'] ?? null;
+        if (! ($response['success'] ?? false) || $payload === null || ! \is_array($payload)) {
+            return [];
+        }
+
+        $list = isset($payload[0]) && \is_array($payload[0])
+            ? $payload
+            : (isset($payload['queues']) && \is_array($payload['queues']) ? $payload['queues'] : []);
+
+        $byQueue = [];
+        foreach ($list as $item) {
+            if (! \is_array($item)) {
+                continue;
+            }
+            $name = isset($item['name']) ? (string) $item['name'] : '';
+            if ($name === '') {
+                continue;
+            }
+            $norm = $this->normalizeQueueName($name);
+            if ($norm === null) {
+                $norm = $name;
+            }
+            $count = $this->extractQueueJobCount($item);
+            if ($count > 0) {
+                $byQueue[$norm] = ($byQueue[$norm] ?? 0) + $count;
+            }
+        }
+        return $byQueue;
+    }
+
+    /**
+     * Get pending job count per queue for a service via the Horizon pending-jobs API.
+     * Used as fallback when workload does not return queue length.
+     *
+     * @param Service $service
+     * @return array<string, int> queue name (normalized) => count
+     */
+    private function getPendingCountByQueue(Service $service): array {
+        $limit = (int) \config('horizonhub.workload_pending_limit', 5000);
+        $response = $this->horizonApi->getPendingJobs($service, [
+            'starting_at' => -1,
+            'limit' => $limit,
+        ]);
+        $data = $response['data'] ?? null;
+        if (! ($response['success'] ?? false) || ! \is_array($data)) {
+            return [];
+        }
+
+        $jobs = $data['jobs'] ?? [];
+        if (! \is_array($jobs)) {
+            return [];
+        }
+
+        $byQueue = [];
+        foreach ($jobs as $job) {
+            if (! \is_array($job)) {
+                continue;
+            }
+            $raw = isset($job['queue']) ? (string) $job['queue'] : '';
+            $queue = $this->normalizeQueueName($raw);
+            if ($queue === null) {
+                $queue = $raw;
+            }
+            if ($queue !== '') {
+                $byQueue[$queue] = ($byQueue[$queue] ?? 0) + 1;
+            }
+        }
+        return $byQueue;
+    }
+
+    /**
      * Normalize the queue name.
      *
      * @param string|null $queue
@@ -81,10 +197,7 @@ class HorizonMetricsService {
             }
         }
 
-        return HorizonJob::where('status', 'processed')
-            ->where('processed_at', '>=', \now()->subMinute())
-            ->when($service !== null, static fn ($q) => $q->where('service_id', $service->id))
-            ->count();
+        return 0;
     }
 
     /**
@@ -182,20 +295,6 @@ class HorizonMetricsService {
     }
 
     /**
-     * Get the number of processed jobs in the past 24 hours.
-     *
-     * @param Service|null $service
-     * @return int
-     */
-    public function getProcessedPast24Hours(?Service $service = null): int {
-        // Laravel Horizon API does not expose this metric, so we need to calculate it locally.
-        return HorizonJob::where('status', 'processed')
-            ->where('processed_at', '>=', \now()->subDay())
-            ->when($service !== null, static fn ($q) => $q->where('service_id', $service->id))
-            ->count();
-    }
-
-    /**
      * Get the current workload rows for a single service.
      *
      * @param Service $service
@@ -207,11 +306,13 @@ class HorizonMetricsService {
         }
 
         $response = $this->horizonApi->getWorkload($service);
-        $data = $response['data'] ?? null;
+        $payload = $response['data'] ?? null;
 
-        if (! ($response['success'] ?? false) || ! \is_array($data)) {
+        if (! ($response['success'] ?? false) || $payload === null) {
             return [];
         }
+
+        $data = $this->extractWorkloadQueueList($payload);
 
         $rows = [];
 
@@ -229,10 +330,7 @@ class HorizonMetricsService {
                 continue;
             }
 
-            $jobs = 0;
-            if (isset($row['length']) && \is_numeric($row['length'])) {
-                $jobs = (int) $row['length'];
-            }
+            $jobs = $this->extractQueueJobCount($row);
 
             $processes = null;
             if (isset($row['processes']) && \is_numeric($row['processes'])) {

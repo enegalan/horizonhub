@@ -10,14 +10,14 @@ return new class extends Migration
     {
         Schema::table('alert_logs', function (Blueprint $table) {
             $table->unsignedInteger('trigger_count')->default(1)->after('service_id');
-            $table->json('job_ids')->nullable()->after('job_id');
+            $table->json('job_uuids')->nullable()->after('job_id');
         });
     }
 
     public function down(): void
     {
         Schema::table('alert_logs', function (Blueprint $table) {
-            $table->dropColumn(['trigger_count', 'job_ids']);
+            $table->dropColumn(['trigger_count', 'job_uuids']);
         });
     }
 };

@@ -15,17 +15,17 @@ interface AlertNotifier {
      *
      * @param Alert $alert
      * @param int $serviceId
-     * @param int|null $jobId
+     * @param string|null $jobUuid
      * @param array $config
      * @return void
      */
-    public function send(Alert $alert, int $serviceId, ?int $jobId, array $config): void;
+    public function send(Alert $alert, int $serviceId, ?string $jobUuid, array $config): void;
 
     /**
      * Send a batched alert.
      *
      * @param Alert $alert
-     * @param array<int, array{service_id: int, job_id: int|null, triggered_at: string}> $events
+     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events
      * @param array $config
      * @return void
      */

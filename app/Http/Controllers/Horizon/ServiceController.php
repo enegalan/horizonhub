@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Horizon;
 
 use App\Http\Controllers\Controller;
-use App\Models\HorizonJob;
 use App\Models\Service;
 use App\Services\HorizonSyncService;
 use App\Services\HorizonApiProxyService;
@@ -44,31 +43,36 @@ class ServiceController extends Controller {
      * @return View
      */
     public function index(HorizonApiProxyService $horizonApi): View {
-        $services = Service::withCount('horizonJobs')
+        $services = Service::query()
             ->orderBy('name')
             ->get();
 
         $failedJobCounts = [];
+        $recentJobCounts = [];
 
         /** @var Service $service */
         foreach ($services as $service) {
             if (! $service->base_url) {
                 $failedJobCounts[$service->id] = 0;
+                $recentJobCounts[$service->id] = 0;
                 continue;
             }
 
             $response = $horizonApi->getStats($service);
             $data = $response['data'] ?? null;
 
-            if (($response['success'] ?? false) && \is_array($data) && isset($data['failedJobs'])) {
-                $failedJobCounts[$service->id] = (int) $data['failedJobs'];
+            if (($response['success'] ?? false) && \is_array($data)) {
+                $failedJobCounts[$service->id] = isset($data['failedJobs']) ? (int) $data['failedJobs'] : 0;
+                $recentJobCounts[$service->id] = isset($data['recentJobs']) ? (int) $data['recentJobs'] : 0;
             } else {
                 $failedJobCounts[$service->id] = 0;
+                $recentJobCounts[$service->id] = 0;
             }
         }
 
         foreach ($services as $service) {
             $service->horizon_failed_jobs_count = (int) ($failedJobCounts[$service->id] ?? 0);
+            $service->horizon_jobs_count = (int) ($recentJobCounts[$service->id] ?? 0);
         }
 
         return \view('horizon.services.index', [
@@ -208,7 +212,6 @@ class ServiceController extends Controller {
         $jobsPastMinute = $this->metrics->getJobsPastMinute($service);
         $jobsPastHour = $this->metrics->getJobsPastHour($service);
         $failedPastSevenDays = $this->metrics->getFailedPastSevenDays($service);
-        $processedPast24Hours = $this->metrics->getProcessedPast24Hours($service);
 
         $totalProcesses = null;
         $maxWaitTimeSeconds = null;
@@ -326,13 +329,6 @@ class ServiceController extends Controller {
             $supervisorGroups = $supervisorGroups->sortKeys();
         }
 
-        $deadThreshold = \now()->subMinutes((int) \config('horizonhub.dead_service_minutes'));
-
-        $supervisors = $service->horizonSupervisorStates()
-            ->where('last_seen_at', '>=', $deadThreshold)
-            ->orderBy('name')
-            ->get();
-
         $workloadRows = $this->metrics->getWorkloadForService($service);
         foreach ($workloadRows as $row) {
             $workloadQueues->push((object) [
@@ -345,27 +341,17 @@ class ServiceController extends Controller {
 
         $workloadQueues = $workloadQueues->values();
 
-        $jobsQuery = HorizonJob::query()
-            ->where('service_id', $serviceId)
-            ->orderByDesc('created_at');
-
-        $perPage = (int) \config('horizonhub.jobs_per_page');
-        $jobs = $jobsQuery->paginate($perPage)->withQueryString();
-
         return \view('horizon.services.show', [
             'service' => $service,
             'jobsPastMinute' => $jobsPastMinute,
             'jobsPastHour' => $jobsPastHour,
             'failedPastSevenDays' => $failedPastSevenDays,
-            'processedPast24Hours' => $processedPast24Hours,
             'totalProcesses' => $totalProcesses,
             'maxWaitTimeSeconds' => $maxWaitTimeSeconds,
             'queueWithMaxRuntime' => $queueWithMaxRuntime,
             'queueWithMaxThroughput' => $queueWithMaxThroughput,
-            'supervisors' => $supervisors,
             'supervisorGroups' => $supervisorGroups,
             'workloadQueues' => $workloadQueues,
-            'jobs' => $jobs,
             'header' => "Horizon Hub – {$service->name}",
         ]);
     }

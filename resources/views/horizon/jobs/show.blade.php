@@ -3,7 +3,7 @@
 @section('content')
     <div
         x-data="window.horizonJobDetail({
-            retryUrl: '{{ route('horizon.jobs.retry', ['id' => $job->id]) }}',
+            retryUrl: '{{ route('horizon.jobs.retry', ['uuid' => $job->uuid]) }}',
             canRetry: {{ $job->service && $job->service->base_url && $job->status === 'failed' ? 'true' : 'false' }},
         })"
         x-init="typeof init === 'function' ? init() : null"
@@ -14,19 +14,19 @@
             @if($job->service)
                 / <a href="{{ route('horizon.services.show', $job->service) }}" class="link">{{ $job->service->name }}</a>
             @endif
-            / <span class="text-foreground">{{ $job->name ?? $job->job_uuid }}</span>
+            / <span class="text-foreground">{{ $job->name ?? $job->uuid }}</span>
         </p>
         <div class="card space-y-4 p-4">
         <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
             <div>
                 <dt class="label-muted">Command</dt>
-                <dd class="mt-0.5 font-mono text-foreground">{{ $job->name ?? $job->job_uuid }}</dd>
+                <dd class="mt-0.5 font-mono text-foreground">{{ $job->name ?? $job->uuid }}</dd>
             </div>
             <div>
                 <dt class="label-muted">UUID</dt>
                 <dd class="mt-0.5 font-mono text-foreground">
                     @php
-                        $uuid = $job->job_uuid ?? ($horizonJob['uuid'] ?? null ?? null);
+                        $uuid = $job->uuid ?? ($horizonJob['uuid'] ?? null ?? null);
                     @endphp
                     {{ $uuid ?? '–' }}
                 </dd>
@@ -76,21 +76,21 @@
             </div>
             <div>
                 <dt class="label-muted">Runtime</dt>
-                <dd class="mt-0.5 text-foreground">{{ $job->getFormattedRuntime() ?? '–' }}</dd>
+                <dd class="mt-0.5 text-foreground">{{ $job->runtime ?? '–' }}</dd>
             </div>
             <div>
                 <dt class="label-muted">Queued at</dt>
-                <dd class="mt-0.5 text-foreground" data-datetime="{{ $job->queued_at?->toIso8601String() ?? '' }}">{{ $job->queued_at ? '…' : '–' }}</dd>
+                <dd class="mt-0.5 text-foreground" data-datetime="{{ $job->queued_at ? \Carbon\Carbon::parse($job->queued_at)->toIso8601String() : '' }}">{{ $job->queued_at ? '…' : '–' }}</dd>
             </div>
             @if($job->status !== 'failed')
                 <div>
                     <dt class="label-muted">Processed at</dt>
-                    <dd class="mt-0.5 text-foreground" data-datetime="{{ $job->processed_at?->toIso8601String() ?? '' }}">{{ $job->processed_at ? '…' : '–' }}</dd>
+                    <dd class="mt-0.5 text-foreground" data-datetime="{{ $job->processed_at ? \Carbon\Carbon::parse($job->processed_at)->toIso8601String() : '' }}">{{ $job->processed_at ? '…' : '–' }}</dd>
                 </div>
             @endif
             <div>
                 <dt class="label-muted">Failed at</dt>
-                <dd class="mt-0.5 text-foreground" data-datetime="{{ $job->failed_at?->toIso8601String() ?? '' }}">{{ $job->failed_at ? '…' : '–' }}</dd>
+                <dd class="mt-0.5 text-foreground" data-datetime="{{ $job->failed_at ? \Carbon\Carbon::parse($job->failed_at)->toIso8601String() : '' }}">{{ $job->failed_at ? '…' : '–' }}</dd>
             </div>
             <div class="sm:col-span-2">
                 <dt class="label-muted">Tags</dt>

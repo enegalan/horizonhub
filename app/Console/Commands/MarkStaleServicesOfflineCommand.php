@@ -37,13 +37,6 @@ class MarkStaleServicesOfflineCommand extends Command {
             $this->info("Marked {$offline} service(s) as offline (no events since {$dead_minutes} min).");
         }
 
-        $deleted = HorizonSupervisorState::query()
-            ->where('last_seen_at', '<', $dead_threshold)
-            ->delete();
-        if ($deleted > 0) {
-            $this->info("Removed {$deleted} supervisor(s) with no signal since {$dead_minutes} min.");
-        }
-
         return self::SUCCESS;
     }
 }

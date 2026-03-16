@@ -14,13 +14,13 @@ class SlackNotifier implements SlackAlertNotifier {
      *
      * @param Alert $alert
      * @param int $serviceId
-     * @param int|null $jobId
+     * @param string|null $jobUuid
      * @param array $config
      * @return void
      */
-    public function send(Alert $alert, int $serviceId, ?int $jobId, array $config): void {
+    public function send(Alert $alert, int $serviceId, ?string $jobUuid, array $config): void {
         $this->sendBatched($alert, [
-            ['service_id' => $serviceId, 'job_id' => $jobId, 'triggered_at' => now()->toIso8601String()],
+            ['service_id' => $serviceId, 'job_uuid' => $jobUuid, 'triggered_at' => now()->toIso8601String()],
         ], $config);
     }
 
@@ -28,7 +28,7 @@ class SlackNotifier implements SlackAlertNotifier {
      * Send a batched alert.
      *
      * @param Alert $alert
-     * @param array<int, array{service_id: int, job_id: int|null, triggered_at: string}> $events
+     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events
      * @param array $config
      * @return void
      */
@@ -48,7 +48,7 @@ class SlackNotifier implements SlackAlertNotifier {
             "Events: $count",
         ];
         foreach (\array_slice($events, 0, 10) as $i => $event) {
-            $lines[] = '• Job ID: ' . ($event['job_id'] ?? 'N/A') . ' at ' . ($event['triggered_at'] ?? '');
+            $lines[] = '• Job UUID: ' . ($event['job_uuid'] ?? 'N/A') . ' at ' . ($event['triggered_at'] ?? '');
         }
         if ($count > 10) {
             $lines[] = "… and " . ($count - 10) . " more";

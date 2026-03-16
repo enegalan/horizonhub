@@ -8,9 +8,6 @@ use App\Http\Controllers\Horizon\QueueController;
 use App\Http\Controllers\Horizon\MetricsController;
 use App\Http\Controllers\Horizon\SettingsController;
 use App\Http\Controllers\Horizon\ProviderController;
-use App\Http\Controllers\Stream\MetricsStreamController;
-use App\Http\Controllers\Stream\RefreshStreamController;
-use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/horizon');
@@ -22,8 +19,6 @@ Route::prefix('horizon')->name('horizon.')->middleware(['throttle:60,1'])->group
 
     // Metrics routes...
     Route::get('/metrics', [MetricsController::class, 'index'])->name('metrics');
-    Route::get('/metrics/stream', [MetricsStreamController::class, 'stream'])->name('metrics.stream')->middleware('throttle:horizon-stream')->withoutMiddleware([StartSession::class]);
-    Route::get('/refresh/stream', [RefreshStreamController::class, 'stream'])->name('refresh.stream')->middleware('throttle:horizon-stream')->withoutMiddleware([StartSession::class]);
     Route::get('/metrics/data/summary', [MetricsController::class, 'dataSummary'])->name('metrics.data.summary');
     Route::get('/metrics/data/avg-runtime', [MetricsController::class, 'dataAvgRuntime'])->name('metrics.data.avg-runtime');
     Route::get('/metrics/data/failure-rate-over-time', [MetricsController::class, 'dataFailureRateOverTime'])->name('metrics.data.failure-rate-over-time');
@@ -33,8 +28,7 @@ Route::prefix('horizon')->name('horizon.')->middleware(['throttle:60,1'])->group
     // Jobs routes...
     Route::get('/jobs/failed', [JobActionController::class, 'failedList'])->name('jobs.failed');
     Route::post('/jobs/retry-batch', [JobActionController::class, 'retryBatch'])->name('jobs.retry-batch');
-    Route::post('/jobs/clean', [JobActionController::class, 'clean'])->name('jobs.clean');
-    Route::post('/jobs/{id}/retry', [JobActionController::class, 'retry'])->name('jobs.retry');
+    Route::post('/jobs/{uuid}/retry', [JobActionController::class, 'retry'])->name('jobs.retry');
     Route::get('/jobs/{job}', [JobController::class, 'show'])->name('jobs.show');
     
     // Queues

@@ -104,10 +104,10 @@ class AlertEngine {
      *
      * @param int $serviceId
      * @param string $eventType
-     * @param int|null $jobId
+     * @param string|null $jobUuid
      * @return void
      */
-    public function evaluateAfterEvent(int $serviceId, string $eventType, ?int $jobId = null): void {
+    public function evaluateAfterEvent(int $serviceId, string $eventType, ?string $jobUuid = null): void {
         /** @var \Illuminate\Database\Eloquent\Collection<int, Alert> $alerts */
         $alerts = Alert::where('enabled', true)
             ->where(function ($q) use ($serviceId) {
@@ -116,11 +116,11 @@ class AlertEngine {
             ->get();
 
         foreach ($alerts as $alert) {
-            if (! $this->shouldEvaluate($alert, $serviceId, $eventType, $jobId)) {
+            if (! $this->shouldEvaluate($alert, $eventType)) {
                 continue;
             }
-            if ($this->evaluateRule($alert, $serviceId, $jobId)) {
-                $this->triggerAlert($alert, $serviceId, $jobId);
+            if ($this->evaluateRule($alert, $serviceId, $jobUuid)) {
+                $this->triggerAlert($alert, $serviceId, $jobUuid);
             }
         }
     }
@@ -166,12 +166,10 @@ class AlertEngine {
      * Should evaluate the alert.
      *
      * @param Alert $alert
-     * @param int $serviceId
      * @param string $eventType
-     * @param int|null $jobId
      * @return bool
      */
-    private function shouldEvaluate(Alert $alert, int $serviceId, string $eventType, ?int $jobId): bool {
+    private function shouldEvaluate(Alert $alert, string $eventType): bool {
         if ($alert->rule_type === 'job_specific_failure' && $eventType !== 'JobFailed') {
             return false;
         }
@@ -192,11 +190,11 @@ class AlertEngine {
      *
      * @param Alert $alert
      * @param int $serviceId
-     * @param int|null $jobId
+     * @param string|null $jobUuid
      * @return bool
      */
-    private function evaluateRule(Alert $alert, int $serviceId, ?int $jobId): bool {
-        return $this->ruleEvaluator->evaluate($alert, $serviceId, $jobId);
+    private function evaluateRule(Alert $alert, int $serviceId, ?string $jobUuid): bool {
+        return $this->ruleEvaluator->evaluate($alert, $serviceId, $jobUuid);
     }
 
     /**
@@ -218,13 +216,13 @@ class AlertEngine {
             return;
         }
         $serviceId = (int) $log->service_id;
-        $jobIds = \array_values(\array_filter(\array_column($events, 'job_id')));
+        $jobUuids = \array_values(\array_filter(\array_column($events, 'job_uuid')));
 
         $newLog = AlertLog::create([
             'alert_id' => $alert->id,
             'service_id' => $serviceId,
             'trigger_count' => count($events),
-            'job_ids' => ! empty($jobIds) ? $jobIds : null,
+            'job_uuids' => ! empty($jobUuids) ? $jobUuids : null,
             'status' => 'sent',
             'failure_message' => null,
             'sent_at' => \now(),
@@ -237,16 +235,16 @@ class AlertEngine {
      * Rebuild the events from the log.
      *
      * @param AlertLog $log
-     * @return array<int, array{service_id: int, job_id: int|null, triggered_at: string}>
+     * @return array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>
      */
     private function rebuildEventsFromLog(AlertLog $log): array {
         $events = [];
         $serviceId = (int) $log->service_id;
-        $jobIds = \is_array($log->job_ids) ? $log->job_ids : [];
-        foreach ($jobIds as $jobId) {
+        $jobUuids = \is_array($log->job_uuids) ? $log->job_uuids : [];
+        foreach ($jobUuids as $jobUuid) {
             $events[] = [
                 'service_id' => $serviceId,
-                'job_id' => (int) $jobId,
+                'job_uuid' => $jobUuid,
                 'triggered_at' => \now()->toIso8601String(),
             ];
         }
@@ -255,7 +253,7 @@ class AlertEngine {
         for ($i = 0; $i < $missing; $i++) {
             $events[] = [
                 'service_id' => $serviceId,
-                'job_id' => null,
+                'job_uuid' => null,
                 'triggered_at' => \now()->toIso8601String(),
             ];
         }
@@ -266,7 +264,7 @@ class AlertEngine {
      * Get the pending alerts.
      *
      * @param Alert $alert
-     * @return array<int, array{service_id: int, job_id: int|null, triggered_at: string}>
+     * @return array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>
      */
     private function getPending(Alert $alert): array {
         $key = self::PENDING_CACHE_PREFIX . $alert->id;
@@ -281,7 +279,7 @@ class AlertEngine {
      * Set the pending alerts.
      *
      * @param Alert $alert
-     * @param array<int, array{service_id: int, job_id: int|null, triggered_at: string}> $pending
+     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $pending
      * @return void
      */
     private function setPending(Alert $alert, array $pending): void {
@@ -333,13 +331,13 @@ class AlertEngine {
      *
      * @param Alert $alert
      * @param int $serviceId
-     * @param int|null $jobId
+     * @param string|null $jobUuid
      * @return void
      */
-    private function triggerAlert(Alert $alert, int $serviceId, ?int $jobId): void {
+    private function triggerAlert(Alert $alert, int $serviceId, ?string $jobUuid): void {
         $event = [
             'service_id' => $serviceId,
-            'job_id' => $jobId,
+            'job_uuid' => $jobUuid,
             'triggered_at' => \now()->toIso8601String(),
         ];
         $pending = $this->getPending($alert);
@@ -365,18 +363,18 @@ class AlertEngine {
      * Send the batched alert.
      *
      * @param Alert $alert
-     * @param array<int, array{service_id: int, job_id: int|null, triggered_at: string}> $events
+     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events
      */
     private function sendBatchedAlert(Alert $alert, array $events): void {
         $first = $events[0];
         $serviceId = (int) $first['service_id'];
-        $jobIds = \array_values(\array_filter(\array_column($events, 'job_id')));
+        $jobUuids = \array_values(\array_filter(\array_column($events, 'job_uuid')));
 
         $log = AlertLog::create([
             'alert_id' => $alert->id,
             'service_id' => $serviceId,
             'trigger_count' => count($events),
-            'job_ids' => $jobIds ?: null,
+            'job_uuids' => $jobUuids ?: null,
             'status' => 'sent',
             'sent_at' => \now(),
         ]);
@@ -388,7 +386,7 @@ class AlertEngine {
      * Send alert notifications for the given log using providers or channels.
      *
      * @param Alert $alert
-     * @param array<int, array{service_id: int, job_id: int|null, triggered_at: string}> $events
+     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events
      * @param AlertLog $log
      * @return void
      */

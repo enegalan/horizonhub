@@ -28,7 +28,7 @@
                         <tr class="border-b border-border bg-muted/50">
                             <th class="table-header px-4 py-2.5 min-w-[120px]" data-column-id="service">Service</th>
                             <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="queue">Queue</th>
-                            <th class="table-header px-4 py-2.5" data-column-id="job_count">Job count</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="job_count">Pending Jobs</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-border" data-table-body="horizon-queue-list">

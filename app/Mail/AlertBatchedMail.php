@@ -23,7 +23,7 @@ class AlertBatchedMail extends Mailable {
     /**
      * The enriched events.
      *
-     * @var array<int, array{service_id: int, job_id: int|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}>
+     * @var array<int, array{service_id: int, job_uuid: string|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}>
      */
     public array $enrichedEvents;
 
@@ -52,7 +52,7 @@ class AlertBatchedMail extends Mailable {
      * Construct the alert batched mail.
      *
      * @param Alert $alert
-     * @param array<int, array{service_id: int, job_id: int|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}> $enrichedEvents
+     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}> $enrichedEvents
      * @param Service|null $service
      * @param string $mailSubject
      * @param int $totalEventCount

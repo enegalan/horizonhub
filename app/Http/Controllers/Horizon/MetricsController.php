@@ -30,20 +30,23 @@ class MetricsController extends Controller {
     /**
      * Show the metrics dashboard.
      *
+     * @param Request $request
      * @return View
      */
-    public function index(): View {
+    public function index(Request $request): View {
         $services = Service::orderBy('name')->get(['id', 'name']);
+        $serviceId = $request->query('service_id');
+        $serviceFilter = $serviceId !== null && $serviceId !== '' ? (string) $serviceId : '';
 
         return \view('horizon.metrics.index', [
             'jobsPastMinute' => null,
             'jobsPastHour' => null,
             'failedPastSevenDays' => null,
-            'processedPast24Hours' => null,
             'failuresTable' => null,
             'failureRate24h' => null,
             'header' => 'Horizon Hub – Metrics',
             'services' => $services,
+            'serviceFilter' => $serviceFilter,
         ]);
     }
 
@@ -62,7 +65,6 @@ class MetricsController extends Controller {
                 'jobsPastMinute' => $this->metrics->getJobsPastMinute($service),
                 'jobsPastHour' => $this->metrics->getJobsPastHour($service),
                 'failedPastSevenDays' => $this->metrics->getFailedPastSevenDays($service),
-                'processedPast24Hours' => $this->metrics->getProcessedPast24Hours($service),
                 'failureRate24h' => $this->metrics->getFailureRate24h($service_id),
             ];
         });
