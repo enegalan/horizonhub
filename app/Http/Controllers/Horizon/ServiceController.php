@@ -37,6 +37,7 @@ class ServiceController extends Controller {
         $this->horizonSync = $horizonSync;
         $this->metrics = $metrics;
     }
+
     /**
      * Display the list of services and registration form.
      *
@@ -94,7 +95,7 @@ class ServiceController extends Controller {
             'public_url' => 'nullable|url',
         ]);
 
-        $apiKey = $this->generateApiKey();
+        $apiKey = $this->private__generateApiKey();
 
         Service::create([
             'name' => $validated['name'],
@@ -316,7 +317,7 @@ class ServiceController extends Controller {
                     }
 
                     $lastSeenRaw = $supervisor['last_heartbeat_at'] ?? ($supervisor['lastSeen'] ?? ($supervisor['lastHeartbeatAt'] ?? null));
-                    $lastSeenAt = $this->parseSupervisorLastSeen($lastSeenRaw);
+                    $lastSeenAt = $this->private__parseSupervisorLastSeen($lastSeenRaw);
                     $apiStatus = isset($supervisor['status']) ? (string) $supervisor['status'] : '';
 
                     $supervisorObj = (object) [
@@ -360,15 +361,15 @@ class ServiceController extends Controller {
         $jobsCollection = \collect();
         if ($statusFilter === '' || $statusFilter === 'failed') {
             $failedResponse = $horizonApi->getFailedJobs($service, $apiQuery);
-            $this->appendServiceJobs($jobsCollection, $service, $failedResponse, 'failed', $search);
+            $this->private__appendServiceJobs($jobsCollection, $failedResponse, 'failed', $search);
         }
         if ($statusFilter === '' || $statusFilter === 'processed') {
             $completedResponse = $horizonApi->getCompletedJobs($service, $apiQuery);
-            $this->appendServiceJobs($jobsCollection, $service, $completedResponse, 'processed', $search);
+            $this->private__appendServiceJobs($jobsCollection, $completedResponse, 'processed', $search);
         }
         if ($statusFilter === '' || $statusFilter === 'processing') {
             $pendingResponse = $horizonApi->getPendingJobs($service, $apiQuery);
-            $this->appendServiceJobs($jobsCollection, $service, $pendingResponse, 'processing', $search);
+            $this->private__appendServiceJobs($jobsCollection, $pendingResponse, 'processing', $search);
         }
 
         $page = (int) $request->query('page', 1);
@@ -415,13 +416,12 @@ class ServiceController extends Controller {
      * Append job items from an API response to the collection for service dashboard.
      *
      * @param \Illuminate\Support\Collection $jobs
-     * @param Service $service
      * @param array $response
      * @param string $status
      * @param string $search
      * @return void
      */
-    private function appendServiceJobs($jobs, Service $service, array $response, string $status, string $search = ''): void {
+    private function private__appendServiceJobs($jobs, array $response, string $status, string $search = ''): void {
         $data = $response['data'] ?? null;
         if (! ($response['success'] ?? false) || ! \is_array($data)) {
             return;
@@ -450,7 +450,7 @@ class ServiceController extends Controller {
             $pushedAt = $job['pushedAt'] ?? $payload['pushedAt'] ?? null;
             $completedAt = $job['completed_at'] ?? null;
             $failedAtRaw = $job['failed_at'] ?? null;
-            $queuedAt = $this->parseJobTimestamp($pushedAt);
+            $queuedAt = $this->private__parseJobTimestamp($pushedAt);
             $processedAt = $completedAt !== null && $completedAt !== '' ? \Carbon\Carbon::parse($completedAt) : null;
             $failedAt = $failedAtRaw !== null && $failedAtRaw !== '' ? \Carbon\Carbon::parse($failedAtRaw) : null;
 
@@ -487,7 +487,7 @@ class ServiceController extends Controller {
      * @param mixed $value
      * @return \Carbon\Carbon|null
      */
-    private function parseSupervisorLastSeen($value): ?\Carbon\Carbon {
+    private function private__parseSupervisorLastSeen($value): ?\Carbon\Carbon {
         if ($value === null || $value === '') {
             return null;
         }
@@ -514,7 +514,7 @@ class ServiceController extends Controller {
      * @param mixed $value
      * @return \Carbon\Carbon|null
      */
-    private function parseJobTimestamp($value): ?\Carbon\Carbon {
+    private function private__parseJobTimestamp($value): ?\Carbon\Carbon {
         if ($value === null || $value === '') {
             return null;
         }
@@ -530,7 +530,7 @@ class ServiceController extends Controller {
      *
      * @return string
      */
-    private function generateApiKey(): string {
+    private function private__generateApiKey(): string {
         do {
             $apiKey = \Str::random(64);
         } while (Service::where('api_key', $apiKey)->exists());

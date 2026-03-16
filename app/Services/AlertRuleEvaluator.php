@@ -35,13 +35,13 @@ class AlertRuleEvaluator {
      */
     public function evaluate(Alert $alert, int $serviceId, ?string $jobUuid): bool {
         return match ($alert->rule_type) {
-            'job_specific_failure' => $this->evaluateJobSpecificFailure($alert, $serviceId, $jobUuid),
-            'job_type_failure' => $this->evaluateJobTypeFailure($alert, $serviceId),
-            'failure_count' => $this->evaluateFailureCount($alert, $serviceId),
-            'avg_execution_time' => $this->evaluateAvgExecutionTime($alert, $serviceId),
-            'queue_blocked' => $this->evaluateQueueBlocked($alert, $serviceId),
-            'worker_offline' => $this->evaluateWorkerOffline($alert, $serviceId),
-            'supervisor_offline' => $this->evaluateSupervisorOffline($alert, $serviceId),
+            'job_specific_failure' => $this->private__evaluateJobSpecificFailure($alert, $serviceId, $jobUuid),
+            'job_type_failure' => $this->private__evaluateJobTypeFailure($alert, $serviceId),
+            'failure_count' => $this->private__evaluateFailureCount($alert, $serviceId),
+            'avg_execution_time' => $this->private__evaluateAvgExecutionTime($alert, $serviceId),
+            'queue_blocked' => $this->private__evaluateQueueBlocked($alert, $serviceId),
+            'worker_offline' => $this->private__evaluateWorkerOffline($alert, $serviceId),
+            'supervisor_offline' => $this->private__evaluateSupervisorOffline($alert, $serviceId),
             default => false,
         };
     }
@@ -54,7 +54,7 @@ class AlertRuleEvaluator {
      * @param string|null $jobUuid
      * @return bool
      */
-    private function evaluateJobSpecificFailure(Alert $alert, int $serviceId, ?string $jobUuid): bool {
+    private function private__evaluateJobSpecificFailure(Alert $alert, int $serviceId, ?string $jobUuid): bool {
         if (empty($jobUuid)) {
             return false;
         }
@@ -81,7 +81,7 @@ class AlertRuleEvaluator {
             }
         }
 
-        if ( !empty($alert->queue) ) {
+        if (! empty($alert->queue) ) {
             if ((string) ($data['queue'] ?? '') !== (string) $alert->queue) {
                 return false;
             }
@@ -96,7 +96,7 @@ class AlertRuleEvaluator {
      * @param mixed $value
      * @return Carbon|null
      */
-    private function parseFailedAt(mixed $value): ?Carbon {
+    private function private__parseFailedAt(mixed $value): ?Carbon {
         if ($value === null || $value === '') {
             return null;
         }
@@ -126,7 +126,7 @@ class AlertRuleEvaluator {
      * @param int $serviceId
      * @return bool
      */
-    private function evaluateJobTypeFailure(Alert $alert, int $serviceId): bool {
+    private function private__evaluateJobTypeFailure(Alert $alert, int $serviceId): bool {
         if (! $alert->job_type) {
             return false;
         }
@@ -153,7 +153,7 @@ class AlertRuleEvaluator {
                     return false;
                 }
 
-                $failedAt = $this->parseFailedAt($job['failed_at'] ?? null);
+                $failedAt = $this->private__parseFailedAt($job['failed_at'] ?? null);
                 if ($failedAt === null || $failedAt->lt($cutoff)) {
                     return false;
                 }
@@ -177,7 +177,7 @@ class AlertRuleEvaluator {
      * @param int $serviceId
      * @return bool
      */
-    private function evaluateFailureCount(Alert $alert, int $serviceId): bool {
+    private function private__evaluateFailureCount(Alert $alert, int $serviceId): bool {
         $threshold = $alert->threshold ?? [];
         $count = (int) (isset($threshold['count']) ? $threshold['count'] : 5);
         $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 15);
@@ -207,7 +207,7 @@ class AlertRuleEvaluator {
             if (! \is_array($job)) {
                 return false;
             }
-            $failedAt = $this->parseFailedAt($job['failed_at'] ?? null);
+            $failedAt = $this->private__parseFailedAt($job['failed_at'] ?? null);
             return $failedAt !== null && $failedAt->gte($cutoff);
         })->count();
 
@@ -223,7 +223,7 @@ class AlertRuleEvaluator {
      * @param int $serviceId
      * @return bool
      */
-    private function evaluateAvgExecutionTime(Alert $alert, int $serviceId): bool {
+    private function private__evaluateAvgExecutionTime(Alert $alert, int $serviceId): bool {
         $threshold = $alert->threshold ?? [];
         $maxSeconds = (float) (isset($threshold['seconds']) ? $threshold['seconds'] : 60);
         $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 15);
@@ -283,7 +283,7 @@ class AlertRuleEvaluator {
      * @param int $serviceId
      * @return bool
      */
-    private function evaluateQueueBlocked(Alert $alert, int $serviceId): bool {
+    private function private__evaluateQueueBlocked(Alert $alert, int $serviceId): bool {
         $threshold = $alert->threshold ?? [];
         $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 30);
 
@@ -338,7 +338,7 @@ class AlertRuleEvaluator {
      * @param int $serviceId
      * @return bool
      */
-    private function evaluateWorkerOffline(Alert $alert, int $serviceId): bool {
+    private function private__evaluateWorkerOffline(Alert $alert, int $serviceId): bool {
         $threshold = $alert->threshold ?? [];
         $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 5);
 
@@ -360,7 +360,7 @@ class AlertRuleEvaluator {
      * @param int $serviceId
      * @return bool
      */
-    private function evaluateSupervisorOffline(Alert $alert, int $serviceId): bool {
+    private function private__evaluateSupervisorOffline(Alert $alert, int $serviceId): bool {
         $threshold = $alert->threshold ?? [];
         $minutes = (int) ($threshold['minutes'] ?? 5);
 

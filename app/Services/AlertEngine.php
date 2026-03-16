@@ -8,8 +8,8 @@ use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 use App\Models\Service;
-use Illuminate\Database\Eloquent\Collection;
 use App\Models\Setting;
+use Illuminate\Database\Eloquent\Collection;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -36,6 +36,13 @@ class AlertEngine {
      * @var int
      */
     private const PENDING_TTL_MINUTES = 60;
+
+    /**
+     * Default interval (minutes) when alert has none set.
+     *
+     * @var int
+     */
+    private const DEFAULT_INTERVAL_MINUTES = 5;
 
     /**
      * The rule evaluator.
@@ -85,18 +92,18 @@ class AlertEngine {
         $alerts = Alert::where('enabled', true)->get();
         foreach ($alerts as $alert) {
             try {
-                $pending = $this->getPending($alert);
+                $pending = $this->private__getPending($alert);
                 if (empty($pending)) {
                     continue;
                 }
-                $intervalMinutes = $this->getIntervalMinutes($alert);
-                $lastSentAt = $this->getLastSentAt($alert);
+                $intervalMinutes = $this->private__getIntervalMinutes($alert);
+                $lastSentAt = $this->private__getLastSentAt($alert);
                 if ($intervalMinutes > 0 && $lastSentAt !== null && \now()->lt($lastSentAt->copy()->addMinutes($intervalMinutes))) {
                     continue;
                 }
-                $this->sendBatchedAlert($alert, $pending);
-                $this->clearPending($alert);
-                $this->setLastSentAt($alert);
+                $this->private__sendBatchedAlert($alert, $pending);
+                $this->private__clearPending($alert);
+                $this->private__setLastSentAt($alert);
             } catch (\Throwable $e) {
                 Log::error('Horizon Hub: flush pending alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
             }
@@ -120,11 +127,11 @@ class AlertEngine {
             ->get();
 
         foreach ($alerts as $alert) {
-            if (! $this->shouldEvaluate($alert, $eventType)) {
+            if (! $this->private__shouldEvaluate($alert, $eventType)) {
                 continue;
             }
-            if ($this->evaluateRule($alert, $serviceId, $jobUuid)) {
-                $this->triggerAlert($alert, $serviceId, $jobUuid);
+            if ($this->private__evaluateRule($alert, $serviceId, $jobUuid)) {
+                $this->private__triggerAlert($alert, $serviceId, $jobUuid);
             }
         }
     }
@@ -150,8 +157,8 @@ class AlertEngine {
                     continue;
                 }
                 foreach ($serviceIds as $serviceId) {
-                    if ($this->evaluateRule($alert, $serviceId, null)) {
-                        $this->triggerAlert($alert, $serviceId, null);
+                    if ($this->private__evaluateRule($alert, $serviceId, null)) {
+                        $this->private__triggerAlert($alert, $serviceId, null);
                         break;
                     }
                 }
@@ -162,9 +169,38 @@ class AlertEngine {
     }
 
     /**
-     * Default interval (minutes) when alert has none set.
+     * Retry the alert log.
+     *
+     * @param AlertLog $log
+     * @return void
      */
-    private const DEFAULT_INTERVAL_MINUTES = 5;
+    public function retryAlertLog(AlertLog $log): void {
+        $alert = $log->alert;
+        if (! $alert) {
+            return;
+        }
+        if ($log->status !== 'failed') {
+            return;
+        }
+        $events = $this->private__rebuildEventsFromLog($log);
+        if (empty($events)) {
+            return;
+        }
+        $serviceId = (int) $log->service_id;
+        $jobUuids = \array_values(\array_filter(\array_column($events, 'job_uuid')));
+
+        $newLog = AlertLog::create([
+            'alert_id' => $alert->id,
+            'service_id' => $serviceId,
+            'trigger_count' => count($events),
+            'job_uuids' => ! empty($jobUuids) ? $jobUuids : null,
+            'status' => 'sent',
+            'failure_message' => null,
+            'sent_at' => \now(),
+        ]);
+
+        $this->private__sendAlertForLog($alert, $events, $newLog);
+    }
 
     /**
      * Get the interval minutes for the given alert.
@@ -172,7 +208,7 @@ class AlertEngine {
      * @param Alert $alert
      * @return int
      */
-    private function getIntervalMinutes(Alert $alert): int {
+    private function private__getIntervalMinutes(Alert $alert): int {
         if ($alert->email_interval_minutes !== null) {
             return (int) $alert->email_interval_minutes;
         }
@@ -187,7 +223,7 @@ class AlertEngine {
      * @param string $eventType
      * @return bool
      */
-    private function shouldEvaluate(Alert $alert, string $eventType): bool {
+    private function private__shouldEvaluate(Alert $alert, string $eventType): bool {
         if ($alert->rule_type === 'job_specific_failure' && $eventType !== 'JobFailed') {
             return false;
         }
@@ -211,42 +247,8 @@ class AlertEngine {
      * @param string|null $jobUuid
      * @return bool
      */
-    private function evaluateRule(Alert $alert, int $serviceId, ?string $jobUuid): bool {
+    private function private__evaluateRule(Alert $alert, int $serviceId, ?string $jobUuid): bool {
         return $this->ruleEvaluator->evaluate($alert, $serviceId, $jobUuid);
-    }
-
-    /**
-     * Retry the alert log.
-     *
-     * @param AlertLog $log
-     * @return void
-     */
-    public function retryAlertLog(AlertLog $log): void {
-        $alert = $log->alert;
-        if (! $alert) {
-            return;
-        }
-        if ($log->status !== 'failed') {
-            return;
-        }
-        $events = $this->rebuildEventsFromLog($log);
-        if (empty($events)) {
-            return;
-        }
-        $serviceId = (int) $log->service_id;
-        $jobUuids = \array_values(\array_filter(\array_column($events, 'job_uuid')));
-
-        $newLog = AlertLog::create([
-            'alert_id' => $alert->id,
-            'service_id' => $serviceId,
-            'trigger_count' => count($events),
-            'job_uuids' => ! empty($jobUuids) ? $jobUuids : null,
-            'status' => 'sent',
-            'failure_message' => null,
-            'sent_at' => \now(),
-        ]);
-
-        $this->sendAlertForLog($alert, $events, $newLog);
     }
 
     /**
@@ -255,7 +257,7 @@ class AlertEngine {
      * @param AlertLog $log
      * @return array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>
      */
-    private function rebuildEventsFromLog(AlertLog $log): array {
+    private function private__rebuildEventsFromLog(AlertLog $log): array {
         $events = [];
         $serviceId = (int) $log->service_id;
         $jobUuids = \is_array($log->job_uuids) ? $log->job_uuids : [];
@@ -284,7 +286,7 @@ class AlertEngine {
      * @param Alert $alert
      * @return array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>
      */
-    private function getPending(Alert $alert): array {
+    private function private__getPending(Alert $alert): array {
         $key = self::PENDING_CACHE_PREFIX . $alert->id;
         $raw = Cache::get($key);
         if (! \is_array($raw)) {
@@ -300,7 +302,7 @@ class AlertEngine {
      * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $pending
      * @return void
      */
-    private function setPending(Alert $alert, array $pending): void {
+    private function private__setPending(Alert $alert, array $pending): void {
         $key = self::PENDING_CACHE_PREFIX . $alert->id;
         if (empty($pending)) {
             Cache::forget($key);
@@ -315,8 +317,8 @@ class AlertEngine {
      * @param Alert $alert
      * @return void
      */
-    private function clearPending(Alert $alert): void {
-        $this->setPending($alert, []);
+    private function private__clearPending(Alert $alert): void {
+        $this->private__setPending($alert, []);
     }
 
     /**
@@ -325,7 +327,7 @@ class AlertEngine {
      * @param Alert $alert
      * @return Carbon|null
      */
-    private function getLastSentAt(Alert $alert): ?Carbon {
+    private function private__getLastSentAt(Alert $alert): ?Carbon {
         $key = self::SENT_AT_CACHE_PREFIX . $alert->id;
         $value = Cache::get($key);
         if ($value === null) {
@@ -340,7 +342,7 @@ class AlertEngine {
      * @param Alert $alert
      * @return void
      */
-    private function setLastSentAt(Alert $alert): void {
+    private function private__setLastSentAt(Alert $alert): void {
         Cache::put(self::SENT_AT_CACHE_PREFIX . $alert->id, \now(), \now()->addMinutes(self::PENDING_TTL_MINUTES));
     }
 
@@ -352,18 +354,18 @@ class AlertEngine {
      * @param string|null $jobUuid
      * @return void
      */
-    private function triggerAlert(Alert $alert, int $serviceId, ?string $jobUuid): void {
+    private function private__triggerAlert(Alert $alert, int $serviceId, ?string $jobUuid): void {
         $event = [
             'service_id' => $serviceId,
             'job_uuid' => $jobUuid,
             'triggered_at' => \now()->toIso8601String(),
         ];
-        $pending = $this->getPending($alert);
+        $pending = $this->private__getPending($alert);
         $pending[] = $event;
-        $this->setPending($alert, $pending);
+        $this->private__setPending($alert, $pending);
 
-        $intervalMinutes = $this->getIntervalMinutes($alert);
-        $lastSentAt = $this->getLastSentAt($alert);
+        $intervalMinutes = $this->private__getIntervalMinutes($alert);
+        $lastSentAt = $this->private__getLastSentAt($alert);
         $shouldSendNow = $intervalMinutes === 0
             || $lastSentAt === null
             || \now()->gte($lastSentAt->copy()->addMinutes($intervalMinutes));
@@ -372,9 +374,9 @@ class AlertEngine {
             return;
         }
 
-        $this->sendBatchedAlert($alert, $pending);
-        $this->clearPending($alert);
-        $this->setLastSentAt($alert);
+        $this->private__sendBatchedAlert($alert, $pending);
+        $this->private__clearPending($alert);
+        $this->private__setLastSentAt($alert);
     }
 
     /**
@@ -383,7 +385,7 @@ class AlertEngine {
      * @param Alert $alert
      * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events
      */
-    private function sendBatchedAlert(Alert $alert, array $events): void {
+    private function private__sendBatchedAlert(Alert $alert, array $events): void {
         $first = $events[0];
         $serviceId = (int) $first['service_id'];
         $jobUuids = \array_values(\array_filter(\array_column($events, 'job_uuid')));
@@ -397,7 +399,7 @@ class AlertEngine {
             'sent_at' => \now(),
         ]);
 
-        $this->sendAlertForLog($alert, $events, $log);
+        $this->private__sendAlertForLog($alert, $events, $log);
     }
 
     /**
@@ -408,7 +410,7 @@ class AlertEngine {
      * @param AlertLog $log
      * @return void
      */
-    private function sendAlertForLog(Alert $alert, array $events, AlertLog $log): void {
+    private function private__sendAlertForLog(Alert $alert, array $events, AlertLog $log): void {
         $providers = $alert->notificationProviders;
 
         if ($providers instanceof Collection && $providers->isNotEmpty()) {

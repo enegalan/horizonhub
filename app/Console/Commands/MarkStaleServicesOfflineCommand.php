@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Models\HorizonSupervisorState;
 use App\Models\Service;
 use Illuminate\Console\Command;
 

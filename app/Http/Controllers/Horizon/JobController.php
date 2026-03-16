@@ -73,15 +73,15 @@ class JobController extends Controller {
 
             if ($statusFilter === '' || $isFailed) {
                 $response = $this->horizonApi->getFailedJobs($service, $apiQuery);
-                $this->appendJobsFromApi($jobs, $service, $response, 'failed', $search);
+                $this->private__appendJobsFromApi($jobs, $service, $response, 'failed', $search);
             }
             if ($statusFilter === '' || $isProcessed) {
                 $response = $this->horizonApi->getCompletedJobs($service, $apiQuery);
-                $this->appendJobsFromApi($jobs, $service, $response, 'processed', $search);
+                $this->private__appendJobsFromApi($jobs, $service, $response, 'processed', $search);
             }
             if ($statusFilter === '' || $isProcessing) {
                 $response = $this->horizonApi->getPendingJobs($service, $apiQuery);
-                $this->appendJobsFromApi($jobs, $service, $response, 'processing', $search);
+                $this->private__appendJobsFromApi($jobs, $service, $response, 'processing', $search);
             }
         }
 
@@ -221,7 +221,7 @@ class JobController extends Controller {
      * @param string $search
      * @return void
      */
-    private function appendJobsFromApi($jobs, Service $service, array $response, string $status, string $search): void {
+    private function private__appendJobsFromApi($jobs, Service $service, array $response, string $status, string $search): void {
         $data = $response['data'] ?? null;
         if (! ($response['success'] ?? false) || ! \is_array($data)) {
             return;
@@ -252,7 +252,7 @@ class JobController extends Controller {
             $pushedAt = $job['pushedAt'] ?? $payload['pushedAt'] ?? null;
             $completedAt = $job['completed_at'] ?? null;
             $failedAtRaw = $job['failed_at'] ?? null;
-            $queuedAt = $this->parseJobTimestamp($pushedAt);
+            $queuedAt = $this->private__parseJobTimestamp($pushedAt);
             $processedAt = $completedAt !== null && $completedAt !== '' ? Carbon::parse($completedAt) : null;
             $failedAt = $failedAtRaw !== null && $failedAtRaw !== '' ? Carbon::parse($failedAtRaw) : null;
 
@@ -290,7 +290,7 @@ class JobController extends Controller {
      * @param mixed $value
      * @return \Carbon\Carbon|null
      */
-    private function parseJobTimestamp($value): ?Carbon {
+    private function private__parseJobTimestamp($value): ?Carbon {
         if ($value === null || $value === '') {
             return null;
         }

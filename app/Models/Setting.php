@@ -6,11 +6,30 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
 class Setting extends Model {
+
+    /**
+     * The "incrementing" property is set to false to prevent the model from using an auto-incrementing ID.
+     *
+     * @var bool
+     */
     public $incrementing = false;
 
+    /**
+     * The key type for the model.
+     *
+     * @var string
+     */
     protected $keyType = 'string';
 
-    protected $fillable = ['key', 'value'];
+    /**
+     * The fillable attributes for the model.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        'key',
+        'value',
+    ];
 
     /**
      * The cache prefix for the settings.

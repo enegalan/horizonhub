@@ -16,7 +16,7 @@ class ProviderController extends Controller {
      * @return View
      */
     public function create(): View {
-        return $this->formView(new NotificationProvider());
+        return $this->private__formView(new NotificationProvider());
     }
 
     /**
@@ -26,7 +26,7 @@ class ProviderController extends Controller {
      * @return RedirectResponse
      */
     public function store(Request $request): RedirectResponse {
-        $data = $this->validateProvider($request, null);
+        $data = $this->private__validateProvider($request, null);
         NotificationProvider::create($data);
 
         return redirect()
@@ -41,7 +41,7 @@ class ProviderController extends Controller {
      * @return View
      */
     public function edit(NotificationProvider $provider): View {
-        return $this->formView($provider);
+        return $this->private__formView($provider);
     }
 
     /**
@@ -52,7 +52,7 @@ class ProviderController extends Controller {
      * @return RedirectResponse
      */
     public function update(Request $request, NotificationProvider $provider): RedirectResponse {
-        $data = $this->validateProvider($request, $provider);
+        $data = $this->private__validateProvider($request, $provider);
         $provider->update($data);
 
         return redirect()
@@ -80,7 +80,7 @@ class ProviderController extends Controller {
      * @param NotificationProvider $provider
      * @return View
      */
-    private function formView(NotificationProvider $provider): View {
+    private function private__formView(NotificationProvider $provider): View {
         $config = $provider->config ?? [];
         $webhookUrl = $provider->type === NotificationProvider::TYPE_SLACK ? (string) ($config['webhook_url'] ?? '') : '';
         $emailTo = '';
@@ -104,7 +104,7 @@ class ProviderController extends Controller {
      * @param NotificationProvider|null $provider
      * @return array<string, mixed>
      */
-    private function validateProvider(Request $request, ?NotificationProvider $provider): array {
+    private function private__validateProvider(Request $request, ?NotificationProvider $provider): array {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:slack,email',

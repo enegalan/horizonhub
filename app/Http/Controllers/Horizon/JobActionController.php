@@ -219,7 +219,7 @@ class JobActionController extends Controller {
     }
 
     /**
-     * Retry multiple jobs by ID (granular: one request per job, per-job result).
+     * Retry multiple jobs by ID
      *
      * @param Request $request
      * @return JsonResponse
