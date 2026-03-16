@@ -252,9 +252,10 @@ class JobController extends Controller {
             $pushedAt = $job['pushedAt'] ?? $payload['pushedAt'] ?? null;
             $completedAt = $job['completed_at'] ?? null;
             $failedAtRaw = $job['failed_at'] ?? null;
+
             $queuedAt = $this->private__parseJobTimestamp($pushedAt);
-            $processedAt = $completedAt !== null && $completedAt !== '' ? Carbon::parse($completedAt) : null;
-            $failedAt = $failedAtRaw !== null && $failedAtRaw !== '' ? Carbon::parse($failedAtRaw) : null;
+            $processedAt = $this->private__parseJobTimestamp($completedAt);
+            $failedAt = $this->private__parseJobTimestamp($failedAtRaw);
 
             $attemptsRaw = $job['attempts'] ?? $payload['attempts'] ?? null;
             $attempts = $attemptsRaw !== null && $attemptsRaw !== '' ? (int) $attemptsRaw : null;

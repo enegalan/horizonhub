@@ -130,8 +130,9 @@ class AlertEngine {
             if (! $this->private__shouldEvaluate($alert, $eventType)) {
                 continue;
             }
-            if ($this->private__evaluateRule($alert, $serviceId, $jobUuid)) {
-                $this->private__triggerAlert($alert, $serviceId, $jobUuid);
+            $result = $this->private__evaluateRuleWithJobs($alert, $serviceId, $jobUuid);
+            if ($result['triggered']) {
+                $this->private__triggerAlert($alert, $serviceId, $jobUuid, $result['job_uuids']);
             }
         }
     }
@@ -157,8 +158,9 @@ class AlertEngine {
                     continue;
                 }
                 foreach ($serviceIds as $serviceId) {
-                    if ($this->private__evaluateRule($alert, $serviceId, null)) {
-                        $this->private__triggerAlert($alert, $serviceId, null);
+                    $result = $this->private__evaluateRuleWithJobs($alert, $serviceId, null);
+                    if ($result['triggered']) {
+                        $this->private__triggerAlert($alert, $serviceId, null, $result['job_uuids']);
                         break;
                     }
                 }
@@ -240,15 +242,15 @@ class AlertEngine {
     }
 
     /**
-     * Evaluate the rule.
+     * Evaluate the rule and return triggering job UUIDs when applicable.
      *
      * @param Alert $alert
      * @param int $serviceId
      * @param string|null $jobUuid
-     * @return bool
+     * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    private function private__evaluateRule(Alert $alert, int $serviceId, ?string $jobUuid): bool {
-        return $this->ruleEvaluator->evaluate($alert, $serviceId, $jobUuid);
+    private function private__evaluateRuleWithJobs(Alert $alert, int $serviceId, ?string $jobUuid): array {
+        return $this->ruleEvaluator->evaluateWithTriggeringJobs($alert, $serviceId, $jobUuid);
     }
 
     /**
@@ -352,16 +354,31 @@ class AlertEngine {
      * @param Alert $alert
      * @param int $serviceId
      * @param string|null $jobUuid
+     * @param array<int, string> $triggeringJobUuids
      * @return void
      */
-    private function private__triggerAlert(Alert $alert, int $serviceId, ?string $jobUuid): void {
-        $event = [
-            'service_id' => $serviceId,
-            'job_uuid' => $jobUuid,
-            'triggered_at' => \now()->toIso8601String(),
-        ];
+    private function private__triggerAlert(Alert $alert, int $serviceId, ?string $jobUuid, array $triggeringJobUuids = []): void {
+        $triggeredAt = \now()->toIso8601String();
+        $eventsToAdd = [];
+        if (\count($triggeringJobUuids) > 0) {
+            foreach ($triggeringJobUuids as $uuid) {
+                $eventsToAdd[] = [
+                    'service_id' => $serviceId,
+                    'job_uuid' => $uuid,
+                    'triggered_at' => $triggeredAt,
+                ];
+            }
+        } else {
+            $eventsToAdd[] = [
+                'service_id' => $serviceId,
+                'job_uuid' => $jobUuid,
+                'triggered_at' => $triggeredAt,
+            ];
+        }
         $pending = $this->private__getPending($alert);
-        $pending[] = $event;
+        foreach ($eventsToAdd as $event) {
+            $pending[] = $event;
+        }
         $this->private__setPending($alert, $pending);
 
         $intervalMinutes = $this->private__getIntervalMinutes($alert);

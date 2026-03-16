@@ -26,6 +26,13 @@ class AlertRuleEvaluator {
     }
 
     /**
+     * Maximum number of triggering job UUIDs to attach to an alert (avoids oversized batches).
+     *
+     * @var int
+     */
+    private const MAX_TRIGGERING_JOB_UUIDS = 20;
+
+    /**
      * Evaluate the given alert rule for the provided context.
      *
      * @param Alert $alert
@@ -34,15 +41,27 @@ class AlertRuleEvaluator {
      * @return bool
      */
     public function evaluate(Alert $alert, int $serviceId, ?string $jobUuid): bool {
+        return $this->evaluateWithTriggeringJobs($alert, $serviceId, $jobUuid)['triggered'];
+    }
+
+    /**
+     * Evaluate the alert rule and return whether it triggered plus the list of job UUIDs that triggered it.
+     *
+     * @param Alert $alert
+     * @param int $serviceId
+     * @param string|null $jobUuid
+     * @return array{triggered: bool, job_uuids: array<int, string>}
+     */
+    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array {
         return match ($alert->rule_type) {
-            'job_specific_failure' => $this->private__evaluateJobSpecificFailure($alert, $serviceId, $jobUuid),
-            'job_type_failure' => $this->private__evaluateJobTypeFailure($alert, $serviceId),
-            'failure_count' => $this->private__evaluateFailureCount($alert, $serviceId),
-            'avg_execution_time' => $this->private__evaluateAvgExecutionTime($alert, $serviceId),
-            'queue_blocked' => $this->private__evaluateQueueBlocked($alert, $serviceId),
-            'worker_offline' => $this->private__evaluateWorkerOffline($alert, $serviceId),
-            'supervisor_offline' => $this->private__evaluateSupervisorOffline($alert, $serviceId),
-            default => false,
+            'job_specific_failure' => $this->private__evaluateJobSpecificFailureWithJobs($alert, $serviceId, $jobUuid),
+            'job_type_failure' => $this->private__evaluateJobTypeFailureWithJobs($alert, $serviceId),
+            'failure_count' => $this->private__evaluateFailureCountWithJobs($alert, $serviceId),
+            'avg_execution_time' => $this->private__evaluateAvgExecutionTimeWithJobs($alert, $serviceId),
+            'queue_blocked' => $this->private__evaluateQueueBlockedWithJobs($alert, $serviceId),
+            'worker_offline' => $this->private__evaluateWorkerOfflineWithJobs($alert, $serviceId),
+            'supervisor_offline' => $this->private__evaluateSupervisorOfflineWithJobs($alert, $serviceId),
+            default => ['triggered' => false, 'job_uuids' => []],
         };
     }
 
@@ -88,6 +107,23 @@ class AlertRuleEvaluator {
         }
 
         return true;
+    }
+
+    /**
+     * Evaluate job specific failure and return triggering job UUIDs.
+     *
+     * @param Alert $alert
+     * @param int $serviceId
+     * @param string|null $jobUuid
+     * @return array{triggered: bool, job_uuids: array<int, string>}
+     */
+    private function private__evaluateJobSpecificFailureWithJobs(Alert $alert, int $serviceId, ?string $jobUuid): array {
+        $triggered = $this->private__evaluateJobSpecificFailure($alert, $serviceId, $jobUuid);
+
+        return [
+            'triggered' => $triggered,
+            'job_uuids' => $triggered && $jobUuid !== null && $jobUuid !== '' ? [(string) $jobUuid] : [],
+        ];
     }
 
     /**
@@ -171,27 +207,96 @@ class AlertRuleEvaluator {
     }
 
     /**
-     * Evaluate the failure count.
+     * Evaluate job type failure and return triggering job UUIDs.
      *
      * @param Alert $alert
      * @param int $serviceId
-     * @return bool
+     * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    private function private__evaluateFailureCount(Alert $alert, int $serviceId): bool {
+    private function private__evaluateJobTypeFailureWithJobs(Alert $alert, int $serviceId): array {
+        if (! $alert->job_type) {
+            return ['triggered' => false, 'job_uuids' => []];
+        }
+
         $threshold = $alert->threshold ?? [];
-        $count = (int) (isset($threshold['count']) ? $threshold['count'] : 5);
         $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 15);
 
         $service = Service::find($serviceId);
         if (! $service || ! $service->base_url) {
-            return false;
+            return ['triggered' => false, 'job_uuids' => []];
         }
 
         $response = $this->horizonApi->getFailedJobs($service, ['starting_at' => 0]);
         $data = $response['data'] ?? null;
 
         if (! ($response['success'] ?? false) || ! \is_array($data)) {
-            return false;
+            return ['triggered' => false, 'job_uuids' => []];
+        }
+
+        $cutoff = \now()->subMinutes($minutes);
+        $matching = collect($data['jobs'] ?? [])
+            ->filter(function ($job) use ($alert, $cutoff) {
+                if (! \is_array($job)) {
+                    return false;
+                }
+                $failedAt = $this->private__parseFailedAt($job['failed_at'] ?? null);
+                if ($failedAt === null || $failedAt->lt($cutoff)) {
+                    return false;
+                }
+                $payload = $job['payload'] ?? [];
+                $displayName = $payload['displayName'] ?? null;
+                $rawJob = $payload['job'] ?? null;
+                $haystack = (string) ($displayName ?? $rawJob ?? '');
+
+                return \str_contains($haystack, $alert->job_type);
+            })
+            ->take(self::MAX_TRIGGERING_JOB_UUIDS);
+
+        $jobUuids = $matching->map(function ($job) {
+            $id = $job['id'] ?? null;
+
+            return $id !== null && $id !== '' ? (string) $id : null;
+        })->filter()->values()->all();
+
+        return [
+            'triggered' => $matching->isNotEmpty(),
+            'job_uuids' => $jobUuids,
+        ];
+    }
+
+    /**
+     * Evaluate the failure count (boolean only).
+     *
+     * @param Alert $alert
+     * @param int $serviceId
+     * @return bool
+     */
+    private function private__evaluateFailureCount(Alert $alert, int $serviceId): bool {
+        return $this->private__evaluateFailureCountWithJobs($alert, $serviceId)['triggered'];
+    }
+
+    /**
+     * Evaluate the failure count and return triggering job UUIDs.
+     *
+     * @param Alert $alert
+     * @param int $serviceId
+     * @return array{triggered: bool, job_uuids: array<int, string>}
+     */
+    private function private__evaluateFailureCountWithJobs(Alert $alert, int $serviceId): array {
+        $threshold = $alert->threshold ?? [];
+        $count = (int) (isset($threshold['count']) ? $threshold['count'] : 5);
+        $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 15);
+
+        $service = Service::find($serviceId);
+        if (! $service || ! $service->base_url) {
+            return ['triggered' => false, 'job_uuids' => []];
+        }
+
+        $response = $this->horizonApi->getFailedJobs($service, ['starting_at' => 0]);
+        $data = $response['data'] ?? null;
+
+        if (! ($response['success'] ?? false) || ! \is_array($data)) {
+            return ['triggered' => false, 'job_uuids' => []];
         }
 
         $cutoff = \now()->subMinutes($minutes);
@@ -203,17 +308,35 @@ class AlertRuleEvaluator {
             });
         }
 
-        $actual = $jobs->filter(function ($job) use ($cutoff) {
+        $inWindow = $jobs->filter(function ($job) use ($cutoff) {
             if (! \is_array($job)) {
                 return false;
             }
             $failedAt = $this->private__parseFailedAt($job['failed_at'] ?? null);
-            return $failedAt !== null && $failedAt->gte($cutoff);
-        })->count();
 
+            return $failedAt !== null && $failedAt->gte($cutoff);
+        });
+
+        $actual = $inWindow->count();
         $triggered = $actual >= $count;
 
-        return $triggered;
+        $jobUuids = [];
+        if ($triggered) {
+            $jobUuids = $inWindow->take(self::MAX_TRIGGERING_JOB_UUIDS)
+                ->map(function ($job) {
+                    $id = $job['id'] ?? null;
+
+                    return $id !== null && $id !== '' ? (string) $id : null;
+                })
+                ->filter()
+                ->values()
+                ->all();
+        }
+
+        return [
+            'triggered' => $triggered,
+            'job_uuids' => $jobUuids,
+        ];
     }
 
     /**
@@ -277,6 +400,18 @@ class AlertRuleEvaluator {
     }
 
     /**
+     * @param Alert $alert
+     * @param int $serviceId
+     * @return array{triggered: bool, job_uuids: array<int, string>}
+     */
+    private function private__evaluateAvgExecutionTimeWithJobs(Alert $alert, int $serviceId): array {
+        return [
+            'triggered' => $this->private__evaluateAvgExecutionTime($alert, $serviceId),
+            'job_uuids' => [],
+        ];
+    }
+
+    /**
      * Evaluate the queue blocked.
      *
      * @param Alert $alert
@@ -332,6 +467,18 @@ class AlertRuleEvaluator {
     }
 
     /**
+     * @param Alert $alert
+     * @param int $serviceId
+     * @return array{triggered: bool, job_uuids: array<int, string>}
+     */
+    private function private__evaluateQueueBlockedWithJobs(Alert $alert, int $serviceId): array {
+        return [
+            'triggered' => $this->private__evaluateQueueBlocked($alert, $serviceId),
+            'job_uuids' => [],
+        ];
+    }
+
+    /**
      * Evaluate the worker offline.
      *
      * @param Alert $alert
@@ -350,6 +497,18 @@ class AlertRuleEvaluator {
         $triggered = $service->last_seen_at->copy()->addMinutes($minutes)->isPast();
 
         return $triggered;
+    }
+
+    /**
+     * @param Alert $alert
+     * @param int $serviceId
+     * @return array{triggered: bool, job_uuids: array<int, string>}
+     */
+    private function private__evaluateWorkerOfflineWithJobs(Alert $alert, int $serviceId): array {
+        return [
+            'triggered' => $this->private__evaluateWorkerOffline($alert, $serviceId),
+            'job_uuids' => [],
+        ];
     }
 
     /**
@@ -404,5 +563,17 @@ class AlertRuleEvaluator {
         }
 
         return $staleFound;
+    }
+
+    /**
+     * @param Alert $alert
+     * @param int $serviceId
+     * @return array{triggered: bool, job_uuids: array<int, string>}
+     */
+    private function private__evaluateSupervisorOfflineWithJobs(Alert $alert, int $serviceId): array {
+        return [
+            'triggered' => $this->private__evaluateSupervisorOffline($alert, $serviceId),
+            'job_uuids' => [],
+        ];
     }
 }
