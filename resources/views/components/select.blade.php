@@ -1,4 +1,4 @@
-@props(['options' => [], 'placeholder' => ''])
+@props(['options' => [], 'placeholder' => '', 'selected' => null])
 
 @php
     $wrapperClass = $attributes->get('class', '');
@@ -42,10 +42,10 @@
     <select x-ref="hidden"
         {{ $selectAttrs->merge(['class' => 'sr-only']) }}>
         @if($placeholder !== '')
-            <option value="">{{ $placeholder }}</option>
+            <option value="" @selected($selected === null || $selected === '')>{{ $placeholder }}</option>
         @endif
         @foreach($options as $value => $label)
-            <option value="{{ $value }}">{{ $label }}</option>
+            <option value="{{ $value }}" @selected($selected !== null && (string) $value === (string) $selected)>{{ $label }}</option>
         @endforeach
         {{ $slot }}
     </select>

@@ -97,6 +97,16 @@ function startRefreshStream() {
      * @param {object} eventData
      * @returns {void}
      */
+    function dispatchRefreshWithDocument(doc) {
+        if (typeof requestAnimationFrame !== 'undefined') {
+            requestAnimationFrame(function () {
+                window.dispatchEvent(new CustomEvent('horizonhub-refresh', { detail: { document: doc } }));
+            });
+        } else {
+            window.dispatchEvent(new CustomEvent('horizonhub-refresh', { detail: { document: doc } }));
+        }
+    }
+
     function onRefresh(eventData) {
         backoffMs = BACKOFF_INITIAL_MS;
         if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
@@ -106,7 +116,7 @@ function startRefreshStream() {
             doc = parser.parseFromString(eventData.html, 'text/html');
         }
         if (doc) {
-            window.dispatchEvent(new CustomEvent('horizonhub-refresh', { detail: { document: doc } }));
+            dispatchRefreshWithDocument(doc);
             return;
         }
         var url = window.location.href;
@@ -120,19 +130,24 @@ function startRefreshStream() {
             if (!html) return;
             var parser = new DOMParser();
             doc = parser.parseFromString(html, 'text/html');
-            window.dispatchEvent(new CustomEvent('horizonhub-refresh', { detail: { document: doc } }));
+            dispatchRefreshWithDocument(doc);
         }).catch(function () {});
     }
 
     /**
-     * Get the stream URL with the path.
+     * Get the stream URL with the path and current page query (so server fetches same filters).
      * @returns {string}
      */
     function getStreamUrlWithPath() {
         var path = typeof window.location !== 'undefined' && window.location.pathname ? window.location.pathname : '';
         if (!path) return streamUrl;
         var sep = streamUrl.indexOf('?') === -1 ? '?' : '&';
-        return streamUrl + sep + 'path=' + encodeURIComponent(path);
+        var url = streamUrl + sep + 'path=' + encodeURIComponent(path);
+        var search = typeof window.location !== 'undefined' && window.location.search ? window.location.search : '';
+        if (search.length > 1) {
+            url += '&query=' + encodeURIComponent(search.substring(1));
+        }
+        return url;
     }
 
     /**
@@ -174,6 +189,28 @@ function startRefreshStream() {
             connect();
         } else {
             closeStream();
+        }
+    });
+
+    var visibilityReconnectTimeout = null;
+    function scheduleReconnectOnVisible() {
+        if (visibilityReconnectTimeout) return;
+        visibilityReconnectTimeout = setTimeout(function () {
+            visibilityReconnectTimeout = null;
+            if (document.visibilityState === 'visible' && isHotReloadEnabled() && shouldUseRefreshStream()) {
+                connect();
+            }
+        }, 200);
+    }
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') {
+            closeStream();
+            if (visibilityReconnectTimeout) {
+                clearTimeout(visibilityReconnectTimeout);
+                visibilityReconnectTimeout = null;
+            }
+        } else if (document.visibilityState === 'visible') {
+            scheduleReconnectOnVisible();
         }
     });
 

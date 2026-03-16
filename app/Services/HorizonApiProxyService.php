@@ -368,7 +368,12 @@ class HorizonApiProxyService {
     public function getWorkload(Service $service): array {
         $relativePath = (string) \config('horizonhub.horizon_paths.workload');
 
-        return $this->call($service, $relativePath, 'get');
+        $result = $this->call($service, $relativePath, 'get');
+        if (! ($result['success'] ?? false) && \in_array($result['status'] ?? 0, [401, 403], true)) {
+            $result = $this->callWithDashboardSession($service, $relativePath, 'get');
+        }
+
+        return $result;
     }
 
     /**

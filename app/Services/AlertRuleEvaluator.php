@@ -3,26 +3,39 @@
 namespace App\Services;
 
 use App\Models\Alert;
-use App\Models\HorizonFailedJob;
-use App\Models\HorizonJob;
-use App\Models\HorizonSupervisorState;
 use App\Models\Service;
+use App\Services\HorizonApiProxyService;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 
 class AlertRuleEvaluator {
+
+    /**
+     * The Horizon API proxy service.
+     *
+     * @var HorizonApiProxyService
+     */
+    private HorizonApiProxyService $horizonApi;
+
+    /**
+     * Construct the alert rule evaluator.
+     *
+     * @param HorizonApiProxyService $horizonApi
+     */
+    public function __construct(HorizonApiProxyService $horizonApi) {
+        $this->horizonApi = $horizonApi;
+    }
 
     /**
      * Evaluate the given alert rule for the provided context.
      *
      * @param Alert $alert
      * @param int $serviceId
-     * @param int|null $jobId
+     * @param string|null $jobUuid
      * @return bool
      */
-    public function evaluate(Alert $alert, int $serviceId, ?int $jobId): bool {
+    public function evaluate(Alert $alert, int $serviceId, ?string $jobUuid): bool {
         return match ($alert->rule_type) {
-            'job_specific_failure' => $this->evaluateJobSpecificFailure($alert, $serviceId, $jobId),
+            'job_specific_failure' => $this->evaluateJobSpecificFailure($alert, $serviceId, $jobUuid),
             'job_type_failure' => $this->evaluateJobTypeFailure($alert, $serviceId),
             'failure_count' => $this->evaluateFailureCount($alert, $serviceId),
             'avg_execution_time' => $this->evaluateAvgExecutionTime($alert, $serviceId),
@@ -38,30 +51,28 @@ class AlertRuleEvaluator {
      *
      * @param Alert $alert
      * @param int $serviceId
-     * @param int|null $jobId HorizonJob id (horizon_jobs.id).
+     * @param string|null $jobUuid
      * @return bool
      */
-    private function evaluateJobSpecificFailure(Alert $alert, int $serviceId, ?int $jobId): bool {
-        if ($jobId === null) {
+    private function evaluateJobSpecificFailure(Alert $alert, int $serviceId, ?string $jobUuid): bool {
+        if (empty($jobUuid)) {
             return false;
         }
 
-        $horizonJob = HorizonJob::where('service_id', $serviceId)->where('id', $jobId)->first();
-        if (! $horizonJob) {
+        $service = Service::find($serviceId);
+        if (! $service || ! $service->base_url) {
             return false;
         }
 
-        $failedJob = HorizonFailedJob::where('service_id', $serviceId)
-            ->where('job_uuid', $horizonJob->job_uuid)
-            ->where('failed_at', '>=', \now()->subMinutes(15))
-            ->first();
+        $response = $this->horizonApi->getFailedJob($service, $jobUuid);
+        $data = $response['data'] ?? null;
 
-        if (! $failedJob) {
+        if (! ($response['success'] ?? false) || ! \is_array($data)) {
             return false;
         }
 
         if ($alert->job_type !== null && (string) $alert->job_type !== '') {
-            $payload = $failedJob->payload ?? [];
+            $payload = $data['payload'] ?? [];
             $displayName = $payload['displayName'] ?? null;
             $rawJob = $payload['job'] ?? null;
             $haystack = (string) ($displayName ?? $rawJob ?? '');
@@ -71,7 +82,7 @@ class AlertRuleEvaluator {
         }
 
         if ( !empty($alert->queue) ) {
-            if ((string) $failedJob->queue !== (string) $alert->queue) {
+            if ((string) ($data['queue'] ?? '') !== (string) $alert->queue) {
                 return false;
             }
         }
@@ -91,11 +102,41 @@ class AlertRuleEvaluator {
             return false;
         }
 
-        $recent = HorizonFailedJob::where('service_id', $serviceId)
-            ->where('failed_at', '>=', \now()->subMinutes(15))
-            ->get()
-            ->filter(function ($job) use ($alert) {
-                $payload = $job->payload ?? [];
+        $service = Service::find($serviceId);
+        if (! $service || ! $service->base_url) {
+            return false;
+        }
+
+        $response = $this->horizonApi->getFailedJobs($service, ['starting_at' => 0]);
+        $data = $response['data'] ?? null;
+
+        if (! ($response['success'] ?? false) || ! \is_array($data)) {
+            return false;
+        }
+
+        $now = \now();
+        $recent = collect($data['jobs'] ?? [])
+            ->filter(function ($job) use ($alert, $now) {
+                if (! \is_array($job)) {
+                    return false;
+                }
+
+                $failedAtRaw = $job['failed_at'] ?? null;
+                if (! \is_string($failedAtRaw) || $failedAtRaw === '') {
+                    return false;
+                }
+
+                try {
+                    $failedAt = Carbon::parse($failedAtRaw);
+                } catch (\Throwable $e) {
+                    return false;
+                }
+
+                if ($failedAt->lt($now->subMinutes(15))) {
+                    return false;
+                }
+
+                $payload = $job['payload'] ?? [];
                 $displayName = $payload['displayName'] ?? null;
                 $rawJob = $payload['job'] ?? null;
                 $haystack = (string) ($displayName ?? $rawJob ?? '');
@@ -119,12 +160,42 @@ class AlertRuleEvaluator {
         $count = (int) (isset($threshold['count']) ? $threshold['count'] : 5);
         $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 15);
 
-        $actual = HorizonFailedJob::where('service_id', $serviceId)
-            ->when($alert->queue, function ($query) use ($alert) {
-                return $query->where('queue', $alert->queue);
-            })
-            ->where('failed_at', '>=', \now()->subMinutes($minutes))
-            ->count();
+        $service = Service::find($serviceId);
+        if (! $service || ! $service->base_url) {
+            return false;
+        }
+
+        $response = $this->horizonApi->getFailedJobs($service, ['starting_at' => 0]);
+        $data = $response['data'] ?? null;
+
+        if (! ($response['success'] ?? false) || ! \is_array($data)) {
+            return false;
+        }
+
+        $now = \now();
+        $jobs = collect($data['jobs'] ?? []);
+
+        if ($alert->queue) {
+            $jobs = $jobs->filter(function ($job) use ($alert) {
+                return \is_array($job) && (string) ($job['queue'] ?? '') === (string) $alert->queue;
+            });
+        }
+
+        $actual = $jobs->filter(function ($job) use ($minutes, $now) {
+            if (! \is_array($job)) {
+                return false;
+            }
+            $failedAtRaw = $job['failed_at'] ?? null;
+            if (! \is_string($failedAtRaw) || $failedAtRaw === '') {
+                return false;
+            }
+            try {
+                $failedAt = Carbon::parse($failedAtRaw);
+            } catch (\Throwable $e) {
+                return false;
+            }
+            return $failedAt->gte($now->subMinutes($minutes));
+        })->count();
 
         $triggered = $actual >= $count;
 
@@ -143,26 +214,50 @@ class AlertRuleEvaluator {
         $maxSeconds = (float) (isset($threshold['seconds']) ? $threshold['seconds'] : 60);
         $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 15);
 
-        $query = HorizonJob::where('service_id', $serviceId)
-            ->where('status', 'processed')
-            ->whereNotNull('processed_at')
-            ->where('processed_at', '>=', \now()->subMinutes($minutes))
-            ->whereNotNull('queued_at');
-
-        $driver = DB::connection()->getDriverName();
-        if ($driver === 'mysql') {
-            $avg = $query->clone()
-                ->selectRaw('AVG(COALESCE(runtime_seconds, TIMESTAMPDIFF(SECOND, queued_at, processed_at))) as avg_runtime')
-                ->value('avg_runtime');
-        } else {
-            $avg = $query->clone()
-                ->selectRaw('AVG(COALESCE(runtime_seconds, (julianday(processed_at) - julianday(queued_at)) * 86400)) as avg_runtime')
-                ->value('avg_runtime');
-        }
-
-        if ($avg === null) {
+        $service = Service::find($serviceId);
+        if (! $service || ! $service->base_url) {
             return false;
         }
+
+        $response = $this->horizonApi->getCompletedJobs($service, ['starting_at' => 0]);
+        $data = $response['data'] ?? null;
+
+        if (! ($response['success'] ?? false) || ! \is_array($data)) {
+            return false;
+        }
+
+        $jobs = collect($data['jobs'] ?? []);
+        $now = \now();
+
+        $durations = $jobs->map(function ($job) use ($minutes, $now) {
+            if (! \is_array($job)) {
+                return null;
+            }
+            $completedRaw = $job['completed_at'] ?? null;
+            $queuedRaw = $job['pushedAt'] ?? null;
+            if (! \is_string($completedRaw) || $completedRaw === '' || ! \is_string($queuedRaw) || $queuedRaw === '') {
+                return null;
+            }
+            try {
+                $completed = Carbon::parse($completedRaw);
+                $queued = Carbon::parse($queuedRaw);
+            } catch (\Throwable $e) {
+                return null;
+            }
+
+            if ($completed->lt($now->subMinutes($minutes))) {
+                return null;
+            }
+
+            $seconds = $queued->diffInSeconds($completed, false);
+            return $seconds >= 0 ? $seconds : null;
+        })->filter(static fn ($v) => $v !== null);
+
+        if ($durations->isEmpty()) {
+            return false;
+        }
+
+        $avg = $durations->average();
 
         return (float) $avg >= $maxSeconds;
     }
@@ -178,18 +273,46 @@ class AlertRuleEvaluator {
         $threshold = $alert->threshold ?? [];
         $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 30);
 
-        $lastProcessed = HorizonJob::where('service_id', $serviceId)
-            ->when($alert->queue, function ($query) use ($alert) {
-                return $query->where('queue', $alert->queue);
-            })
-            ->where('status', 'processed')
-            ->max('processed_at');
+        $service = Service::find($serviceId);
+        if (! $service || ! $service->base_url) {
+            return false;
+        }
+
+        $response = $this->horizonApi->getCompletedJobs($service, ['starting_at' => 0]);
+        $data = $response['data'] ?? null;
+
+        if (! ($response['success'] ?? false) || ! \is_array($data)) {
+            return false;
+        }
+
+        $jobs = collect($data['jobs'] ?? []);
+
+        if ($alert->queue) {
+            $jobs = $jobs->filter(function ($job) use ($alert) {
+                return \is_array($job) && (string) ($job['queue'] ?? '') === (string) $alert->queue;
+            });
+        }
+
+        $lastProcessed = $jobs->map(function ($job) {
+            if (! \is_array($job)) {
+                return null;
+            }
+            $completedRaw = $job['completed_at'] ?? null;
+            if (! \is_string($completedRaw) || $completedRaw === '') {
+                return null;
+            }
+            try {
+                return Carbon::parse($completedRaw);
+            } catch (\Throwable $e) {
+                return null;
+            }
+        })->filter()->sort()->last();
 
         if (! $lastProcessed) {
             return false;
         }
 
-        $triggered = Carbon::parse($lastProcessed)->addMinutes($minutes)->isPast();
+        $triggered = $lastProcessed->addMinutes($minutes)->isPast();
 
         return $triggered;
     }
@@ -227,13 +350,45 @@ class AlertRuleEvaluator {
         $threshold = $alert->threshold ?? [];
         $minutes = (int) ($threshold['minutes'] ?? 5);
 
-        $stale_at = \now()->subMinutes($minutes);
-        $stale_count = HorizonSupervisorState::where('service_id', $serviceId)
-            ->where(function ($q) use ($stale_at) {
-                $q->whereNull('last_seen_at')->orWhere('last_seen_at', '<', $stale_at);
-            })
-            ->count();
+        $service = Service::find($serviceId);
+        if (! $service || ! $service->base_url) {
+            return false;
+        }
 
-        return $stale_count > 0;
+        $response = $this->horizonApi->getMasters($service);
+        $data = $response['data'] ?? null;
+
+        if (! ($response['success'] ?? false) || ! \is_array($data)) {
+            return false;
+        }
+
+        $staleAt = \now()->subMinutes($minutes);
+        $staleFound = false;
+
+        foreach ($data as $master) {
+            if (! \is_array($master) || ! isset($master['supervisors']) || ! \is_array($master['supervisors'])) {
+                continue;
+            }
+            foreach ($master['supervisors'] as $supervisor) {
+                if (! \is_array($supervisor)) {
+                    continue;
+                }
+                $lastSeenRaw = $supervisor['last_heartbeat_at'] ?? ($supervisor['lastSeen'] ?? null);
+                if (! \is_string($lastSeenRaw) || $lastSeenRaw === '') {
+                    continue;
+                }
+                try {
+                    $lastSeen = Carbon::parse($lastSeenRaw);
+                } catch (\Throwable $e) {
+                    continue;
+                }
+                if ($lastSeen->lt($staleAt)) {
+                    $staleFound = true;
+                    break 2;
+                }
+            }
+        }
+
+        return $staleFound;
     }
 }

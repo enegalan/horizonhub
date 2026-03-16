@@ -141,6 +141,11 @@ function renderWorkloadRows(rows) {
     var summary = document.getElementById('metrics-workload-summary');
     if (!body) return;
 
+    while (body.firstChild) {
+        body.removeChild(body.firstChild);
+    }
+    if (empty) body.appendChild(empty);
+
     if (!rows || !rows.length) {
         if (empty) empty.style.display = '';
         if (summary) summary.textContent = '';
@@ -211,6 +216,11 @@ function renderSupervisorsRows(rows) {
     var empty = document.getElementById('metrics-supervisors-empty');
     var summary = document.getElementById('metrics-supervisors-summary');
     if (!body) return;
+
+    while (body.firstChild) {
+        body.removeChild(body.firstChild);
+    }
+    if (empty) body.appendChild(empty);
 
     if (!rows || !rows.length) {
         if (empty) empty.style.display = '';
