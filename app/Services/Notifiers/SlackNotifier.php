@@ -55,8 +55,8 @@ class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier 
         $enrichedEvents = $this->enrichEvents($events, self::MAX_EVENTS_IN_SLACK, self::SLACK_EXCEPTION_MAX_LENGTH);
 
         $lines = array(
-            \sprintf('🚨 *[Horizon Hub]* Alert: %s | Service: %s', $alert->rule_type, $service ? $service->name : (string) $serviceId),
-            "📊 Events: $count",
+            \sprintf('🚨 *[Horizon Hub]* *Alert:* %s | *Service:* %s', $alert->rule_type, $service ? $service->name : (string) $serviceId),
+            "📊 *Events:* $count",
         );
 
         if ($alert->rule_type === 'failure_count') {
@@ -66,13 +66,13 @@ class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier 
             $queueName = $alert->queue ?? null;
 
             $condition = \sprintf(
-                '📌 Condition: >= %d failures in last %d minutes',
+                '📌 *Condition:* >= %d failures in last %d minutes',
                 $thresholdCount,
                 $thresholdMinutes
             );
 
             if ($queueName !== null && $queueName !== '') {
-                $condition .= ' (queue: ' . $queueName . ')';
+                $condition .= ' (_queue:_ ' . $queueName . ')';
             }
 
             $lines[] = $condition;
@@ -87,37 +87,37 @@ class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier 
             $exception = $event['exception'] ?? null;
 
             if ($jobClass !== null) {
-                $line = '❌ Job: ' . $jobClass;
+                $line = '❌ *Job:* ' . $jobClass;
             } elseif ($jobUuid !== null) {
-                $line = '❌ Job UUID: ' . $jobUuid;
+                $line = '❌ *Job UUID:* ' . $jobUuid;
             } else {
-                $line = '❌ Job: unknown';
+                $line = '❌ *Job:* unknown';
             }
 
             if ($queue !== null) {
-                $line .= ' (queue: ' . $queue . ')';
+                $line .= ' (_queue:_ ' . $queue . ')';
             }
 
             if ($triggeredAt !== '') {
-                $line .= ' at ' . $triggeredAt;
+                $line .= ' _at_ ' . $triggeredAt;
             }
 
             $lines[] = $line;
 
             if ($failedAt !== null) {
-                $lines[] = '   🕐 failed_at: ' . $failedAt;
+                $lines[] = '   🕐 *failed_at:* ' . $failedAt;
             }
 
             if ($attempts !== null) {
-                $lines[] = '   🔄 attempts: ' . $attempts;
+                $lines[] = '   🔄 *attempts:* ' . $attempts;
             }
 
             if ($exception !== null && $exception !== '') {
-                $lines[] = '   ⚠️ exception: ' . $exception;
+                $lines[] = '   ⚠️ *exception:* ' . $exception;
             }
         }
         if ($count > self::MAX_EVENTS_IN_SLACK) {
-            $lines[] = "📎 … and " . ($count - self::MAX_EVENTS_IN_SLACK) . " more";
+            $lines[] = "📎 … and *" . ($count - self::MAX_EVENTS_IN_SLACK) . "* more";
         }
         $text = \implode("\n", $lines);
 
