@@ -13,6 +13,8 @@ npm run build
 php artisan migrate --force
 php artisan view:clear
 php artisan config:cache --no-interaction
+php artisan queue:work &
+php artisan schedule:work &
 
 if [ "${DEMO_SERVICES:-0}" = "1" ]; then
     php artisan db:seed --class=DemoServicesSeeder --force
