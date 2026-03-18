@@ -41,7 +41,15 @@ return [
         'metrics_queues' => '/metrics/queues',
     ],
 
-    'timeout' => (int) env('HORIZON_HUB_TIMEOUT', 10),
+    /*
+    |--------------------------------------------------------------------------
+    | Timeout
+    |--------------------------------------------------------------------------
+    |
+    | The timeout in seconds for the Horizon HTTP API.
+    |
+    */
+    'api_timeout' => (int) env('HORIZON_HUB_API_TIMEOUT', 10),
 
     /*
     |--------------------------------------------------------------------------

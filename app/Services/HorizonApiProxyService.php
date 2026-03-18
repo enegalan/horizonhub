@@ -312,7 +312,7 @@ class HorizonApiProxyService {
         $url = "$base/" . \ltrim($path, '/');
 
         try {
-            $request = Http::timeout(\config('horizonhub.timeout'));
+            $request = Http::timeout(\config('horizonhub.api_timeout'));
             $response = match (\strtolower($method)) {
                 'get' => $request->get($url),
                 'delete' => $request->delete($url),
