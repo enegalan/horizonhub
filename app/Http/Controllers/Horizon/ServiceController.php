@@ -50,6 +50,7 @@ class ServiceController extends Controller {
 
         $failedJobCounts = [];
         $recentJobCounts = [];
+        $horizonStatuses = [];
 
         /** @var Service $service */
         foreach ($services as $service) {
@@ -65,15 +66,18 @@ class ServiceController extends Controller {
             if (($response['success'] ?? false) && \is_array($data)) {
                 $failedJobCounts[$service->id] = isset($data['failedJobs']) ? (int) $data['failedJobs'] : 0;
                 $recentJobCounts[$service->id] = isset($data['recentJobs']) ? (int) $data['recentJobs'] : 0;
+                $horizonStatuses[$service->id] = isset($data['status']) && (string) $data['status'] !== '' ? (string) $data['status'] : null;
             } else {
                 $failedJobCounts[$service->id] = 0;
                 $recentJobCounts[$service->id] = 0;
+                $horizonStatuses[$service->id] = null;
             }
         }
 
         foreach ($services as $service) {
             $service->horizon_failed_jobs_count = (int) ($failedJobCounts[$service->id] ?? 0);
             $service->horizon_jobs_count = (int) ($recentJobCounts[$service->id] ?? 0);
+            $service->horizon_status = $horizonStatuses[$service->id] ?? null;
         }
 
         return \view('horizon.services.index', [
@@ -219,6 +223,7 @@ class ServiceController extends Controller {
         $maxWaitTimeSeconds = null;
         $queueWithMaxRuntime = null;
         $queueWithMaxThroughput = null;
+        $horizonStatus = null;
         $supervisorGroups = \collect();
         $supervisors = \collect();
         $workloadQueues = \collect();
@@ -227,6 +232,9 @@ class ServiceController extends Controller {
         $statsData = $statsResponse['data'] ?? null;
 
         if (($statsResponse['success'] ?? false) && \is_array($statsData)) {
+            if (isset($statsData['status']) && !empty((string) $statsData['status'])) {
+                $horizonStatus = (string) $statsData['status'];
+            }
             if (isset($statsData['processes']) && \is_numeric($statsData['processes'])) {
                 $totalProcesses = (int) $statsData['processes'];
             }
@@ -400,6 +408,7 @@ class ServiceController extends Controller {
             'maxWaitTimeSeconds' => $maxWaitTimeSeconds,
             'queueWithMaxRuntime' => $queueWithMaxRuntime,
             'queueWithMaxThroughput' => $queueWithMaxThroughput,
+            'horizonStatus' => $horizonStatus,
             'supervisorGroups' => $supervisorGroups,
             'supervisors' => $supervisors,
             'workloadQueues' => $workloadQueues,

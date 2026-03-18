@@ -43,12 +43,13 @@
 
         <div class="card">
             <div class="overflow-x-auto">
-                <table class="min-w-full" data-resizable-table="horizon-service-list" data-column-ids="name,base_url,status,jobs,failed,last_seen,actions">
+                <table class="min-w-full" data-resizable-table="horizon-service-list" data-column-ids="name,base_url,status,horizon_status,jobs,failed,last_seen,actions">
                     <thead>
                         <tr class="border-b border-border bg-muted/50">
                             <th class="table-header px-4 py-2.5" data-column-id="name">Name</th>
                             <th class="table-header px-4 py-2.5" data-column-id="base_url">Base URL</th>
                             <th class="table-header px-4 py-2.5" data-column-id="status">Status</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="horizon_status">Horizon Status</th>
                             <th class="table-header px-4 py-2.5" data-column-id="jobs">Jobs</th>
                             <th class="table-header px-4 py-2.5" data-column-id="failed">Failed</th>
                             <th class="table-header px-4 py-2.5" data-column-id="last_seen">Last seen</th>
@@ -71,6 +72,23 @@
                                         <span class="badge-warning">stand by</span>
                                     @else
                                         <span class="badge-danger">offline</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-2.5" data-column-id="horizon_status">
+                                    @if(isset($service->horizon_status) && $service->horizon_status)
+                                        @php
+                                            $hs = \strtolower((string) $service->horizon_status);
+                                            if ($hs === 'active' || $hs === 'running') {
+                                                $badgeClass = 'badge-success';
+                                            } elseif ($hs === 'inactive') {
+                                                $badgeClass = 'badge-warning';
+                                            } else {
+                                                $badgeClass = 'badge-muted';
+                                            }
+                                        @endphp
+                                        <span class="{{ $badgeClass }}">{{ $service->horizon_status }}</span>
+                                    @else
+                                        <span class="text-xs text-muted-foreground">–</span>
                                     @endif
                                 </td>
                                 <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="jobs">{{ $service->horizon_jobs_count ?? 0 }}</td>
@@ -139,7 +157,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" data-column-id="name">
+                                <td colspan="8" data-column-id="name">
                                     <div class="empty-state">
                                         <x-heroicon-o-server-stack class="empty-state-icon" />
                                         <p class="empty-state-title">No services</p>

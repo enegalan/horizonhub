@@ -33,6 +33,22 @@
                 </span>
             </div>
             @php
+                $hs = \strtolower((string) $horizonStatus);
+                if ($hs === 'active' || $hs === 'running') {
+                    $horizonStatusColor = 'bg-emerald-500';
+                } elseif ($hs === 'inactive') {
+                    $horizonStatusColor = 'bg-amber-500';
+                } else {
+                    $horizonStatusColor = 'bg-slate-400';
+                }
+            @endphp
+            <div class="mr-4 inline-flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-1.5">
+                <span class="inline-flex shrink-0 size-2.5 rounded-full {{ $horizonStatusColor }}" title="Horizon {{ $horizonStatus }}" aria-label="Horizon {{ $horizonStatus }}"></span>
+                <span class="text-xs text-muted-foreground">
+                    Horizon: <span class="font-medium text-foreground">{{ $horizonStatus }}</span>
+                </span>
+            </div>
+            @php
                 $dashboardBase = $service->public_url ?: $service->base_url;
             @endphp
             @if($dashboardBase)
