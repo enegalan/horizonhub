@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('alerts', function (Blueprint $table) {
             $table->string('name')->nullable()->after('id');
-            $table->boolean('enabled')->default(true)->after('notification_channels');
+            $table->boolean('enabled')->default(true)->after('job_type');
         });
     }
 

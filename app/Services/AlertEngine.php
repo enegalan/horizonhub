@@ -2,47 +2,14 @@
 
 namespace App\Services;
 
-use App\Contracts\EmailAlertNotifier;
-use App\Contracts\SlackAlertNotifier;
+use App\Services\Alerts\AlertBatchStore;
+use App\Services\Alerts\AlertNotificationDispatcher;
 use App\Models\Alert;
 use App\Models\AlertLog;
-use App\Models\NotificationProvider;
 use App\Models\Service;
-use App\Models\Setting;
-use Illuminate\Database\Eloquent\Collection;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class AlertEngine {
-
-    /**
-     * The cache prefix for pending alerts.
-     *
-     * @var string
-     */
-    private const PENDING_CACHE_PREFIX = 'horizonhub_alert_pending_';
-
-    /**
-     * The cache prefix for sent alerts.
-     *
-     * @var string
-     */
-    private const SENT_AT_CACHE_PREFIX = 'horizonhub_alert_sent_at_';
-
-    /**
-     * The cache TTL for pending alerts.
-     *
-     * @var int
-     */
-    private const PENDING_TTL_MINUTES = 60;
-
-    /**
-     * Default interval (minutes) when alert has none set.
-     *
-     * @var int
-     */
-    private const DEFAULT_INTERVAL_MINUTES = 5;
 
     /**
      * The rule evaluator.
@@ -52,34 +19,34 @@ class AlertEngine {
     private AlertRuleEvaluator $ruleEvaluator;
 
     /**
-     * The email notifier.
+     * The batch store.
      *
-     * @var EmailAlertNotifier
+     * @var AlertBatchStore
      */
-    private EmailAlertNotifier $emailNotifier;
+    private AlertBatchStore $batchStore;
 
     /**
-     * The slack notifier.
+     * The notification dispatcher.
      *
-     * @var SlackAlertNotifier
+     * @var AlertNotificationDispatcher
      */
-    private SlackAlertNotifier $slackNotifier;
+    private AlertNotificationDispatcher $notificationDispatcher;
 
     /**
      * Construct the alert engine.
      *
-     * @param EmailAlertNotifier $emailNotifier
-     * @param SlackAlertNotifier $slackNotifier
      * @param AlertRuleEvaluator $ruleEvaluator
+     * @param AlertBatchStore $batchStore
+     * @param AlertNotificationDispatcher $notificationDispatcher
      */
     public function __construct(
-        EmailAlertNotifier $emailNotifier,
-        SlackAlertNotifier $slackNotifier,
-        AlertRuleEvaluator $ruleEvaluator
+        AlertRuleEvaluator $ruleEvaluator,
+        AlertBatchStore $batchStore,
+        AlertNotificationDispatcher $notificationDispatcher
     ) {
-        $this->emailNotifier = $emailNotifier;
-        $this->slackNotifier = $slackNotifier;
         $this->ruleEvaluator = $ruleEvaluator;
+        $this->batchStore = $batchStore;
+        $this->notificationDispatcher = $notificationDispatcher;
     }
 
     /**
@@ -89,21 +56,21 @@ class AlertEngine {
      */
     public function flushPendingAlerts(): void {
         /** @var \Illuminate\Database\Eloquent\Collection<int, Alert> $alerts */
-        $alerts = Alert::where('enabled', true)->get();
+        $alerts = Alert::where('enabled', true)
+            ->with('notificationProviders')
+            ->get();
         foreach ($alerts as $alert) {
             try {
-                $pending = $this->private__getPending($alert);
+                $pending = $this->batchStore->getPending($alert);
                 if (empty($pending)) {
                     continue;
                 }
-                $intervalMinutes = $this->private__getIntervalMinutes($alert);
-                $lastSentAt = $this->private__getLastSentAt($alert);
-                if ($intervalMinutes > 0 && $lastSentAt !== null && \now()->lt($lastSentAt->copy()->addMinutes($intervalMinutes))) {
+                if (! $this->batchStore->shouldSendNow($alert)) {
                     continue;
                 }
                 $this->private__sendBatchedAlert($alert, $pending);
-                $this->private__clearPending($alert);
-                $this->private__setLastSentAt($alert);
+                $this->batchStore->clearPending($alert);
+                $this->batchStore->setLastSentAt($alert);
             } catch (\Throwable $e) {
                 Log::error('Horizon Hub: flush pending alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
             }
@@ -123,7 +90,7 @@ class AlertEngine {
         $alerts = Alert::where('enabled', true)
             ->where(function ($q) use ($serviceId) {
                 $q->whereNull('service_id')->orWhere('service_id', $serviceId);
-            })
+            })->with('notificationProviders')
             ->get();
 
         foreach ($alerts as $alert) {
@@ -146,8 +113,9 @@ class AlertEngine {
         $this->flushPendingAlerts();
 
         /** @var \Illuminate\Database\Eloquent\Collection<int, Alert> $alerts */
-        $alerts = Alert::where('enabled', true)->get();
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Service> $services */
+        $alerts = Alert::where('enabled', true)
+            ->with('notificationProviders')
+            ->get();
         $services = Service::all();
 
         foreach ($alerts as $alert) {
@@ -178,10 +146,7 @@ class AlertEngine {
      */
     public function retryAlertLog(AlertLog $log): void {
         $alert = $log->alert;
-        if (! $alert) {
-            return;
-        }
-        if ($log->status !== 'failed') {
+        if (! $alert || $log->status !== 'failed') {
             return;
         }
         $events = $this->private__rebuildEventsFromLog($log);
@@ -194,28 +159,14 @@ class AlertEngine {
         $newLog = AlertLog::create([
             'alert_id' => $alert->id,
             'service_id' => $serviceId,
-            'trigger_count' => count($events),
+            'trigger_count' => \count($events),
             'job_uuids' => ! empty($jobUuids) ? $jobUuids : null,
             'status' => 'sent',
             'failure_message' => null,
             'sent_at' => \now(),
         ]);
 
-        $this->private__sendAlertForLog($alert, $events, $newLog);
-    }
-
-    /**
-     * Get the interval minutes for the given alert.
-     *
-     * @param Alert $alert
-     * @return int
-     */
-    private function private__getIntervalMinutes(Alert $alert): int {
-        if ($alert->email_interval_minutes !== null) {
-            return (int) $alert->email_interval_minutes;
-        }
-        Log::warning('Horizon Hub: alert has no email_interval_minutes, using default', ['alert_id' => $alert->id]);
-        return self::DEFAULT_INTERVAL_MINUTES;
+        $this->notificationDispatcher->dispatch($alert, $events, $newLog);
     }
 
     /**
@@ -226,16 +177,20 @@ class AlertEngine {
      * @return bool
      */
     private function private__shouldEvaluate(Alert $alert, string $eventType): bool {
-        if ($alert->rule_type === 'job_specific_failure' && $eventType !== 'JobFailed') {
+        if ($alert->rule_type === Alert::RULE_JOB_SPECIFIC_FAILURE && $eventType !== 'JobFailed') {
             return false;
         }
-        if ($alert->rule_type === 'job_type_failure' && $eventType !== 'JobFailed') {
+        if ($alert->rule_type === Alert::RULE_JOB_TYPE_FAILURE && $eventType !== 'JobFailed') {
             return false;
         }
-        if ($alert->rule_type === 'failure_count' && $eventType !== 'JobFailed') {
+        if ($alert->rule_type === Alert::RULE_FAILURE_COUNT && $eventType !== 'JobFailed') {
             return false;
         }
-        if (\in_array($alert->rule_type, ['queue_blocked', 'worker_offline', 'supervisor_offline'], true)) {
+        if (\in_array($alert->rule_type, [
+            Alert::RULE_QUEUE_BLOCKED,
+            Alert::RULE_WORKER_OFFLINE,
+            Alert::RULE_SUPERVISOR_OFFLINE,
+        ], true)) {
             return false;
         }
         return true;
@@ -257,6 +212,10 @@ class AlertEngine {
      * Rebuild the events from the log.
      *
      * @param AlertLog $log
+     * @description This method reconstructs alert trigger events from a stored log.
+     *              It uses the current time for all reconstructed events and will
+     *              generate placeholder events with null job UUIDs when the
+     *              trigger_count is greater than the number of stored job UUIDs.
      * @return array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>
      */
     private function private__rebuildEventsFromLog(AlertLog $log): array {
@@ -280,72 +239,6 @@ class AlertEngine {
             ];
         }
         return $events;
-    }
-
-    /**
-     * Get the pending alerts.
-     *
-     * @param Alert $alert
-     * @return array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>
-     */
-    private function private__getPending(Alert $alert): array {
-        $key = self::PENDING_CACHE_PREFIX . $alert->id;
-        $raw = Cache::get($key);
-        if (! \is_array($raw)) {
-            return [];
-        }
-        return $raw;
-    }
-
-    /**
-     * Set the pending alerts.
-     *
-     * @param Alert $alert
-     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $pending
-     * @return void
-     */
-    private function private__setPending(Alert $alert, array $pending): void {
-        $key = self::PENDING_CACHE_PREFIX . $alert->id;
-        if (empty($pending)) {
-            Cache::forget($key);
-            return;
-        }
-        Cache::put($key, $pending, now()->addMinutes(self::PENDING_TTL_MINUTES));
-    }
-
-    /**
-     * Clear the pending alerts.
-     *
-     * @param Alert $alert
-     * @return void
-     */
-    private function private__clearPending(Alert $alert): void {
-        $this->private__setPending($alert, []);
-    }
-
-    /**
-     * Get the last sent at.
-     *
-     * @param Alert $alert
-     * @return Carbon|null
-     */
-    private function private__getLastSentAt(Alert $alert): ?Carbon {
-        $key = self::SENT_AT_CACHE_PREFIX . $alert->id;
-        $value = Cache::get($key);
-        if ($value === null) {
-            return null;
-        }
-        return $value instanceof Carbon ? $value : Carbon::parse($value);
-    }
-
-    /**
-     * Set the last sent at.
-     *
-     * @param Alert $alert
-     * @return void
-     */
-    private function private__setLastSentAt(Alert $alert): void {
-        Cache::put(self::SENT_AT_CACHE_PREFIX . $alert->id, \now(), \now()->addMinutes(self::PENDING_TTL_MINUTES));
     }
 
     /**
@@ -375,25 +268,19 @@ class AlertEngine {
                 'triggered_at' => $triggeredAt,
             ];
         }
-        $pending = $this->private__getPending($alert);
+        $pending = $this->batchStore->getPending($alert);
         foreach ($eventsToAdd as $event) {
             $pending[] = $event;
         }
-        $this->private__setPending($alert, $pending);
+        $this->batchStore->setPending($alert, $pending);
 
-        $intervalMinutes = $this->private__getIntervalMinutes($alert);
-        $lastSentAt = $this->private__getLastSentAt($alert);
-        $shouldSendNow = $intervalMinutes === 0
-            || $lastSentAt === null
-            || \now()->gte($lastSentAt->copy()->addMinutes($intervalMinutes));
-
-        if (! $shouldSendNow) {
+        if (! $this->batchStore->shouldSendNow($alert)) {
             return;
         }
 
         $this->private__sendBatchedAlert($alert, $pending);
-        $this->private__clearPending($alert);
-        $this->private__setLastSentAt($alert);
+        $this->batchStore->clearPending($alert);
+        $this->batchStore->setLastSentAt($alert);
     }
 
     /**
@@ -410,75 +297,12 @@ class AlertEngine {
         $log = AlertLog::create([
             'alert_id' => $alert->id,
             'service_id' => $serviceId,
-            'trigger_count' => count($events),
+            'trigger_count' => \count($events),
             'job_uuids' => $jobUuids ?: null,
             'status' => 'sent',
             'sent_at' => \now(),
         ]);
 
-        $this->private__sendAlertForLog($alert, $events, $log);
-    }
-
-    /**
-     * Send alert notifications for the given log using providers or channels.
-     *
-     * @param Alert $alert
-     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events
-     * @param AlertLog $log
-     * @return void
-     */
-    private function private__sendAlertForLog(Alert $alert, array $events, AlertLog $log): void {
-        $providers = $alert->notificationProviders;
-
-        if ($providers instanceof Collection && $providers->isNotEmpty()) {
-            /** @var \Illuminate\Database\Eloquent\Collection<int, NotificationProvider> $providers */
-            foreach ($providers as $provider) {
-                try {
-                    if ($provider->type === NotificationProvider::TYPE_SLACK) {
-                        $webhookUrl = $provider->getWebhookUrl();
-                        if (! empty($webhookUrl)) {
-                            $this->slackNotifier->sendBatched($alert, $events, ['webhook_url' => $webhookUrl]);
-                        }
-                    }
-                    if ($provider->type === NotificationProvider::TYPE_EMAIL) {
-                        $to = $provider->getToEmails();
-                        if (! empty($to)) {
-                            $this->emailNotifier->sendBatched($alert, $events, ['to' => $to]);
-                        } else {
-                            Log::warning('Horizon Hub: email provider has no recipients, skip', ['alert_id' => $alert->id, 'provider_id' => $provider->id]);
-                        }
-                    }
-                } catch (\Throwable $e) {
-                    Log::error('Horizon Hub alert notification failed', ['alert_id' => $alert->id, 'provider_id' => $provider->id, 'error' => $e->getMessage()]);
-                    $log->update(['status' => 'failed', 'failure_message' => $e->getMessage()]);
-                }
-            }
-
-            return;
-        }
-
-        $channels = $alert->notification_channels ?? [];
-        foreach ($channels as $channel => $config) {
-            try {
-                if ($channel === 'email') {
-                    $to = isset($config['to']) ? $config['to'] : Setting::get('integrations.email.default_to', []);
-                    $to = \is_array($to) ? $to : [];
-                    if (! empty($to)) {
-                        $config['to'] = $to;
-                        $this->emailNotifier->sendBatched($alert, $events, $config);
-                    }
-                }
-                if ($channel === 'slack') {
-                    $webhookUrl = isset($config['webhook_url']) ? $config['webhook_url'] : Setting::get('integrations.slack.webhook_url', '');
-                    if (! empty($webhookUrl)) {
-                        $config['webhook_url'] = $webhookUrl;
-                        $this->slackNotifier->sendBatched($alert, $events, $config);
-                    }
-                }
-            } catch (\Throwable $e) {
-                Log::error('Horizon Hub alert notification failed', ['alert_id' => $alert->id, 'channel' => $channel, 'error' => $e->getMessage()]);
-                $log->update(['status' => 'failed', 'failure_message' => $e->getMessage()]);
-            }
-        }
+        $this->notificationDispatcher->dispatch($alert, $events, $log);
     }
 }

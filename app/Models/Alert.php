@@ -9,6 +9,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Alert extends Model {
 
+    public const RULE_JOB_SPECIFIC_FAILURE = 'job_specific_failure';
+    public const RULE_JOB_TYPE_FAILURE = 'job_type_failure';
+    public const RULE_FAILURE_COUNT = 'failure_count';
+    public const RULE_QUEUE_BLOCKED = 'queue_blocked';
+    public const RULE_WORKER_OFFLINE = 'worker_offline';
+    public const RULE_SUPERVISOR_OFFLINE = 'supervisor_offline';
+
     /**
      * The fillable attributes of the alert.
      *
@@ -21,7 +28,6 @@ class Alert extends Model {
         'threshold',
         'queue',
         'job_type',
-        'notification_channels',
         'enabled',
         'email_interval_minutes',
     ];
@@ -33,7 +39,6 @@ class Alert extends Model {
      */
     protected $casts = [
         'threshold' => 'array',
-        'notification_channels' => 'array',
         'enabled' => 'boolean',
         'email_interval_minutes' => 'integer',
     ];

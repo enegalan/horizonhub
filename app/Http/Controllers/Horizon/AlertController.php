@@ -238,7 +238,6 @@ class AlertController extends Controller {
             'email_interval_minutes' => 'required|integer|min:0|max:1440',
             'enabled' => 'required|boolean',
             'name' => 'nullable|string|max:255',
-            'notification_channels' => 'nullable|array',
         ];
 
         $ruleType = (string) $request->input('rule_type', 'failure_count');
@@ -276,7 +275,6 @@ class AlertController extends Controller {
             'threshold' => $threshold,
             'queue' => ! empty($validated['queue']) ? $validated['queue'] : null,
             'job_type' => ! empty($validated['job_type']) ? $validated['job_type'] : null,
-            'notification_channels' => $validated['notification_channels'] ?? [],
             'enabled' => (bool) $validated['enabled'],
             'email_interval_minutes' => (int) $validated['email_interval_minutes'],
         ];

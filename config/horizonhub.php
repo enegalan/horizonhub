@@ -113,9 +113,24 @@ return [
     |--------------------------------------------------------------------------
     |
     | How long to cache the mapping job_uuid => service_id so that resolving
-    | a job does not require iterating all services on every request.
+    | a job does not require iterating all services on every request, just for internal optimization.
     |
     */
     'job_resolver_cache_ttl' => (int) env('HORIZON_HUB_JOB_RESOLVER_CACHE_TTL', 300),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Alerts configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration related to Horizon Hub alerts, including batching and
+    | email interval defaults.
+    |
+    | pending_ttl_minutes: The TTL minutes for pending alert events to be batched into one notification, just for internal optimization.
+    |
+    */
+    'alerts' => [
+        'pending_ttl_minutes' => (int) env('HORIZON_HUB_ALERT_PENDING_TTL_MINUTES', 60),
+    ],
 
 ];

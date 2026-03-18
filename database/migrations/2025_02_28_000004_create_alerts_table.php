@@ -15,7 +15,6 @@ return new class extends Migration
             $table->json('threshold')->nullable();
             $table->string('queue')->nullable()->index();
             $table->string('job_type')->nullable()->index();
-            $table->json('notification_channels')->nullable();
             $table->timestamps();
         });
     }
