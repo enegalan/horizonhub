@@ -241,7 +241,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="2" data-column-id="queue">
+                                <td colspan="4" data-column-id="queue">
                                     <div class="empty-state">
                                         <x-heroicon-o-queue-list class="empty-state-icon" />
                                         <p class="empty-state-title">No queues for this service yet</p>
