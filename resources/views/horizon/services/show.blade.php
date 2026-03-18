@@ -33,22 +33,6 @@
                 </span>
             </div>
             @php
-                $hs = \strtolower((string) $horizonStatus);
-                if ($hs === 'active' || $hs === 'running') {
-                    $horizonStatusColor = 'bg-emerald-500';
-                } elseif ($hs === 'inactive') {
-                    $horizonStatusColor = 'bg-amber-500';
-                } else {
-                    $horizonStatusColor = 'bg-slate-400';
-                }
-            @endphp
-            <div class="mr-4 inline-flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-1.5">
-                <span class="inline-flex shrink-0 size-2.5 rounded-full {{ $horizonStatusColor }}" title="Horizon {{ $horizonStatus }}" aria-label="Horizon {{ $horizonStatus }}"></span>
-                <span class="text-xs text-muted-foreground">
-                    Horizon: <span class="font-medium text-foreground">{{ $horizonStatus }}</span>
-                </span>
-            </div>
-            @php
                 $dashboardBase = $service->public_url ?: $service->base_url;
             @endphp
             @if($dashboardBase)
@@ -112,6 +96,32 @@
             <div class="card p-4">
                 <h3 class="label-muted">Failed (past 7 days)</h3>
                 <p class="mt-1 text-2xl font-semibold text-foreground">{{ number_format($failedPastSevenDays) }}</p>
+            </div>
+            <div class="card p-4">
+                @php
+                    $hs = \strtolower((string) $horizonStatus);
+                    if ($hs === 'active' || $hs === 'running') {
+                        $horizonStatusColor = 'bg-emerald-500';
+                        $horizonStatusLabel = 'Active';
+                    } elseif ($hs === 'inactive') {
+                        $horizonStatusColor = 'bg-amber-500';
+                        $horizonStatusLabel = 'Inactive';
+                    } else {
+                        $horizonStatusColor = 'bg-slate-400';
+                        $horizonStatusLabel = $horizonStatus !== null && $horizonStatus !== '' ? (string) $horizonStatus : 'Unknown';
+                    }
+                @endphp
+                <h3 class="label-muted">Status</h3>
+                <div class="mt-1 flex items-center gap-2">
+                    <span
+                        class="inline-flex shrink-0 size-2.5 rounded-full {{ $horizonStatusColor }}"
+                        title="Horizon {{ $horizonStatusLabel }}"
+                        aria-label="Horizon {{ $horizonStatusLabel }}"
+                    ></span>
+                    <p class="text-2xl font-semibold text-foreground">
+                        {{ $horizonStatusLabel }}
+                    </p>
+                </div>
             </div>
         </div>
 
@@ -195,9 +205,8 @@
                 <p class="text-sm text-muted-foreground">
                     Supervisor data is not available. Run
                     <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">php artisan horizon</code>
-                    on the service (not
-                    <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">queue:work</code>),
-                    ensure the Horizon Hub Agent is installed and configured, and wait a few seconds for supervisor heartbeats.
+                    on the service,
+                    ensure the service is running and reachable, and wait a few seconds for supervisor heartbeats.
                 </p>
             @endif
         </div>
