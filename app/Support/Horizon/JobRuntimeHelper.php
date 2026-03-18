@@ -53,6 +53,29 @@ class JobRuntimeHelper {
     }
 
     /**
+     * Normalise processed/failed timestamps according to job status.
+     *
+     * - For "processed" jobs, failed_at is cleared.
+     * - For "failed" jobs, processed_at is cleared.
+     * - For "processing" jobs, both processed_at and failed_at are cleared.
+     *
+     * @param string|null $status
+     * @param Carbon|string|null $processedAt
+     * @param Carbon|string|null $failedAt
+     * @return void
+     */
+    public static function normalizeStatusDates(?string $status, &$processedAt, &$failedAt) {
+        if ($status === 'processed') {
+            $failedAt = null;
+        } elseif ($status === 'failed') {
+            $processedAt = null;
+        } elseif ($status === 'processing') {
+            $processedAt = null;
+            $failedAt = null;
+        }
+    }
+
+    /**
      * @param Carbon|string|null $value
      * @return Carbon|null
      */

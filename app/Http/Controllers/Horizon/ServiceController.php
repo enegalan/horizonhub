@@ -7,6 +7,7 @@ use App\Models\Service;
 use App\Services\HorizonSyncService;
 use App\Services\HorizonApiProxyService;
 use App\Services\HorizonMetricsService;
+use App\Support\Horizon\JobRuntimeHelper;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -460,8 +461,9 @@ class ServiceController extends Controller {
             $completedAt = $job['completed_at'] ?? null;
             $failedAtRaw = $job['failed_at'] ?? null;
             $queuedAt = $this->private__parseJobTimestamp($pushedAt);
-            $processedAt = $completedAt !== null && $completedAt !== '' ? \Carbon\Carbon::parse($completedAt) : null;
-            $failedAt = $failedAtRaw !== null && $failedAtRaw !== '' ? \Carbon\Carbon::parse($failedAtRaw) : null;
+            $processedAt = $this->private__parseJobTimestamp($completedAt);
+            $failedAt = $this->private__parseJobTimestamp($failedAtRaw);
+            JobRuntimeHelper::normalizeStatusDates($status, $processedAt, $failedAt);
 
             $attemptsRaw = $job['attempts'] ?? $payload['attempts'] ?? null;
             $attempts = $attemptsRaw !== null && $attemptsRaw !== '' ? (int) $attemptsRaw : null;
@@ -470,8 +472,8 @@ class ServiceController extends Controller {
             }
 
             $runtimeSeconds = isset($job['runtime']) && \is_numeric($job['runtime']) ? (float) $job['runtime'] : null;
-            $runtime = \App\Support\Horizon\JobRuntimeHelper::getFormattedRuntime(
-                \App\Support\Horizon\JobRuntimeHelper::getRuntimeSeconds($runtimeSeconds, $queuedAt, $processedAt, $failedAt)
+            $runtime = JobRuntimeHelper::getFormattedRuntime(
+                JobRuntimeHelper::getRuntimeSeconds($runtimeSeconds, $queuedAt, $processedAt, $failedAt)
             );
 
             $jobs->push((object) [

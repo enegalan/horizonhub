@@ -256,6 +256,7 @@ class JobController extends Controller {
             $queuedAt = $this->private__parseJobTimestamp($pushedAt);
             $processedAt = $this->private__parseJobTimestamp($completedAt);
             $failedAt = $this->private__parseJobTimestamp($failedAtRaw);
+            JobRuntimeHelper::normalizeStatusDates($status, $processedAt, $failedAt);
 
             $attemptsRaw = $job['attempts'] ?? $payload['attempts'] ?? null;
             $attempts = $attemptsRaw !== null && $attemptsRaw !== '' ? (int) $attemptsRaw : null;
