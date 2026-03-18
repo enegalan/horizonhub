@@ -39,7 +39,14 @@ export function horizonServiceDashboard() {
                 if (tag === 'SELECT' || tag === 'INPUT' || tag === 'TEXTAREA') {
                     return;
                 }
-                if (activeEl.getAttribute && (activeEl.getAttribute('role') === 'listbox' || activeEl.getAttribute('role') === 'combobox')) {
+                var role = activeEl.getAttribute && activeEl.getAttribute('role');
+                if (role === 'listbox' || role === 'combobox' || role === 'option') {
+                    return;
+                }
+                if (activeEl.getAttribute && activeEl.getAttribute('aria-expanded') === 'true') {
+                    return;
+                }
+                if (activeEl.closest && (activeEl.closest('[role="listbox"]') || activeEl.closest('[role="combobox"]'))) {
                     return;
                 }
             }
