@@ -29,9 +29,24 @@ export function horizonServiceDashboard() {
         refreshServiceDashboard(preloadedDoc) {
             if (typeof window === 'undefined' || typeof document === 'undefined') return;
             if (!preloadedDoc) return;
-            var newRoot = preloadedDoc.querySelector('[data-horizon-service-dashboard-root="1"]');
+
             var currentRoot = document.querySelector('[data-horizon-service-dashboard-root="1"]');
-            if (!newRoot || !currentRoot) return;
+            if (!currentRoot) return;
+
+            var activeEl = document.activeElement;
+            if (activeEl && currentRoot.contains(activeEl)) {
+                var tag = activeEl.tagName;
+                if (tag === 'SELECT' || tag === 'INPUT' || tag === 'TEXTAREA') {
+                    return;
+                }
+                if (activeEl.getAttribute && (activeEl.getAttribute('role') === 'listbox' || activeEl.getAttribute('role') === 'combobox')) {
+                    return;
+                }
+            }
+
+            var newRoot = preloadedDoc.querySelector('[data-horizon-service-dashboard-root="1"]');
+            if (!newRoot) return;
+
             currentRoot.replaceWith(newRoot);
             formatDateTimeElements(newRoot);
             formatQueueWaitElements(newRoot);
