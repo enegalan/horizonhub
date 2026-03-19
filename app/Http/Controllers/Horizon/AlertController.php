@@ -16,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class AlertController extends Controller {
@@ -330,6 +331,72 @@ class AlertController extends Controller {
     }
 
     /**
+     * Maximum lines accepted for job or queue pattern textareas.
+     *
+     * @var int
+     */
+    private const ALERT_PATTERN_LINES_MAX = 20;
+
+    /**
+     * Normalize job_patterns[] / queue_patterns[] request input.
+     *
+     * @param mixed $raw
+     * @return list<string>
+     */
+    private function private__sanitizePatternArray(mixed $raw): array {
+        if (! \is_array($raw)) {
+            return [];
+        }
+        $out = [];
+        foreach ($raw as $v) {
+            if (! \is_string($v)) {
+                continue;
+            }
+            $t = \trim($v);
+            if ($t !== '') {
+                $out[] = $t;
+            }
+        }
+        $out = \array_values(\array_unique($out));
+
+        return \array_slice($out, 0, self::ALERT_PATTERN_LINES_MAX);
+    }
+
+    /**
+     * Append optional single job_type field into the pattern list when not already present.
+     *
+     * @param list<string> $patterns
+     * @return list<string>
+     */
+    private function private__mergeJobTypeIntoPatterns(array $patterns, ?string $jobType): array {
+        if ($jobType === null || $jobType === '') {
+            return $patterns;
+        }
+        $jt = \trim($jobType);
+        if ($jt === '') {
+            return $patterns;
+        }
+        if (\in_array($jt, $patterns, true)) {
+            return $patterns;
+        }
+        $merged = $patterns;
+        $merged[] = $jt;
+
+        return \array_slice(\array_values(\array_unique($merged)), 0, self::ALERT_PATTERN_LINES_MAX);
+    }
+
+    /**
+     * Summary for alerts.job_type column (list UI); DB column is varchar(255).
+     */
+    private function private__jobTypeColumnFromPatterns(array $patterns): ?string {
+        if ($patterns === []) {
+            return null;
+        }
+
+        return Str::limit(\implode(', ', $patterns), 252);
+    }
+
+    /**
      * Validate and normalize alert data from the request.
      *
      * @param Request $request
@@ -342,6 +409,10 @@ class AlertController extends Controller {
             'service_id' => 'nullable|exists:services,id',
             'queue' => 'nullable|string|max:255',
             'job_type' => 'nullable|string|max:255',
+            'job_patterns' => 'nullable|array|max:' . self::ALERT_PATTERN_LINES_MAX,
+            'job_patterns.*' => 'nullable|string|max:255',
+            'queue_patterns' => 'nullable|array|max:' . self::ALERT_PATTERN_LINES_MAX,
+            'queue_patterns.*' => 'nullable|string|max:255',
             'thresholdCount' => 'nullable|integer|min:1',
             'thresholdMinutes' => 'nullable|integer|min:1',
             'thresholdSeconds' => 'nullable|numeric|min:0.1',
@@ -355,7 +426,8 @@ class AlertController extends Controller {
         $ruleType = (string) $request->input('rule_type', 'failure_count');
 
         if ($ruleType === 'job_type_failure') {
-            $baseRules['job_type'] = 'required|string|max:255';
+            $baseRules['thresholdMinutes'] = 'required|integer|min:1';
+            $baseRules['thresholdCount'] = 'nullable|integer|min:1';
         }
         if (\in_array($ruleType, ['failure_count', 'avg_execution_time', 'queue_blocked', 'worker_offline', 'supervisor_offline', 'horizon_offline'], true)) {
             $baseRules['thresholdMinutes'] = 'required|integer|min:1';
@@ -366,12 +438,66 @@ class AlertController extends Controller {
         if ($ruleType === 'avg_execution_time') {
             $baseRules['thresholdSeconds'] = 'required|numeric|min:0.1';
         }
+        if ($ruleType === 'job_specific_failure') {
+            $baseRules['thresholdCount'] = 'nullable|integer|min:1';
+            $baseRules['thresholdMinutes'] = 'nullable|integer|min:1';
+        }
 
-        $validated = $request->validate($baseRules);
+        $validator = Validator::make($request->all(), $baseRules);
+        $validator->after(function (\Illuminate\Validation\Validator $v) use ($ruleType, $request): void {
+            $jobPatterns = $this->private__sanitizePatternArray($request->input('job_patterns'));
+            $queuePatterns = $this->private__sanitizePatternArray($request->input('queue_patterns'));
+
+            $jobTypeInput = \trim((string) $request->input('job_type', ''));
+            $jobPatternsMerged = $this->private__mergeJobTypeIntoPatterns($jobPatterns, $jobTypeInput !== '' ? $jobTypeInput : null);
+            if ($ruleType === 'job_type_failure' && $jobPatternsMerged === []) {
+                $v->errors()->add('job_type', 'Enter a job type substring or add at least one job pattern.');
+            }
+            foreach ($jobPatternsMerged as $p) {
+                if (\strlen($p) > 255) {
+                    $v->errors()->add('job_patterns', 'Each job pattern must be at most 255 characters.');
+
+                    break;
+                }
+            }
+            foreach ($queuePatterns as $p) {
+                if (\strlen($p) > 255) {
+                    $v->errors()->add('queue_patterns', 'Each queue name must be at most 255 characters.');
+
+                    break;
+                }
+            }
+            if ($ruleType === 'job_specific_failure') {
+                $minFails = (int) $request->input('thresholdCount', 1);
+                if ($minFails < 1) {
+                    $minFails = 1;
+                }
+                $winMin = $request->input('thresholdMinutes');
+                if ($minFails > 1 && ($winMin === null || $winMin === '' || (int) $winMin < 1)) {
+                    $v->errors()->add('thresholdMinutes', 'Window minutes is required when minimum failures is greater than 1.');
+                }
+            }
+        });
+
+        $validated = $validator->validate();
+
+        $jobPatterns = $this->private__sanitizePatternArray($request->input('job_patterns'));
+        $jobPatterns = $this->private__mergeJobTypeIntoPatterns(
+            $jobPatterns,
+            ! empty($validated['job_type']) ? (string) $validated['job_type'] : null
+        );
+        $queuePatterns = $this->private__sanitizePatternArray($request->input('queue_patterns'));
 
         $threshold = [];
         if (\in_array($ruleType, ['failure_count', 'avg_execution_time', 'queue_blocked', 'worker_offline', 'supervisor_offline', 'horizon_offline'], true)) {
             $threshold['minutes'] = (int) ($validated['thresholdMinutes'] ?? 0);
+        }
+        if ($ruleType === 'job_type_failure') {
+            $threshold['minutes'] = (int) ($validated['thresholdMinutes'] ?? 0);
+            $typeFailCount = (int) ($validated['thresholdCount'] ?? 1);
+            if ($typeFailCount > 1) {
+                $threshold['count'] = $typeFailCount;
+            }
         }
         if ($ruleType === 'failure_count') {
             $threshold['count'] = (int) ($validated['thresholdCount'] ?? 0);
@@ -379,14 +505,47 @@ class AlertController extends Controller {
         if ($ruleType === 'avg_execution_time') {
             $threshold['seconds'] = (float) ($validated['thresholdSeconds'] ?? 0.0);
         }
+        if ($ruleType === 'job_specific_failure') {
+            $jsCount = (int) ($validated['thresholdCount'] ?? 1);
+            if ($jsCount > 1) {
+                $threshold['count'] = $jsCount;
+                $threshold['minutes'] = (int) ($validated['thresholdMinutes'] ?? 15);
+            }
+        }
+
+        $patternRuleTypes = ['job_specific_failure', 'job_type_failure', 'failure_count', 'avg_execution_time'];
+        $queuePatternRuleTypes = ['job_specific_failure', 'job_type_failure', 'failure_count', 'avg_execution_time', 'queue_blocked'];
+        if (\in_array($ruleType, $patternRuleTypes, true)) {
+            if ($jobPatterns !== []) {
+                $threshold['job_patterns'] = $jobPatterns;
+            }
+        }
+        $queuePatternsMerged = $queuePatterns;
+        if ($queuePatternsMerged === [] && ! empty($validated['queue'])) {
+            $queuePatternsMerged = [(string) $validated['queue']];
+        }
+        if (\in_array($ruleType, $queuePatternRuleTypes, true)) {
+            if ($queuePatternsMerged !== []) {
+                $threshold['queue_patterns'] = $queuePatternsMerged;
+            }
+        }
+
+        $queueColumn = null;
+        if (\in_array($ruleType, $queuePatternRuleTypes, true) && $queuePatternsMerged !== []) {
+            $queueColumn = $queuePatternsMerged[0];
+        } elseif (! empty($validated['queue'])) {
+            $queueColumn = (string) $validated['queue'];
+        }
+
+        $jobTypeColumn = $this->private__jobTypeColumnFromPatterns($jobPatterns);
 
         $alertData = [
             'name' => $validated['name'] ?? null,
             'service_id' => ! empty($validated['service_id']) ? (int) $validated['service_id'] : null,
             'rule_type' => $ruleType,
             'threshold' => $threshold,
-            'queue' => ! empty($validated['queue']) ? $validated['queue'] : null,
-            'job_type' => ! empty($validated['job_type']) ? $validated['job_type'] : null,
+            'queue' => $queueColumn,
+            'job_type' => $jobTypeColumn,
             'enabled' => (bool) $validated['enabled'],
             'email_interval_minutes' => (int) $validated['email_interval_minutes'],
         ];

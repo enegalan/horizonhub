@@ -12,6 +12,7 @@ class Alert extends Model {
     public const RULE_JOB_SPECIFIC_FAILURE = 'job_specific_failure';
     public const RULE_JOB_TYPE_FAILURE = 'job_type_failure';
     public const RULE_FAILURE_COUNT = 'failure_count';
+    public const RULE_AVG_EXECUTION_TIME = 'avg_execution_time';
     public const RULE_QUEUE_BLOCKED = 'queue_blocked';
     public const RULE_WORKER_OFFLINE = 'worker_offline';
     public const RULE_SUPERVISOR_OFFLINE = 'supervisor_offline';
