@@ -198,17 +198,19 @@
                     <p class="text-xs text-muted-foreground">{{ $workloadQueues->count() }} queue(s)</p>
                 @endif
             </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full" data-resizable-table="horizon-service-queues" data-column-ids="queue,jobs,processes,wait">
-                    <thead>
-                        <tr class="border-b border-border bg-muted/50">
-                            <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="queue">Queue</th>
-                            <th class="table-header px-4 py-2.5" data-column-id="jobs">Jobs</th>
-                            <th class="table-header px-4 py-2.5" data-column-id="processes">Processes</th>
-                            <th class="table-header px-4 py-2.5" data-column-id="wait">Wait</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-border" data-table-body="horizon-service-queues">
+            <x-data-table
+                resizable-key="horizon-service-queues"
+                column-ids="queue,jobs,processes,wait"
+                body-key="horizon-service-queues"
+            >
+                <x-slot:head>
+                    <tr class="border-b border-border bg-muted/50">
+                        <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="queue">Queue</th>
+                        <th class="table-header px-4 py-2.5" data-column-id="jobs">Jobs</th>
+                        <th class="table-header px-4 py-2.5" data-column-id="processes">Processes</th>
+                        <th class="table-header px-4 py-2.5" data-column-id="wait">Wait</th>
+                    </tr>
+                </x-slot:head>
                         @forelse($workloadQueues as $row)
                             <tr class="transition-colors hover:bg-muted/30">
                                 <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground break-all" data-column-id="queue">
@@ -239,9 +241,7 @@
                                 </td>
                             </tr>
                         @endforelse
-                    </tbody>
-                </table>
-            </div>
+            </x-data-table>
         </div>
 
         @if(isset($supervisorGroups) && $supervisorGroups->isNotEmpty())
@@ -251,22 +251,20 @@
                         <h3 class="text-section-title text-foreground">{{ $groupName }}</h3>
                         <p class="text-xs text-muted-foreground">{{ $groupSupervisors->count() }} supervisor(s)</p>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table
-                            class="min-w-full"
-                            data-resizable-table="horizon-service-supervisors-{{ \Illuminate\Support\Str::slug($groupName) }}"
-                            data-column-ids="supervisor,connection,queues,processes,balancing"
-                        >
-                            <thead>
-                                <tr class="border-b border-border bg-muted/50">
-                                    <th class="table-header px-4 py-2.5 min-w-[160px]" data-column-id="supervisor">Supervisor</th>
-                                    <th class="table-header px-4 py-2.5 min-w-[120px]" data-column-id="connection">Connection</th>
-                                    <th class="table-header px-4 py-2.5 min-w-[160px]" data-column-id="queues">Queues</th>
-                                    <th class="table-header px-4 py-2.5 min-w-[80px]" data-column-id="processes">Processes</th>
-                                    <th class="table-header px-4 py-2.5 min-w-[120px]" data-column-id="balancing">Balancing</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-border" data-table-body="horizon-service-supervisors-{{ \Illuminate\Support\Str::slug($groupName) }}">
+                    <x-data-table
+                        resizable-key="horizon-service-supervisors-{{ \Illuminate\Support\Str::slug($groupName) }}"
+                        column-ids="supervisor,connection,queues,processes,balancing"
+                        body-key="horizon-service-supervisors-{{ \Illuminate\Support\Str::slug($groupName) }}"
+                    >
+                        <x-slot:head>
+                            <tr class="border-b border-border bg-muted/50">
+                                <th class="table-header px-4 py-2.5 min-w-[160px]" data-column-id="supervisor">Supervisor</th>
+                                <th class="table-header px-4 py-2.5 min-w-[120px]" data-column-id="connection">Connection</th>
+                                <th class="table-header px-4 py-2.5 min-w-[160px]" data-column-id="queues">Queues</th>
+                                <th class="table-header px-4 py-2.5 min-w-[80px]" data-column-id="processes">Processes</th>
+                                <th class="table-header px-4 py-2.5 min-w-[120px]" data-column-id="balancing">Balancing</th>
+                            </tr>
+                        </x-slot:head>
                                 @foreach($groupSupervisors as $supervisor)
                                     <tr class="transition-colors hover:bg-muted/30">
                                         <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground break-all" data-column-id="supervisor">
@@ -286,9 +284,7 @@
                                         </td>
                                     </tr>
                                 @endforeach
-                            </tbody>
-                        </table>
-                    </div>
+                    </x-data-table>
                 </div>
             @endforeach
         @endif
@@ -335,19 +331,21 @@
                         <span>Processing</span>
                     </summary>
                     <div class="pt-2">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full" data-resizable-table="horizon-service-dashboard-jobs-processing" data-column-ids="uuid,queue,job,attempts,queued_at,processed,failed_at,runtime,actions">
-                            <thead>
-                                <tr class="border-b border-border bg-muted/50">
-                                    <th class="table-header px-4 py-2.5" data-column-id="uuid">UUID</th>
-                                    <th class="table-header px-4 py-2.5" data-column-id="queue">Queue</th>
-                                    <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
-                                    <th class="table-header px-4 py-2.5" data-column-id="attempts">Attempts</th>
-                                    <th class="table-header px-4 py-2.5" data-column-id="queued_at">Queued at</th>
-                                    <th class="table-header px-4 py-2.5" data-column-id="actions">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-border" data-table-body="horizon-service-dashboard-jobs-processing">
+                    <x-data-table
+                        resizable-key="horizon-service-dashboard-jobs-processing"
+                        column-ids="uuid,queue,job,attempts,queued_at,processed,failed_at,runtime,actions"
+                        body-key="horizon-service-dashboard-jobs-processing"
+                    >
+                        <x-slot:head>
+                            <tr class="border-b border-border bg-muted/50">
+                                <th class="table-header px-4 py-2.5" data-column-id="uuid">UUID</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="queue">Queue</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="attempts">Attempts</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="queued_at">Queued at</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="actions">Actions</th>
+                            </tr>
+                        </x-slot:head>
                                 @forelse($jobsProcessing as $job)
                                     <tr class="transition-colors hover:bg-muted/30">
                                         <td class="px-4 py-2.5 text-sm text-primary cursor-pointer truncate max-w-[180px]" data-column-id="uuid">
@@ -412,9 +410,7 @@
                                         </td>
                                     </tr>
                                 @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                    </x-data-table>
                     <div class="border-t border-border px-4 py-2 mt-2">
                         <x-pagination :paginator="$jobsProcessing" />
                     </div>
@@ -431,21 +427,23 @@
                         <span>Processed</span>
                     </summary>
                     <div class="pt-2">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full" data-resizable-table="horizon-service-dashboard-jobs-processed" data-column-ids="uuid,queue,job,attempts,queued_at,processed,failed_at,runtime,actions">
-                            <thead>
-                                <tr class="border-b border-border bg-muted/50">
-                                    <th class="table-header px-4 py-2.5" data-column-id="uuid">UUID</th>
-                                    <th class="table-header px-4 py-2.5" data-column-id="queue">Queue</th>
-                                    <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
-                                    <th class="table-header px-4 py-2.5" data-column-id="attempts">Attempts</th>
-                                    <th class="table-header px-4 py-2.5" data-column-id="queued_at">Queued at</th>
-                                    <th class="table-header px-4 py-2.5" data-column-id="processed">Processed</th>
-                                    <th class="table-header px-4 py-2.5" data-column-id="runtime">Runtime</th>
-                                    <th class="table-header px-4 py-2.5" data-column-id="actions">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-border" data-table-body="horizon-service-dashboard-jobs-processed">
+                    <x-data-table
+                        resizable-key="horizon-service-dashboard-jobs-processed"
+                        column-ids="uuid,queue,job,attempts,queued_at,processed,failed_at,runtime,actions"
+                        body-key="horizon-service-dashboard-jobs-processed"
+                    >
+                        <x-slot:head>
+                            <tr class="border-b border-border bg-muted/50">
+                                <th class="table-header px-4 py-2.5" data-column-id="uuid">UUID</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="queue">Queue</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="attempts">Attempts</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="queued_at">Queued at</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="processed">Processed</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="runtime">Runtime</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="actions">Actions</th>
+                            </tr>
+                        </x-slot:head>
                                 @forelse($jobsProcessed as $job)
                                     <tr class="transition-colors hover:bg-muted/30">
                                         <td class="px-4 py-2.5 text-sm text-primary underline cursor-pointer truncate max-w-[180px]" data-column-id="uuid">
@@ -512,9 +510,7 @@
                                         </td>
                                     </tr>
                                 @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                    </x-data-table>
                     <div class="border-t border-border px-4 py-2 mt-2">
                         <x-pagination :paginator="$jobsProcessed" />
                     </div>
@@ -531,21 +527,23 @@
                         <span>Failed</span>
                     </summary>
                     <div class="pt-2">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full" data-resizable-table="horizon-service-dashboard-jobs-failed" data-column-ids="uuid,queue,job,attempts,queued_at,processed,failed_at,runtime,actions">
-                            <thead>
-                                <tr class="border-b border-border bg-muted/50">
-                                    <th class="table-header px-4 py-2.5" data-column-id="uuid">UUID</th>
-                                    <th class="table-header px-4 py-2.5" data-column-id="queue">Queue</th>
-                                    <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
-                                    <th class="table-header px-4 py-2.5" data-column-id="attempts">Attempts</th>
-                                    <th class="table-header px-4 py-2.5" data-column-id="queued_at">Queued at</th>
-                                    <th class="table-header px-4 py-2.5" data-column-id="failed_at">Failed at</th>
-                                    <th class="table-header px-4 py-2.5" data-column-id="runtime">Runtime</th>
-                                    <th class="table-header px-4 py-2.5" data-column-id="actions">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-border" data-table-body="horizon-service-dashboard-jobs-failed">
+                    <x-data-table
+                        resizable-key="horizon-service-dashboard-jobs-failed"
+                        column-ids="uuid,queue,job,attempts,queued_at,processed,failed_at,runtime,actions"
+                        body-key="horizon-service-dashboard-jobs-failed"
+                    >
+                        <x-slot:head>
+                            <tr class="border-b border-border bg-muted/50">
+                                <th class="table-header px-4 py-2.5" data-column-id="uuid">UUID</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="queue">Queue</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="attempts">Attempts</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="queued_at">Queued at</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="failed_at">Failed at</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="runtime">Runtime</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="actions">Actions</th>
+                            </tr>
+                        </x-slot:head>
                                 @forelse($jobsFailed as $job)
                                     <tr class="transition-colors hover:bg-muted/30">
                                         <td class="px-4 py-2.5 text-sm text-primary underline cursor-pointer truncate max-w-[180px]" data-column-id="uuid">
@@ -612,9 +610,7 @@
                                         </td>
                                     </tr>
                                 @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                    </x-data-table>
                     <div class="border-t border-border px-4 py-2 mt-2">
                         <x-pagination :paginator="$jobsFailed" />
                     </div>

@@ -91,18 +91,21 @@
                     <h3 class="text-section-title text-foreground">Current workload</h3>
                     <p id="metrics-workload-summary" class="text-xs text-muted-foreground">{{ $workloadSummary ?? '' }}</p>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full" data-resizable-table="horizon-metrics-queues" data-column-ids="service,queue,jobs,processes,wait">
-                        <thead>
-                            <tr class="border-b border-border bg-muted/50">
-                                <th class="table-header px-4 py-2.5 min-w-[140px]" data-column-id="service">Service</th>
-                                <th class="table-header px-4 py-2.5 min-w-[120px]" data-column-id="queue">Queue</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="jobs">Jobs</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="processes">Processes</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="wait">Wait</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-border" data-table-body="horizon-metrics-queues" id="metrics-workload-body">
+                <x-data-table
+                    resizable-key="horizon-metrics-queues"
+                    column-ids="service,queue,jobs,processes,wait"
+                    body-key="horizon-metrics-queues"
+                    body-id="metrics-workload-body"
+                >
+                    <x-slot:head>
+                        <tr class="border-b border-border bg-muted/50">
+                            <th class="table-header px-4 py-2.5 min-w-[140px]" data-column-id="service">Service</th>
+                            <th class="table-header px-4 py-2.5 min-w-[120px]" data-column-id="queue">Queue</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="jobs">Jobs</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="processes">Processes</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="wait">Wait</th>
+                        </tr>
+                    </x-slot:head>
                             <tr id="metrics-workload-empty" style="{{ (is_array($workloadRows ?? null) && \count($workloadRows) > 0) ? 'display:none;' : '' }}">
                                 <td colspan="5" data-column-id="service">
                                     <div class="empty-state">
@@ -136,9 +139,7 @@
                                     </td>
                                 </tr>
                             @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                </x-data-table>
             </div>
 
             <div class="card">
@@ -146,18 +147,21 @@
                     <h3 class="text-section-title text-foreground">Supervisors</h3>
                     <p id="metrics-supervisors-summary" class="text-xs text-muted-foreground">{{ $supervisorsSummary ?? '' }}</p>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full" data-resizable-table="horizon-metrics-supervisors" data-column-ids="service,supervisor,jobs,processes,status">
-                        <thead>
-                            <tr class="border-b border-border bg-muted/50">
-                                <th class="table-header px-4 py-2.5 min-w-[140px]" data-column-id="service">Service</th>
-                                <th class="table-header px-4 py-2.5 min-w-[160px]" data-column-id="supervisor">Supervisor</th>
-                                <th class="table-header px-4 py-2.5 min-w-[80px]" data-column-id="jobs">Jobs</th>
-                                <th class="table-header px-4 py-2.5 min-w-[80px]" data-column-id="processes">Processes</th>
-                                <th class="table-header px-4 py-2.5 min-w-[80px]" data-column-id="status">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-border" data-table-body="horizon-metrics-supervisors" id="metrics-supervisors-body">
+                <x-data-table
+                    resizable-key="horizon-metrics-supervisors"
+                    column-ids="service,supervisor,jobs,processes,status"
+                    body-key="horizon-metrics-supervisors"
+                    body-id="metrics-supervisors-body"
+                >
+                    <x-slot:head>
+                        <tr class="border-b border-border bg-muted/50">
+                            <th class="table-header px-4 py-2.5 min-w-[140px]" data-column-id="service">Service</th>
+                            <th class="table-header px-4 py-2.5 min-w-[160px]" data-column-id="supervisor">Supervisor</th>
+                            <th class="table-header px-4 py-2.5 min-w-[80px]" data-column-id="jobs">Jobs</th>
+                            <th class="table-header px-4 py-2.5 min-w-[80px]" data-column-id="processes">Processes</th>
+                            <th class="table-header px-4 py-2.5 min-w-[80px]" data-column-id="status">Status</th>
+                        </tr>
+                    </x-slot:head>
                             <tr id="metrics-supervisors-empty" style="{{ (is_array($supervisorsRows ?? null) && \count($supervisorsRows) > 0) ? 'display:none;' : '' }}">
                                 <td colspan="5" data-column-id="service">
                                     <div class="empty-state">
@@ -191,9 +195,7 @@
                                     </td>
                                 </tr>
                             @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                </x-data-table>
             </div>
         </div>
     </div>

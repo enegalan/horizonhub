@@ -109,28 +109,29 @@
                 </div>
 
                 <div class="card">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full">
-                            <thead>
-                                <tr class="border-b border-border bg-muted/50">
-                                    <th class="table-header px-4 py-2.5">Name</th>
-                                    <th class="table-header px-4 py-2.5">Type</th>
-                                    <th class="table-header px-4 py-2.5">Config</th>
-                                    <th class="table-header px-4 py-2.5 w-24" data-column-id="actions">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-border">
+                    <x-data-table
+                        resizable-key="horizon-settings-providers"
+                        column-ids="name,type,config,actions"
+                    >
+                        <x-slot:head>
+                            <tr class="border-b border-border bg-muted/50">
+                                <th class="table-header px-4 py-2.5" data-column-id="name">Name</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="type">Type</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="config">Config</th>
+                                <th class="table-header px-4 py-2.5 w-24" data-column-id="actions">Actions</th>
+                            </tr>
+                        </x-slot:head>
                                 @forelse($providers as $provider)
                                     <tr class="transition-colors hover:bg-muted/30">
-                                        <td class="px-4 py-2.5 text-sm font-medium">{{ $provider->name }}</td>
-                                        <td class="px-4 py-2.5">
+                                        <td class="px-4 py-2.5 text-sm font-medium" data-column-id="name">{{ $provider->name }}</td>
+                                        <td class="px-4 py-2.5" data-column-id="type">
                                             @if($provider->type === 'slack')
                                                 <span class="badge">Slack</span>
                                             @else
                                                 <span class="badge">Email</span>
                                             @endif
                                         </td>
-                                        <td class="px-4 py-2.5 text-sm text-muted-foreground font-mono max-w-xs truncate">
+                                        <td class="px-4 py-2.5 text-sm text-muted-foreground font-mono max-w-xs truncate" data-column-id="config">
                                             @if($provider->type === 'slack')
                                                 {{ $provider->getWebhookUrl() ?: '–' }}
                                             @else
@@ -167,7 +168,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4">
+                                        <td colspan="4" data-column-id="name">
                                             <div class="empty-state">
                                                 <x-heroicon-o-bell class="empty-state-icon" />
                                                 <p class="empty-state-title">No providers</p>
@@ -183,9 +184,7 @@
                                         </td>
                                     </tr>
                                 @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                    </x-data-table>
                 </div>
             </div>
         </div>

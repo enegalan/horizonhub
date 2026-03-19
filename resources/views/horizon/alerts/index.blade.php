@@ -42,40 +42,41 @@
     </div>
 
     <div class="card">
-        <div class="overflow-x-auto">
-            <table class="min-w-full" data-resizable-table="horizon-alerts-list">
-                <thead>
-                    <tr class="border-b border-border bg-muted/50">
-                        <th class="table-header px-4 py-2.5">Name</th>
-                        <th class="table-header px-4 py-2.5">Service</th>
-                        <th class="table-header px-4 py-2.5">Rule type</th>
-                        <th class="table-header px-4 py-2.5">Queue</th>
-                        <th class="table-header px-4 py-2.5">Job type</th>
-                        <th class="table-header px-4 py-2.5">Enabled</th>
-                        <th class="table-header px-4 py-2.5">Last triggered</th>
-                        <th class="table-header px-4 py-2.5 w-24" data-column-id="actions">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-border">
+        <x-data-table
+            resizable-key="horizon-alerts-list"
+            column-ids="name,service,rule_type,queue,job_type,enabled,last_triggered,actions"
+        >
+            <x-slot:head>
+                <tr class="border-b border-border bg-muted/50">
+                    <th class="table-header px-4 py-2.5" data-column-id="name">Name</th>
+                    <th class="table-header px-4 py-2.5" data-column-id="service">Service</th>
+                    <th class="table-header px-4 py-2.5" data-column-id="rule_type">Rule type</th>
+                    <th class="table-header px-4 py-2.5" data-column-id="queue">Queue</th>
+                    <th class="table-header px-4 py-2.5" data-column-id="job_type">Job type</th>
+                    <th class="table-header px-4 py-2.5" data-column-id="enabled">Enabled</th>
+                    <th class="table-header px-4 py-2.5" data-column-id="last_triggered">Last triggered</th>
+                    <th class="table-header px-4 py-2.5 w-24" data-column-id="actions">Actions</th>
+                </tr>
+            </x-slot:head>
                     @forelse($alerts as $alert)
                         <tr class="transition-colors hover:bg-muted/30">
-                            <td class="px-4 py-2.5 text-sm font-medium">
+                            <td class="px-4 py-2.5 text-sm font-medium" data-column-id="name">
                                 <a href="{{ route('horizon.alerts.show', $alert) }}" class="link">{{ $alert->name ?: ('Alert #' . $alert->id) }}</a>
                             </td>
-                            <td class="px-4 py-2.5 text-sm text-muted-foreground">
+                            <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="service">
                                 {{ $alert->service_id ? $alert->service->name : 'All' }}
                             </td>
-                            <td class="px-4 py-2.5 text-sm font-mono text-muted-foreground">{{ $alert->rule_type }}</td>
-                            <td class="px-4 py-2.5 text-sm text-muted-foreground">{{ $alert->queue ?? '–' }}</td>
-                            <td class="px-4 py-2.5 text-sm text-muted-foreground">{{ $alert->job_type ?? '–' }}</td>
-                            <td class="px-4 py-2.5">
+                            <td class="px-4 py-2.5 text-sm font-mono text-muted-foreground" data-column-id="rule_type">{{ $alert->rule_type }}</td>
+                            <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="queue">{{ $alert->queue ?? '–' }}</td>
+                            <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="job_type">{{ $alert->job_type ?? '–' }}</td>
+                            <td class="px-4 py-2.5" data-column-id="enabled">
                                 @if($alert->enabled)
                                     <span class="badge-success">On</span>
                                 @else
                                     <span class="badge-danger">Off</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-2.5 text-xs text-muted-foreground">
+                            <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="last_triggered">
                                 @if($alert->alert_logs_max_sent_at)
                                     {{ \Carbon\Carbon::parse($alert->alert_logs_max_sent_at)->diffForHumans() }}
                                 @else
@@ -129,7 +130,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8">
+                            <td colspan="8" data-column-id="name">
                                 <div class="empty-state">
                                     <x-heroicon-o-bell class="empty-state-icon" />
                                     <p class="empty-state-title">No alerts</p>
@@ -145,8 +146,6 @@
                             </td>
                         </tr>
                     @endforelse
-                </tbody>
-            </table>
-        </div>
+        </x-data-table>
     </div>
 @endsection
