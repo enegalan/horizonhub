@@ -8,13 +8,31 @@
     >
         <div class="px-4 py-3 flex items-center justify-between">
             <h2 class="text-section-title text-foreground">Alert rules</h2>
-            <x-button
-                type="button"
-                class="h-9 text-sm"
-                onclick="window.location.href='{{ route('horizon.alerts.create') }}'"
-            >
-                New alert
-            </x-button>
+            <div class="flex items-center gap-2">
+                @if($alerts->where('enabled', true)->count() > 0)
+                    <x-button
+                        variant="secondary"
+                        type="button"
+                        class="h-9 text-sm alert-evaluate-btn"
+                        data-alert-evaluate-all-button="1"
+                        data-alert-evaluate-all-url="{{ route('horizon.alerts.evaluate-all') }}"
+                        data-alert-evaluate-all-status-url="{{ route('horizon.alerts.evaluations.status', ['evaluationId' => '__EVALUATION_ID__']) }}"
+                    >
+                        <span class="inline-flex items-center gap-2">
+                            <x-heroicon-o-bell class="size-4 alert-evaluate-btn-icon" />
+                            <x-heroicon-o-arrow-path class="size-4 animate-spin alert-evaluate-btn-spinner hidden" />
+                            <span data-alert-evaluate-all-label>Evaluate all alerts</span>
+                        </span>
+                    </x-button>
+                @endif
+                <x-button
+                    type="button"
+                    class="h-9 text-sm"
+                    onclick="window.location.href='{{ route('horizon.alerts.create') }}'"
+                >
+                    New alert
+                </x-button>
+            </div>
         </div>
         @if(session('status'))
             <div class="px-4 pb-3 text-xs text-muted-foreground">
@@ -66,6 +84,23 @@
                             </td>
                             <td class="px-4 py-2.5" data-column-id="actions">
                                 <div class="flex items-center gap-2">
+                                    <x-button
+                                        variant="ghost"
+                                        type="button"
+                                        class="h-8 min-h-8 p-2 alert-evaluate-btn"
+                                        disabled="{{ !$alert->enabled }}"
+                                        aria-label="Evaluate alert"
+                                        title="Evaluate alert"
+                                        data-alert-evaluate-button="1"
+                                        data-alert-id="{{ (int) $alert->id }}"
+                                        data-alert-evaluate-url="{{ route('horizon.alerts.evaluate', $alert) }}"
+                                        data-alert-evaluate-initial-disabled="{{ $alert->enabled ? '0' : '1' }}"
+                                    >
+                                        <span class="inline-flex items-center justify-center">
+                                            <x-heroicon-o-arrow-path class="size-4 alert-evaluate-btn-icon" />
+                                            <x-heroicon-o-arrow-path class="size-4 animate-spin alert-evaluate-btn-spinner hidden" />
+                                        </span>
+                                    </x-button>
                                     <x-button
                                         variant="ghost"
                                         type="button"
