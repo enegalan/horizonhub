@@ -118,8 +118,8 @@
                 <pre class="mt-1 max-h-52 overflow-auto rounded-md border border-border bg-muted/30 p-3 text-xs text-foreground">{{ json_encode($job->payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
             </div>
         @endif
-        @if($job->service && $job->service->base_url && $job->status === 'failed')
-            <div class="flex gap-2 pt-1">
+        <div class="flex flex-wrap gap-2 pt-1">
+            @if($job->service && $job->service->base_url && $job->status === 'failed')
                 <x-button
                     type="button"
                     class="h-8 min-h-8 p-2 relative"
@@ -135,7 +135,32 @@
                         <x-loader />
                     </span>
                 </x-button>
-            </div>
-        @endif
+            @endif
+            @php
+                $serviceForDashboard = $job->service ?? null;
+                $dashboardBase = $serviceForDashboard
+                    ? ($serviceForDashboard->public_url ?: $serviceForDashboard->base_url)
+                    : null;
+                $jobUuidForDashboard = $job->uuid ?? ($horizonJob['uuid'] ?? null);
+                $horizonDashboardPath = \rtrim(\config('horizonhub.horizon_paths.dashboard'), '/');
+                $horizonJobUrl = null;
+                if ($dashboardBase && $jobUuidForDashboard) {
+                    $horizonJobUrl = \rtrim($dashboardBase, '/') . $horizonDashboardPath . '/jobs/' . \urlencode((string) $jobUuidForDashboard);
+                }
+            @endphp
+            @if($horizonJobUrl)
+                <x-button
+                    type="button"
+                    variant="secondary"
+                    class="h-8 min-h-8 px-3 inline-flex items-center gap-1"
+                    aria-label="Open in Horizon dashboard"
+                    title="Open in Horizon dashboard"
+                    onclick="try { window.open('{{ $horizonJobUrl }}', '_blank'); } catch (e) {}"
+                >
+                    <x-heroicon-o-window class="size-4" />
+                    <span class="text-xs font-medium">Open in Horizon</span>
+                </x-button>
+            @endif
+        </div>
     </div>
 @endsection
