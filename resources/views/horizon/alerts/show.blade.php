@@ -143,18 +143,19 @@
                         </div>
                     </form>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full" data-resizable-table="horizon-alert-detail-logs" data-column-ids="sent_at,service,events,status,actions">
-                        <thead>
-                            <tr class="border-b border-border bg-muted/50">
-                                <th class="table-header px-4 py-2.5" data-column-id="sent_at">Sent at</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="service">Service</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="events">Events</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="status">Status</th>
-                                <th class="table-header px-4 py-2.5 w-24" data-column-id="actions">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-border">
+                <x-data-table
+                    resizable-key="horizon-alert-detail-logs"
+                    column-ids="sent_at,service,events,status,actions"
+                >
+                    <x-slot:head>
+                        <tr class="border-b border-border bg-muted/50">
+                            <th class="table-header px-4 py-2.5" data-column-id="sent_at">Sent at</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="service">Service</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="events">Events</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="status">Status</th>
+                            <th class="table-header px-4 py-2.5 w-24" data-column-id="actions">Actions</th>
+                        </tr>
+                    </x-slot:head>
                             @forelse($logs as $log)
                                 <tr class="transition-colors hover:bg-muted/30">
                                     <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="sent_at">{{ $log->sent_at->format('Y-m-d H:i:s') }}</td>
@@ -214,9 +215,7 @@
                                     </td>
                                 </tr>
                             @endforelse
-                        </tbody>
-                    </table>
-                </div>
+                </x-data-table>
                 <div class="border-t border-border px-4 py-2">
                     <x-pagination :paginator="$logs" />
                 </div>

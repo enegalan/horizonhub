@@ -67,20 +67,22 @@
                     <span>Processing</span>
                 </summary>
                 <div class="pt-2">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full" data-resizable-table="horizon-job-list-processing" data-column-ids="uuid,service,queue,job,attempts,queued_at,processed,failed_at,runtime,actions">
-                        <thead>
-                            <tr class="border-b border-border bg-muted/50">
-                                <th class="table-header px-4 py-2.5" data-column-id="uuid">UUID</th>
-                                <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="service">Service</th>
-                                <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="queue">Queue</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
-                                <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="attempts">Attempts</th>
-                                <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="queued_at">Queued at</th>
-                                <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="actions">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-border" data-table-body="horizon-job-list-processing">
+                <x-data-table
+                    resizable-key="horizon-job-list-processing"
+                    column-ids="uuid,service,queue,job,attempts,queued_at,processed,failed_at,runtime,actions"
+                    body-key="horizon-job-list-processing"
+                >
+                    <x-slot:head>
+                        <tr class="border-b border-border bg-muted/50">
+                            <th class="table-header px-4 py-2.5" data-column-id="uuid">UUID</th>
+                            <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="service">Service</th>
+                            <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="queue">Queue</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
+                            <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="attempts">Attempts</th>
+                            <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="queued_at">Queued at</th>
+                            <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="actions">Actions</th>
+                        </tr>
+                    </x-slot:head>
                             @forelse($jobsProcessing as $job)
                                 <tr class="transition-colors hover:bg-muted/30">
                                     <td class="px-4 py-2.5 text-sm text-primary cursor-pointer truncate max-w-[180px]" data-column-id="uuid">
@@ -145,9 +147,7 @@
                                     </td>
                                 </tr>
                             @endforelse
-                        </tbody>
-                    </table>
-                </div>
+                </x-data-table>
                 <div class="border-t border-border px-4 py-2 mt-2">
                     <x-pagination :paginator="$jobsProcessing" />
                 </div>
@@ -164,22 +164,24 @@
                     <span>Processed</span>
                 </summary>
                 <div class="pt-2">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full" data-resizable-table="horizon-job-list-processed" data-column-ids="uuid,service,queue,job,attempts,queued_at,processed,failed_at,runtime,actions">
-                        <thead>
-                            <tr class="border-b border-border bg-muted/50">
-                                <th class="table-header px-4 py-2.5" data-column-id="uuid">UUID</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="service">Service</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="queue">Queue</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="attempts">Attempts</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="queued_at">Queued at</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="processed">Processed</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="runtime">Runtime</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="actions">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-border" data-table-body="horizon-job-list-processed">
+                <x-data-table
+                    resizable-key="horizon-job-list-processed"
+                    column-ids="uuid,service,queue,job,attempts,queued_at,processed,failed_at,runtime,actions"
+                    body-key="horizon-job-list-processed"
+                >
+                    <x-slot:head>
+                        <tr class="border-b border-border bg-muted/50">
+                            <th class="table-header px-4 py-2.5" data-column-id="uuid">UUID</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="service">Service</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="queue">Queue</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="attempts">Attempts</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="queued_at">Queued at</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="processed">Processed</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="runtime">Runtime</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="actions">Actions</th>
+                        </tr>
+                    </x-slot:head>
                             @forelse($jobsProcessed as $job)
                                 <tr class="transition-colors hover:bg-muted/30">
                                     <td class="px-4 py-2.5 text-sm text-primary cursor-pointer truncate max-w-[180px]" data-column-id="uuid">
@@ -246,9 +248,7 @@
                                     </td>
                                 </tr>
                             @endforelse
-                        </tbody>
-                    </table>
-                </div>
+                </x-data-table>
                 <div class="border-t border-border px-4 py-2 mt-2">
                     <x-pagination :paginator="$jobsProcessed" />
                 </div>
@@ -265,22 +265,24 @@
                     <span>Failed</span>
                 </summary>
                 <div class="pt-2">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full" data-resizable-table="horizon-job-list-failed" data-column-ids="uuid,service,queue,job,attempts,queued_at,processed,failed_at,runtime,actions">
-                        <thead>
-                            <tr class="border-b border-border bg-muted/50">
-                                <th class="table-header px-4 py-2.5" data-column-id="uuid">UUID</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="service">Service</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="queue">Queue</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="attempts">Attempts</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="queued_at">Queued at</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="failed_at">Failed at</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="runtime">Runtime</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="actions">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-border" data-table-body="horizon-job-list-failed">
+                <x-data-table
+                    resizable-key="horizon-job-list-failed"
+                    column-ids="uuid,service,queue,job,attempts,queued_at,processed,failed_at,runtime,actions"
+                    body-key="horizon-job-list-failed"
+                >
+                    <x-slot:head>
+                        <tr class="border-b border-border bg-muted/50">
+                            <th class="table-header px-4 py-2.5" data-column-id="uuid">UUID</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="service">Service</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="queue">Queue</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="attempts">Attempts</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="queued_at">Queued at</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="failed_at">Failed at</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="runtime">Runtime</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="actions">Actions</th>
+                        </tr>
+                    </x-slot:head>
                             @forelse($jobsFailed as $job)
                                 <tr class="transition-colors hover:bg-muted/30">
                                     <td class="px-4 py-2.5 text-sm text-primary cursor-pointer truncate max-w-[180px]" data-column-id="uuid">
@@ -347,9 +349,7 @@
                                     </td>
                                 </tr>
                             @endforelse
-                        </tbody>
-                    </table>
-                </div>
+                </x-data-table>
                 <div class="border-t border-border px-4 py-2 mt-2">
                     <x-pagination :paginator="$jobsFailed" />
                 </div>
@@ -441,8 +441,12 @@
                                 class="min-h-0 flex-1 overflow-x-auto overflow-y-auto rounded-md border border-border"
                                 style="max-height: min(45vh, 320px);"
                             >
-                                <table class="min-w-full text-sm">
-                                    <thead class="bg-muted/50 sticky top-0">
+                                <x-data-table
+                                    :wrap="false"
+                                    table-class="text-sm"
+                                    thead-class="bg-muted/50 sticky top-0"
+                                >
+                                    <x-slot:head>
                                         <tr class="border-b border-border">
                                             <th class="w-10 px-3 py-2 text-left"></th>
                                             <th class="px-3 py-2 text-left font-medium text-foreground">Service</th>
@@ -450,8 +454,7 @@
                                             <th class="px-3 py-2 text-left font-medium text-foreground">Job</th>
                                             <th class="px-3 py-2 text-left font-medium text-foreground">Failed at</th>
                                         </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-border">
+                                    </x-slot:head>
                                         <template x-if="failedJobs.length === 0">
                                             <tr>
                                                 <td colspan="5" class="px-3 py-6 text-center text-muted-foreground">
@@ -484,8 +487,7 @@
                                                 ></td>
                                             </tr>
                                         </template>
-                                    </tbody>
-                                </table>
+                                </x-data-table>
                             </div>
                             <div
                                 class="flex items-center justify-between px-3 py-2 text-xs text-muted-foreground"

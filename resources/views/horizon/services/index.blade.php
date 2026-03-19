@@ -42,21 +42,22 @@
         </div>
 
         <div class="card">
-            <div class="overflow-x-auto">
-                <table class="min-w-full" data-resizable-table="horizon-service-list" data-column-ids="name,base_url,status,horizon_status,jobs,failed,last_seen,actions">
-                    <thead>
-                        <tr class="border-b border-border bg-muted/50">
-                            <th class="table-header px-4 py-2.5" data-column-id="name">Name</th>
-                            <th class="table-header px-4 py-2.5" data-column-id="base_url">Base URL</th>
-                            <th class="table-header px-4 py-2.5" data-column-id="status">Status</th>
-                            <th class="table-header px-4 py-2.5" data-column-id="horizon_status">Horizon Status</th>
-                            <th class="table-header px-4 py-2.5" data-column-id="jobs">Jobs</th>
-                            <th class="table-header px-4 py-2.5" data-column-id="failed">Failed</th>
-                            <th class="table-header px-4 py-2.5" data-column-id="last_seen">Last seen</th>
-                            <th class="table-header px-4 py-2.5 w-24" data-column-id="actions">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-border">
+            <x-data-table
+                resizable-key="horizon-service-list"
+                column-ids="name,base_url,status,horizon_status,jobs,failed,last_seen,actions"
+            >
+                <x-slot:head>
+                    <tr class="border-b border-border bg-muted/50">
+                        <th class="table-header px-4 py-2.5" data-column-id="name">Name</th>
+                        <th class="table-header px-4 py-2.5" data-column-id="base_url">Base URL</th>
+                        <th class="table-header px-4 py-2.5" data-column-id="status">Status</th>
+                        <th class="table-header px-4 py-2.5" data-column-id="horizon_status">Horizon Status</th>
+                        <th class="table-header px-4 py-2.5" data-column-id="jobs">Jobs</th>
+                        <th class="table-header px-4 py-2.5" data-column-id="failed">Failed</th>
+                        <th class="table-header px-4 py-2.5" data-column-id="last_seen">Last seen</th>
+                        <th class="table-header px-4 py-2.5 w-24" data-column-id="actions">Actions</th>
+                    </tr>
+                </x-slot:head>
                         @forelse($services as $service)
                             <tr class="transition-colors hover:bg-muted/30">
                                 <td class="px-4 py-2.5 text-sm font-medium" data-column-id="name">
@@ -166,9 +167,7 @@
                                 </td>
                             </tr>
                         @endforelse
-                    </tbody>
-                </table>
-            </div>
+            </x-data-table>
         </div>
     </div>
 @endsection
