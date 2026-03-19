@@ -46,7 +46,6 @@ class JobController extends Controller {
      */
     public function index(Request $request): View {
         $serviceFilter = (string) $request->query('serviceFilter', '');
-        $statusFilter = (string) $request->query('statusFilter', '');
         $search = (string) $request->query('search', '');
 
         $perPage = (int) \config('horizonhub.jobs_per_page');
@@ -59,58 +58,81 @@ class JobController extends Controller {
         /** @var \Illuminate\Support\Collection<int, Service> $servicesWithApi */
         $servicesWithApi = $servicesQuery->get();
 
-        $jobs = \collect();
+        $jobsProcessing = \collect();
+        $jobsProcessed = \collect();
+        $jobsFailed = \collect();
+
+        $apiQuery = [
+            'starting_at' => 0,
+            'limit' => $perPage,
+        ];
 
         foreach ($servicesWithApi as $service) {
-            $apiQuery = [
-                'starting_at' => 0,
-                'limit' => $perPage,
-            ];
+            $response = $this->horizonApi->getPendingJobs($service, $apiQuery);
+            $this->private__appendJobsFromApi($jobsProcessing, $service, $response, 'processing', $search);
 
-            $isFailed = $statusFilter === 'failed';
-            $isProcessed = $statusFilter === 'processed';
-            $isProcessing = $statusFilter === 'processing';
+            $response = $this->horizonApi->getCompletedJobs($service, $apiQuery);
+            $this->private__appendJobsFromApi($jobsProcessed, $service, $response, 'processed', $search);
 
-            if ($statusFilter === '' || $isFailed) {
-                $response = $this->horizonApi->getFailedJobs($service, $apiQuery);
-                $this->private__appendJobsFromApi($jobs, $service, $response, 'failed', $search);
-            }
-            if ($statusFilter === '' || $isProcessed) {
-                $response = $this->horizonApi->getCompletedJobs($service, $apiQuery);
-                $this->private__appendJobsFromApi($jobs, $service, $response, 'processed', $search);
-            }
-            if ($statusFilter === '' || $isProcessing) {
-                $response = $this->horizonApi->getPendingJobs($service, $apiQuery);
-                $this->private__appendJobsFromApi($jobs, $service, $response, 'processing', $search);
-            }
+            $response = $this->horizonApi->getFailedJobs($service, $apiQuery);
+            $this->private__appendJobsFromApi($jobsFailed, $service, $response, 'failed', $search);
         }
 
-        $page = (int) $request->query('page', 1);
-        if ($page < 1) {
-            $page = 1;
-        }
+        $pageProcessing = \max(1, (int) $request->query('page_processing', 1));
+        $pageProcessed = \max(1, (int) $request->query('page_processed', 1));
+        $pageFailed = \max(1, (int) $request->query('page_failed', 1));
 
-        $total = $jobs->count();
-        $offset = ($page - 1) * $perPage;
-        $pageItems = $perPage > 0 ? $jobs->slice($offset, $perPage)->values() : $jobs;
+        $totalProcessing = $jobsProcessing->count();
+        $totalProcessed = $jobsProcessed->count();
+        $totalFailed = $jobsFailed->count();
+
+        $offsetProcessing = ($pageProcessing - 1) * $perPage;
+        $offsetProcessed = ($pageProcessed - 1) * $perPage;
+        $offsetFailed = ($pageFailed - 1) * $perPage;
+
+        $pageItemsProcessing = $perPage > 0 ? $jobsProcessing->slice($offsetProcessing, $perPage)->values() : $jobsProcessing;
+        $pageItemsProcessed = $perPage > 0 ? $jobsProcessed->slice($offsetProcessed, $perPage)->values() : $jobsProcessed;
+        $pageItemsFailed = $perPage > 0 ? $jobsFailed->slice($offsetFailed, $perPage)->values() : $jobsFailed;
+
+        $baseQuery = $request->query();
+        $path = $request->url();
+
+        $paginatorProcessing = new \Illuminate\Pagination\LengthAwarePaginator(
+            $pageItemsProcessing,
+            $totalProcessing,
+            $perPage,
+            $pageProcessing,
+            ['path' => $path, 'query' => $baseQuery]
+        );
+        $paginatorProcessing->setPageName('page_processing');
+
+        $paginatorProcessed = new \Illuminate\Pagination\LengthAwarePaginator(
+            $pageItemsProcessed,
+            $totalProcessed,
+            $perPage,
+            $pageProcessed,
+            ['path' => $path, 'query' => $baseQuery]
+        );
+        $paginatorProcessed->setPageName('page_processed');
+
+        $paginatorFailed = new \Illuminate\Pagination\LengthAwarePaginator(
+            $pageItemsFailed,
+            $totalFailed,
+            $perPage,
+            $pageFailed,
+            ['path' => $path, 'query' => $baseQuery]
+        );
+        $paginatorFailed->setPageName('page_failed');
 
         $services = Service::orderBy('name')->get();
 
         return \view('horizon.jobs.index', [
-            'jobs' => new \Illuminate\Pagination\LengthAwarePaginator(
-                $pageItems,
-                $total,
-                $perPage,
-                $page,
-                [
-                    'path' => $request->url(),
-                    'query' => $request->query(),
-                ]
-            ),
+            'jobsProcessing' => $paginatorProcessing,
+            'jobsProcessed' => $paginatorProcessed,
+            'jobsFailed' => $paginatorFailed,
             'services' => $services,
             'filters' => [
                 'serviceFilter' => $serviceFilter,
-                'statusFilter' => $statusFilter,
                 'search' => $search,
             ],
             'header' => 'Horizon Hub – Jobs',

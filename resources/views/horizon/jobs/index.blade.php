@@ -19,19 +19,6 @@
                             <option value="{{ $s->id }}" @selected(($filters['serviceFilter'] ?? '') === (string) $s->id)>{{ $s->name }} ({{ $s->status }})</option>
                         @endforeach
                     </x-select>
-                    <input type="hidden" name="statusFilter" value="{{ $filters['statusFilter'] ?? '' }}">
-                    <input type="hidden" name="search" value="{{ $filters['search'] ?? '' }}">
-                </form>
-            </div>
-            <div class="space-y-2">
-                <x-input-label>Status</x-input-label>
-                <form method="GET" action="{{ route('horizon.index') }}">
-                    <x-select name="statusFilter" class="w-32" onchange="this.form.submit()" placeholder="All">
-                        <option value="processed" @selected(($filters['statusFilter'] ?? '') === 'processed')>Processed</option>
-                        <option value="failed" @selected(($filters['statusFilter'] ?? '') === 'failed')>Failed</option>
-                        <option value="processing" @selected(($filters['statusFilter'] ?? '') === 'processing')>Processing</option>
-                    </x-select>
-                    <input type="hidden" name="serviceFilter" value="{{ $filters['serviceFilter'] ?? '' }}">
                     <input type="hidden" name="search" value="{{ $filters['search'] ?? '' }}">
                 </form>
             </div>
@@ -46,7 +33,6 @@
                         class="w-56"
                     />
                     <input type="hidden" name="serviceFilter" value="{{ $filters['serviceFilter'] ?? '' }}">
-                    <input type="hidden" name="statusFilter" value="{{ $filters['statusFilter'] ?? '' }}">
                 </form>
             </div>
             <div class="flex items-end gap-2 ml-auto">
@@ -55,104 +41,216 @@
                 </x-button>
             </div>
         </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full" data-resizable-table="horizon-job-list" data-column-ids="service,queue,job,status,attempts,queued_at,processed,failed_at,runtime,actions">
-                <thead>
-                    <tr class="border-b border-border bg-muted/50">
-                        <th class="table-header px-4 py-2.5" data-column-id="service">Service</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="queue">Queue</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="status">Status</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="attempts">Attempts</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="queued_at">Queued at</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="processed">Processed</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="failed_at">Failed at</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="runtime">Runtime</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="actions">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-border">
-                    @forelse($jobs as $job)
-                        <tr class="transition-colors hover:bg-muted/30">
-                            <td class="px-4 py-2.5 text-sm font-medium text-foreground" data-column-id="service">{{ $job->service?->name ?? '–' }}</td>
-                            <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground" data-column-id="queue">{{ $job->queue }}</td>
-                            <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="job">{{ $job->name ?? $job->uuid }}</td>
-                            <td class="px-4 py-2.5" data-column-id="status">
-                                @php $jobStatus = $job->status ?? '–'; @endphp
-                                @if($jobStatus === 'failed')
-                                    <span class="badge-danger">{{ $jobStatus }}</span>
-                                @elseif($jobStatus === 'processed')
-                                    <span class="badge-success">{{ $jobStatus }}</span>
-                                @else
-                                    <span class="badge-muted">{{ $jobStatus }}</span>
-                                @endif
-                            </td>
-                            <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="attempts">
-                                @php
-                                    $attempts = $job->attempts;
-                                    $attemptsDisplay = ($attempts !== null && $attempts > 0) ? $attempts : '–';
-                                @endphp
-                                {{ $attemptsDisplay }}
-                            </td>
-                            <td
-                                class="px-4 py-2.5 text-xs text-muted-foreground"
-                                data-column-id="queued_at"
-                                data-datetime="{{ $job->queued_at?->format('c') ?? '' }}"
-                            >
-                                {{ $job->queued_at?->format('Y-m-d H:i:s') ?? '–' }}
-                            </td>
-                            <td
-                                class="px-4 py-2.5 text-xs text-muted-foreground"
-                                data-column-id="processed"
-                                data-datetime="{{ $job->processed_at?->format('c') ?? '' }}"
-                            >
-                                {{ $job->processed_at?->format('Y-m-d H:i:s') ?? '–' }}
-                            </td>
-                            <td
-                                class="px-4 py-2.5 text-xs text-muted-foreground"
-                                data-column-id="failed_at"
-                                data-datetime="{{ $job->failed_at?->format('c') ?? '' }}"
-                            >
-                                {{ $job->failed_at?->format('Y-m-d H:i:s') ?? '–' }}
-                            </td>
-                            <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="runtime">
-                                {{ $job->runtime ?? '–' }}
-                            </td>
-                            <td class="px-4 py-2.5" data-column-id="actions">
-                                <div class="flex items-center gap-2">
-                                    <x-button
-                                        variant="secondary"
-                                        class="h-8 min-h-8 p-2 rounded-md"
-                                        aria-label="View"
-                                        title="View"
-                                        onclick="window.location.href='{{ route('horizon.jobs.show', ['job' => $job->uuid]) }}'"
-                                    >
-                                        <x-heroicon-o-eye class="size-4" />
-                                    </x-button>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="10" data-column-id="service">
-                                <div class="empty-state">
-                                    <x-heroicon-o-document-text class="empty-state-icon" />
-                                    <p class="empty-state-title">No jobs yet</p>
-                                    @if($services->isEmpty())
-                                        <p class="empty-state-description">Register a service and push events from the Agent to see jobs here.</p>
-                                        <x-button type="button" class="text-xs" onclick="window.location.href='{{ route('horizon.services.index') }}'">Register a service</x-button>
-                                    @else
-                                        <p class="empty-state-description">No jobs match the current filters.</p>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        <div class="border-t border-border px-4 py-2">
-            <x-pagination :paginator="$jobs" />
+        <div
+            class="space-y-6 pt-4"
+            x-data="{
+                sectionOpen: { processing: true, processed: true, failed: true },
+                init() {
+                    try {
+                        const s = localStorage.getItem('horizon_jobs_sections');
+                        if (s) { this.sectionOpen = Object.assign({}, this.sectionOpen, JSON.parse(s)); }
+                    } catch (e) {}
+                },
+                onToggle(section, e) {
+                    this.sectionOpen[section] = e.target.open;
+                    localStorage.setItem('horizon_jobs_sections', JSON.stringify(this.sectionOpen));
+                }
+            }"
+        >
+            <details
+                class="group border-b border-border pb-4"
+                :open="sectionOpen.processing"
+                @toggle="onToggle('processing', $event)"
+            >
+                <summary class="flex cursor-pointer list-none items-center gap-2 py-2 pl-4 text-section-title text-foreground [&::-webkit-details-marker]:hidden">
+                    <x-heroicon-o-chevron-down class="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
+                    <span>Processing</span>
+                </summary>
+                <div class="pt-2">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full" data-resizable-table="horizon-job-list-processing" data-column-ids="service,queue,job,attempts,queued_at,processed,failed_at,runtime,actions">
+                        <thead>
+                            <tr class="border-b border-border bg-muted/50">
+                                <th class="table-header px-4 py-2.5" data-column-id="service">Service</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="queue">Queue</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="attempts">Attempts</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="queued_at">Queued at</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="processed">Processed</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="failed_at">Failed at</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="runtime">Runtime</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border" data-table-body="horizon-job-list-processing">
+                            @forelse($jobsProcessing as $job)
+                                <tr class="transition-colors hover:bg-muted/30">
+                                    <td class="px-4 py-2.5 text-sm font-medium text-foreground" data-column-id="service">{{ $job->service?->name ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground" data-column-id="queue">{{ $job->queue }}</td>
+                                    <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="job">{{ $job->name ?? $job->uuid }}</td>
+                                    <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="attempts">
+                                        @php $attempts = $job->attempts; $attemptsDisplay = ($attempts !== null && $attempts > 0) ? $attempts : '–'; @endphp
+                                        {{ $attemptsDisplay }}
+                                    </td>
+                                    <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="queued_at" data-datetime="{{ $job->queued_at?->format('c') ?? '' }}">{{ $job->queued_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="processed" data-datetime="{{ $job->processed_at?->format('c') ?? '' }}">{{ $job->processed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="failed_at" data-datetime="{{ $job->failed_at?->format('c') ?? '' }}">{{ $job->failed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="runtime">{{ $job->runtime ?? '–' }}</td>
+                                    <td class="px-4 py-2.5" data-column-id="actions">
+                                        <x-button variant="secondary" class="h-8 min-h-8 p-2 rounded-md" aria-label="View" title="View" onclick="window.location.href='{{ route('horizon.jobs.show', ['job' => $job->uuid]) }}'">
+                                            <x-heroicon-o-eye class="size-4" />
+                                        </x-button>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="9" data-column-id="service">
+                                        <div class="empty-state">
+                                            <x-heroicon-o-document-text class="empty-state-icon" />
+                                            <p class="empty-state-title">No processing jobs</p>
+                                            <p class="empty-state-description">Jobs currently being executed will appear here.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                <div class="border-t border-border px-4 py-2 mt-2">
+                    <x-pagination :paginator="$jobsProcessing" />
+                </div>
+                </div>
+            </details>
+
+            <details
+                class="group border-b border-border pb-4"
+                :open="sectionOpen.processed"
+                @toggle="onToggle('processed', $event)"
+            >
+                <summary class="flex cursor-pointer list-none items-center gap-2 py-2 pl-4 text-section-title text-foreground [&::-webkit-details-marker]:hidden">
+                    <x-heroicon-o-chevron-down class="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
+                    <span>Processed</span>
+                </summary>
+                <div class="pt-2">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full" data-resizable-table="horizon-job-list-processed" data-column-ids="service,queue,job,attempts,queued_at,processed,failed_at,runtime,actions">
+                        <thead>
+                            <tr class="border-b border-border bg-muted/50">
+                                <th class="table-header px-4 py-2.5" data-column-id="service">Service</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="queue">Queue</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="attempts">Attempts</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="queued_at">Queued at</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="processed">Processed</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="failed_at">Failed at</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="runtime">Runtime</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border" data-table-body="horizon-job-list-processed">
+                            @forelse($jobsProcessed as $job)
+                                <tr class="transition-colors hover:bg-muted/30">
+                                    <td class="px-4 py-2.5 text-sm font-medium text-foreground" data-column-id="service">{{ $job->service?->name ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground" data-column-id="queue">{{ $job->queue }}</td>
+                                    <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="job">{{ $job->name ?? $job->uuid }}</td>
+                                    <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="attempts">
+                                        @php $attempts = $job->attempts; $attemptsDisplay = ($attempts !== null && $attempts > 0) ? $attempts : '–'; @endphp
+                                        {{ $attemptsDisplay }}
+                                    </td>
+                                    <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="queued_at" data-datetime="{{ $job->queued_at?->format('c') ?? '' }}">{{ $job->queued_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="processed" data-datetime="{{ $job->processed_at?->format('c') ?? '' }}">{{ $job->processed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="failed_at" data-datetime="{{ $job->failed_at?->format('c') ?? '' }}">{{ $job->failed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="runtime">{{ $job->runtime ?? '–' }}</td>
+                                    <td class="px-4 py-2.5" data-column-id="actions">
+                                        <x-button variant="secondary" class="h-8 min-h-8 p-2 rounded-md" aria-label="View" title="View" onclick="window.location.href='{{ route('horizon.jobs.show', ['job' => $job->uuid]) }}'">
+                                            <x-heroicon-o-eye class="size-4" />
+                                        </x-button>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="9" data-column-id="service">
+                                        <div class="empty-state">
+                                            <x-heroicon-o-document-text class="empty-state-icon" />
+                                            <p class="empty-state-title">No processed jobs</p>
+                                            <p class="empty-state-description">Completed jobs will appear here.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                <div class="border-t border-border px-4 py-2 mt-2">
+                    <x-pagination :paginator="$jobsProcessed" />
+                </div>
+                </div>
+            </details>
+
+            <details
+                class="group border-b border-border pb-4"
+                :open="sectionOpen.failed"
+                @toggle="onToggle('failed', $event)"
+            >
+                <summary class="flex cursor-pointer list-none items-center gap-2 py-2 pl-4 text-section-title text-foreground [&::-webkit-details-marker]:hidden">
+                    <x-heroicon-o-chevron-down class="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
+                    <span>Failed</span>
+                </summary>
+                <div class="pt-2">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full" data-resizable-table="horizon-job-list-failed" data-column-ids="service,queue,job,attempts,queued_at,processed,failed_at,runtime,actions">
+                        <thead>
+                            <tr class="border-b border-border bg-muted/50">
+                                <th class="table-header px-4 py-2.5" data-column-id="service">Service</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="queue">Queue</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="attempts">Attempts</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="queued_at">Queued at</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="processed">Processed</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="failed_at">Failed at</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="runtime">Runtime</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border" data-table-body="horizon-job-list-failed">
+                            @forelse($jobsFailed as $job)
+                                <tr class="transition-colors hover:bg-muted/30">
+                                    <td class="px-4 py-2.5 text-sm font-medium text-foreground" data-column-id="service">{{ $job->service?->name ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground" data-column-id="queue">{{ $job->queue }}</td>
+                                    <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="job">{{ $job->name ?? $job->uuid }}</td>
+                                    <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="attempts">
+                                        @php $attempts = $job->attempts; $attemptsDisplay = ($attempts !== null && $attempts > 0) ? $attempts : '–'; @endphp
+                                        {{ $attemptsDisplay }}
+                                    </td>
+                                    <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="queued_at" data-datetime="{{ $job->queued_at?->format('c') ?? '' }}">{{ $job->queued_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="processed" data-datetime="{{ $job->processed_at?->format('c') ?? '' }}">{{ $job->processed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="failed_at" data-datetime="{{ $job->failed_at?->format('c') ?? '' }}">{{ $job->failed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="runtime">{{ $job->runtime ?? '–' }}</td>
+                                    <td class="px-4 py-2.5" data-column-id="actions">
+                                        <x-button variant="secondary" class="h-8 min-h-8 p-2 rounded-md" aria-label="View" title="View" onclick="window.location.href='{{ route('horizon.jobs.show', ['job' => $job->uuid]) }}'">
+                                            <x-heroicon-o-eye class="size-4" />
+                                        </x-button>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="9" data-column-id="service">
+                                        <div class="empty-state">
+                                            <x-heroicon-o-document-text class="empty-state-icon" />
+                                            <p class="empty-state-title">No failed jobs</p>
+                                            <p class="empty-state-description">Failed jobs will appear here.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                <div class="border-t border-border px-4 py-2 mt-2">
+                    <x-pagination :paginator="$jobsFailed" />
+                </div>
+                </div>
+            </details>
         </div>
         {{-- Retry jobs modal --}}
         <template x-if="showRetryModal">
