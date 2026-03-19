@@ -67,8 +67,30 @@
                                 {{ $alert->service_id ? $alert->service->name : 'All' }}
                             </td>
                             <td class="px-4 py-2.5 text-sm font-mono text-muted-foreground" data-column-id="rule_type">{{ $alert->rule_type }}</td>
-                            <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="queue">{{ $alert->queue ?? '–' }}</td>
-                            <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="job_type">{{ $alert->job_type ?? '–' }}</td>
+                            <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="queue">
+                                @php
+                                    $qps = isset($alert->threshold['queue_patterns']) && is_array($alert->threshold['queue_patterns']) ? $alert->threshold['queue_patterns'] : [];
+                                @endphp
+                                @if(\count($qps) > 1)
+                                    {{ $qps[0] }} (+{{ \count($qps) - 1 }})
+                                @elseif(\count($qps) === 1)
+                                    {{ $qps[0] }}
+                                @else
+                                    {{ $alert->queue ?? '–' }}
+                                @endif
+                            </td>
+                            <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="job_type">
+                                @php
+                                    $jps = isset($alert->threshold['job_patterns']) && is_array($alert->threshold['job_patterns']) ? $alert->threshold['job_patterns'] : [];
+                                @endphp
+                                @if(\count($jps) > 1)
+                                    {{ \Illuminate\Support\Str::limit((string) $jps[0], 24) }} (+{{ \count($jps) - 1 }})
+                                @elseif(\count($jps) === 1)
+                                    {{ \Illuminate\Support\Str::limit((string) $jps[0], 32) }}
+                                @else
+                                    {{ $alert->job_type ? \Illuminate\Support\Str::limit($alert->job_type, 32) : '–' }}
+                                @endif
+                            </td>
                             <td class="px-4 py-2.5" data-column-id="enabled">
                                 @if($alert->enabled)
                                     <span class="badge-success">On</span>

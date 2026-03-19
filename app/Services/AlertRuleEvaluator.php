@@ -6,6 +6,7 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\HorizonApiProxyService;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 class AlertRuleEvaluator {
 
@@ -67,47 +68,182 @@ class AlertRuleEvaluator {
     }
 
     /**
-     * Evaluate a job specific failure rule.
+     * Resolve the job patterns from the alert threshold.
      *
      * @param Alert $alert
-     * @param int $serviceId
-     * @param string|null $jobUuid
-     * @return bool
+     * @return array<int, string>
      */
-    private function private__evaluateJobSpecificFailure(Alert $alert, int $serviceId, ?string $jobUuid): bool {
-        if (empty($jobUuid)) {
-            return false;
+    private function private__resolveJobPatterns(Alert $alert): array {
+        $threshold = $alert->threshold ?? [];
+        $fromThreshold = $threshold['job_patterns'] ?? [];
+        if (! \is_array($fromThreshold)) {
+            $fromThreshold = [];
         }
-
-        $service = Service::find($serviceId);
-        if (! $service || ! $service->base_url) {
-            return false;
+        $patterns = [];
+        foreach ($fromThreshold as $p) {
+            if (\is_string($p) && $p !== '') {
+                $patterns[] = $p;
+            }
         }
-
-        $response = $this->horizonApi->getFailedJob($service, $jobUuid);
-        $data = $response['data'] ?? null;
-
-        if (! ($response['success'] ?? false) || ! \is_array($data)) {
-            return false;
+        if ($patterns !== []) {
+            return \array_values(\array_unique($patterns));
         }
 
         if ($alert->job_type !== null && (string) $alert->job_type !== '') {
-            $payload = $data['payload'] ?? [];
-            $displayName = $payload['displayName'] ?? null;
-            $rawJob = $payload['job'] ?? null;
-            $haystack = (string) ($displayName ?? $rawJob ?? '');
-            if (! \str_contains($haystack, $alert->job_type)) {
-                return false;
+            return [(string) $alert->job_type];
+        }
+
+        return [];
+    }
+
+    /**
+     * Resolve the queue patterns from the alert threshold.
+     *
+     * @param Alert $alert
+     * @return list<string>
+     */
+    private function private__resolveQueuePatterns(Alert $alert): array {
+        $threshold = $alert->threshold ?? [];
+        $fromThreshold = $threshold['queue_patterns'] ?? [];
+        if (! \is_array($fromThreshold)) {
+            $fromThreshold = [];
+        }
+        $patterns = [];
+        foreach ($fromThreshold as $p) {
+            if (\is_string($p) && $p !== '') {
+                $patterns[] = $p;
+            }
+        }
+        if (! empty($alert->queue)) {
+            $q = (string) $alert->queue;
+            if (! \in_array($q, $patterns, true)) {
+                $patterns[] = $q;
             }
         }
 
-        if (! empty($alert->queue) ) {
-            if ((string) ($data['queue'] ?? '') !== (string) $alert->queue) {
-                return false;
+        return \array_values(\array_unique($patterns));
+    }
+
+    /**
+     * Build the haystack for job pattern matching.
+     *
+     * @param array<string, mixed> $job
+     * @return string
+     */
+    private function private__jobPayloadHaystack(array $job): string {
+        $payload = $job['payload'] ?? [];
+        if (! \is_array($payload)) {
+            $payload = [];
+        }
+        $displayName = $payload['displayName'] ?? null;
+        $rawJob = $payload['job'] ?? null;
+
+        return (string) ($displayName ?? $rawJob ?? '');
+    }
+
+    /**
+     * Empty job patterns means no filter (match any job class).
+     *
+     * @param Alert $alert
+     * @param array<string, mixed> $job
+     */
+    private function private__job_matches_job_patterns(Alert $alert, array $job): bool {
+        $patterns = $this->private__resolveJobPatterns($alert);
+        if ($patterns === []) {
+            return true;
+        }
+        $haystack = $this->private__jobPayloadHaystack($job);
+        foreach ($patterns as $pattern) {
+            if ($pattern !== '' && \str_contains($haystack, $pattern)) {
+                return true;
             }
         }
 
-        return true;
+        return false;
+    }
+
+    /**
+     * Empty queue patterns means no filter (any queue).
+     *
+     * @param array<string, mixed> $job
+     */
+    private function private__job_matches_queue_patterns(Alert $alert, array $job): bool {
+        $patterns = $this->private__resolveQueuePatterns($alert);
+        if ($patterns === []) {
+            return true;
+        }
+        $queue = (string) ($job['queue'] ?? '');
+
+        foreach ($patterns as $pattern) {
+            if ($queue === (string) $pattern) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if the failed job row matches the alert.
+     *
+     * @param Alert $alert
+     * @param array<string, mixed> $job
+     */
+    private function private__failedJobRowMatchesAlert(Alert $alert, array $job): bool {
+        return $this->private__job_matches_queue_patterns($alert, $job)
+            && $this->private__job_matches_job_patterns($alert, $job);
+    }
+
+    /**
+     * Check if the completed job row matches the alert.
+     *
+     * @param Alert $alert
+     * @param array<string, mixed> $job
+     */
+    private function private__completedJobRowMatchesAlert(Alert $alert, array $job): bool {
+        return $this->private__job_matches_queue_patterns($alert, $job)
+            && $this->private__job_matches_job_patterns($alert, $job);
+    }
+
+    /**
+     * Filter the failed jobs in the window.
+     *
+     * @param Collection<int, mixed> $jobs
+     * @param Carbon $cutoff
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function private__filterFailedJobsInWindow(Collection $jobs, Carbon $cutoff): Collection {
+        return $jobs->filter(function ($job) use ($cutoff) {
+            if (! \is_array($job)) {
+                return false;
+            }
+            $failedAt = $this->private__parseFailedAt($job['failed_at'] ?? null);
+
+            return $failedAt !== null && $failedAt->gte($cutoff);
+        });
+    }
+
+    /**
+     * Find the matching failed jobs in the window.
+     *
+     * @param Alert $alert
+     * @param Service $service
+     * @param Carbon $cutoff
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function private__matchingFailedJobsInWindow(Alert $alert, Service $service, Carbon $cutoff): Collection {
+        $response = $this->horizonApi->getFailedJobs($service, ['starting_at' => 0]);
+        $data = $response['data'] ?? null;
+        if (! ($response['success'] ?? false) || ! \is_array($data)) {
+            return collect();
+        }
+        $jobs = collect($data['jobs'] ?? []);
+
+        return $this->private__filterFailedJobsInWindow($jobs, $cutoff)
+            ->filter(function ($job) use ($alert) {
+                return \is_array($job) && $this->private__failedJobRowMatchesAlert($alert, $job);
+            })
+            ->values();
     }
 
     /**
@@ -119,11 +255,61 @@ class AlertRuleEvaluator {
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
     private function private__evaluateJobSpecificFailureWithJobs(Alert $alert, int $serviceId, ?string $jobUuid): array {
-        $triggered = $this->private__evaluateJobSpecificFailure($alert, $serviceId, $jobUuid);
+        if (empty($jobUuid)) {
+            return ['triggered' => false, 'job_uuids' => []];
+        }
+
+        $service = Service::find($serviceId);
+        if (! $service || ! $service->base_url) {
+            return ['triggered' => false, 'job_uuids' => []];
+        }
+
+        $response = $this->horizonApi->getFailedJob($service, $jobUuid);
+        $data = $response['data'] ?? null;
+        if (! ($response['success'] ?? false) || ! \is_array($data)) {
+            return ['triggered' => false, 'job_uuids' => []];
+        }
+
+        if (! $this->private__failedJobRowMatchesAlert($alert, $data)) {
+            return ['triggered' => false, 'job_uuids' => []];
+        }
+
+        $threshold = $alert->threshold ?? [];
+        $minCount = (int) ($threshold['count'] ?? 1);
+        if ($minCount < 1) {
+            $minCount = 1;
+        }
+        $minutes = (int) ($threshold['minutes'] ?? 15);
+        if ($minutes < 1) {
+            $minutes = 15;
+        }
+
+        if ($minCount <= 1) {
+            return [
+                'triggered' => true,
+                'job_uuids' => [(string) $jobUuid],
+            ];
+        }
+
+        $cutoff = \now()->subMinutes($minutes);
+        $matching = $this->private__matchingFailedJobsInWindow($alert, $service, $cutoff);
+        if ($matching->count() < $minCount) {
+            return ['triggered' => false, 'job_uuids' => []];
+        }
+
+        $jobUuids = $matching->take(self::MAX_TRIGGERING_JOB_UUIDS)
+            ->map(function ($job) {
+                $id = $job['id'] ?? null;
+
+                return $id !== null && $id !== '' ? (string) $id : null;
+            })
+            ->filter()
+            ->values()
+            ->all();
 
         return [
-            'triggered' => $triggered,
-            'job_uuids' => $triggered && $jobUuid !== null && $jobUuid !== '' ? [(string) $jobUuid] : [],
+            'triggered' => true,
+            'job_uuids' => $jobUuids,
         ];
     }
 
@@ -153,6 +339,7 @@ class AlertRuleEvaluator {
         } catch (\Throwable $e) {
             return null;
         }
+
         return null;
     }
 
@@ -161,123 +348,50 @@ class AlertRuleEvaluator {
      *
      * @param Alert $alert
      * @param int $serviceId
-     * @return bool
-     */
-    private function private__evaluateJobTypeFailure(Alert $alert, int $serviceId): bool {
-        if (! $alert->job_type) {
-            return false;
-        }
-
-        $threshold = $alert->threshold ?? [];
-        $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 15);
-
-        $service = Service::find($serviceId);
-        if (! $service || ! $service->base_url) {
-            return false;
-        }
-
-        $response = $this->horizonApi->getFailedJobs($service, ['starting_at' => 0]);
-        $data = $response['data'] ?? null;
-
-        if (! ($response['success'] ?? false) || ! \is_array($data)) {
-            return false;
-        }
-
-        $cutoff = \now()->subMinutes($minutes);
-        $recent = collect($data['jobs'] ?? [])
-            ->filter(function ($job) use ($alert, $cutoff) {
-                if (! \is_array($job)) {
-                    return false;
-                }
-
-                $failedAt = $this->private__parseFailedAt($job['failed_at'] ?? null);
-                if ($failedAt === null || $failedAt->lt($cutoff)) {
-                    return false;
-                }
-
-                $payload = $job['payload'] ?? [];
-                $displayName = $payload['displayName'] ?? null;
-                $rawJob = $payload['job'] ?? null;
-                $haystack = (string) ($displayName ?? $rawJob ?? '');
-
-                return \str_contains($haystack, $alert->job_type);
-            })
-            ->isNotEmpty();
-
-        return $recent;
-    }
-
-    /**
-     * Evaluate job type failure and return triggering job UUIDs.
-     *
-     * @param Alert $alert
-     * @param int $serviceId
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
     private function private__evaluateJobTypeFailureWithJobs(Alert $alert, int $serviceId): array {
-        if (! $alert->job_type) {
+        $patterns = $this->private__resolveJobPatterns($alert);
+        if ($patterns === []) {
             return ['triggered' => false, 'job_uuids' => []];
         }
 
         $threshold = $alert->threshold ?? [];
-        $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 15);
+        $minutes = (int) ($threshold['minutes'] ?? 15);
+        if ($minutes < 1) {
+            $minutes = 15;
+        }
+        $minCount = (int) ($threshold['count'] ?? 1);
+        if ($minCount < 1) {
+            $minCount = 1;
+        }
 
         $service = Service::find($serviceId);
         if (! $service || ! $service->base_url) {
             return ['triggered' => false, 'job_uuids' => []];
         }
 
-        $response = $this->horizonApi->getFailedJobs($service, ['starting_at' => 0]);
-        $data = $response['data'] ?? null;
-
-        if (! ($response['success'] ?? false) || ! \is_array($data)) {
+        $cutoff = \now()->subMinutes($minutes);
+        $matching = $this->private__matchingFailedJobsInWindow($alert, $service, $cutoff);
+        if ($matching->count() < $minCount) {
             return ['triggered' => false, 'job_uuids' => []];
         }
 
-        $cutoff = \now()->subMinutes($minutes);
-        $matching = collect($data['jobs'] ?? [])
-            ->filter(function ($job) use ($alert, $cutoff) {
-                if (! \is_array($job)) {
-                    return false;
-                }
-                $failedAt = $this->private__parseFailedAt($job['failed_at'] ?? null);
-                if ($failedAt === null || $failedAt->lt($cutoff)) {
-                    return false;
-                }
-                $payload = $job['payload'] ?? [];
-                $displayName = $payload['displayName'] ?? null;
-                $rawJob = $payload['job'] ?? null;
-                $haystack = (string) ($displayName ?? $rawJob ?? '');
-
-                return \str_contains($haystack, $alert->job_type);
-            })
-            ->take(self::MAX_TRIGGERING_JOB_UUIDS);
-
-        $jobUuids = $matching->map(function ($job) {
+        $forUuids = $matching->take(self::MAX_TRIGGERING_JOB_UUIDS);
+        $jobUuids = $forUuids->map(function ($job) {
             $id = $job['id'] ?? null;
 
             return $id !== null && $id !== '' ? (string) $id : null;
         })->filter()->values()->all();
 
         return [
-            'triggered' => $matching->isNotEmpty(),
+            'triggered' => true,
             'job_uuids' => $jobUuids,
         ];
     }
 
     /**
-     * Evaluate the failure count (boolean only).
-     *
-     * @param Alert $alert
-     * @param int $serviceId
-     * @return bool
-     */
-    private function private__evaluateFailureCount(Alert $alert, int $serviceId): bool {
-        return $this->private__evaluateFailureCountWithJobs($alert, $serviceId)['triggered'];
-    }
-
-    /**
-     * Evaluate the failure count and return triggering job UUIDs.
+     * Evaluate the failure count.
      *
      * @param Alert $alert
      * @param int $serviceId
@@ -285,8 +399,8 @@ class AlertRuleEvaluator {
      */
     private function private__evaluateFailureCountWithJobs(Alert $alert, int $serviceId): array {
         $threshold = $alert->threshold ?? [];
-        $count = (int) (isset($threshold['count']) ? $threshold['count'] : 5);
-        $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 15);
+        $count = (int) ($threshold['count'] ?? 5);
+        $minutes = (int) ($threshold['minutes'] ?? 15);
 
         $service = Service::find($serviceId);
         if (! $service || ! $service->base_url) {
@@ -295,28 +409,17 @@ class AlertRuleEvaluator {
 
         $response = $this->horizonApi->getFailedJobs($service, ['starting_at' => 0]);
         $data = $response['data'] ?? null;
-
         if (! ($response['success'] ?? false) || ! \is_array($data)) {
             return ['triggered' => false, 'job_uuids' => []];
         }
 
         $cutoff = \now()->subMinutes($minutes);
         $jobs = collect($data['jobs'] ?? []);
-
-        if ($alert->queue) {
-            $jobs = $jobs->filter(function ($job) use ($alert) {
-                return \is_array($job) && (string) ($job['queue'] ?? '') === (string) $alert->queue;
-            });
-        }
-
-        $inWindow = $jobs->filter(function ($job) use ($cutoff) {
-            if (! \is_array($job)) {
-                return false;
-            }
-            $failedAt = $this->private__parseFailedAt($job['failed_at'] ?? null);
-
-            return $failedAt !== null && $failedAt->gte($cutoff);
-        });
+        $inWindow = $this->private__filterFailedJobsInWindow($jobs, $cutoff)
+            ->filter(function ($job) use ($alert) {
+                return \is_array($job) && $this->private__failedJobRowMatchesAlert($alert, $job);
+            })
+            ->values();
 
         $actual = $inWindow->count();
         $triggered = $actual >= $count;
@@ -345,29 +448,30 @@ class AlertRuleEvaluator {
      *
      * @param Alert $alert
      * @param int $serviceId
-     * @return bool
+     * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    private function private__evaluateAvgExecutionTime(Alert $alert, int $serviceId): bool {
+    private function private__evaluateAvgExecutionTimeWithJobs(Alert $alert, int $serviceId): array {
         $threshold = $alert->threshold ?? [];
-        $maxSeconds = (float) (isset($threshold['seconds']) ? $threshold['seconds'] : 60);
-        $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 15);
+        $maxSeconds = (float) ($threshold['seconds'] ?? 60);
+        $minutes = (int) ($threshold['minutes'] ?? 15);
 
         $service = Service::find($serviceId);
         if (! $service || ! $service->base_url) {
-            return false;
+            return ['triggered' => false, 'job_uuids' => []];
         }
 
         $response = $this->horizonApi->getCompletedJobs($service, ['starting_at' => 0]);
         $data = $response['data'] ?? null;
-
         if (! ($response['success'] ?? false) || ! \is_array($data)) {
-            return false;
+            return ['triggered' => false, 'job_uuids' => []];
         }
 
         $jobs = collect($data['jobs'] ?? []);
         $cutoff = \now()->subMinutes($minutes);
 
-        $durations = $jobs->map(function ($job) use ($cutoff) {
+        $durations = $jobs->filter(function ($job) use ($alert) {
+            return \is_array($job) && $this->private__completedJobRowMatchesAlert($alert, $job);
+        })->map(function ($job) use ($cutoff) {
             if (! \is_array($job)) {
                 return null;
             }
@@ -382,32 +486,23 @@ class AlertRuleEvaluator {
             } catch (\Throwable $e) {
                 return null;
             }
-
             if ($completed->lt($cutoff)) {
                 return null;
             }
-
             $seconds = $queued->diffInSeconds($completed, false);
+
             return $seconds >= 0 ? $seconds : null;
         })->filter(static fn ($v) => $v !== null);
 
         if ($durations->isEmpty()) {
-            return false;
+            return ['triggered' => false, 'job_uuids' => []];
         }
 
         $avg = $durations->average();
+        $triggered = (float) $avg >= $maxSeconds;
 
-        return (float) $avg >= $maxSeconds;
-    }
-
-    /**
-     * @param Alert $alert
-     * @param int $serviceId
-     * @return array{triggered: bool, job_uuids: array<int, string>}
-     */
-    private function private__evaluateAvgExecutionTimeWithJobs(Alert $alert, int $serviceId): array {
         return [
-            'triggered' => $this->private__evaluateAvgExecutionTime($alert, $serviceId),
+            'triggered' => $triggered,
             'job_uuids' => [],
         ];
     }
@@ -421,7 +516,7 @@ class AlertRuleEvaluator {
      */
     private function private__evaluateQueueBlocked(Alert $alert, int $serviceId): bool {
         $threshold = $alert->threshold ?? [];
-        $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 30);
+        $minutes = (int) ($threshold['minutes'] ?? 30);
 
         $service = Service::find($serviceId);
         if (! $service || ! $service->base_url) {
@@ -437,9 +532,10 @@ class AlertRuleEvaluator {
 
         $jobs = collect($data['jobs'] ?? []);
 
-        if ($alert->queue) {
+        $queuePatterns = $this->private__resolveQueuePatterns($alert);
+        if ($queuePatterns !== []) {
             $jobs = $jobs->filter(function ($job) use ($alert) {
-                return \is_array($job) && (string) ($job['queue'] ?? '') === (string) $alert->queue;
+                return \is_array($job) && $this->private__job_matches_queue_patterns($alert, $job);
             });
         }
 
@@ -462,12 +558,12 @@ class AlertRuleEvaluator {
             return false;
         }
 
-        $triggered = $lastProcessed->copy()->addMinutes($minutes)->isPast();
-
-        return $triggered;
+        return $lastProcessed->copy()->addMinutes($minutes)->isPast();
     }
 
     /**
+     * Evaluate the queue blocked with jobs.
+     *
      * @param Alert $alert
      * @param int $serviceId
      * @return array{triggered: bool, job_uuids: array<int, string>}
@@ -488,19 +584,19 @@ class AlertRuleEvaluator {
      */
     private function private__evaluateWorkerOffline(Alert $alert, int $serviceId): bool {
         $threshold = $alert->threshold ?? [];
-        $minutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 5);
+        $minutes = (int) ($threshold['minutes'] ?? 5);
 
         $service = Service::find($serviceId);
         if (! $service || ! $service->last_seen_at) {
             return false;
         }
 
-        $triggered = $service->last_seen_at->copy()->addMinutes($minutes)->isPast();
-
-        return $triggered;
+        return $service->last_seen_at->copy()->addMinutes($minutes)->isPast();
     }
 
     /**
+     * Evaluate the worker offline with jobs.
+     *
      * @param Alert $alert
      * @param int $serviceId
      * @return array{triggered: bool, job_uuids: array<int, string>}
@@ -567,6 +663,8 @@ class AlertRuleEvaluator {
     }
 
     /**
+     * Evaluate the supervisor offline with jobs.
+     *
      * @param Alert $alert
      * @param int $serviceId
      * @return array{triggered: bool, job_uuids: array<int, string>}
@@ -595,7 +693,6 @@ class AlertRuleEvaluator {
             return false;
         }
 
-        // If the service itself is marked offline and has been stale long enough, alert immediately.
         if ((string) $service->status === 'offline') {
             if (! $service->last_seen_at) {
                 return true;
@@ -627,6 +724,8 @@ class AlertRuleEvaluator {
     }
 
     /**
+     * Evaluate the Horizon offline rule with jobs.
+     *
      * @param Alert $alert
      * @param int $serviceId
      * @return array{triggered: bool, job_uuids: array<int, string>}

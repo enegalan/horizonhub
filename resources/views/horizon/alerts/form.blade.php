@@ -6,9 +6,78 @@
         $action = $isEdit ? route('horizon.alerts.update', $alert) : route('horizon.alerts.store');
         /** @var array<int,int> $selectedProviderIds */
         $selectedProviderIds = $selectedProviderIds ?? [];
+        $thresholdForm = $alert->threshold ?? [];
+        $oldJobPatterns = old('job_patterns');
+        if (\is_array($oldJobPatterns)) {
+            $jobPatternsForForm = [];
+            foreach ($oldJobPatterns as $v) {
+                $jobPatternsForForm[] = \is_string($v) ? $v : '';
+            }
+            if ($jobPatternsForForm === []) {
+                $jobPatternsForForm = [''];
+            }
+        } elseif (isset($thresholdForm['job_patterns']) && \is_array($thresholdForm['job_patterns']) && $thresholdForm['job_patterns'] !== []) {
+            $jobPatternsForForm = \array_slice(\array_map('strval', $thresholdForm['job_patterns']), 0, 20);
+        } else {
+            $jobPatternsForForm = [''];
+        }
+        $jobTypeValueForForm = old('job_type');
+        if ($jobTypeValueForForm === null) {
+            $storedJobPatterns = $thresholdForm['job_patterns'] ?? [];
+            $hasStoredJobPatterns = \is_array($storedJobPatterns)
+                && \count(\array_filter($storedJobPatterns, static fn ($x) => \is_string($x) && \trim($x) !== '')) > 0;
+            $jobTypeValueForForm = $hasStoredJobPatterns ? '' : (string) ($alert->job_type ?? '');
+        }
+        $oldQueuePatterns = old('queue_patterns');
+        if (\is_array($oldQueuePatterns)) {
+            $queuePatternsForForm = [];
+            foreach ($oldQueuePatterns as $v) {
+                $queuePatternsForForm[] = \is_string($v) ? $v : '';
+            }
+            if ($queuePatternsForForm === []) {
+                $queuePatternsForForm = [''];
+            }
+        } elseif (isset($thresholdForm['queue_patterns']) && \is_array($thresholdForm['queue_patterns']) && $thresholdForm['queue_patterns'] !== []) {
+            $queuePatternsForForm = \array_slice(\array_map('strval', $thresholdForm['queue_patterns']), 0, 20);
+        } elseif ($alert->queue !== null && (string) $alert->queue !== '') {
+            $queuePatternsForForm = [(string) $alert->queue];
+        } else {
+            $queuePatternsForForm = [''];
+        }
     @endphp
 
-    <div class="max-w-2xl space-y-6" x-data="{ ruleType: '{{ old('rule_type', $alert->rule_type ?? 'failure_count') }}' }">
+    <div
+        class="max-w-2xl space-y-6"
+        x-data="{
+            ruleType: {!! \Illuminate\Support\Js::from(old('rule_type', $alert->rule_type ?? 'failure_count')) !!},
+            jobPatterns: {!! \Illuminate\Support\Js::from($jobPatternsForForm) !!},
+            queuePatterns: {!! \Illuminate\Support\Js::from($queuePatternsForForm) !!},
+            addJobPattern() {
+                if (this.jobPatterns.length < 20) {
+                    this.jobPatterns.push('');
+                }
+            },
+            removeJobPattern(i) {
+                if (this.jobPatterns.length > 1) {
+                    this.jobPatterns.splice(i, 1);
+                } else {
+                    this.jobPatterns[0] = '';
+                }
+            },
+            addQueuePattern() {
+                if (this.queuePatterns.length < 20) {
+                    this.queuePatterns.push('');
+                }
+            },
+            removeQueuePattern(i) {
+                if (this.queuePatterns.length > 1) {
+                    this.queuePatterns.splice(i, 1);
+                } else {
+                    this.queuePatterns[0] = '';
+                }
+            }
+        }"
+    >
         <form method="POST" action="{{ $action }}" class="space-y-6">
             @csrf
             @if($isEdit)
@@ -54,32 +123,101 @@
                         </x-select>
                         @error('rule_type') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
-                    <div class="space-y-2">
-                        <x-input-label for="queue">Queue (optional)</x-input-label>
-                        <x-text-input
-                            type="text"
-                            id="queue"
-                            name="queue"
-                            value="{{ old('queue', $alert->queue) }}"
-                            placeholder="default"
-                            class="w-full"
-                        />
-                        @error('queue') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                    <div
+                        class="space-y-2"
+                        x-show="['job_specific_failure','job_type_failure','failure_count','avg_execution_time','queue_blocked'].includes(ruleType)"
+                        x-cloak
+                    >
+                        <x-input-label>Queue (optional)</x-input-label>
+                        <p class="text-xs text-muted-foreground">Exact queue names. Use one row for a single queue, or add rows for several (OR). Leave empty to include all queues.</p>
+                        <div class="space-y-2">
+                            <template x-for="(val, index) in queuePatterns" :key="'qp-' + index">
+                                <div class="flex gap-2 items-center">
+                                    <input
+                                        type="text"
+                                        name="queue_patterns[]"
+                                        x-model="queuePatterns[index]"
+                                        placeholder="default"
+                                        class="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm font-mono text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    />
+                                    <x-button
+                                        type="button"
+                                        variant="ghost"
+                                        class="h-9 shrink-0 text-xs"
+                                        @click="removeQueuePattern(index)"
+                                        x-show="queuePatterns.length > 1"
+                                    >
+                                        Remove
+                                    </x-button>
+                                </div>
+                            </template>
+                            <x-button
+                                type="button"
+                                variant="secondary"
+                                class="h-9 text-sm"
+                                @click="addQueuePattern()"
+                                x-show="queuePatterns.length < 20"
+                            >
+                                Add queue
+                            </x-button>
+                        </div>
+                        @error('queue_patterns') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
-                    <div class="space-y-2" x-show="ruleType === 'job_type_failure'">
-                        <x-input-label for="job_type">Job type (class name or substring)</x-input-label>
+                    <div
+                        class="space-y-2"
+                        x-show="['job_specific_failure','job_type_failure','failure_count','avg_execution_time'].includes(ruleType)"
+                        x-cloak
+                    >
+                        <x-input-label>Job (optional)</x-input-label>
+                        <p class="text-xs text-muted-foreground">Substring match on Horizon job class / display name. Multiple patterns match any (OR). Leave all rows empty to include every job type where the rule allows.</p>
+                        <div class="space-y-2">
+                            <template x-for="(val, index) in jobPatterns" :key="'jp-' + index">
+                                <div class="flex gap-2 items-center">
+                                    <input
+                                        type="text"
+                                        name="job_patterns[]"
+                                        x-model="jobPatterns[index]"
+                                        placeholder="App\Jobs\SendEmail"
+                                        class="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm font-mono text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    />
+                                    <x-button
+                                        type="button"
+                                        variant="ghost"
+                                        class="h-9 shrink-0 text-xs"
+                                        @click="removeJobPattern(index)"
+                                        x-show="jobPatterns.length > 1"
+                                    >
+                                        Remove
+                                    </x-button>
+                                </div>
+                            </template>
+                            <x-button
+                                type="button"
+                                variant="secondary"
+                                class="h-9 text-sm"
+                                @click="addJobPattern()"
+                                x-show="jobPatterns.length < 20"
+                            >
+                                Add pattern
+                            </x-button>
+                        </div>
+                        @error('job_patterns') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="space-y-2" x-show="['job_type_failure','job_specific_failure'].includes(ruleType)" x-cloak>
+                        <x-input-label for="job_type">Job type (optional single substring)</x-input-label>
                         <x-text-input
                             type="text"
                             id="job_type"
                             name="job_type"
-                            value="{{ old('job_type', $alert->job_type) }}"
+                            value="{{ $jobTypeValueForForm }}"
                             placeholder="App\Jobs\ProcessOrder"
                             class="w-full font-mono text-sm"
                         />
+                        <p class="text-xs text-muted-foreground" x-show="ruleType === 'job_type_failure'">Required unless you added at least one job pattern above.</p>
                         @error('job_type') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
 
-                    <template x-if="['failure_count','avg_execution_time','queue_blocked','worker_offline','supervisor_offline','horizon_offline'].includes(ruleType)">
+                    <template x-if="['failure_count','avg_execution_time','queue_blocked','worker_offline','supervisor_offline','horizon_offline','job_type_failure','job_specific_failure'].includes(ruleType)">
                         <div class="space-y-3 pt-2 border-t border-border">
                             <p class="text-xs font-medium text-muted-foreground">Threshold</p>
                             <template x-if="ruleType === 'failure_count'">
@@ -146,6 +284,60 @@
                                         value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->threshold['minutes'] ?? 15) }}"
                                     />
                                     @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                                </div>
+                            </template>
+                            <template x-if="ruleType === 'job_type_failure'">
+                                <div class="flex gap-4 flex-wrap">
+                                    <div class="space-y-2">
+                                        <x-input-label>Window (minutes)</x-input-label>
+                                        <x-text-input
+                                            type="number"
+                                            name="thresholdMinutes"
+                                            min="1"
+                                            class="w-24"
+                                            value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->threshold['minutes'] ?? 15) }}"
+                                        />
+                                        @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div class="space-y-2">
+                                        <x-input-label>Min failures in window</x-input-label>
+                                        <x-text-input
+                                            type="number"
+                                            name="thresholdCount"
+                                            min="1"
+                                            class="w-24"
+                                            value="{{ old('thresholdCount') !== null ? old('thresholdCount') : ($alert->threshold['count'] ?? 1) }}"
+                                        />
+                                        @error('thresholdCount') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                                    </div>
+                                </div>
+                            </template>
+                            <template x-if="ruleType === 'job_specific_failure'">
+                                <div class="flex gap-4 flex-wrap">
+                                    <div class="space-y-2">
+                                        <x-input-label>Min failures in window</x-input-label>
+                                        <x-text-input
+                                            type="number"
+                                            name="thresholdCount"
+                                            min="1"
+                                            class="w-24"
+                                            value="{{ old('thresholdCount') !== null ? old('thresholdCount') : ($alert->threshold['count'] ?? 1) }}"
+                                        />
+                                        <p class="text-xs text-muted-foreground">Use &gt; 1 to alert only after N matching failures.</p>
+                                        @error('thresholdCount') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div class="space-y-2">
+                                        <x-input-label>Window (minutes)</x-input-label>
+                                        <x-text-input
+                                            type="number"
+                                            name="thresholdMinutes"
+                                            min="1"
+                                            class="w-24"
+                                            value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->threshold['minutes'] ?? 15) }}"
+                                        />
+                                        <p class="text-xs text-muted-foreground">Required when min failures &gt; 1.</p>
+                                        @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                                    </div>
                                 </div>
                             </template>
                         </div>

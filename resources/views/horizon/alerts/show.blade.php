@@ -74,7 +74,21 @@
                     @endif
                     @php
                         $threshold = $ruleConfig['threshold'] ?? [];
+                        $jobPatternsShow = isset($threshold['job_patterns']) && \is_array($threshold['job_patterns']) ? $threshold['job_patterns'] : [];
+                        $queuePatternsShow = isset($threshold['queue_patterns']) && \is_array($threshold['queue_patterns']) ? $threshold['queue_patterns'] : [];
                     @endphp
+                    @if(\count($jobPatternsShow) > 0)
+                        <div class="sm:col-span-2">
+                            <dt class="label-muted">Job</dt>
+                            <dd class="mt-0.5 text-foreground font-mono text-xs whitespace-pre-wrap">{{ \implode("\n", \array_map('strval', $jobPatternsShow)) }}</dd>
+                        </div>
+                    @endif
+                    @if(\count($queuePatternsShow) > 0)
+                        <div class="sm:col-span-2">
+                            <dt class="label-muted">Queue patterns</dt>
+                            <dd class="mt-0.5 text-foreground font-mono text-xs whitespace-pre-wrap">{{ \implode("\n", \array_map('strval', $queuePatternsShow)) }}</dd>
+                        </div>
+                    @endif
                     @if(!empty($threshold))
                         <div>
                             <dt class="label-muted">Threshold</dt>

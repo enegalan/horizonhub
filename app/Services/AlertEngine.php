@@ -280,6 +280,9 @@ class AlertEngine {
         if ($alert->rule_type === Alert::RULE_FAILURE_COUNT && $eventType !== 'JobFailed') {
             return false;
         }
+        if ($alert->rule_type === Alert::RULE_AVG_EXECUTION_TIME) {
+            return \in_array($eventType, ['JobProcessed', 'JobCompleted'], true);
+        }
         if (\in_array($alert->rule_type, [
             Alert::RULE_QUEUE_BLOCKED,
             Alert::RULE_WORKER_OFFLINE,
