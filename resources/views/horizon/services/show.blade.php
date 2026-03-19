@@ -158,21 +158,8 @@
                 <div class="space-y-2">
                     @foreach($supervisors as $supervisor)
                         @php
-                            $lastSeen = $supervisor->last_seen_at;
-                            $minutesAgo = $lastSeen ? \max(0, (int) $lastSeen->diffInMinutes(now(), true)) : null;
-                            $staleMinutes = (int) \config('horizonhub.stale_minutes');
                             $apiStatus = $supervisor->status ?? '';
-                            if ($minutesAgo !== null) {
-                                if ($minutesAgo > $staleMinutes) {
-                                    $statusColor = 'bg-amber-500';
-                                    $statusTitle = 'Stale';
-                                    $statusBlink = true;
-                                } else {
-                                    $statusColor = 'bg-emerald-500';
-                                    $statusTitle = 'Online';
-                                    $statusBlink = false;
-                                }
-                            } elseif (\strtolower($apiStatus) === 'running') {
+                            if (\strtolower($apiStatus) === 'running') {
                                 $statusColor = 'bg-emerald-500';
                                 $statusTitle = 'Online';
                                 $statusBlink = false;
@@ -191,13 +178,6 @@
                                 <span class="inline-flex shrink-0 size-2.5 rounded-full {{ $statusColor }} @if($statusBlink) animate-pulse @endif" title="{{ $statusTitle }}" aria-label="{{ $statusTitle }}"></span>
                                 <span class="font-mono text-sm text-foreground">{{ $supervisor->name }}</span>
                             </div>
-                            <span class="text-xs text-muted-foreground" title="Last seen">
-                                @if($supervisor->last_seen_at)
-                                    Last seen {{ $supervisor->last_seen_at->diffForHumans() }}
-                                @else
-                                    –
-                                @endif
-                            </span>
                         </div>
                     @endforeach
                 </div>

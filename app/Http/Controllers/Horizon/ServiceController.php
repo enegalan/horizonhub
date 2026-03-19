@@ -324,8 +324,6 @@ class ServiceController extends Controller {
                         $balancing = (string) $options['balance'];
                     }
 
-                    $lastSeenRaw = $supervisor['last_heartbeat_at'] ?? ($supervisor['lastSeen'] ?? ($supervisor['lastHeartbeatAt'] ?? null));
-                    $lastSeenAt = $this->private__parseSupervisorLastSeen($lastSeenRaw);
                     $apiStatus = isset($supervisor['status']) ? (string) $supervisor['status'] : '';
 
                     $supervisorObj = (object) [
@@ -334,7 +332,6 @@ class ServiceController extends Controller {
                         'queues' => $queues,
                         'processes' => $processes,
                         'balancing' => $balancing,
-                        'last_seen_at' => $lastSeenAt,
                         'status' => $apiStatus,
                     ];
 
@@ -516,33 +513,6 @@ class ServiceController extends Controller {
                 'runtime' => $runtime,
             ]);
         }
-    }
-
-    /**
-     * Parse supervisor last seen / heartbeat from API (string or Unix timestamp).
-     *
-     * @param mixed $value
-     * @return \Carbon\Carbon|null
-     */
-    private function private__parseSupervisorLastSeen($value): ?\Carbon\Carbon {
-        if ($value === null || $value === '') {
-            return null;
-        }
-        if (\is_numeric($value)) {
-            $ts = (float) $value;
-            if ($ts > 1e12) {
-                return \Carbon\Carbon::createFromTimestampMs((int) \round($ts));
-            }
-            return \Carbon\Carbon::createFromTimestamp((int) \round($ts));
-        }
-        if (\is_string($value) && $value !== '') {
-            try {
-                return \Carbon\Carbon::parse($value);
-            } catch (\Throwable $e) {
-                return null;
-            }
-        }
-        return null;
     }
 
     /**
