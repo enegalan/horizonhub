@@ -38,12 +38,60 @@ class MetricsController extends Controller {
         $serviceId = $request->query('service_id');
         $serviceFilter = $serviceId !== null && $serviceId !== '' ? (string) $serviceId : '';
 
+        $serviceIdForMetrics = null;
+        if ( !empty($serviceId) && \is_numeric($serviceId)) {
+            $serviceIdForMetrics = (int) $serviceId;
+        }
+
+        $serviceModel = $serviceIdForMetrics !== null ? Service::find($serviceIdForMetrics) : null;
+
+        $jobsPastMinute = $this->metrics->getJobsPastMinute($serviceModel);
+        $jobsPastHour = $this->metrics->getJobsPastHour($serviceModel);
+        $failedPastSevenDays = $this->metrics->getFailedPastSevenDays($serviceModel);
+        $failureRate24h = $this->metrics->getFailureRate24h($serviceIdForMetrics);
+        $avgRuntimeOverTime = $this->metrics->getAvgRuntimeOverTime($serviceIdForMetrics);
+        $failureRateOverTime = $this->metrics->getFailureRateOverTime($serviceIdForMetrics);
+        $workloadRows = $this->metrics->getWorkloadData($serviceIdForMetrics);
+        $supervisorsRows = $this->metrics->getSupervisorsData($serviceIdForMetrics);
+
+        $totalQueues = \is_array($workloadRows) ? \count($workloadRows) : 0;
+        $totalJobs = 0;
+        if (\is_array($workloadRows)) {
+            foreach ($workloadRows as $row) {
+                if (!\is_array($row)) {
+                    continue;
+                }
+                $totalJobs += isset($row['jobs']) && \is_numeric($row['jobs']) ? (int) $row['jobs'] : 0;
+            }
+        }
+
+        $workloadSummary = "$totalQueues queue(s), $totalJobs job(s) total";
+
+        $totalSupervisors = \is_array($supervisorsRows) ? \count($supervisorsRows) : 0;
+        $onlineSupervisors = 0;
+        if (\is_array($supervisorsRows)) {
+            foreach ($supervisorsRows as $row) {
+                if (!\is_array($row)) {
+                    continue;
+                }
+                if (($row['status'] ?? null) === 'online') {
+                    $onlineSupervisors++;
+                }
+            }
+        }
+        $supervisorsSummary = "$totalSupervisors supervisor(s), $onlineSupervisors online";
+
         return \view('horizon.metrics.index', [
-            'jobsPastMinute' => null,
-            'jobsPastHour' => null,
-            'failedPastSevenDays' => null,
-            'failuresTable' => null,
-            'failureRate24h' => null,
+            'jobsPastMinute' => $jobsPastMinute,
+            'jobsPastHour' => $jobsPastHour,
+            'failedPastSevenDays' => $failedPastSevenDays,
+            'failureRate24h' => $failureRate24h,
+            'avgRuntimeOverTime' => $avgRuntimeOverTime,
+            'failureRateOverTime' => $failureRateOverTime,
+            'workloadRows' => $workloadRows,
+            'supervisorsRows' => $supervisorsRows,
+            'workloadSummary' => $workloadSummary,
+            'supervisorsSummary' => $supervisorsSummary,
             'header' => 'Horizon Hub – Metrics',
             'services' => $services,
             'serviceFilter' => $serviceFilter,
