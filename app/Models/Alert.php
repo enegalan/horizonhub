@@ -15,6 +15,7 @@ class Alert extends Model {
     public const RULE_QUEUE_BLOCKED = 'queue_blocked';
     public const RULE_WORKER_OFFLINE = 'worker_offline';
     public const RULE_SUPERVISOR_OFFLINE = 'supervisor_offline';
+    public const RULE_HORIZON_OFFLINE = 'horizon_offline';
 
     /**
      * The fillable attributes of the alert.

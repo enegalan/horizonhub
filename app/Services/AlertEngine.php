@@ -284,6 +284,7 @@ class AlertEngine {
             Alert::RULE_QUEUE_BLOCKED,
             Alert::RULE_WORKER_OFFLINE,
             Alert::RULE_SUPERVISOR_OFFLINE,
+            Alert::RULE_HORIZON_OFFLINE,
         ], true)) {
             return false;
         }

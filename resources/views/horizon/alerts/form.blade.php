@@ -79,7 +79,7 @@
                         @error('job_type') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
 
-                    <template x-if="['failure_count','avg_execution_time','queue_blocked','worker_offline','supervisor_offline'].includes(ruleType)">
+                    <template x-if="['failure_count','avg_execution_time','queue_blocked','worker_offline','supervisor_offline','horizon_offline'].includes(ruleType)">
                         <div class="space-y-3 pt-2 border-t border-border">
                             <p class="text-xs font-medium text-muted-foreground">Threshold</p>
                             <template x-if="ruleType === 'failure_count'">
@@ -135,7 +135,7 @@
                                     </div>
                                 </div>
                             </template>
-                            <template x-if="['queue_blocked','worker_offline','supervisor_offline'].includes(ruleType)">
+                            <template x-if="['queue_blocked','worker_offline','supervisor_offline','horizon_offline'].includes(ruleType)">
                                 <div class="space-y-2">
                                     <x-input-label>Minutes</x-input-label>
                                     <x-text-input

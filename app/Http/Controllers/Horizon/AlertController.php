@@ -315,6 +315,7 @@ class AlertController extends Controller {
             'queue_blocked' => 'Queue blocked',
             'worker_offline' => 'Worker offline',
             'supervisor_offline' => 'Supervisor offline',
+            'horizon_offline' => 'Horizon offline',
         ];
         $header = $alert->exists ? 'Edit alert' : 'New alert';
 
@@ -337,7 +338,7 @@ class AlertController extends Controller {
      */
     private function private__validateAlert(Request $request, ?Alert $alert): array {
         $baseRules = [
-            'rule_type' => 'required|in:job_specific_failure,job_type_failure,failure_count,avg_execution_time,queue_blocked,worker_offline,supervisor_offline',
+            'rule_type' => 'required|in:job_specific_failure,job_type_failure,failure_count,avg_execution_time,queue_blocked,worker_offline,supervisor_offline,horizon_offline',
             'service_id' => 'nullable|exists:services,id',
             'queue' => 'nullable|string|max:255',
             'job_type' => 'nullable|string|max:255',
@@ -356,7 +357,7 @@ class AlertController extends Controller {
         if ($ruleType === 'job_type_failure') {
             $baseRules['job_type'] = 'required|string|max:255';
         }
-        if (\in_array($ruleType, ['failure_count', 'avg_execution_time', 'queue_blocked', 'worker_offline', 'supervisor_offline'], true)) {
+        if (\in_array($ruleType, ['failure_count', 'avg_execution_time', 'queue_blocked', 'worker_offline', 'supervisor_offline', 'horizon_offline'], true)) {
             $baseRules['thresholdMinutes'] = 'required|integer|min:1';
         }
         if ($ruleType === 'failure_count') {
@@ -369,7 +370,7 @@ class AlertController extends Controller {
         $validated = $request->validate($baseRules);
 
         $threshold = [];
-        if (\in_array($ruleType, ['failure_count', 'avg_execution_time', 'queue_blocked', 'worker_offline', 'supervisor_offline'], true)) {
+        if (\in_array($ruleType, ['failure_count', 'avg_execution_time', 'queue_blocked', 'worker_offline', 'supervisor_offline', 'horizon_offline'], true)) {
             $threshold['minutes'] = (int) ($validated['thresholdMinutes'] ?? 0);
         }
         if ($ruleType === 'failure_count') {

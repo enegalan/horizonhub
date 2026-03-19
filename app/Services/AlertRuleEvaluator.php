@@ -61,6 +61,7 @@ class AlertRuleEvaluator {
             'queue_blocked' => $this->private__evaluateQueueBlockedWithJobs($alert, $serviceId),
             'worker_offline' => $this->private__evaluateWorkerOfflineWithJobs($alert, $serviceId),
             'supervisor_offline' => $this->private__evaluateSupervisorOfflineWithJobs($alert, $serviceId),
+            'horizon_offline' => $this->private__evaluateHorizonOfflineWithJobs($alert, $serviceId),
             default => ['triggered' => false, 'job_uuids' => []],
         };
     }
@@ -573,6 +574,66 @@ class AlertRuleEvaluator {
     private function private__evaluateSupervisorOfflineWithJobs(Alert $alert, int $serviceId): array {
         return [
             'triggered' => $this->private__evaluateSupervisorOffline($alert, $serviceId),
+            'job_uuids' => [],
+        ];
+    }
+
+    /**
+     * Evaluate the Horizon offline rule.
+     * Triggers when Horizon status is not active/running for at least the configured minutes.
+     *
+     * @param Alert $alert
+     * @param int $serviceId
+     * @return bool
+     */
+    private function private__evaluateHorizonOffline(Alert $alert, int $serviceId): bool {
+        $threshold = $alert->threshold ?? [];
+        $minutes = (int) ($threshold['minutes'] ?? 5);
+
+        $service = Service::find($serviceId);
+        if (! $service || ! $service->base_url) {
+            return false;
+        }
+
+        // If the service itself is marked offline and has been stale long enough, alert immediately.
+        if ((string) $service->status === 'offline') {
+            if (! $service->last_seen_at) {
+                return true;
+            }
+            return $service->last_seen_at->copy()->addMinutes($minutes)->isPast();
+        }
+
+        $response = $this->horizonApi->getStats($service);
+        $data = $response['data'] ?? null;
+        if (! ($response['success'] ?? false) || ! \is_array($data)) {
+            return false;
+        }
+
+        $status = \strtolower((string) ($data['status'] ?? ''));
+        if ($status === 'active' || $status === 'running') {
+            return false;
+        }
+
+        if (! \in_array($status, ['inactive', 'offline', 'paused'], true)) {
+            return false;
+        }
+
+        $referenceTime = $service->last_seen_at;
+        if (! $referenceTime) {
+            return true;
+        }
+
+        return $referenceTime->copy()->addMinutes($minutes)->isPast();
+    }
+
+    /**
+     * @param Alert $alert
+     * @param int $serviceId
+     * @return array{triggered: bool, job_uuids: array<int, string>}
+     */
+    private function private__evaluateHorizonOfflineWithJobs(Alert $alert, int $serviceId): array {
+        return [
+            'triggered' => $this->private__evaluateHorizonOffline($alert, $serviceId),
             'job_uuids' => [],
         ];
     }
