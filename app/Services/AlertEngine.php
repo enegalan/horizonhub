@@ -139,6 +139,100 @@ class AlertEngine {
     }
 
     /**
+     * Evaluate a single alert immediately (scheduled context).
+     *
+     * @param Alert $alert
+     * @return array{
+     *     alert_id: int,
+     *     pending_flushed: bool,
+     *     triggered: bool,
+     *     triggered_service_id: int|null,
+     *     error_message: string|null,
+     *     pending_flush_error_message: string|null,
+     *     delivered: bool
+     * }
+     */
+    public function evaluateAlert(Alert $alert): array {
+        $alertId = (int) $alert->id;
+        $pendingFlushed = false;
+        $triggered = false;
+        $triggeredServiceId = null;
+        $errorMessage = null;
+        $pendingFlushErrorMessage = null;
+        $delivered = false;
+        $lastSentAtBefore = null;
+
+        try {
+            $alert->loadMissing('notificationProviders');
+
+            $lastSentAtBefore = $this->batchStore->getLastSentAt($alert);
+
+            // Flush any batched pending events for this alert first.
+            $pending = $this->batchStore->getPending($alert);
+            if (! empty($pending) && $this->batchStore->shouldSendNow($alert)) {
+                $this->private__sendBatchedAlert($alert, $pending);
+                $this->batchStore->clearPending($alert);
+                $this->batchStore->setLastSentAt($alert);
+                $pendingFlushed = true;
+            }
+        } catch (\Throwable $e) {
+            Log::error('Horizon Hub: evaluate alert failed while flushing pending', [
+                'alert_id' => $alertId,
+                'error' => $e->getMessage(),
+            ]);
+            $pendingFlushErrorMessage = $e->getMessage();
+        }
+
+        try {
+            /** @var array<int, int> $serviceIds */
+            $serviceIds = $alert->service_id ? [(int) $alert->service_id] : Service::all()->pluck('id')->all();
+            if (empty($serviceIds)) {
+                $errorMessage ??= 'No services to evaluate alert (add at least one service).';
+                return [
+                    'alert_id' => $alertId,
+                    'pending_flushed' => $pendingFlushed,
+                    'triggered' => false,
+                    'triggered_service_id' => null,
+                    'error_message' => $errorMessage,
+                    'pending_flush_error_message' => $pendingFlushErrorMessage,
+                    'delivered' => false,
+                ];
+            }
+
+            foreach ($serviceIds as $serviceId) {
+                $result = $this->private__evaluateRuleWithJobs($alert, (int) $serviceId, null);
+                if ($result['triggered']) {
+                    $this->private__triggerAlert($alert, (int) $serviceId, null, $result['job_uuids']);
+                    $triggered = true;
+                    $triggeredServiceId = (int) $serviceId;
+                    break;
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::error('Horizon Hub: evaluate alert failed', [
+                'alert_id' => $alertId,
+                'error' => $e->getMessage(),
+            ]);
+            $errorMessage = $e->getMessage();
+        }
+
+        try {
+            $lastSentAtAfter = $this->batchStore->getLastSentAt($alert);
+            $delivered = $lastSentAtAfter !== null && ($lastSentAtBefore === null || ! $lastSentAtAfter->eq($lastSentAtBefore));
+        } catch (\Throwable $e) {}
+
+        return [
+            'alert_id' => $alertId,
+            'pending_flushed' => $pendingFlushed,
+            'triggered' => $triggered,
+            'triggered_service_id' => $triggered ? $triggeredServiceId : null,
+            'error_message' => $errorMessage,
+            'pending_flush_error_message' => $pendingFlushErrorMessage,
+            'delivered' => $delivered,
+        ];
+    }
+
+    /**
      * Retry the alert log.
      *
      * @param AlertLog $log

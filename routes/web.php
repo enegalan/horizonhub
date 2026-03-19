@@ -52,6 +52,9 @@ Route::prefix('horizon')->name('horizon.')->middleware(['throttle:60,1'])->group
     Route::put('/alerts/{alert}', [AlertController::class, 'update'])->name('alerts.update');
     Route::delete('/alerts/{alert}', [AlertController::class, 'destroy'])->name('alerts.destroy');
     Route::post('/alerts/logs/{log}/retry', [AlertController::class, 'retryLog'])->name('alerts.logs.retry');
+    Route::post('/alerts/{alert}/evaluate', [AlertController::class, 'evaluateAlert'])->name('alerts.evaluate');
+    Route::post('/alerts/evaluate-all', [AlertController::class, 'evaluateAllAlerts'])->name('alerts.evaluate-all');
+    Route::get('/alerts/evaluations/{evaluationId}', [AlertController::class, 'evaluationStatus'])->name('alerts.evaluations.status');
     
     // Providers routes...
     Route::redirect('/providers', '/horizon/settings?tab=providers')->name('providers.index');
