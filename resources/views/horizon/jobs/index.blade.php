@@ -68,38 +68,70 @@
                 </summary>
                 <div class="pt-2">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full" data-resizable-table="horizon-job-list-processing" data-column-ids="service,queue,job,attempts,queued_at,processed,failed_at,runtime,actions">
+                    <table class="min-w-full" data-resizable-table="horizon-job-list-processing" data-column-ids="uuid,service,queue,job,attempts,queued_at,processed,failed_at,runtime,actions">
                         <thead>
                             <tr class="border-b border-border bg-muted/50">
-                                <th class="table-header px-4 py-2.5" data-column-id="service">Service</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="queue">Queue</th>
+                                <th class="table-header px-4 py-2.5" data-column-id="uuid">UUID</th>
+                                <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="service">Service</th>
+                                <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="queue">Queue</th>
                                 <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="attempts">Attempts</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="queued_at">Queued at</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="processed">Processed</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="failed_at">Failed at</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="runtime">Runtime</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="actions">Actions</th>
+                                <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="attempts">Attempts</th>
+                                <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="queued_at">Queued at</th>
+                                <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="actions">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-border" data-table-body="horizon-job-list-processing">
                             @forelse($jobsProcessing as $job)
                                 <tr class="transition-colors hover:bg-muted/30">
-                                    <td class="px-4 py-2.5 text-sm font-medium text-foreground" data-column-id="service">{{ $job->service?->name ?? '–' }}</td>
-                                    <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground" data-column-id="queue">{{ $job->queue }}</td>
+                                    <td class="px-4 py-2.5 text-sm text-primary cursor-pointer truncate max-w-[180px]" data-column-id="uuid">
+                                        <a class="link" href="{{ route('horizon.jobs.show', ['job' => $job->uuid]) }}">
+                                            {{ $job->uuid }}
+                                        </a>
+                                    </td>
+                                    <td class="px-4 py-2.5 text-sm font-medium text-foreground truncate max-w-[180px]" data-column-id="service">{{ $job->service?->name ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="queue">{{ $job->queue }}</td>
                                     <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="job">{{ $job->name ?? $job->uuid }}</td>
                                     <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="attempts">
                                         @php $attempts = $job->attempts; $attemptsDisplay = ($attempts !== null && $attempts > 0) ? $attempts : '–'; @endphp
                                         {{ $attemptsDisplay }}
                                     </td>
-                                    <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="queued_at" data-datetime="{{ $job->queued_at?->format('c') ?? '' }}">{{ $job->queued_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
-                                    <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="processed" data-datetime="{{ $job->processed_at?->format('c') ?? '' }}">{{ $job->processed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
-                                    <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="failed_at" data-datetime="{{ $job->failed_at?->format('c') ?? '' }}">{{ $job->failed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
-                                    <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="runtime">{{ $job->runtime ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="queued_at" data-datetime="{{ $job->queued_at?->format('c') ?? '' }}">{{ $job->queued_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
                                     <td class="px-4 py-2.5" data-column-id="actions">
-                                        <x-button variant="secondary" class="h-8 min-h-8 p-2 rounded-md" aria-label="View" title="View" onclick="window.location.href='{{ route('horizon.jobs.show', ['job' => $job->uuid]) }}'">
-                                            <x-heroicon-o-eye class="size-4" />
-                                        </x-button>
+                                        <div class="flex items-center gap-1">
+                                            <x-button
+                                                variant="secondary"
+                                                class="h-8 min-h-8 p-2 rounded-md"
+                                                aria-label="View"
+                                                title="View"
+                                                onclick="window.location.href='{{ route('horizon.jobs.show', ['job' => $job->uuid]) }}'"
+                                            >
+                                                <x-heroicon-o-eye class="size-4" />
+                                            </x-button>
+                                            @php
+                                                $serviceForDashboard = $job->service ?? null;
+                                                $dashboardBase = $serviceForDashboard
+                                                    ? ($serviceForDashboard->public_url ?: $serviceForDashboard->base_url)
+                                                    : null;
+                                                $jobUuidForDashboard = $job->uuid ?? null;
+                                                $horizonDashboardPath = \rtrim(\config('horizonhub.horizon_paths.dashboard'), '/');
+                                                $horizonJobUrl = null;
+                                                if ($dashboardBase && $jobUuidForDashboard) {
+                                                    $horizonJobUrl = \rtrim($dashboardBase, '/') . $horizonDashboardPath . '/jobs/' . \urlencode((string) $jobUuidForDashboard);
+                                                }
+                                            @endphp
+                                            @if($horizonJobUrl)
+                                                <x-button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    class="h-8 min-h-8 px-2 rounded-md"
+                                                    aria-label="Open in Horizon dashboard"
+                                                    title="Open in Horizon dashboard"
+                                                    onclick="try { window.open('{{ $horizonJobUrl }}', '_blank'); } catch (e) {}"
+                                                >
+                                                    <x-heroicon-o-window class="size-4" />
+                                                </x-button>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
@@ -133,16 +165,16 @@
                 </summary>
                 <div class="pt-2">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full" data-resizable-table="horizon-job-list-processed" data-column-ids="service,queue,job,attempts,queued_at,processed,failed_at,runtime,actions">
+                    <table class="min-w-full" data-resizable-table="horizon-job-list-processed" data-column-ids="uuid,service,queue,job,attempts,queued_at,processed,failed_at,runtime,actions">
                         <thead>
                             <tr class="border-b border-border bg-muted/50">
+                                <th class="table-header px-4 py-2.5" data-column-id="uuid">UUID</th>
                                 <th class="table-header px-4 py-2.5" data-column-id="service">Service</th>
                                 <th class="table-header px-4 py-2.5" data-column-id="queue">Queue</th>
                                 <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
                                 <th class="table-header px-4 py-2.5" data-column-id="attempts">Attempts</th>
                                 <th class="table-header px-4 py-2.5" data-column-id="queued_at">Queued at</th>
                                 <th class="table-header px-4 py-2.5" data-column-id="processed">Processed</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="failed_at">Failed at</th>
                                 <th class="table-header px-4 py-2.5" data-column-id="runtime">Runtime</th>
                                 <th class="table-header px-4 py-2.5" data-column-id="actions">Actions</th>
                             </tr>
@@ -150,21 +182,57 @@
                         <tbody class="divide-y divide-border" data-table-body="horizon-job-list-processed">
                             @forelse($jobsProcessed as $job)
                                 <tr class="transition-colors hover:bg-muted/30">
-                                    <td class="px-4 py-2.5 text-sm font-medium text-foreground" data-column-id="service">{{ $job->service?->name ?? '–' }}</td>
-                                    <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground" data-column-id="queue">{{ $job->queue }}</td>
+                                    <td class="px-4 py-2.5 text-sm text-primary cursor-pointer truncate max-w-[180px]" data-column-id="uuid">
+                                        <a class="link" href="{{ route('horizon.jobs.show', ['job' => $job->uuid]) }}">
+                                            {{ $job->uuid }}
+                                        </a>
+                                    </td>
+                                    <td class="px-4 py-2.5 text-sm font-medium text-foreground truncate max-w-[180px]" data-column-id="service">{{ $job->service?->name ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="queue">{{ $job->queue }}</td>
                                     <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="job">{{ $job->name ?? $job->uuid }}</td>
                                     <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="attempts">
                                         @php $attempts = $job->attempts; $attemptsDisplay = ($attempts !== null && $attempts > 0) ? $attempts : '–'; @endphp
                                         {{ $attemptsDisplay }}
                                     </td>
-                                    <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="queued_at" data-datetime="{{ $job->queued_at?->format('c') ?? '' }}">{{ $job->queued_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
-                                    <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="processed" data-datetime="{{ $job->processed_at?->format('c') ?? '' }}">{{ $job->processed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
-                                    <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="failed_at" data-datetime="{{ $job->failed_at?->format('c') ?? '' }}">{{ $job->failed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
-                                    <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="runtime">{{ $job->runtime ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="queued_at" data-datetime="{{ $job->queued_at?->format('c') ?? '' }}">{{ $job->queued_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="processed" data-datetime="{{ $job->processed_at?->format('c') ?? '' }}">{{ $job->processed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="runtime">{{ $job->runtime ?? '–' }}</td>
                                     <td class="px-4 py-2.5" data-column-id="actions">
-                                        <x-button variant="secondary" class="h-8 min-h-8 p-2 rounded-md" aria-label="View" title="View" onclick="window.location.href='{{ route('horizon.jobs.show', ['job' => $job->uuid]) }}'">
-                                            <x-heroicon-o-eye class="size-4" />
-                                        </x-button>
+                                        <div class="flex items-center gap-1">
+                                            <x-button
+                                                variant="secondary"
+                                                class="h-8 min-h-8 p-2 rounded-md"
+                                                aria-label="View"
+                                                title="View"
+                                                onclick="window.location.href='{{ route('horizon.jobs.show', ['job' => $job->uuid]) }}'"
+                                            >
+                                                <x-heroicon-o-eye class="size-4" />
+                                            </x-button>
+                                            @php
+                                                $serviceForDashboard = $job->service ?? null;
+                                                $dashboardBase = $serviceForDashboard
+                                                    ? ($serviceForDashboard->public_url ?: $serviceForDashboard->base_url)
+                                                    : null;
+                                                $jobUuidForDashboard = $job->uuid ?? null;
+                                                $horizonDashboardPath = \rtrim(\config('horizonhub.horizon_paths.dashboard'), '/');
+                                                $horizonJobUrl = null;
+                                                if ($dashboardBase && $jobUuidForDashboard) {
+                                                    $horizonJobUrl = \rtrim($dashboardBase, '/') . $horizonDashboardPath . '/jobs/' . \urlencode((string) $jobUuidForDashboard);
+                                                }
+                                            @endphp
+                                            @if($horizonJobUrl)
+                                                <x-button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    class="h-8 min-h-8 px-2 rounded-md"
+                                                    aria-label="Open in Horizon dashboard"
+                                                    title="Open in Horizon dashboard"
+                                                    onclick="try { window.open('{{ $horizonJobUrl }}', '_blank'); } catch (e) {}"
+                                                >
+                                                    <x-heroicon-o-window class="size-4" />
+                                                </x-button>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
@@ -198,15 +266,15 @@
                 </summary>
                 <div class="pt-2">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full" data-resizable-table="horizon-job-list-failed" data-column-ids="service,queue,job,attempts,queued_at,processed,failed_at,runtime,actions">
+                    <table class="min-w-full" data-resizable-table="horizon-job-list-failed" data-column-ids="uuid,service,queue,job,attempts,queued_at,processed,failed_at,runtime,actions">
                         <thead>
                             <tr class="border-b border-border bg-muted/50">
+                                <th class="table-header px-4 py-2.5" data-column-id="uuid">UUID</th>
                                 <th class="table-header px-4 py-2.5" data-column-id="service">Service</th>
                                 <th class="table-header px-4 py-2.5" data-column-id="queue">Queue</th>
                                 <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
                                 <th class="table-header px-4 py-2.5" data-column-id="attempts">Attempts</th>
                                 <th class="table-header px-4 py-2.5" data-column-id="queued_at">Queued at</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="processed">Processed</th>
                                 <th class="table-header px-4 py-2.5" data-column-id="failed_at">Failed at</th>
                                 <th class="table-header px-4 py-2.5" data-column-id="runtime">Runtime</th>
                                 <th class="table-header px-4 py-2.5" data-column-id="actions">Actions</th>
@@ -215,21 +283,57 @@
                         <tbody class="divide-y divide-border" data-table-body="horizon-job-list-failed">
                             @forelse($jobsFailed as $job)
                                 <tr class="transition-colors hover:bg-muted/30">
-                                    <td class="px-4 py-2.5 text-sm font-medium text-foreground" data-column-id="service">{{ $job->service?->name ?? '–' }}</td>
-                                    <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground" data-column-id="queue">{{ $job->queue }}</td>
+                                    <td class="px-4 py-2.5 text-sm text-primary cursor-pointer truncate max-w-[180px]" data-column-id="uuid">
+                                        <a class="link" href="{{ route('horizon.jobs.show', ['job' => $job->uuid]) }}">
+                                            {{ $job->uuid }}
+                                        </a>
+                                    </td>
+                                    <td class="px-4 py-2.5 text-sm font-medium text-foreground truncate max-w-[180px]" data-column-id="service">{{ $job->service?->name ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="queue">{{ $job->queue }}</td>
                                     <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="job">{{ $job->name ?? $job->uuid }}</td>
                                     <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="attempts">
                                         @php $attempts = $job->attempts; $attemptsDisplay = ($attempts !== null && $attempts > 0) ? $attempts : '–'; @endphp
                                         {{ $attemptsDisplay }}
                                     </td>
-                                    <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="queued_at" data-datetime="{{ $job->queued_at?->format('c') ?? '' }}">{{ $job->queued_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
-                                    <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="processed" data-datetime="{{ $job->processed_at?->format('c') ?? '' }}">{{ $job->processed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
-                                    <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="failed_at" data-datetime="{{ $job->failed_at?->format('c') ?? '' }}">{{ $job->failed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
-                                    <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="runtime">{{ $job->runtime ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="queued_at" data-datetime="{{ $job->queued_at?->format('c') ?? '' }}">{{ $job->queued_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="failed_at" data-datetime="{{ $job->failed_at?->format('c') ?? '' }}">{{ $job->failed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="runtime">{{ $job->runtime ?? '–' }}</td>
                                     <td class="px-4 py-2.5" data-column-id="actions">
-                                        <x-button variant="secondary" class="h-8 min-h-8 p-2 rounded-md" aria-label="View" title="View" onclick="window.location.href='{{ route('horizon.jobs.show', ['job' => $job->uuid]) }}'">
-                                            <x-heroicon-o-eye class="size-4" />
-                                        </x-button>
+                                        <div class="flex items-center gap-1">
+                                            <x-button
+                                                variant="secondary"
+                                                class="h-8 min-h-8 p-2 rounded-md"
+                                                aria-label="View"
+                                                title="View"
+                                                onclick="window.location.href='{{ route('horizon.jobs.show', ['job' => $job->uuid]) }}'"
+                                            >
+                                                <x-heroicon-o-eye class="size-4" />
+                                            </x-button>
+                                            @php
+                                                $serviceForDashboard = $job->service ?? null;
+                                                $dashboardBase = $serviceForDashboard
+                                                    ? ($serviceForDashboard->public_url ?: $serviceForDashboard->base_url)
+                                                    : null;
+                                                $jobUuidForDashboard = $job->uuid ?? null;
+                                                $horizonDashboardPath = \rtrim(\config('horizonhub.horizon_paths.dashboard'), '/');
+                                                $horizonJobUrl = null;
+                                                if ($dashboardBase && $jobUuidForDashboard) {
+                                                    $horizonJobUrl = \rtrim($dashboardBase, '/') . $horizonDashboardPath . '/jobs/' . \urlencode((string) $jobUuidForDashboard);
+                                                }
+                                            @endphp
+                                            @if($horizonJobUrl)
+                                                <x-button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    class="h-8 min-h-8 px-2 rounded-md"
+                                                    aria-label="Open in Horizon dashboard"
+                                                    title="Open in Horizon dashboard"
+                                                    onclick="try { window.open('{{ $horizonJobUrl }}', '_blank'); } catch (e) {}"
+                                                >
+                                                    <x-heroicon-o-window class="size-4" />
+                                                </x-button>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @empty

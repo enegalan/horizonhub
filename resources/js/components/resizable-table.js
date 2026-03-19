@@ -105,9 +105,9 @@ import { parseJson } from '../utils/parse';
                 theadRow.appendChild(th);
                 var w = state.widths[colId];
                 if (w != null) {
-                    th.style.width = th.style.minWidth = th.style.maxWidth = w + 'px';
+                    th.style.width = th.style.maxWidth = w + 'px';
                 } else {
-                    th.style.width = th.style.minWidth = th.style.maxWidth = '';
+                    th.style.width = th.style.maxWidth = '';
                 }
             }
         });
@@ -210,7 +210,7 @@ import { parseJson } from '../utils/parse';
                 function onMove(eMove) {
                     var w = Math.max(MIN_WIDTH, startWidth + (eMove.clientX - startX));
                     state.widths[colId] = w;
-                    th.style.width = th.style.minWidth = th.style.maxWidth = w + 'px';
+                    th.style.width = th.style.maxWidth = w + 'px';
                 }
 
                 function onUp() {
@@ -262,7 +262,7 @@ import { parseJson } from '../utils/parse';
                 th.classList.add('opacity-50');
 
                 var dragImage = th.cloneNode(true);
-                dragImage.style.cssText = 'position:absolute;left:-9999px;top:0;padding: 8px 4px;min-width:' + th.offsetWidth + 'px;' +
+                dragImage.style.cssText = 'position:absolute;left:-9999px;top:0;padding: 8px 4px;' +
                     'background:hsl(var(--card) / 0.92);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);' +
                     'box-shadow:0 4px 20px rgba(0,0,0,0.12);border-radius:6px;border:1px solid hsl(var(--border));pointer-events:none;';
                 document.body.appendChild(dragImage);
