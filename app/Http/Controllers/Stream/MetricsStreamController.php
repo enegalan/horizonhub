@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Stream;
 
 use App\Http\Controllers\StreamController;
+use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
 use App\Services\HorizonMetricsService;
-use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MetricsStreamController extends StreamController {
@@ -43,12 +43,12 @@ class MetricsStreamController extends StreamController {
      * - If a valid "service_id" query is present, all metrics are scoped to
      *   that service; otherwise they are aggregated across services.
      *
-     * @param Request $request
+     * @param ServiceRequest $request
      * @return StreamedResponse
      */
-    public function stream(Request $request): StreamedResponse {
-        $serviceId = $request->query('service_id');
-        $service = !empty($serviceId) ? Service::find($serviceId) : null;
+    public function stream(ServiceRequest $request): StreamedResponse {
+        $serviceId = $request->getServiceId();
+        $service = $serviceId !== null ? Service::find($serviceId) : null;
 
         return $this->runStream(function () use ($serviceId, $service): array {
             try {

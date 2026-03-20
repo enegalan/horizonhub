@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use Carbon\Carbon;
 use App\Models\Service;
+use App\Support\Horizon\QueueNameNormalizer;
 use App\Services\HorizonApiProxyService;
 use App\Services\HorizonMetricsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -11,6 +12,14 @@ use Tests\TestCase;
 
 class HorizonMetricsServiceTest extends TestCase {
     use RefreshDatabase;
+
+    public function test_queue_name_normalizer_strips_redis_prefix(): void {
+        $this->assertNull(QueueNameNormalizer::normalize(null));
+        $this->assertSame('', QueueNameNormalizer::normalize(''));
+        $this->assertSame('default', QueueNameNormalizer::normalize('redis.default'));
+        $this->assertSame('redis.', QueueNameNormalizer::normalize('redis.'));
+        $this->assertSame('alpha', QueueNameNormalizer::normalize('alpha'));
+    }
 
     public function test_get_workload_for_service_maps_nested_data_payload(): void {
         $api = $this->createMock(HorizonApiProxyService::class);

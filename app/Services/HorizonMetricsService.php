@@ -3,30 +3,48 @@
 namespace App\Services;
 
 use App\Models\Service;
-use Carbon\Carbon;
+use App\Services\Metrics\FailureMetricsCalculator;
+use App\Services\Metrics\JobsThroughputMetricsCalculator;
+use App\Services\Metrics\QueueFailureCountersCalculator;
+use App\Services\Metrics\RuntimeMetricsCalculator;
+use App\Services\Metrics\WorkloadMetricsCalculator;
 
 class HorizonMetricsService {
 
     /**
-     * The number of days in a week.
+     * The jobs throughput metrics calculator.
      *
-     * @var int
+     * @var JobsThroughputMetricsCalculator
      */
-    private const DAYS_7 = 7;
+    private JobsThroughputMetricsCalculator $jobsThroughputMetrics;
 
     /**
-     * The number of top queues to return.
+     * The workload metrics calculator.
      *
-     * @var int
+     * @var WorkloadMetricsCalculator
      */
-    private const TOP_N_QUEUES = 12;
+    private WorkloadMetricsCalculator $workloadMetrics;
 
     /**
-     * The Horizon API proxy service.
+     * The failure metrics calculator.
      *
-     * @var HorizonApiProxyService
+     * @var FailureMetricsCalculator
      */
-    private HorizonApiProxyService $horizonApi;
+    private FailureMetricsCalculator $failureMetrics;
+
+    /**
+     * The runtime metrics calculator.
+     *
+     * @var RuntimeMetricsCalculator
+     */
+    private RuntimeMetricsCalculator $runtimeMetrics;
+
+    /**
+     * The queue failure counters calculator.
+     *
+     * @var QueueFailureCountersCalculator
+     */
+    private QueueFailureCountersCalculator $queueFailureCounters;
 
     /**
      * Construct the Horizon metrics service.
@@ -34,260 +52,11 @@ class HorizonMetricsService {
      * @param HorizonApiProxyService $horizonApi
      */
     public function __construct(HorizonApiProxyService $horizonApi) {
-        $this->horizonApi = $horizonApi;
-    }
-
-    /**
-     * Normalize the queue name.
-     *
-     * @param string|null $queue
-     * @return string|null
-     */
-    private function private__normalizeQueueName(?string $queue): ?string {
-        if ($queue === null || $queue === '') {
-            return $queue;
-        }
-
-        if (\str_starts_with($queue, 'redis.')) {
-            $suffix = \substr($queue, \strlen('redis.'));
-
-            return $suffix !== '' ? $suffix : $queue;
-        }
-
-        return $queue;
-    }
-
-    /**
-     * Maximum number of API pages to fetch when building 24h metrics (avoids infinite loops).
-     */
-    private const METRICS_24H_MAX_PAGES = 20;
-
-    /**
-     * Fetch all completed jobs with completed_at >= $sinceTimestamp by paginating the Horizon API.
-     *
-     * @param Service $service
-     * @param int $sinceTimestamp
-     * @param int $pageLimit
-     * @return list<array<string, mixed>>
-     */
-    private function private__fetchCompletedJobsInWindow(Service $service, int $sinceTimestamp, int $pageLimit): array {
-        return $this->private__fetchJobsInWindow(
-            $sinceTimestamp,
-            $pageLimit,
-            function (array $query) use ($service): array {
-                return $this->horizonApi->getCompletedJobs($service, $query);
-            },
-            static function (array $job): ?int {
-                $completedAt = $job['completed_at'] ?? $job['processed_at'] ?? null;
-                if (! \is_numeric($completedAt)) {
-                    return null;
-                }
-
-                return (int) $completedAt;
-            },
-        );
-    }
-
-    /**
-     * Fetch all failed jobs with failed_at >= $sinceTimestamp by paginating the Horizon API.
-     *
-     * @param Service $service
-     * @param int $sinceTimestamp
-     * @param int $pageLimit
-     * @return list<array<string, mixed>>
-     */
-    private function private__fetchFailedJobsInWindow(Service $service, int $sinceTimestamp, int $pageLimit): array {
-        return $this->private__fetchJobsInWindow(
-            $sinceTimestamp,
-            $pageLimit,
-            function (array $query) use ($service): array {
-                return $this->horizonApi->getFailedJobs($service, $query);
-            },
-            static function (array $job): ?int {
-                $failedAt = $job['failed_at'] ?? null;
-                if (! \is_numeric($failedAt)) {
-                    return null;
-                }
-
-                return (int) $failedAt;
-            },
-        );
-    }
-
-    /**
-     * Fetch jobs in a time window by paginating Horizon until we cross the lower bound.
-     *
-     * @param int $sinceTimestamp
-     * @param int $pageLimit
-     * @param callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>} $pageFetcher
-     * @param callable(array<string, mixed>): ?int $jobTimestampExtractor
-     * @return list<array<string, mixed>>
-     */
-    private function private__fetchJobsInWindow(
-        int $sinceTimestamp,
-        int $pageLimit,
-        callable $pageFetcher,
-        callable $jobTimestampExtractor,
-    ): array {
-        $jobs = [];
-        $startingAt = -1;
-        $page = 0;
-
-        while ($page < self::METRICS_24H_MAX_PAGES) {
-            $response = $pageFetcher([
-                'starting_at' => $startingAt,
-                'limit' => $pageLimit,
-            ]);
-            if (! ($response['success'] ?? false)) {
-                break;
-            }
-            $batch = $response['data']['jobs'] ?? [];
-            if (! \is_array($batch) || $batch === []) {
-                break;
-            }
-            $oldestInBatch = null;
-            foreach ($batch as $job) {
-                if (! \is_array($job)) {
-                    continue;
-                }
-
-                $ts = $jobTimestampExtractor($job);
-                if ($ts === null) {
-                    continue;
-                }
-
-                if ($ts >= $sinceTimestamp) {
-                    $jobs[] = $job;
-                }
-
-                if ($oldestInBatch === null || $ts < $oldestInBatch) {
-                    $oldestInBatch = $ts;
-                }
-            }
-
-            if ($oldestInBatch === null || $oldestInBatch < $sinceTimestamp || \count($batch) < $pageLimit) {
-                break;
-            }
-            $startingAt = $oldestInBatch;
-            $page++;
-        }
-
-        return $jobs;
-    }
-
-    /**
-     * Get services that can provide Horizon metrics.
-     *
-     * @param int|null $service_id
-     * @param bool $orderByName
-     * @param array<int, string> $selectColumns
-     * @return \Illuminate\Database\Eloquent\Collection<int, Service>
-     */
-    private function private__getServicesForMetrics(?int $service_id = null, bool $orderByName = false, array $selectColumns = []): \Illuminate\Database\Eloquent\Collection {
-        $servicesQuery = Service::query()->whereNotNull('base_url');
-
-        if ($service_id !== null) {
-            $servicesQuery->where('id', $service_id);
-        }
-
-        if ($orderByName) {
-            $servicesQuery->orderBy('name');
-        }
-
-        if ($selectColumns !== []) {
-            return $servicesQuery->get($selectColumns);
-        }
-
-        return $servicesQuery->get();
-    }
-
-    /**
-     * Initialize hourly buckets between $since and $endHour (inclusive).
-     *
-     * @param Carbon $since
-     * @param Carbon $endHour
-     * @param string $bucketFormat
-     * @param int $maxBuckets
-     * @param callable(): array $bucketInitializer
-     * @return array<string, array<string, mixed>>
-     */
-    private function private__initHourlyBuckets(Carbon $since, Carbon $endHour, string $bucketFormat, int $maxBuckets, callable $bucketInitializer): array {
-        $buckets = [];
-        $bucketStart = $since->copy();
-
-        while ($bucketStart <= $endHour && \count($buckets) < $maxBuckets) {
-            $key = $bucketStart->format($bucketFormat);
-            $buckets[$key] = $bucketInitializer();
-            $bucketStart->addHour();
-        }
-
-        return $buckets;
-    }
-
-    /**
-     * Extract a normalized queue list from supervisor options.
-     *
-     * @param array<string, mixed> $options
-     * @return array<int, string>
-     */
-    private function private__extractQueuesFromSupervisorOptions(array $options): array {
-        $queues = $options['queue'] ?? null;
-        if (! \is_array($queues)) {
-            return $queues !== null && $queues !== '' ? [(string) $queues] : [];
-        }
-
-        return \array_map('strval', $queues);
-    }
-
-    /**
-     * Sum jobs by queue names using a precomputed lookup table.
-     *
-     * @param array<int, string> $queueNames
-     * @param array<string, int> $jobsByQueue
-     * @return int
-     */
-    private function private__sumJobsByQueueNames(array $queueNames, array $jobsByQueue): int {
-        $jobs = 0;
-
-        foreach ($queueNames as $q) {
-            $jobs += $jobsByQueue[$q] ?? 0;
-        }
-
-        return $jobs;
-    }
-
-    /**
-     * Aggregate queue counters from Horizon jobs payload.
-     *
-     * @param mixed $jobsPayload
-     * @param int $sinceTimestamp
-     * @param string $timestampField
-     * @param array<string, int> $queueCounts
-     * @return void
-     */
-    private function private__aggregateQueueCountsFromJobsPayload(mixed $jobsPayload, int $sinceTimestamp, string $timestampField, array &$queueCounts): void {
-        foreach ($jobsPayload as $job) {
-            if (! \is_array($job)) {
-                continue;
-            }
-
-            $tsRaw = $job[$timestampField] ?? null;
-            if (! \is_numeric($tsRaw) || (int) $tsRaw < $sinceTimestamp) {
-                continue;
-            }
-
-            $queueRaw = isset($job['queue']) ? (string) $job['queue'] : '';
-            $queue = $this->private__normalizeQueueName($queueRaw);
-            if ($queue === null) {
-                $queue = $queueRaw;
-            }
-
-            if (! isset($queueCounts[$queue])) {
-                $queueCounts[$queue] = 0;
-            }
-
-            $queueCounts[$queue]++;
-        }
+        $this->jobsThroughputMetrics = new JobsThroughputMetricsCalculator($horizonApi);
+        $this->workloadMetrics = new WorkloadMetricsCalculator($horizonApi);
+        $this->failureMetrics = new FailureMetricsCalculator($horizonApi);
+        $this->runtimeMetrics = new RuntimeMetricsCalculator($horizonApi);
+        $this->queueFailureCounters = new QueueFailureCountersCalculator($horizonApi);
     }
 
     /**
@@ -297,40 +66,7 @@ class HorizonMetricsService {
      * @return int
      */
     public function getJobsPastMinute(?Service $service = null): int {
-        if ($service !== null && $service->base_url) {
-            $response = $this->horizonApi->getStats($service);
-            $data = $response['data'] ?? null;
-
-            if (($response['success'] ?? false) && \is_array($data)) {
-                $jobs_per_minute = isset($data['jobsPerMinute']) ? (float) $data['jobsPerMinute'] : 0.0;
-                if ($jobs_per_minute > 0) {
-                    return (int) \round($jobs_per_minute);
-                }
-                $recent = isset($data['recentJobs']) ? (int) $data['recentJobs'] : 0;
-                $period = isset($data['periods']['recentJobs']) ? (int) $data['periods']['recentJobs'] : 60;
-                if ($recent >= 0 && $period > 0) {
-                    return (int) \round($recent / $period);
-                }
-            }
-            return 0;
-        }
-
-        /** @var \Illuminate\Support\Collection<int, Service> $services */
-        $services = $this->private__getServicesForMetrics();
-
-        if ($services->isEmpty()) {
-            return 0;
-        }
-
-        $total = 0;
-        foreach ($services as $svc) {
-            if (! $svc->base_url) {
-                continue;
-            }
-            $total += $this->getJobsPastMinute($svc);
-        }
-
-        return $total;
+        return $this->jobsThroughputMetrics->getJobsPastMinute($service);
     }
 
     /**
@@ -340,344 +76,47 @@ class HorizonMetricsService {
      * @return int
      */
     public function getJobsPastHour(?Service $service = null): int {
-        if ($service !== null && $service->base_url) {
-            $response = $this->horizonApi->getStats($service);
-            $data = $response['data'] ?? null;
-
-            if (($response['success'] ?? false) && \is_array($data) && isset($data['recentJobs'])) {
-                return (int) $data['recentJobs'];
-            }
-
-            return 0;
-        }
-
-        /** @var \Illuminate\Support\Collection<int, Service> $services */
-        $services = $this->private__getServicesForMetrics();
-
-        if ($services->isEmpty()) {
-            return 0;
-        }
-
-        $total = 0;
-
-        foreach ($services as $svc) {
-            if (! $svc->base_url) {
-                continue;
-            }
-
-            $response = $this->horizonApi->getStats($svc);
-            $data = $response['data'] ?? null;
-
-            if (! (($response['success'] ?? false) && \is_array($data) && isset($data['recentJobs']))) {
-                continue;
-            }
-
-            $total += (int) $data['recentJobs'];
-        }
-
-        return $total;
+        return $this->jobsThroughputMetrics->getJobsPastHour($service);
     }
 
     /**
-     * Get the number of failed jobs in the past seven days.
+     * Get the number of jobs failed in the past seven days.
      *
      * @param Service|null $service
      * @return int
      */
     public function getFailedPastSevenDays(?Service $service = null): int {
-        if ($service !== null && $service->base_url) {
-            $response = $this->horizonApi->getStats($service);
-            $data = $response['data'] ?? null;
-
-            if (($response['success'] ?? false) && \is_array($data) && isset($data['failedJobs'])) {
-                return (int) $data['failedJobs'];
-            }
-
-            return 0;
-        }
-
-        /** @var \Illuminate\Support\Collection<int, Service> $services */
-        $services = $this->private__getServicesForMetrics();
-
-        if ($services->isEmpty()) {
-            return 0;
-        }
-
-        $total = 0;
-
-        foreach ($services as $svc) {
-            if (! $svc->base_url) {
-                continue;
-            }
-
-            $response = $this->horizonApi->getStats($svc);
-            $data = $response['data'] ?? null;
-
-            if (! (($response['success'] ?? false) && \is_array($data) && isset($data['failedJobs']))) {
-                continue;
-            }
-
-            $total += (int) $data['failedJobs'];
-        }
-
-        return $total;
+        return $this->jobsThroughputMetrics->getFailedPastSevenDays($service);
     }
 
     /**
-     * Get the current workload rows for a single service.
+     * Get the workload for a single service.
      *
      * @param Service $service
      * @return array<int, array{queue: string, jobs: int, processes: int|null, wait: float|null}>
      */
     public function getWorkloadForService(Service $service): array {
-        if (! $service->base_url) {
-            return [];
-        }
-
-        $response = $this->horizonApi->getWorkload($service);
-        $payload = $response['data'] ?? null;
-
-        if (! ($response['success'] ?? false) || $payload === null) {
-            return [];
-        }
-
-        $data = $payload['data'] ?? $payload['workload'] ?? null;
-        if ($data === null || ! \is_array($data)) {
-            if (\is_array($payload) && isset($payload[0]) && \is_array($payload[0]) && isset($payload[0]['name'])) {
-                $data = $payload;
-            } else {
-                return [];
-            }
-        }
-        if ($data === []) {
-            return [];
-        }
-
-        $rows = [];
-
-        foreach ($data as $row) {
-            if (! \is_array($row)) {
-                continue;
-            }
-
-            $queueName = '';
-            if (isset($row['name']) && (string) $row['name'] !== '') {
-                $queueName = (string) $row['name'];
-            }
-
-            if ($queueName === '') {
-                continue;
-            }
-
-            $jobs = $row['length'] ?? $row['size'] ?? $row['pending'] ?? $row['jobs'] ?? 0;
-
-            $processes = null;
-            if (isset($row['processes']) && \is_numeric($row['processes'])) {
-                $processes = (int) $row['processes'];
-            }
-
-            $wait = null;
-            if (isset($row['wait']) && \is_numeric($row['wait'])) {
-                $wait = (float) $row['wait'];
-            }
-
-            $rows[] = [
-                'queue' => $queueName,
-                'jobs' => $jobs,
-                'processes' => $processes,
-                'wait' => $wait,
-            ];
-        }
-
-        \usort($rows, static fn (array $a, array $b): int => \strcmp($a['queue'], $b['queue']));
-
-        return $rows;
+        return $this->workloadMetrics->getWorkloadForService($service);
     }
 
     /**
-     * Get supervisors aggregated across services (optionally filtered by service).
+     * Get the supervisors data for a single service.
      *
      * @param int|null $service_id
-     * @return array<int, array{
-     *     service_id: int,
-     *     service: string,
-     *     name: string,
-     *     status: string,
-     *     jobs: int,
-     *     processes: int|null
-     * }>
+     * @return array<int, array{name: string, status: string, processes: int, last_heartbeat: string, options: array<string, mixed>}>
      */
     public function getSupervisorsData(?int $service_id = null): array {
-        $services = $this->private__getServicesForMetrics($service_id);
-        if ($services->isEmpty()) {
-            return [];
-        }
-
-        $result = [];
-
-        /** @var Service $service */
-        foreach ($services as $service) {
-            $workloadRows = $this->getWorkloadForService($service);
-            $jobsByQueue = [];
-            foreach ($workloadRows as $wr) {
-                $jobsByQueue[$wr['queue']] = ($jobsByQueue[$wr['queue']] ?? 0) + $wr['jobs'];
-            }
-
-            $mastersResponse = $this->horizonApi->getMasters($service);
-            $mastersData = $mastersResponse['data'] ?? null;
-
-            if (! ($mastersResponse['success'] ?? false) || ! \is_array($mastersData)) {
-                continue;
-            }
-
-            foreach ($mastersData as $master) {
-                if (! \is_array($master)) {
-                    continue;
-                }
-
-                $supervisors = $master['supervisors'] ?? null;
-                if (! \is_array($supervisors)) {
-                    continue;
-                }
-
-                foreach ($supervisors as $supervisor) {
-                    if (! \is_array($supervisor)) {
-                        continue;
-                    }
-
-                    $name = isset($supervisor['name']) ? (string) $supervisor['name'] : '';
-                    if ($name === '') {
-                        continue;
-                    }
-
-                    $processes = null;
-                    if (isset($supervisor['processes']) && \is_array($supervisor['processes'])) {
-                        $sum = 0;
-                        foreach ($supervisor['processes'] as $value) {
-                            if (\is_numeric($value)) {
-                                $sum += (int) $value;
-                            }
-                        }
-                        $processes = $sum;
-                    }
-
-                    $options = isset($supervisor['options']) && \is_array($supervisor['options']) ? $supervisor['options'] : [];
-                    $queues = $this->private__extractQueuesFromSupervisorOptions($options);
-                    $jobs = $this->private__sumJobsByQueueNames($queues, $jobsByQueue);
-
-                    $result[] = [
-                        'service_id' => (int) $service->id,
-                        'service' => (string) $service->name,
-                        'name' => $name,
-                        'status' => $service->status,
-                        'jobs' => $jobs,
-                        'processes' => $processes,
-                    ];
-                }
-            }
-        }
-
-        return $result;
+        return $this->workloadMetrics->getSupervisorsData($service_id);
     }
 
     /**
-     * Get current workload aggregated across services (optionally filtered by service).
+     * Get the workload data for a single service.
      *
      * @param int|null $service_id
-     * @return array<int, array{
-     *     service_id: int,
-     *     service: string,
-     *     queue: string,
-     *     jobs: int,
-     *     processes: int|null,
-     *     wait: float|null
-     * }>
+     * @return array<int, array{service_id: int, service: string, queue: string, jobs: int, processes: int|null, wait: float|null}>
      */
     public function getWorkloadData(?int $service_id = null): array {
-        $services = $this->private__getServicesForMetrics($service_id, true);
-        if ($services->isEmpty()) {
-            return [];
-        }
-
-        $result = [];
-
-        /** @var Service $service */
-        foreach ($services as $service) {
-            $rows = $this->getWorkloadForService($service);
-            if ($rows === []) {
-                $rows = $this->private__getWorkloadFallbackFromMasters($service);
-            }
-
-            foreach ($rows as $row) {
-                $result[] = [
-                    'service_id' => (int) $service->id,
-                    'service' => (string) $service->name,
-                    'queue' => $row['queue'],
-                    'jobs' => $row['jobs'],
-                    'processes' => $row['processes'],
-                    'wait' => $row['wait'],
-                ];
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * Get queue rows (name + 0 jobs) from masters/supervisors when workload API returns nothing.
-     *
-     * @param Service $service
-     * @return array<int, array{queue: string, jobs: int, processes: int|null, wait: float|null}>
-     */
-    private function private__getWorkloadFallbackFromMasters(Service $service): array {
-        $mastersResponse = $this->horizonApi->getMasters($service);
-        $mastersData = $mastersResponse['data'] ?? null;
-        if (! ($mastersResponse['success'] ?? false) || ! \is_array($mastersData)) {
-            return [];
-        }
-
-        $queueNames = [];
-        foreach ($mastersData as $master) {
-            if (! \is_array($master)) {
-                continue;
-            }
-            $supervisors = $master['supervisors'] ?? null;
-            if (! \is_array($supervisors)) {
-                continue;
-            }
-            foreach ($supervisors as $supervisor) {
-                if (! \is_array($supervisor)) {
-                    continue;
-                }
-                $options = isset($supervisor['options']) && \is_array($supervisor['options']) ? $supervisor['options'] : [];
-                $queues = $options['queue'] ?? null;
-                if (! \is_array($queues)) {
-                    $queues = $queues !== null && $queues !== '' ? [(string) $queues] : [];
-                } else {
-                    $queues = \array_map('strval', $queues);
-                }
-                foreach ($queues as $q) {
-                    if ($q !== '') {
-                        $queueNames[$q] = true;
-                    }
-                }
-            }
-        }
-
-        $queueNames = \array_keys($queueNames);
-        \sort($queueNames);
-
-        $rows = [];
-        foreach ($queueNames as $name) {
-            $rows[] = [
-                'queue' => $name,
-                'jobs' => 0,
-                'processes' => null,
-                'wait' => null,
-            ];
-        }
-
-        return $rows;
+        return $this->workloadMetrics->getWorkloadData($service_id);
     }
 
     /**
@@ -687,39 +126,7 @@ class HorizonMetricsService {
      * @return array{rate: float, processed: int, failed: int}
      */
     public function getFailureRate24h(?int $service_id = null): array {
-        $since = \now()->subDay()->startOfDay();
-        $sinceTimestamp = $since->getTimestamp();
-
-        $services = $this->private__getServicesForMetrics($service_id);
-        if ($services->isEmpty()) {
-            return [
-                'rate' => 0.0,
-                'processed' => 0,
-                'failed' => 0,
-            ];
-        }
-
-        $processed = 0;
-        $failed = 0;
-        $jobsLimit = (int) \config('horizonhub.metrics_24h_jobs_limit', 500);
-
-        /** @var Service $service */
-        foreach ($services as $service) {
-            $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
-            $processed += \count($completedJobs);
-
-            $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
-            $failed += \count($failedJobs);
-        }
-
-        $total = $processed + $failed;
-        $rate = $total > 0 ? \round(100 * $failed / $total, 1) : 0.0;
-
-        return [
-            'rate' => $rate,
-            'processed' => $processed,
-            'failed' => $failed,
-        ];
+        return $this->failureMetrics->getFailureRate24h($service_id);
     }
 
     /**
@@ -729,72 +136,7 @@ class HorizonMetricsService {
      * @return array{xAxis: list<string>, rate: list<float|null>}
      */
     public function getFailureRateOverTime(?int $service_id = null): array {
-        $now = \now();
-        $since = $now->copy()->subDay()->startOfDay();
-        $sinceTimestamp = $since->getTimestamp();
-        $bucketFormat = 'Y-m-d H:00';
-        $endHour = $now->copy()->startOfHour();
-
-        $buckets = $this->private__initHourlyBuckets(
-            $since,
-            $endHour,
-            $bucketFormat,
-            48,
-            static function (): array {
-                return ['processed' => 0, 'failed' => 0];
-            },
-        );
-
-        $services = $this->private__getServicesForMetrics($service_id);
-        if ($services->isEmpty()) {
-            return ['xAxis' => [], 'rate' => []];
-        }
-
-        $jobsLimit = (int) \config('horizonhub.metrics_24h_jobs_limit', 500);
-
-        /** @var Service $service */
-        foreach ($services as $service) {
-            $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
-            foreach ($completedJobs as $job) {
-                $completedAt = $job['completed_at'] ?? $job['processed_at'] ?? null;
-                if (! \is_numeric($completedAt)) {
-                    continue;
-                }
-                $ts = (int) $completedAt;
-                $bucket = Carbon::createFromTimestamp($ts)->format($bucketFormat);
-                if (isset($buckets[$bucket])) {
-                    $buckets[$bucket]['processed']++;
-                }
-            }
-
-            $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
-            foreach ($failedJobs as $job) {
-                $failedAt = $job['failed_at'] ?? null;
-                if (! \is_numeric($failedAt)) {
-                    continue;
-                }
-                $ts = (int) $failedAt;
-                $bucket = Carbon::createFromTimestamp($ts)->format($bucketFormat);
-                if (isset($buckets[$bucket])) {
-                    $buckets[$bucket]['failed']++;
-                }
-            }
-        }
-
-        $xAxis = [];
-        $series = [];
-
-        foreach ($buckets as $k => $v) {
-            $xAxis[] = Carbon::parse($k)->format('d/m H:i');
-            $total = $v['processed'] + $v['failed'];
-            if ($total > 0) {
-                $series[] = \round(100 * $v['failed'] / $total, 1);
-            } else {
-                $series[] = null;
-            }
-        }
-
-        return ['xAxis' => $xAxis, 'rate' => $series];
+        return $this->failureMetrics->getFailureRateOverTime($service_id);
     }
 
     /**
@@ -804,176 +146,25 @@ class HorizonMetricsService {
      * @return array{xAxis: list<string>, avgSeconds: list<float|null>}
      */
     public function getAvgRuntimeOverTime(?int $service_id = null): array {
-        $now = \now();
-        $since = $now->copy()->subDay()->startOfDay();
-        $sinceTimestamp = $since->getTimestamp();
-        $bucketFormat = 'Y-m-d H:00';
-        $endHour = $now->copy()->startOfHour();
-
-        $buckets = $this->private__initHourlyBuckets(
-            $since,
-            $endHour,
-            $bucketFormat,
-            48,
-            static function (): array {
-                return ['sum' => 0.0, 'count' => 0];
-            },
-        );
-
-        $services = $this->private__getServicesForMetrics($service_id);
-        if ($services->isEmpty()) {
-            return ['xAxis' => [], 'avgSeconds' => []];
-        }
-
-        $jobsLimit = (int) \config('horizonhub.metrics_24h_jobs_limit', 500);
-
-        /** @var Service $service */
-        foreach ($services as $service) {
-            $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
-            foreach ($completedJobs as $job) {
-                $queuedAt = $job['reserved_at'] ?? null;
-                $completedAt = $job['completed_at'] ?? null;
-                if (! \is_numeric($queuedAt) || ! \is_numeric($completedAt)) {
-                    continue;
-                }
-                $start = (int) $queuedAt;
-                $end = (int) $completedAt;
-                if ($end < $sinceTimestamp || $end <= $start) {
-                    continue;
-                }
-                $bucket = Carbon::createFromTimestamp($end)->format($bucketFormat);
-                if (isset($buckets[$bucket])) {
-                    $buckets[$bucket]['sum'] += (float) ($end - $start);
-                    $buckets[$bucket]['count']++;
-                }
-            }
-
-            $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
-            foreach ($failedJobs as $job) {
-                $queuedAt = $job['reserved_at'] ?? null;
-                $failedAt = $job['failed_at'] ?? null;
-                if (! \is_numeric($queuedAt) || ! \is_numeric($failedAt)) {
-                    continue;
-                }
-                $start = (int) $queuedAt;
-                $end = (int) $failedAt;
-                if ($end < $sinceTimestamp || $end <= $start) {
-                    continue;
-                }
-                $bucket = Carbon::createFromTimestamp($end)->format($bucketFormat);
-                if (isset($buckets[$bucket])) {
-                    $buckets[$bucket]['sum'] += (float) ($end - $start);
-                    $buckets[$bucket]['count']++;
-                }
-            }
-        }
-
-        $xAxis = [];
-        $series = [];
-
-        foreach ($buckets as $k => $v) {
-            $xAxis[] = Carbon::parse($k)->format('d/m H:i');
-            $series[] = $v['count'] > 0 ? \round($v['sum'] / $v['count'], 2) : null;
-        }
-
-        return ['xAxis' => $xAxis, 'avgSeconds' => $series];
+        return $this->runtimeMetrics->getAvgRuntimeOverTime($service_id);
     }
 
     /**
-     * Get the processed vs failed data by queue.
+     * Get the processed and failed jobs by queue.
      *
      * @param int|null $service_id
-     * @return array{queues: list<string>, processed: list<int>, failed: list<int>}
+     * @return array{queue: string, processed: int, failed: int}
      */
     public function getProcessedFailedByQueue(?int $service_id = null): array {
-        $since = \now()->subDays(self::DAYS_7);
-        $sinceTimestamp = $since->getTimestamp();
-
-        $services = $this->private__getServicesForMetrics($service_id);
-        if ($services->isEmpty()) {
-            return ['queues' => [], 'processed' => [], 'failed' => []];
-        }
-
-        $normalizedProcessed = [];
-        $normalizedFailed = [];
-
-        /** @var Service $service */
-        foreach ($services as $service) {
-            $completedResponse = $this->horizonApi->getCompletedJobs($service, [
-                'starting_at' => 0
-            ]);
-            $completedData = $completedResponse['data'] ?? null;
-
-            if ($completedResponse['success'] ?? false && \is_array($completedData)) {
-                $jobsPayload = $completedData['jobs'] ?? [];
-                $this->private__aggregateQueueCountsFromJobsPayload($jobsPayload, $sinceTimestamp, 'completed_at', $normalizedProcessed);
-            }
-
-            $failedResponse = $this->horizonApi->getFailedJobs($service, [
-                'starting_at' => 0
-            ]);
-            $failedData = $failedResponse['data'] ?? null;
-
-            if ($failedResponse['success'] ?? false && \is_array($failedData)) {
-                $jobsPayload = $failedData['jobs'] ?? [];
-                $this->private__aggregateQueueCountsFromJobsPayload($jobsPayload, $sinceTimestamp, 'failed_at', $normalizedFailed);
-            }
-        }
-
-        $allQueues = \array_unique(\array_merge(\array_keys($normalizedProcessed), \array_keys($normalizedFailed)));
-        $agg = [];
-        foreach ($allQueues as $q) {
-            $agg[$q] = [
-                'processed' => $normalizedProcessed[$q] ?? 0,
-                'failed' => $normalizedFailed[$q] ?? 0,
-            ];
-        }
-        \uasort($agg, static fn ($a, $b) => ($b['processed'] + $b['failed']) <=> ($a['processed'] + $a['failed']));
-        $agg = \array_slice($agg, 0, self::TOP_N_QUEUES, true);
-        $queues = \array_keys($agg);
-        $processed = [];
-        $failed = [];
-        foreach ($agg as $v) {
-            $processed[] = $v['processed'];
-            $failed[] = $v['failed'];
-        }
-
-        return ['queues' => $queues, 'processed' => $processed, 'failed' => $failed];
+        return $this->queueFailureCounters->getProcessedFailedByQueue($service_id);
     }
 
     /**
-     * Get jobs past hour per service using Horizon HTTP API stats.
+     * Get the number of jobs processed in the past hour by service.
      *
-     * @return array{services: list<string>, jobsPastHour: list<int>}
+     * @return array<int, array{service_id: int, service: string, jobs: int}>
      */
     public function getJobsPastHourByService(): array {
-        /** @var \Illuminate\Support\Collection<int, Service> $services */
-        $services = $this->private__getServicesForMetrics(null, true, ['id', 'name', 'base_url']);
-
-        if ($services->isEmpty()) {
-            return ['services' => [], 'jobsPastHour' => []];
-        }
-
-        $names = [];
-        $values = [];
-
-        /** @var Service $service */
-        foreach ($services as $service) {
-            if (! $service->base_url) {
-                continue;
-            }
-
-            $response = $this->horizonApi->getStats($service);
-            $data = $response['data'] ?? null;
-
-            if (! (($response['success'] ?? false) && \is_array($data) && isset($data['recentJobs']))) {
-                continue;
-            }
-
-            $names[] = (string) $service->name;
-            $values[] = (int) $data['recentJobs'];
-        }
-
-        return ['services' => $names, 'jobsPastHour' => $values];
+        return $this->jobsThroughputMetrics->getJobsPastHourByService();
     }
 }

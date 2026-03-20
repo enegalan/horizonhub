@@ -3,14 +3,21 @@
 namespace Tests\Unit;
 
 use App\Http\Controllers\Horizon\MetricsController;
+use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
 use App\Services\HorizonMetricsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Request;
 use Tests\TestCase;
 
 class MetricsControllerTest extends TestCase {
     use RefreshDatabase;
+
+    private function createServiceRequest(string $uri): ServiceRequest {
+        $request = ServiceRequest::create($uri, 'GET');
+        $request->setContainer($this->app);
+
+        return $request;
+    }
 
     public function test_data_summary_returns_expected_keys_and_delegates(): void {
         $service = Service::create([
@@ -63,7 +70,7 @@ class MetricsControllerTest extends TestCase {
             });
 
         $controller = new MetricsController($metrics);
-        $request = Request::create('/horizon/metrics/data/summary?service_id=' . $serviceId, 'GET');
+        $request = $this->createServiceRequest('/horizon/metrics/data/summary?service_id=' . $serviceId);
 
         $response = $controller->dataSummary($request);
         $data = $response->getData(true);
@@ -95,9 +102,7 @@ class MetricsControllerTest extends TestCase {
             });
 
         $controller = new MetricsController($metrics);
-        $request = Request::create('/horizon/metrics/data/avg-runtime?service_id=' . $service->id, 'GET');
-
-        $this->assertNotNull(Service::find($request->query('service_id')));
+        $request = $this->createServiceRequest('/horizon/metrics/data/avg-runtime?service_id=' . $service->id);
 
         $response = $controller->dataAvgRuntime($request);
         $data = $response->getData(true);
@@ -124,7 +129,7 @@ class MetricsControllerTest extends TestCase {
             });
 
         $controller = new MetricsController($metrics);
-        $request = Request::create('/horizon/metrics/data/failure-rate-over-time?service_id=' . $service->id, 'GET');
+        $request = $this->createServiceRequest('/horizon/metrics/data/failure-rate-over-time?service_id=' . $service->id);
 
         $response = $controller->dataFailureRateOverTime($request);
         $data = $response->getData(true);
@@ -160,7 +165,7 @@ class MetricsControllerTest extends TestCase {
             });
 
         $controller = new MetricsController($metrics);
-        $request = Request::create('/horizon/metrics/data/supervisors?service_id=' . $service->id, 'GET');
+        $request = $this->createServiceRequest('/horizon/metrics/data/supervisors?service_id=' . $service->id);
 
         $response = $controller->dataSupervisors($request);
         $data = $response->getData(true);
@@ -198,7 +203,7 @@ class MetricsControllerTest extends TestCase {
             });
 
         $controller = new MetricsController($metrics);
-        $request = Request::create('/horizon/metrics/data/workload?service_id=' . $service->id, 'GET');
+        $request = $this->createServiceRequest('/horizon/metrics/data/workload?service_id=' . $service->id);
 
         $response = $controller->dataWorkload($request);
         $data = $response->getData(true);
@@ -206,6 +211,52 @@ class MetricsControllerTest extends TestCase {
         $this->assertArrayHasKey('workload', $data);
         $this->assertCount(1, $data['workload']);
         $this->assertSame('alpha', $data['workload'][0]['queue']);
+    }
+
+    public function test_data_summary_sanitizes_invalid_service_id_to_null(): void {
+        $service = Service::create([
+            'name' => 'svc-metrics-controller-summary-invalid-service-id',
+            'api_key' => 'k62345678901234567890123456789012345678901234567890123456789012',
+            'base_url' => 'https://metrics-controller-summary-invalid-service-id.test',
+            'status' => 'online',
+        ]);
+
+        $metrics = $this->createMock(HorizonMetricsService::class);
+
+        $metrics->expects($this->once())
+            ->method('getJobsPastMinute')
+            ->with(null)
+            ->willReturn(11);
+
+        $metrics->expects($this->once())
+            ->method('getJobsPastHour')
+            ->with(null)
+            ->willReturn(22);
+
+        $metrics->expects($this->once())
+            ->method('getFailedPastSevenDays')
+            ->with(null)
+            ->willReturn(33);
+
+        $metrics->expects($this->once())
+            ->method('getFailureRate24h')
+            ->with(null)
+            ->willReturn([
+                'rate' => 1.2,
+                'processed' => 10,
+                'failed' => 3,
+            ]);
+
+        $controller = new MetricsController($metrics);
+        $request = $this->createServiceRequest('/horizon/metrics/data/summary?service_id=not-a-number');
+
+        $response = $controller->dataSummary($request);
+        $data = $response->getData(true);
+
+        $this->assertSame(11, $data['jobsPastMinute']);
+        $this->assertSame(22, $data['jobsPastHour']);
+        $this->assertSame(33, $data['failedPastSevenDays']);
+        $this->assertSame(1.2, $data['failureRate24h']['rate']);
     }
 }
 

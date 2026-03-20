@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Horizon;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Services\HorizonMetricsService;
+use App\Support\Horizon\QueueNameNormalizer;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
@@ -50,8 +51,9 @@ class QueueController extends Controller {
 
         $queues = \collect($workloadRows)
             ->map(function (array $row) use ($servicesById) {
-                $normalizedQueue = $this->private__normalizeQueueName($row['queue'] ?? '');
-                $queueLabel = $normalizedQueue ?? ($row['queue'] ?? '');
+                $queueRaw = $row['queue'] ?? '';
+                $normalizedQueue = QueueNameNormalizer::normalize($queueRaw);
+                $queueLabel = $normalizedQueue ?? $queueRaw;
 
                 return (object) [
                     'service_id' => (int) $row['service_id'],
@@ -76,20 +78,5 @@ class QueueController extends Controller {
         ]);
     }
 
-
-    /**
-     * Normalize a queue name to avoid duplicates that might be caused by different connection prefixes.
-     *
-     * @param string|null $queue
-     * @return string|null
-     */
-    private function private__normalizeQueueName(?string $queue): ?string {
-        if (! empty($queue) && \str_starts_with($queue, 'redis.')) {
-            $suffix = \substr($queue, \strlen('redis.'));
-            return $suffix !== '' ? $suffix : $queue;
-        }
-
-        return $queue;
-    }
 
 }

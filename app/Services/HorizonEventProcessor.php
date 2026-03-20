@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Events\HorizonEventReceived;
 use App\Models\Service;
 use Carbon\Carbon;
+use App\Support\Horizon\QueueNameNormalizer;
 
 class HorizonEventProcessor {
 
@@ -45,7 +46,7 @@ class HorizonEventProcessor {
         $jobUuid = $this->private__resolveJobUuid($event);
 
         $queueRaw = isset($event['queue']) ? (string) $event['queue'] : '';
-        $queue = $this->private__normalizeQueueName($queueRaw);
+        $queue = QueueNameNormalizer::normalize($queueRaw);
         $name = $event['name'] ?? null;
         $payload = $event['payload'] ?? null;
         $statusRaw = $event['status'] ?? null;
@@ -99,25 +100,6 @@ class HorizonEventProcessor {
         ])->saveQuietly();
     }
 
-
-    /**
-     * Normalize a queue name to avoid duplicates caused by different connection prefixes.
-     *
-     * @param string|null $queue
-     * @return string|null
-     */
-    private function private__normalizeQueueName(?string $queue): ?string {
-        if ($queue === null || $queue === '') {
-            return $queue;
-        }
-
-        if (\str_starts_with($queue, 'redis.')) {
-            $suffix = \substr($queue, \strlen('redis.'));
-            return $suffix !== '' ? $suffix : $queue;
-        }
-
-        return $queue;
-    }
 
     /**
      * Resolve the job UUID from the event.
