@@ -27,45 +27,24 @@ class HorizonEventProcessor {
     }
 
     /**
-     * Normalize a queue name to avoid duplicates caused by different connection prefixes.
-     *
-     * For example, "redis.default" becomes "default", "redis.notifications"
-     * becomes "notifications", etc. Queues without a dot or with a different
-     * scheme are returned unchanged.
-     *
-     * @param string|null $queue
-     * @return string|null
-     */
-    private function private__normalizeQueueName(?string $queue): ?string {
-        if ($queue === null || $queue === '') {
-            return $queue;
-        }
-
-        if (\str_starts_with($queue, 'redis.')) {
-            $suffix = \substr($queue, \strlen('redis.'));
-            return $suffix !== '' ? $suffix : $queue;
-        }
-
-        return $queue;
-    }
-
-    /**
      * Process an event.
      *
      * @param Service $service
-     * @param array $event
+     * @param array<string, mixed> $event
      * @return void
      */
     public function process(Service $service, array $event): void {
-        $eventType = $event['event_type'] ?? '';
+        $eventType = (string) ($event['event_type'] ?? '');
 
         if ($eventType === 'SupervisorLooped') {
             $this->private__processSupervisorLooped($service, $event);
+
             return;
         }
 
-        $jobUuid = $event['job_uuid'] ?? '';
-        $queueRaw = $event['queue'] ?? '';
+        $jobUuid = $this->private__resolveJobUuid($event);
+
+        $queueRaw = isset($event['queue']) ? (string) $event['queue'] : '';
         $queue = $this->private__normalizeQueueName($queueRaw);
         $name = $event['name'] ?? null;
         $payload = $event['payload'] ?? null;
@@ -85,21 +64,21 @@ class HorizonEventProcessor {
                     try {
                         $queuedAt = Carbon::parse($pushedAtRaw)->toIso8601String();
                     } catch (\Throwable $e) {
-                        // ignore parse errors and leave queuedAt as null
                     }
                 }
             }
         }
 
-
         $this->alertEngine->evaluateAfterEvent(
             $service->id,
             $eventType,
-            $jobUuid
+            $jobUuid !== '' ? $jobUuid : null
         );
 
-        broadcast(new HorizonEventReceived($eventType, $service->id, $jobUuid, [
-            'job_uuid' => $jobUuid,
+        $broadcastJobUuid = $jobUuid !== '' ? $jobUuid : null;
+
+        \broadcast(new HorizonEventReceived($eventType, (int) $service->id, $broadcastJobUuid, [
+            'job_uuid' => $broadcastJobUuid,
             'queue' => $queue,
             'name' => $name,
             'status' => $status,
@@ -110,15 +89,50 @@ class HorizonEventProcessor {
      * Process a supervisor looped event.
      *
      * @param Service $service
-     * @param array $event
+     * @param array<string, mixed> $event
      * @return void
      */
     private function private__processSupervisorLooped(Service $service, array $event): void {
-        // Treat supervisor loop as a heartbeat for the service itself.
         $service->forceFill([
             'last_seen_at' => \now(),
             'status' => 'online',
         ])->saveQuietly();
+    }
+
+
+    /**
+     * Normalize a queue name to avoid duplicates caused by different connection prefixes.
+     *
+     * @param string|null $queue
+     * @return string|null
+     */
+    private function private__normalizeQueueName(?string $queue): ?string {
+        if ($queue === null || $queue === '') {
+            return $queue;
+        }
+
+        if (\str_starts_with($queue, 'redis.')) {
+            $suffix = \substr($queue, \strlen('redis.'));
+            return $suffix !== '' ? $suffix : $queue;
+        }
+
+        return $queue;
+    }
+
+    /**
+     * Resolve the job UUID from the event.
+     *
+     * @param array<string, mixed> $event
+     * @return string
+     */
+    private function private__resolveJobUuid(array $event): string {
+        foreach (['job_uuid', 'job_id', 'id'] as $key) {
+            if (isset($event[$key]) && (string) $event[$key] !== '') {
+                return (string) $event[$key];
+            }
+        }
+
+        return '';
     }
 
 }

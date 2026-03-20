@@ -26,7 +26,7 @@ class HorizonEventProcessorTest extends TestCase {
         $engine = $this->createMock(AlertEngine::class);
         $engine->expects($this->once())
             ->method('evaluateAfterEvent')
-            ->with($service->id, 'JobFailed', $this->isType('int'));
+            ->with($service->id, 'JobFailed', 'uuid-1');
 
         $processor = new HorizonEventProcessor($engine);
 
@@ -56,13 +56,19 @@ class HorizonEventProcessorTest extends TestCase {
             'status' => 'online',
         ]);
 
-        $processor = new HorizonEventProcessor($this->createMock(AlertEngine::class));
+        $engine = $this->createMock(AlertEngine::class);
+        $engine->expects($this->once())
+            ->method('evaluateAfterEvent')
+            ->with($service->id, 'QueuePaused', null);
+
+        $processor = new HorizonEventProcessor($engine);
 
         $processor->process($service, [
             'event_type' => 'QueuePaused',
             'queue' => 'redis.default',
             'status' => 'paused',
         ]);
+        Event::assertDispatched(HorizonEventReceived::class, 1);
     }
 
     public function test_queue_resumed_event_updates_horizon_queue_state_to_not_paused(): void {
@@ -74,12 +80,19 @@ class HorizonEventProcessorTest extends TestCase {
             'base_url' => 'https://a.com',
             'status' => 'online',
         ]);
-        $processor = new HorizonEventProcessor($this->createMock(AlertEngine::class));
+
+        $engine = $this->createMock(AlertEngine::class);
+        $engine->expects($this->once())
+            ->method('evaluateAfterEvent')
+            ->with($service->id, 'QueueResumed', null);
+
+        $processor = new HorizonEventProcessor($engine);
 
         $processor->process($service, [
             'event_type' => 'QueueResumed',
             'queue' => 'redis.default',
             'status' => 'resumed',
         ]);
+        Event::assertDispatched(HorizonEventReceived::class, 1);
     }
 }

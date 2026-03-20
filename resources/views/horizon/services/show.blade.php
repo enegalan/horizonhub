@@ -446,7 +446,7 @@
                         </x-slot:head>
                                 @forelse($jobsProcessed as $job)
                                     <tr class="transition-colors hover:bg-muted/30">
-                                        <td class="px-4 py-2.5 text-sm text-primary underline cursor-pointer truncate max-w-[180px]" data-column-id="uuid">
+                                        <td class="px-4 py-2.5 text-sm text-primary cursor-pointer truncate max-w-[180px]" data-column-id="uuid">
                                             @php
                                                 $jobUuid = $job->job_uuid ?? $job->id ?? null;
                                             @endphp
@@ -546,7 +546,7 @@
                         </x-slot:head>
                                 @forelse($jobsFailed as $job)
                                     <tr class="transition-colors hover:bg-muted/30">
-                                        <td class="px-4 py-2.5 text-sm text-primary underline cursor-pointer truncate max-w-[180px]" data-column-id="uuid">
+                                        <td class="px-4 py-2.5 text-sm text-primary cursor-pointer truncate max-w-[180px]" data-column-id="uuid">
                                             @php
                                                 $jobUuid = $job->job_uuid ?? $job->id ?? null;
                                             @endphp

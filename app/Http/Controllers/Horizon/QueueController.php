@@ -51,16 +51,17 @@ class QueueController extends Controller {
         $queues = \collect($workloadRows)
             ->map(function (array $row) use ($servicesById) {
                 $normalizedQueue = $this->private__normalizeQueueName($row['queue'] ?? '');
+                $queueLabel = $normalizedQueue ?? ($row['queue'] ?? '');
 
                 return (object) [
                     'service_id' => (int) $row['service_id'],
-                    'queue' => $normalizedQueue,
+                    'queue' => $queueLabel,
                     'job_count' => (int) $row['jobs'],
                     'service' => $servicesById->get((int) $row['service_id']),
                 ];
-            })
-            ->sortBy(fn ($r) => $r->queue)
-            ->values();
+            });
+
+        $queues = $queues->sortBy(fn ($r) => $r->queue)->values();
 
         $services = Service::orderBy('name')->get();
         $totalJobs = $queues->sum('job_count');

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Horizon;
 
 use App\Http\Controllers\Controller;
 use App\Models\Service;
-use App\Services\HorizonSyncService;
 use App\Services\HorizonApiProxyService;
 use App\Services\HorizonMetricsService;
 use App\Support\Horizon\JobRuntimeHelper;
@@ -13,13 +12,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class ServiceController extends Controller {
-
-    /**
-     * The Horizon sync service.
-     *
-     * @var HorizonSyncService
-     */
-    private HorizonSyncService $horizonSync;
 
     /**
      * The Horizon metrics service.
@@ -31,11 +23,9 @@ class ServiceController extends Controller {
     /**
      * Construct the service controller.
      *
-     * @param HorizonSyncService $horizonSync
      * @param HorizonMetricsService $metrics
      */
-    public function __construct(HorizonSyncService $horizonSync, HorizonMetricsService $metrics) {
-        $this->horizonSync = $horizonSync;
+    public function __construct(HorizonMetricsService $metrics) {
         $this->metrics = $metrics;
     }
 
@@ -211,8 +201,6 @@ class ServiceController extends Controller {
      * @return View
      */
     public function show(Request $request, Service $service, HorizonApiProxyService $horizonApi): View {
-        $this->horizonSync->syncRecentJobs((int) $service->id);
-
         $search = (string) $request->query('search', '');
 
         $jobsPastMinute = $this->metrics->getJobsPastMinute($service);
