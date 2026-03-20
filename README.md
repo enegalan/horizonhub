@@ -6,7 +6,7 @@ Centralized dashboard for monitoring Laravel Horizon jobs across multiple servic
 
 - **Parity with Horizon** per service: view jobs, failed jobs, queues
 - **Centralized monitoring** across unlimited services
-- **Real-time updates** via Laravel Reverb (WebSockets)
+- **Live UI refresh** via server-sent events (SSE)
 - **Alerting** for failures and performance (email, Slack)
 - **HTTP-based integration**: configure each service's Horizon HTTP API endpoint in Horizon Hub
 
@@ -15,7 +15,7 @@ Centralized dashboard for monitoring Laravel Horizon jobs across multiple servic
 - PHP 8.2+
 - Laravel 12
 - MySQL 8 or SQLite
-- Redis (for Reverb broadcasting)
+- Redis
 
 ## Quick start (Docker)
 
@@ -23,7 +23,7 @@ Centralized dashboard for monitoring Laravel Horizon jobs across multiple servic
 git clone https://github.com/enegalan/horizonhub.git
 cd horizonhub
 cp .env.example .env
-# Edit .env: set APP_KEY (generate with `php artisan key:generate`), DB_*, REDIS_*, REVERB_*
+# Edit .env: set APP_KEY (generate with `php artisan key:generate`), DB_*, REDIS_*
 docker compose up -d
 docker compose exec hub php artisan key:generate
 docker compose exec hub php artisan migrate --force
@@ -34,8 +34,7 @@ Open http://localhost (redirects to the Horizon dashboard at `/horizon`). Regist
 ## Hub configuration
 
 - **Database**: `DB_*` in `.env` (MySQL or SQLite)
-- **Redis**: `REDIS_*` for cache and Reverb
-- **Reverb**: `REVERB_*` and `BROADCAST_CONNECTION=reverb` for real-time dashboard
+- **Redis**: `REDIS_*` when using Redis for cache/sessions
 - **Alerts**: configure SMTP (`MAIL_*`) and/or Slack webhooks in alert rules
 
 ## Service registration

@@ -43,7 +43,7 @@ docker compose up -d
 From the repo root (use the `demo` profile so demo services are available):
 
 ```bash
-docker compose --profile demo up -d mysql redis hub reverb redis-demo-1 demo-app-1
+docker compose --profile demo up -d mysql redis hub redis-demo-1 demo-app-1
 ```
 
 Then seed the demo service for app 1 once (if not already present):
