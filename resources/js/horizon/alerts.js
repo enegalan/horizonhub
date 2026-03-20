@@ -293,8 +293,33 @@ export function horizonAlertsList() {
  * Horizon alert detail.
  * @returns {object}
  */
-export function horizonAlertDetail() {
+export function horizonAlertDetail(config) {
     return {
+        showDeliveryLogModal: false,
+        deliveryLogModalMounted: false,
+        deliveryLog: null,
+        normalizeDeliveryLog(logData) {
+            if (!logData || typeof logData !== 'object') {
+                return null;
+            }
+            var normalized = Object.assign({}, logData);
+            var eventsCount = Number.parseInt(String(normalized.events_count ?? 0), 10);
+            if (!Number.isFinite(eventsCount) || eventsCount < 0) {
+                eventsCount = 0;
+            }
+            var jobItems = Array.isArray(normalized.job_items) ? normalized.job_items : [];
+            var visibleJobTypesCount = jobItems.length;
+            var incomingMore = Number.parseInt(String(normalized.job_ids_more ?? 0), 10);
+            if (!Number.isFinite(incomingMore) || incomingMore < 0) {
+                incomingMore = 0;
+            }
+            var incomingTotalJobTypesCount = visibleJobTypesCount + incomingMore;
+            var effectiveTotalJobTypesCount = Math.min(incomingTotalJobTypesCount, eventsCount);
+            normalized.job_ids_more = Math.max(0, effectiveTotalJobTypesCount - visibleJobTypesCount);
+            normalized.job_items = jobItems;
+            normalized.events_count = eventsCount;
+            return normalized;
+        },
         /**
          * Initialize the alert detail.
          * @returns {void}
@@ -303,11 +328,37 @@ export function horizonAlertDetail() {
             var self = this;
             if (typeof window === 'undefined') return;
 
+            if (config && config.initialDeliveryLog) {
+                self.openDeliveryLogModal(self.normalizeDeliveryLog(config.initialDeliveryLog));
+            }
+
             window.addEventListener('horizonhub-refresh', function (e) {
                 if (typeof document === 'undefined') return;
                 if (document.visibilityState !== 'visible') return;
                 self.refreshAlertDetail(e.detail && e.detail.document);
             });
+        },
+        openDeliveryLogModal(logData) {
+            if (logData) {
+                this.deliveryLog = this.normalizeDeliveryLog(logData);
+            }
+            if (!this.deliveryLog) {
+                return;
+            }
+            this.deliveryLogModalMounted = true;
+            this.showDeliveryLogModal = false;
+            requestAnimationFrame(() => {
+                this.showDeliveryLogModal = true;
+            });
+        },
+        closeDeliveryLogModal() {
+            this.showDeliveryLogModal = false;
+            window.setTimeout(() => {
+                if (!this.showDeliveryLogModal) {
+                    this.deliveryLogModalMounted = false;
+                    this.deliveryLog = null;
+                }
+            }, 220);
         },
         refreshAlertDetail(preloadedDoc) {
             if (typeof window === 'undefined' || typeof document === 'undefined') return;
@@ -317,10 +368,7 @@ export function horizonAlertDetail() {
             var currentRoot = document.querySelector('[data-horizon-alert-detail-root="1"]');
             if (!newRoot || !currentRoot) return;
 
-            var searchParams = typeof window !== 'undefined' && window.location && window.location.search
-                ? new URLSearchParams(window.location.search)
-                : null;
-            var modalOpen = searchParams && searchParams.has('log');
+            var modalOpen = this.deliveryLogModalMounted;
 
             function replaceSection(selector) {
                 var cur = currentRoot.querySelector(selector);

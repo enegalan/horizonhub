@@ -1,8 +1,45 @@
 @extends('layouts.app')
 
 @section('content')
+    @php
+        $initialDeliveryLogPayload = null;
+        if ($selectedLog) {
+            $initialTriggerCount = (int) ($selectedLog->trigger_count ?? 0);
+            if ($initialTriggerCount < 1) {
+                $initialTriggerCount = 1;
+            }
+            $initialJobUuids = \is_array($selectedLog->job_uuids ?? null) ? $selectedLog->job_uuids : [];
+            $initialJobTotals = [];
+            foreach ($initialJobUuids as $initialUuid) {
+                $initialJobKey = (string) $initialUuid;
+                $initialJobTotals[$initialJobKey] = ($initialJobTotals[$initialJobKey] ?? 0) + 1;
+            }
+            $initialUniqueJobTypesCount = \count($initialJobTotals);
+            $initialEffectiveJobTypesCount = \min($initialUniqueJobTypesCount, $initialTriggerCount);
+            $initialVisibleJobTypesLimit = \min(\config('horizonhub.alerts_per_page'), $initialEffectiveJobTypesCount);
+            $initialJobItems = [];
+            foreach (\array_slice(\array_keys($initialJobTotals), 0, $initialVisibleJobTypesLimit) as $initialJobId) {
+                $initialJobItems[] = [
+                    'id' => $initialJobId,
+                    'count' => (int) $initialJobTotals[$initialJobId],
+                ];
+            }
+            $initialDeliveryLogPayload = [
+                'sent_at' => $selectedLog->sent_at?->format('Y-m-d H:i:s') ?? '–',
+                'service_name' => $selectedLog->service?->name ?? '–',
+                'events_text' => $initialTriggerCount === 1 ? '1 event' : $initialTriggerCount . ' events',
+                'events_count' => $initialTriggerCount,
+                'status' => (string) ($selectedLog->status ?? ''),
+                'failure_message' => (string) ($selectedLog->failure_message ?? ''),
+                'job_items' => $initialJobItems,
+                'job_ids_more' => \max(0, $initialEffectiveJobTypesCount - $initialVisibleJobTypesLimit),
+            ];
+        }
+    @endphp
     <div
-        x-data="window.horizonAlertDetail ? window.horizonAlertDetail() : {}"
+        x-data="window.horizonAlertDetail ? window.horizonAlertDetail({
+            initialDeliveryLog: @js($initialDeliveryLogPayload),
+        }) : {}"
         x-init="typeof init === 'function' ? init() : null"
         data-horizon-alert-detail-root="1"
     >
@@ -191,13 +228,45 @@
                                     </td>
                                     <td class="px-4 py-2.5" data-column-id="actions">
                                         <div class="flex items-center gap-2">
+                                            @php
+                                                $logTriggerCount = (int) ($log->trigger_count ?? 0);
+                                                if ($logTriggerCount < 1) {
+                                                    $logTriggerCount = 1;
+                                                }
+                                                $logJobUuids = \is_array($log->job_uuids ?? null) ? $log->job_uuids : [];
+                                                $logJobTotals = [];
+                                                foreach ($logJobUuids as $logUuid) {
+                                                    $logJobKey = (string) $logUuid;
+                                                    $logJobTotals[$logJobKey] = ($logJobTotals[$logJobKey] ?? 0) + 1;
+                                                }
+                                                $logUniqueJobTypesCount = \count($logJobTotals);
+                                                $logEffectiveJobTypesCount = \min($logUniqueJobTypesCount, $logTriggerCount);
+                                                $logVisibleJobTypesLimit = \min(\config('horizonhub.alerts_per_page'), $logEffectiveJobTypesCount);
+                                                $logJobItems = [];
+                                                foreach (\array_slice(\array_keys($logJobTotals), 0, $logVisibleJobTypesLimit) as $logJobId) {
+                                                    $logJobItems[] = [
+                                                        'id' => $logJobId,
+                                                        'count' => (int) $logJobTotals[$logJobId],
+                                                    ];
+                                                }
+                                                $deliveryLogPayload = [
+                                                    'sent_at' => $log->sent_at?->format('Y-m-d H:i:s') ?? '–',
+                                                    'service_name' => $log->service?->name ?? '–',
+                                                    'events_text' => $logTriggerCount === 1 ? '1 event' : $logTriggerCount . ' events',
+                                                    'events_count' => $logTriggerCount,
+                                                    'status' => (string) ($log->status ?? ''),
+                                                    'failure_message' => (string) ($log->failure_message ?? ''),
+                                                    'job_items' => $logJobItems,
+                                                    'job_ids_more' => \max(0, $logEffectiveJobTypesCount - $logVisibleJobTypesLimit),
+                                                ];
+                                            @endphp
                                             <x-button
                                                 variant="outline"
                                                 type="button"
                                                 class="inline-flex items-center justify-center h-8 min-h-8 p-2 rounded-md"
                                                 aria-label="View delivery log"
                                                 title="View delivery log"
-                                                onclick="window.location.href='{{ route('horizon.alerts.show', ['alert' => $alert->id, 'log' => $log->id] + request()->except('page')) }}'"
+                                                @click='openDeliveryLogModal({{ \Illuminate\Support\Js::from($deliveryLogPayload) }})'
                                             >
                                                 <x-heroicon-o-document-text class="size-4" />
                                             </x-button>
@@ -235,96 +304,70 @@
                 </div>
             </div>
 
-            @if($selectedLog)
-                @php
-                    $sl = $selectedLog;
-                    $triggerCount = (int) ($sl->trigger_count ?? 0);
-                    if ($triggerCount < 1) $triggerCount = 1;
-                    $jobUuids = is_array($sl->job_uuids ?? null) ? $sl->job_uuids : [];
-                    $totals = [];
-                    foreach ($jobUuids as $uuid) {
-                        $key = (string) $uuid;
-                        $totals[$key] = ($totals[$key] ?? 0) + 1;
-                    }
-                    $jobIdsLimited = \array_slice(\array_keys($totals), 0, \config('horizonhub.alerts_per_page'));
-                    $jobIdsMore = \count($totals) > \config('horizonhub.alerts_per_page') ? \count($totals) - \config('horizonhub.alerts_per_page') : 0;
-                @endphp
-                @teleport('body')
-                    <div id="alert-log-modal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto px-4" role="dialog" aria-modal="true" aria-labelledby="alert-log-modal-title">
-                        @include('components.backdrop', ['variant' => 'default'])
-                        <div class="relative z-10 card w-full max-w-lg p-4 bg-card">
-                            <h2 id="alert-log-modal-title" class="text-section-title text-foreground mb-3">Delivery log</h2>
-                            <dl class="space-y-2 text-sm">
+            @teleport('body')
+                <template x-if="deliveryLogModalMounted">
+                    <div>
+                        <x-confirm-modal
+                            title="Delivery log"
+                            size="lg"
+                            cancelText="Close"
+                            :cancelAction="null"
+                            :backdropAction="null"
+                            x-data
+                            x-show="showDeliveryLogModal"
+                            x-on:close-modal.window="closeDeliveryLogModal()"
+                        >
+                            <dl class="space-y-2 text-sm" x-show="deliveryLog">
                                 <div>
                                     <dt class="label-muted">Sent at</dt>
-                                    <dd class="text-foreground">{{ $sl->sent_at->format('Y-m-d H:i:s') }}</dd>
+                                    <dd class="text-foreground" x-text="deliveryLog ? deliveryLog.sent_at : '–'"></dd>
                                 </div>
                                 <div>
                                     <dt class="label-muted">Service</dt>
-                                    <dd class="text-foreground">{{ $sl->service?->name ?? '–' }}</dd>
+                                    <dd class="text-foreground" x-text="deliveryLog ? deliveryLog.service_name : '–'"></dd>
                                 </div>
                                 <div>
                                     <dt class="label-muted">Events</dt>
-                                    <dd class="text-foreground font-mono text-xs">{{ $triggerCount === 1 ? '1 event' : $triggerCount . ' events' }}</dd>
+                                    <dd class="text-foreground font-mono text-xs" x-text="deliveryLog ? deliveryLog.events_text : '–'"></dd>
                                 </div>
-                                @if($triggerCount > 1)
-                                    <div>
-                                        <dt class="label-muted">Events in this delivery</dt>
-                                        <dd class="text-foreground">{{ $triggerCount }}</dd>
-                                    </div>
-                                @endif
-                                @if(!empty($jobIds))
-                                    <div>
-                                        <dt class="label-muted">Job IDs (grouped)</dt>
-                                        <dd class="text-foreground flex flex-wrap gap-1">
-                                            @foreach($jobIdsLimited as $jid)
-                                                <span class="inline-flex items-center rounded border border-border px-1.5 py-0.5 text-[11px] font-mono text-muted-foreground bg-muted/40">
-                                                    {{ $jid }}
-                                                    <span class="mx-1 text-xs text-foreground">×</span>
-                                                    {{ $totals[$jid] }}
-                                                </span>
-                                            @endforeach
-                                        </dd>
-                                        @if($jobIdsMore > 0)
-                                            <dd class="text-xs text-muted-foreground mt-1">+{{ $jobIdsMore }} more job types</dd>
-                                        @endif
-                                    </div>
-                                @endif
+                                <div x-show="deliveryLog && deliveryLog.events_count > 1">
+                                    <dt class="label-muted">Events in this delivery</dt>
+                                    <dd class="text-foreground" x-text="deliveryLog ? deliveryLog.events_count : 0"></dd>
+                                </div>
+                                <div x-show="deliveryLog && deliveryLog.job_items && deliveryLog.job_items.length > 0">
+                                    <dt class="label-muted">Job IDs (grouped)</dt>
+                                    <dd class="text-foreground flex flex-wrap gap-1">
+                                        <template x-for="jobItem in (deliveryLog ? (deliveryLog.job_items || []) : [])" :key="jobItem.id">
+                                            <span class="inline-flex items-center rounded border border-border px-1.5 py-0.5 text-[11px] font-mono text-muted-foreground bg-muted/40">
+                                                <span x-text="jobItem.id"></span>
+                                                <span class="mx-1 text-xs text-foreground">x</span>
+                                                <span x-text="jobItem.count"></span>
+                                            </span>
+                                        </template>
+                                    </dd>
+                                    <dd class="text-xs text-muted-foreground mt-1" x-show="deliveryLog && deliveryLog.job_ids_more > 0" x-text="'+' + deliveryLog.job_ids_more + ' more job types'"></dd>
+                                </div>
                                 <div>
                                     <dt class="label-muted">Status</dt>
                                     <dd>
-                                        @if($sl->status === 'sent')
-                                            <span class="badge-success">sent</span>
-                                        @else
-                                            <span class="badge-danger">failed</span>
-                                        @endif
+                                        <span class="badge-success" x-show="deliveryLog && deliveryLog.status === 'sent'">sent</span>
+                                        <span class="badge-danger" x-show="deliveryLog && deliveryLog.status !== 'sent'">failed</span>
                                     </dd>
                                 </div>
-                                @if($sl->status === 'failed' && !empty($sl->failure_message))
-                                    <div>
-                                        <dt class="label-muted">Failure reason</dt>
-                                        <dd class="mt-1 rounded-md border border-border bg-muted/30 px-3 py-2 font-mono text-xs text-foreground whitespace-pre-wrap break-words">
-                                            {{ $sl->failure_message }}
-                                        </dd>
-                                    </div>
-                                @endif
-                            </dl>
-                            <div class="pt-4">
-                                <div class="flex items-center justify-end gap-3">
-                                    <x-button
-                                        variant="ghost"
-                                        type="button"
-                                        class="h-9 text-sm rounded-md px-3 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                                        onclick="window.location.href='{{ route('horizon.alerts.show', ['alert' => $alert->id] + request()->except('log')) }}'"
-                                    >
-                                        Close
-                                    </x-button>
+                                <div x-show="deliveryLog && deliveryLog.status === 'failed' && deliveryLog.failure_message">
+                                    <dt class="label-muted">Failure reason</dt>
+                                    <dd class="mt-1 rounded-md border border-border bg-muted/30 px-3 py-2 font-mono text-xs text-foreground whitespace-pre-wrap break-words" x-text="deliveryLog ? deliveryLog.failure_message : ''"></dd>
                                 </div>
-                            </div>
-                        </div>
+                            </dl>
+                            <x-slot:footer>
+                                <div class="flex w-full flex-wrap items-center justify-end gap-2">
+                                    <x-button type="button" variant="ghost" @click="closeDeliveryLogModal()">Close</x-button>
+                                </div>
+                            </x-slot:footer>
+                        </x-confirm-modal>
                     </div>
-                @endteleport
-            @endif
+                </template>
+            @endteleport
         </div>
     </div>
 @endsection
