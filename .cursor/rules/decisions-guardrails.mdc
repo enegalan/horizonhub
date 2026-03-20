@@ -1,0 +1,32 @@
+---
+description: Guardrails for prior project decisions and rejected ideas
+alwaysApply: true
+---
+
+# Decisions Guardrails
+
+## Source of truth
+
+- Treat `docs/decisions/accepted/` as the canonical source for accepted and superseded ADRs.
+- Treat `docs/decisions/rejected/` as the canonical source for rejected ideas.
+- Treat each `docs/decisions/rejected/*.md` file as a strict "do not propose" record for that topic.
+
+## Behavior when proposing improvements
+
+- Do not suggest changes that were explicitly rejected.
+- Do not re-open past decisions unless the documented reopen condition is met.
+- If a decision is marked as accepted, avoid alternatives unless the user explicitly asks for re-evaluation.
+- If a decision is marked as superseded, follow the latest replacing decision only.
+
+## Reopen policy
+
+- Revisit a rejected/closed topic only when at least one condition is true:
+  - The user explicitly asks to revisit it.
+  - A documented reopen trigger is satisfied.
+  - New hard constraints exist (security, legal, platform compatibility, or incident-driven requirement).
+
+## Output requirements
+
+- When refusing a proposal due to prior decisions, cite the exact decision file and reason.
+- Prefer new proposals that respect current decisions instead of generic alternatives.
+- If decision records are missing or ambiguous, ask for a decision entry before proposing conflicting changes.
