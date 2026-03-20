@@ -259,4 +259,3 @@ class MetricsControllerTest extends TestCase {
         $this->assertSame(1.2, $data['failureRate24h']['rate']);
     }
 }
-
