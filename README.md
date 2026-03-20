@@ -12,8 +12,8 @@ Centralized dashboard for monitoring Laravel Horizon jobs across multiple servic
 
 ## Requirements
 
-- PHP 8.0+
-- Laravel 12 (or 11)
+- PHP 8.2+
+- Laravel 12
 - MySQL 8 or SQLite
 - Redis (for Reverb broadcasting)
 
