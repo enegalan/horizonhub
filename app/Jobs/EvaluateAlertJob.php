@@ -52,7 +52,7 @@ class EvaluateAlertJob implements ShouldQueue {
 
             if (! $alert) {
                 Cache::put(
-                    $this->cacheKeyForAlertResult(),
+                    $this->private__cacheKeyForAlertResult(),
                     [
                         'alert_id' => $this->alertId,
                         'pending_flushed' => false,
@@ -64,29 +64,29 @@ class EvaluateAlertJob implements ShouldQueue {
                     ],
                     self::CACHE_TTL_SECONDS
                 );
-                Cache::increment($this->cacheKeyForEvaluatedCount(), 1);
-                Cache::increment($this->cacheKeyForErrorCount(), 1);
+                Cache::increment($this->private__cacheKeyForEvaluatedCount(), 1);
+                Cache::increment($this->private__cacheKeyForErrorCount(), 1);
                 return;
             }
 
             $result = $engine->evaluateAlert($alert);
 
             Cache::put(
-                $this->cacheKeyForAlertResult(),
+                $this->private__cacheKeyForAlertResult(),
                 $result,
                 self::CACHE_TTL_SECONDS
             );
 
-            Cache::increment($this->cacheKeyForEvaluatedCount(), 1);
+            Cache::increment($this->private__cacheKeyForEvaluatedCount(), 1);
             if (! empty($result['triggered'])) {
-                Cache::increment($this->cacheKeyForTriggeredCount(), 1);
+                Cache::increment($this->private__cacheKeyForTriggeredCount(), 1);
             }
             if (! empty($result['delivered'])) {
-                Cache::increment($this->cacheKeyForDeliveredCount(), 1);
+                Cache::increment($this->private__cacheKeyForDeliveredCount(), 1);
             }
             if (! empty($result['error_message'])) {
-                Cache::increment($this->cacheKeyForErrorCount(), 1);
-                $this->cacheFirstErrorMessage($result['error_message']);
+                Cache::increment($this->private__cacheKeyForErrorCount(), 1);
+                $this->private__cacheFirstErrorMessage($result['error_message']);
             }
         } catch (\Throwable $e) {
             Log::error('Horizon Hub: alert evaluation job failed', [
@@ -95,11 +95,11 @@ class EvaluateAlertJob implements ShouldQueue {
                 'error' => $e->getMessage(),
             ]);
 
-            Cache::increment($this->cacheKeyForEvaluatedCount(), 1);
-            Cache::increment($this->cacheKeyForErrorCount(), 1);
-            $this->cacheFirstErrorMessage($e->getMessage());
+            Cache::increment($this->private__cacheKeyForEvaluatedCount(), 1);
+            Cache::increment($this->private__cacheKeyForErrorCount(), 1);
+            $this->private__cacheFirstErrorMessage($e->getMessage());
             Cache::put(
-                $this->cacheKeyForAlertResult(),
+                $this->private__cacheKeyForAlertResult(),
                 [
                     'alert_id' => $this->alertId,
                     'pending_flushed' => false,
@@ -119,7 +119,7 @@ class EvaluateAlertJob implements ShouldQueue {
      *
      * @return string
      */
-    private function cacheKeyNamespace(): string {
+    private function private__cacheKeyNamespace(): string {
         return "horizonhub.alert_evaluation_batches.$this->evaluationId";
     }
 
@@ -128,8 +128,8 @@ class EvaluateAlertJob implements ShouldQueue {
      *
      * @return string
      */
-    private function cacheKeyForAlertResult(): string {
-        return $this->cacheKeyNamespace() . '.results.' . $this->alertId;
+    private function private__cacheKeyForAlertResult(): string {
+        return $this->private__cacheKeyNamespace() . '.results.' . $this->alertId;
     }
 
     /**
@@ -137,8 +137,8 @@ class EvaluateAlertJob implements ShouldQueue {
      *
      * @return string
      */
-    private function cacheKeyForEvaluatedCount(): string {
-        return $this->cacheKeyNamespace() . '.evaluated_count';
+    private function private__cacheKeyForEvaluatedCount(): string {
+        return $this->private__cacheKeyNamespace() . '.evaluated_count';
     }
 
     /**
@@ -146,8 +146,8 @@ class EvaluateAlertJob implements ShouldQueue {
      *
      * @return string
      */
-    private function cacheKeyForTriggeredCount(): string {
-        return $this->cacheKeyNamespace() . '.triggered_count';
+    private function private__cacheKeyForTriggeredCount(): string {
+        return $this->private__cacheKeyNamespace() . '.triggered_count';
     }
 
     /**
@@ -155,8 +155,8 @@ class EvaluateAlertJob implements ShouldQueue {
      *
      * @return string
      */
-    private function cacheKeyForDeliveredCount(): string {
-        return $this->cacheKeyNamespace() . '.delivered_count';
+    private function private__cacheKeyForDeliveredCount(): string {
+        return $this->private__cacheKeyNamespace() . '.delivered_count';
     }
 
     /**
@@ -164,8 +164,8 @@ class EvaluateAlertJob implements ShouldQueue {
      *
      * @return string
      */
-    private function cacheKeyForErrorCount(): string {
-        return $this->cacheKeyNamespace() . '.error_count';
+    private function private__cacheKeyForErrorCount(): string {
+        return $this->private__cacheKeyNamespace() . '.error_count';
     }
 
     /**
@@ -174,8 +174,8 @@ class EvaluateAlertJob implements ShouldQueue {
      * @param string $message
      * @return void
      */
-    private function cacheFirstErrorMessage(string $message): void {
-        $key = $this->cacheKeyNamespace() . '.first_error_message';
+    private function private__cacheFirstErrorMessage(string $message): void {
+        $key = $this->private__cacheKeyNamespace() . '.first_error_message';
         if (Cache::get($key) !== null) {
             return;
         }

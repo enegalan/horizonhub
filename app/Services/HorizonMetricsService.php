@@ -50,7 +50,7 @@ class HorizonMetricsService {
      * @param string|null $queue
      * @return string|null
      */
-    private function normalizeQueueName(?string $queue): ?string {
+    private function private__normalizeQueueName(?string $queue): ?string {
         if ($queue === null || $queue === '') {
             return $queue;
         }
@@ -77,7 +77,7 @@ class HorizonMetricsService {
      * @param int $pageLimit
      * @return list<array<string, mixed>>
      */
-    private function fetchCompletedJobsInWindow(Service $service, int $sinceTimestamp, int $pageLimit): array {
+    private function private__fetchCompletedJobsInWindow(Service $service, int $sinceTimestamp, int $pageLimit): array {
         $jobs = [];
         $startingAt = -1;
         $page = 0;
@@ -128,7 +128,7 @@ class HorizonMetricsService {
      * @param int $pageLimit
      * @return list<array<string, mixed>>
      */
-    private function fetchFailedJobsInWindow(Service $service, int $sinceTimestamp, int $pageLimit): array {
+    private function private__fetchFailedJobsInWindow(Service $service, int $sinceTimestamp, int $pageLimit): array {
         $jobs = [];
         $startingAt = -1;
         $page = 0;
@@ -512,7 +512,7 @@ class HorizonMetricsService {
         foreach ($services as $service) {
             $rows = $this->getWorkloadForService($service);
             if ($rows === []) {
-                $rows = $this->getWorkloadFallbackFromMasters($service);
+                $rows = $this->private__getWorkloadFallbackFromMasters($service);
             }
 
             foreach ($rows as $row) {
@@ -536,7 +536,7 @@ class HorizonMetricsService {
      * @param Service $service
      * @return array<int, array{queue: string, jobs: int, processes: int|null, wait: float|null}>
      */
-    private function getWorkloadFallbackFromMasters(Service $service): array {
+    private function private__getWorkloadFallbackFromMasters(Service $service): array {
         $mastersResponse = $this->horizonApi->getMasters($service);
         $mastersData = $mastersResponse['data'] ?? null;
         if (! ($mastersResponse['success'] ?? false) || ! \is_array($mastersData)) {
@@ -617,10 +617,10 @@ class HorizonMetricsService {
 
         /** @var Service $service */
         foreach ($services as $service) {
-            $completedJobs = $this->fetchCompletedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
+            $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
             $processed += \count($completedJobs);
 
-            $failedJobs = $this->fetchFailedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
+            $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
             $failed += \count($failedJobs);
         }
 
@@ -670,7 +670,7 @@ class HorizonMetricsService {
 
         /** @var Service $service */
         foreach ($services as $service) {
-            $completedJobs = $this->fetchCompletedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
+            $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
             foreach ($completedJobs as $job) {
                 $completedAt = $job['completed_at'] ?? $job['processed_at'] ?? null;
                 if (! \is_numeric($completedAt)) {
@@ -683,7 +683,7 @@ class HorizonMetricsService {
                 }
             }
 
-            $failedJobs = $this->fetchFailedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
+            $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
             foreach ($failedJobs as $job) {
                 $failedAt = $job['failed_at'] ?? null;
                 if (! \is_numeric($failedAt)) {
@@ -749,7 +749,7 @@ class HorizonMetricsService {
 
         /** @var Service $service */
         foreach ($services as $service) {
-            $completedJobs = $this->fetchCompletedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
+            $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
             foreach ($completedJobs as $job) {
                 $queuedAt = $job['reserved_at'] ?? null;
                 $completedAt = $job['completed_at'] ?? null;
@@ -768,7 +768,7 @@ class HorizonMetricsService {
                 }
             }
 
-            $failedJobs = $this->fetchFailedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
+            $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
             foreach ($failedJobs as $job) {
                 $queuedAt = $job['reserved_at'] ?? null;
                 $failedAt = $job['failed_at'] ?? null;
@@ -843,7 +843,7 @@ class HorizonMetricsService {
                     }
 
                     $queueRaw = isset($job['queue']) ? (string) $job['queue'] : '';
-                    $queue = $this->normalizeQueueName($queueRaw);
+                    $queue = $this->private__normalizeQueueName($queueRaw);
                     if ($queue === null) {
                         $queue = $queueRaw;
                     }
@@ -875,7 +875,7 @@ class HorizonMetricsService {
                     }
 
                     $queueRaw = isset($job['queue']) ? (string) $job['queue'] : '';
-                    $queue = $this->normalizeQueueName($queueRaw);
+                    $queue = $this->private__normalizeQueueName($queueRaw);
                     if ($queue === null) {
                         $queue = $queueRaw;
                     }

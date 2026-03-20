@@ -27,40 +27,6 @@ class HorizonEventProcessor {
     }
 
     /**
-     * Parse a timestamp value coming from Horizon events.
-     *
-     * Accepts ISO8601 strings, database datetime strings or numeric Unix timestamps
-     * (seconds or milliseconds). Returns a Carbon instance or null on failure.
-     *
-     * @param mixed $value
-     * @return Carbon|null
-     */
-    private function parseEventTime(mixed $value): ?Carbon {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        if (\is_numeric($value)) {
-            $numeric = (float) $value;
-            // Heuristic: very large values are treated as milliseconds since epoch,
-            // smaller values are treated as seconds (possibly with fractions).
-            if ($numeric > 1000000000000) {
-                $timestampMs = (int) \round($numeric);
-                return Carbon::createFromTimestampMs($timestampMs);
-            }
-
-            $timestampMs = (int) \round($numeric * 1000);
-            return Carbon::createFromTimestampMs($timestampMs);
-        }
-
-        try {
-            return Carbon::parse((string) $value);
-        } catch (\Throwable $e) {
-            return null;
-        }
-    }
-
-    /**
      * Normalize a queue name to avoid duplicates caused by different connection prefixes.
      *
      * For example, "redis.default" becomes "default", "redis.notifications"
@@ -70,7 +36,7 @@ class HorizonEventProcessor {
      * @param string|null $queue
      * @return string|null
      */
-    private function normalizeQueueName(?string $queue): ?string {
+    private function private__normalizeQueueName(?string $queue): ?string {
         if ($queue === null || $queue === '') {
             return $queue;
         }
@@ -94,13 +60,13 @@ class HorizonEventProcessor {
         $eventType = $event['event_type'] ?? '';
 
         if ($eventType === 'SupervisorLooped') {
-            $this->processSupervisorLooped($service, $event);
+            $this->private__processSupervisorLooped($service, $event);
             return;
         }
 
         $jobUuid = $event['job_uuid'] ?? '';
         $queueRaw = $event['queue'] ?? '';
-        $queue = $this->normalizeQueueName($queueRaw);
+        $queue = $this->private__normalizeQueueName($queueRaw);
         $name = $event['name'] ?? null;
         $payload = $event['payload'] ?? null;
         $statusRaw = $event['status'] ?? null;
@@ -147,7 +113,7 @@ class HorizonEventProcessor {
      * @param array $event
      * @return void
      */
-    private function processSupervisorLooped(Service $service, array $event): void {
+    private function private__processSupervisorLooped(Service $service, array $event): void {
         // Treat supervisor loop as a heartbeat for the service itself.
         $service->forceFill([
             'last_seen_at' => \now(),

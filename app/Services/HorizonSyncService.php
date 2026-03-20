@@ -46,7 +46,7 @@ class HorizonSyncService {
 
         /** @var Service $service */
         foreach ($query->get() as $service) {
-            $this->syncServiceJobs($service);
+            $this->private__syncServiceJobs($service);
         }
     }
 
@@ -56,29 +56,29 @@ class HorizonSyncService {
      * @param Service $service
      * @return void
      */
-    private function syncServiceJobs(Service $service): void {
+    private function private__syncServiceJobs(Service $service): void {
         if (! $service->base_url) {
             return;
         }
 
         $masters = $this->horizonApi->getMasters($service);
         if ($masters['success'] ?? false) {
-            $this->syncSupervisorsFromMasters($service, $masters);
+            $this->private__syncSupervisorsFromMasters($service, $masters);
         }
 
         $failed = $this->horizonApi->getFailedJobs($service);
         if ($failed['success'] ?? false) {
-            $this->upsertJobsFromResponse($service, $failed, 'JobFailed');
+            $this->private__upsertJobsFromResponse($service, $failed, 'JobFailed');
         }
 
         $completed = $this->horizonApi->getCompletedJobs($service);
         if ($completed['success'] ?? false) {
-            $this->upsertJobsFromResponse($service, $completed, 'JobProcessed');
+            $this->private__upsertJobsFromResponse($service, $completed, 'JobProcessed');
         }
 
         $pending = $this->horizonApi->getPendingJobs($service);
         if ($pending['success'] ?? false) {
-            $this->upsertJobsFromResponse($service, $pending, 'JobProcessing');
+            $this->private__upsertJobsFromResponse($service, $pending, 'JobProcessing');
         }
     }
 
@@ -89,7 +89,7 @@ class HorizonSyncService {
      * @param array{success: bool, data?: array} $response
      * @return void
      */
-    private function syncSupervisorsFromMasters(Service $service, array $response): void {
+    private function private__syncSupervisorsFromMasters(Service $service, array $response): void {
         $now = now();
         // Any successful supervisors sync counts as a heartbeat for the service.
         $service->forceFill([
@@ -106,7 +106,7 @@ class HorizonSyncService {
      * @param string $eventType
      * @return void
      */
-    private function upsertJobsFromResponse(Service $service, array $response, string $eventType): void {
+    private function private__upsertJobsFromResponse(Service $service, array $response, string $eventType): void {
         $data = $response['data'] ?? null;
         if (! \is_array($data)) {
             return;

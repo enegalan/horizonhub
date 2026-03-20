@@ -20,7 +20,7 @@ class HorizonApiProxyService {
     public function retryJob(Service $service, string $jobUuid): array {
         $relativePath = $this->private__parseTemplate('horizonhub.horizon_paths.retry', '{id}', $jobUuid);
 
-        return $this->callWithDashboardSession($service, $relativePath, 'post');
+        return $this->private__callWithDashboardSession($service, $relativePath, 'post');
     }
 
     /**
@@ -32,7 +32,7 @@ class HorizonApiProxyService {
     public function ping(Service $service): array {
         $relativePath = (string) \config('horizonhub.horizon_paths.ping');
 
-        return $this->call($service, $relativePath, 'get');
+        return $this->private__call($service, $relativePath, 'get');
     }
 
     /**
@@ -44,9 +44,9 @@ class HorizonApiProxyService {
     public function getWorkload(Service $service): array {
         $relativePath = (string) \config('horizonhub.horizon_paths.workload');
 
-        $result = $this->call($service, $relativePath, 'get');
+        $result = $this->private__call($service, $relativePath, 'get');
         if (! ($result['success'] ?? false) && \in_array($result['status'] ?? 0, [401, 403], true)) {
-            $result = $this->callWithDashboardSession($service, $relativePath, 'get');
+            $result = $this->private__callWithDashboardSession($service, $relativePath, 'get');
         }
 
         return $result;
@@ -64,7 +64,7 @@ class HorizonApiProxyService {
     public function getStats(Service $service): array {
         $relativePath = (string) \config('horizonhub.horizon_paths.ping');
 
-        return $this->call($service, $relativePath, 'get');
+        return $this->private__call($service, $relativePath, 'get');
     }
 
     /**
@@ -76,7 +76,7 @@ class HorizonApiProxyService {
     public function getMasters(Service $service): array {
         $relativePath = (string) \config('horizonhub.horizon_paths.masters');
 
-        return $this->call($service, $relativePath, 'get');
+        return $this->private__call($service, $relativePath, 'get');
     }
 
     /**
@@ -93,7 +93,7 @@ class HorizonApiProxyService {
         }
         $queryString = \http_build_query($query);
 
-        return $this->call($service, "$path?$queryString", 'get');
+        return $this->private__call($service, "$path?$queryString", 'get');
     }
 
     /**
@@ -106,7 +106,7 @@ class HorizonApiProxyService {
     public function getFailedJob(Service $service, string $jobUuid): array {
         $relativePath = $this->private__parseTemplate('horizonhub.horizon_paths.failed_job', '{id}', $jobUuid);
 
-        return $this->call($service, $relativePath, 'get');
+        return $this->private__call($service, $relativePath, 'get');
     }
 
     /**
@@ -123,7 +123,7 @@ class HorizonApiProxyService {
         }
         $queryString = \http_build_query($query);
 
-        return $this->call($service, "$path?$queryString", 'get');
+        return $this->private__call($service, "$path?$queryString", 'get');
     }
 
     /**
@@ -140,7 +140,7 @@ class HorizonApiProxyService {
         }
         $queryString = \http_build_query($query);
 
-        return $this->call($service, "$path?$queryString", 'get');
+        return $this->private__call($service, "$path?$queryString", 'get');
     }
 
     /**
@@ -152,7 +152,7 @@ class HorizonApiProxyService {
     public function getMetricsQueues(Service $service): array {
         $relativePath = (string) \config('horizonhub.horizon_paths.metrics_queues', '/metrics/queues');
 
-        return $this->call($service, $relativePath, 'get');
+        return $this->private__call($service, $relativePath, 'get');
     }
 
     /**
@@ -218,7 +218,7 @@ class HorizonApiProxyService {
      * @param string $rawBody
      * @return array<string, mixed>|null
      */
-    private function parseResponseBody(string $rawBody): ?array {
+    private function private__parseResponseBody(string $rawBody): ?array {
         if ($rawBody === '') {
             return null;
         }
@@ -230,9 +230,9 @@ class HorizonApiProxyService {
      * @param Response $response
      * @return string
      */
-    private function buildErrorMessageFromResponse(Response $response): string {
+    private function private__buildErrorMessageFromResponse(Response $response): string {
         $rawBody = $response->body();
-        $decoded = $this->parseResponseBody($rawBody);
+        $decoded = $this->private__parseResponseBody($rawBody);
 
         if (\is_array($decoded) && isset($decoded['message']) && (string) $decoded['message'] !== '') {
             return (string) $decoded['message'];
@@ -255,7 +255,7 @@ class HorizonApiProxyService {
      * @param string $logContext
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
-    private function processHttpResponse(
+    private function private__processHttpResponse(
         Response $response,
         Service $service,
         string $url,
@@ -263,7 +263,7 @@ class HorizonApiProxyService {
         string $logContext = '',
     ): array {
         if ($response->successful()) {
-            $data = $this->parseResponseBody($response->body());
+            $data = $this->private__parseResponseBody($response->body());
             if ($updateHeartbeat) {
                 $service->forceFill([
                     'last_seen_at' => \now(),
@@ -275,7 +275,7 @@ class HorizonApiProxyService {
                 : ['success' => true, 'data' => $data];
         }
 
-        $message = $this->buildErrorMessageFromResponse($response);
+        $message = $this->private__buildErrorMessageFromResponse($response);
         Log::warning("Horizon Hub: Horizon API call failed $logContext", [
             'service_id' => $service->id,
             'url' => $url,
@@ -298,7 +298,7 @@ class HorizonApiProxyService {
      * @param string $method
      * @return array{success: bool, message?: string, status?: int}
      */
-    private function call(Service $service, string $path, string $method = 'post'): array {
+    private function private__call(Service $service, string $path, string $method = 'post'): array {
         try {
             $base = $this->private__buildBaseUrl($service);
         } catch (\Throwable $e) {
@@ -318,7 +318,7 @@ class HorizonApiProxyService {
                 'delete' => $request->delete($url),
                 default => $request->post($url),
             };
-            return $this->processHttpResponse($response, $service, $url, true);
+            return $this->private__processHttpResponse($response, $service, $url, true);
         } catch (\Throwable $e) {
             Log::error('Horizon Hub: Horizon API call exception', [
                 'service_id' => $service->id ?? null,
@@ -343,7 +343,7 @@ class HorizonApiProxyService {
      * @param Service $service
      * @return array{csrf_token: string, cookies: CookieJar}|null
      */
-    private function bootstrapDashboardSession(Service $service): ?array {
+    private function private__bootstrapDashboardSession(Service $service): ?array {
         try {
             $dashboardUrl = $this->private__buildDashboardUrl($service);
         } catch (\Throwable $e) {
@@ -421,7 +421,7 @@ class HorizonApiProxyService {
      * @param string $method
      * @return array{success: bool, message?: string, status?: int}
      */
-    private function callWithDashboardSession(Service $service, string $path, string $method = 'post'): array {
+    private function private__callWithDashboardSession(Service $service, string $path, string $method = 'post'): array {
         try {
             $base = $this->private__buildBaseUrl($service);
         } catch (\Throwable $e) {
@@ -435,7 +435,7 @@ class HorizonApiProxyService {
         $url = "$base/" . \ltrim($path, '/');
 
         $attempt = function () use ($service, $url, $method): ?Response {
-            $bootstrap = $this->bootstrapDashboardSession($service);
+            $bootstrap = $this->private__bootstrapDashboardSession($service);
             if ($bootstrap === null) {
                 return null;
             }
@@ -464,7 +464,7 @@ class HorizonApiProxyService {
                     $response = $retryResponse;
                 }
             }
-            return $this->processHttpResponse($response, $service, $url, false, ' (with dashboard session)');
+            return $this->private__processHttpResponse($response, $service, $url, false, ' (with dashboard session)');
         } catch (\Throwable $e) {
             Log::error('Horizon Hub: Horizon API call exception (with dashboard session)', [
                 'service_id' => $service->id ?? null,
