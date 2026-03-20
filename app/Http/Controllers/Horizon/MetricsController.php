@@ -108,14 +108,12 @@ class MetricsController extends Controller {
         $service_id = $request->query('service_id');
         $service = $service_id !== null ? Service::find($service_id) : null;
 
-        return \response()->json(function () use ($service, $service_id): array {
-            return [
-                'jobsPastMinute' => $this->metrics->getJobsPastMinute($service),
-                'jobsPastHour' => $this->metrics->getJobsPastHour($service),
-                'failedPastSevenDays' => $this->metrics->getFailedPastSevenDays($service),
-                'failureRate24h' => $this->metrics->getFailureRate24h($service_id),
-            ];
-        });
+        return \response()->json([
+            'jobsPastMinute' => $this->metrics->getJobsPastMinute($service),
+            'jobsPastHour' => $this->metrics->getJobsPastHour($service),
+            'failedPastSevenDays' => $this->metrics->getFailedPastSevenDays($service),
+            'failureRate24h' => $this->metrics->getFailureRate24h($service_id),
+        ]);
     }
 
     /**
@@ -129,9 +127,8 @@ class MetricsController extends Controller {
         if (!Service::find($service_id)) {
             $service_id = null;
         }
-        return \response()->json(function () use ($service_id): array {
-            return $this->metrics->getAvgRuntimeOverTime($service_id);
-        });
+
+        return \response()->json($this->metrics->getAvgRuntimeOverTime($service_id));
     }
 
     /**
@@ -145,9 +142,8 @@ class MetricsController extends Controller {
         if (!Service::find($service_id)) {
             $service_id = null;
         }
-        return \response()->json(function () use ($service_id): array {
-            return $this->metrics->getFailureRateOverTime($service_id);
-        });
+
+        return \response()->json($this->metrics->getFailureRateOverTime($service_id));
     }
 
     /**
@@ -161,11 +157,10 @@ class MetricsController extends Controller {
         if (!Service::find($service_id)) {
             $service_id = null;
         }
-        return \response()->json(function () use ($service_id): array {
-            return [
-                'supervisors' => $this->metrics->getSupervisorsData($service_id),
-            ];
-        });
+
+        return \response()->json([
+            'supervisors' => $this->metrics->getSupervisorsData($service_id),
+        ]);
     }
 
     /**
@@ -179,10 +174,9 @@ class MetricsController extends Controller {
         if (!Service::find($service_id)) {
             $service_id = null;
         }
-        return \response()->json(function () use ($service_id): array {
-            return [
-                'workload' => $this->metrics->getWorkloadData($service_id),
-            ];
-        });
+
+        return \response()->json([
+            'workload' => $this->metrics->getWorkloadData($service_id),
+        ]);
     }
 }
