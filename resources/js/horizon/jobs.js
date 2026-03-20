@@ -13,6 +13,11 @@ export function horizonJobsPage(config) {
         */
         showRetryModal: false,
         /**
+         * Keep modal mounted while close animation runs.
+         * @type {boolean}
+         */
+        retryModalMounted: false,
+        /**
          * Retrying.
          * @type {boolean}
          */
@@ -64,7 +69,7 @@ export function horizonJobsPage(config) {
         init() {
             var self = this;
             window.addEventListener('horizonhub-refresh', function (e) {
-                if (self.showRetryModal) return;
+                if (self.retryModalMounted) return;
                 if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
                 self.refreshJobsTable(e.detail && e.detail.document);
             });
@@ -74,7 +79,11 @@ export function horizonJobsPage(config) {
          * @returns {void}
          */
         openRetryModal() {
-            this.showRetryModal = true;
+            this.retryModalMounted = true;
+            this.showRetryModal = false;
+            requestAnimationFrame(() => {
+                this.showRetryModal = true;
+            });
             this.selectedFailedIds = [];
             this.retryPage = 1;
             this.loadFailedJobs();
@@ -86,6 +95,11 @@ export function horizonJobsPage(config) {
         closeRetryModal() {
             this.showRetryModal = false;
             this.selectedFailedIds = [];
+            window.setTimeout(() => {
+                if (!this.showRetryModal) {
+                    this.retryModalMounted = false;
+                }
+            }, 220);
         },
         /**
          * Load the failed jobs.

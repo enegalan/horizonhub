@@ -38,11 +38,23 @@ $dialogTitle = $title;
         'role' => 'dialog',
         'aria-modal' => 'true',
     ]) }}
+    x-cloak
+    x-bind:class="$el.style.display === 'none' ? 'pointer-events-none' : ''"
+    x-transition:enter="transition-opacity ease-out duration-200"
+    x-transition:enter-start="opacity-0"
+    x-transition:enter-end="opacity-100"
+    x-transition:leave="transition-opacity ease-in duration-180"
+    x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
 >
-    @include('components.backdrop', ['variant' => $backdropVariant, 'wireClick' => $backdropAction])
+    <div>
+        @include('components.backdrop', ['variant' => $backdropVariant, 'wireClick' => $backdropAction])
+    </div>
 
     <div class="relative z-10 flex min-h-full items-center justify-center py-4">
-        <div class="card w-full {{ $sizeClass }} p-4 bg-card {{ $size === 'xl' ? 'max-h-[90vh] flex flex-col overflow-hidden' : '' }}">
+        <div
+            class="card w-full {{ $sizeClass }} p-4 bg-card {{ $size === 'xl' ? 'max-h-[90vh] flex flex-col overflow-hidden' : '' }}"
+        >
         @if(isset($header))
             {{ $header }}
         @elseif($dialogTitle)

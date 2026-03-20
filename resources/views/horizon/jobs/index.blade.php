@@ -357,7 +357,7 @@
             </details>
         </div>
         {{-- Retry jobs modal --}}
-        <template x-if="showRetryModal">
+        <template x-if="retryModalMounted">
             <div>
                 <x-confirm-modal
                     title="Retry jobs"
@@ -366,6 +366,7 @@
                     :cancelAction="null"
                     :backdropAction="null"
                     x-data
+                    x-show="showRetryModal"
                     x-on:close-modal.window="closeRetryModal()"
                 >
                     <div
