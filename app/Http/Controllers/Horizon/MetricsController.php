@@ -37,7 +37,7 @@ class MetricsController extends Controller {
         $services = Service::orderBy('name')->get(['id', 'name']);
         $serviceIdForMetrics = $request->getServiceId();
         $serviceFilter = $serviceIdForMetrics !== null ? (string) $serviceIdForMetrics : '';
-        $serviceModel = $serviceIdForMetrics !== null ? Service::find($serviceIdForMetrics) : null;
+        $serviceModel = $request->getService();
         $jobsPastMinute = $this->metrics->getJobsPastMinute($serviceModel);
         $jobsPastHour = $this->metrics->getJobsPastHour($serviceModel);
         $failedPastSevenDays = $this->metrics->getFailedPastSevenDays($serviceModel);
@@ -99,7 +99,7 @@ class MetricsController extends Controller {
      */
     public function dataSummary(ServiceRequest $request): JsonResponse {
         $serviceId = $request->getServiceId();
-        $service = $serviceId !== null ? Service::find($serviceId) : null;
+        $service = $request->getService();
         return \response()->json([
             'jobsPastMinute' => $this->metrics->getJobsPastMinute($service),
             'jobsPastHour' => $this->metrics->getJobsPastHour($service),

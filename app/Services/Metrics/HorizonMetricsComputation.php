@@ -208,10 +208,25 @@ abstract class HorizonMetricsComputation {
     protected function private__extractQueuesFromSupervisorOptions(array $options): array {
         $queues = $options['queue'] ?? null;
         if (! \is_array($queues)) {
-            return $queues !== null && $queues !== '' ? [(string) $queues] : [];
+            if (empty($queues)) {
+                return [];
+            }
+
+            $queue = QueueNameNormalizer::normalize((string) $queues);
+            return $queue !== null && $queue !== '' ? [$queue] : [];
         }
 
-        return \array_map('strval', $queues);
+        $normalizedQueues = [];
+        foreach ($queues as $queue) {
+            $normalizedQueue = QueueNameNormalizer::normalize((string) $queue);
+            if (empty($normalizedQueue)) {
+                continue;
+            }
+
+            $normalizedQueues[$normalizedQueue] = true;
+        }
+
+        return \array_keys($normalizedQueues);
     }
 
     /**
@@ -303,9 +318,16 @@ abstract class HorizonMetricsComputation {
                 }
 
                 foreach ($queues as $q) {
-                    if ($q !== '') {
-                        $queueNames[$q] = true;
+                    if (empty($q)) {
+                        continue;
                     }
+
+                    $normalizedQueue = QueueNameNormalizer::normalize($q);
+                    if (empty($normalizedQueue)) {
+                        continue;
+                    }
+
+                    $queueNames[$normalizedQueue] = true;
                 }
             }
         }

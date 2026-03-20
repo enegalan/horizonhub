@@ -6,6 +6,12 @@ use App\Models\Service;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ServiceRequest extends FormRequest {
+    /**
+     * Cached service model resolved from service_id.
+     *
+     * @var Service|null
+     */
+    private ?Service $resolvedService = null;
 
     /**
      * Authorize the request.
@@ -45,8 +51,8 @@ class ServiceRequest extends FormRequest {
             return;
         }
 
-        $exists = Service::query()->where('id', $serviceId)->exists();
-        $this->merge(['service_id' => $exists ? $serviceId : null]);
+        $this->resolvedService = Service::query()->find($serviceId);
+        $this->merge(['service_id' => $this->resolvedService !== null ? $serviceId : null]);
     }
 
     /**
@@ -73,5 +79,18 @@ class ServiceRequest extends FormRequest {
         $serviceId = $this->input('service_id');
 
         return $serviceId !== null ? (int) $serviceId : null;
+    }
+
+    /**
+     * Get the service model from the request.
+     *
+     * @return Service|null
+     */
+    public function getService(): ?Service {
+        if ($this->validator === null) {
+            $this->prepareForValidation();
+        }
+
+        return $this->resolvedService;
     }
 }

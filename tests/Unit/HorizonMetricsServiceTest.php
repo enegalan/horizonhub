@@ -17,8 +17,27 @@ class HorizonMetricsServiceTest extends TestCase {
         $this->assertNull(QueueNameNormalizer::normalize(null));
         $this->assertSame('', QueueNameNormalizer::normalize(''));
         $this->assertSame('default', QueueNameNormalizer::normalize('redis.default'));
+        $this->assertSame('default', QueueNameNormalizer::normalize('redis:default'));
+        $this->assertSame('emails', QueueNameNormalizer::normalize('database.emails'));
+        $this->assertSame('notifications', QueueNameNormalizer::normalize('sqs:notifications'));
         $this->assertSame('redis.', QueueNameNormalizer::normalize('redis.'));
         $this->assertSame('alpha', QueueNameNormalizer::normalize('alpha'));
+    }
+
+    public function test_queue_name_normalizer_strips_custom_connection_prefix_via_fallback_pattern(): void {
+        $this->assertSame('jobs', QueueNameNormalizer::normalize('acme_worker:jobs'));
+        $this->assertSame('emails', QueueNameNormalizer::normalize('acme_worker.emails'));
+    }
+
+    public function test_queue_name_normalizer_prefers_longest_queue_config_connection_name(): void {
+        \config(['queue.connections.redis_cluster' => ['driver' => 'redis']]);
+
+        $this->assertSame('default', QueueNameNormalizer::normalize('redis_cluster:default'));
+        $this->assertSame('default', QueueNameNormalizer::normalize('redis:default'));
+    }
+
+    public function test_queue_name_normalizer_does_not_strip_when_leading_segment_starts_with_digit(): void {
+        $this->assertSame('1queue:jobs', QueueNameNormalizer::normalize('1queue:jobs'));
     }
 
     public function test_get_workload_for_service_maps_nested_data_payload(): void {
@@ -45,7 +64,7 @@ class HorizonMetricsServiceTest extends TestCase {
         $rows = $metrics->getWorkloadForService($service);
 
         $this->assertCount(1, $rows);
-        $this->assertSame('redis.default', $rows[0]['queue']);
+        $this->assertSame('default', $rows[0]['queue']);
         $this->assertSame(7, $rows[0]['jobs']);
         $this->assertSame(2, $rows[0]['processes']);
         $this->assertSame(1.5, $rows[0]['wait']);

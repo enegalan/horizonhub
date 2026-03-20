@@ -3,6 +3,7 @@
 namespace App\Services\Metrics;
 
 use App\Models\Service;
+use App\Support\Horizon\QueueNameNormalizer;
 
 class WorkloadMetricsCalculator extends HorizonMetricsComputation {
 
@@ -47,6 +48,7 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation {
                 $queueName = (string) $row['name'];
             }
 
+            $queueName = QueueNameNormalizer::normalize($queueName) ?? $queueName;
             if ($queueName === '') {
                 continue;
             }
