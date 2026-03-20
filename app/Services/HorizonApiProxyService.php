@@ -4,6 +4,9 @@ namespace App\Services;
 
 use App\Models\Service;
 use GuzzleHttp\Cookie\CookieJar;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -215,6 +218,8 @@ class HorizonApiProxyService {
     }
 
     /**
+     * Parse the response body as JSON.
+     *
      * @param string $rawBody
      * @return array<string, mixed>|null
      */
@@ -227,6 +232,8 @@ class HorizonApiProxyService {
     }
 
     /**
+     * Build an error message from a response.
+     *
      * @param Response $response
      * @return string
      */
@@ -248,6 +255,8 @@ class HorizonApiProxyService {
     }
 
     /**
+     * Process the HTTP response.
+     *
      * @param Response $response
      * @param Service $service
      * @param string $url
@@ -291,6 +300,56 @@ class HorizonApiProxyService {
     }
 
     /**
+     * Build an HTTP client for Horizon calls with unified timeout and optional GET retries.
+     *
+     * @param string $httpMethod Uppercase or lowercase HTTP method (retry only when GET).
+     * @return PendingRequest
+     */
+    private function private__newHorizonPendingRequest(string $httpMethod = 'get'): PendingRequest {
+        $httpMethod = \strtoupper($httpMethod);
+        $timeoutSeconds = (int) \config('horizonhub.api_timeout');
+        $request = Http::timeout($timeoutSeconds > 0 ? $timeoutSeconds : 10);
+
+        $connectTimeout = \config('horizonhub.horizon_http_connect_timeout');
+        if ($connectTimeout !== null && (float) $connectTimeout > 0) {
+            $request->connectTimeout((float) $connectTimeout);
+        }
+
+        $retryConfig = \config('horizonhub.horizon_http_retry', []);
+        $retryTimes = (int) ($retryConfig['times'] ?? 1);
+        $sleepBaseMs = (int) ($retryConfig['sleep_ms'] ?? 100);
+        /** @var list<int> $retryOnStatus */
+        $retryOnStatus = $retryConfig['retry_on_status'] ?? [429, 502, 503, 504];
+
+        if ($httpMethod === 'GET' && $retryTimes > 1) {
+            $request = $request->retry(
+                $retryTimes,
+                function (int $attempt, \Throwable $e) use ($sleepBaseMs): int {
+                    return $sleepBaseMs * (2 ** \max(0, $attempt - 1));
+                },
+                function (\Throwable $exception, PendingRequest $pending, ?string $method = 'GET') use ($retryOnStatus): bool {
+                    if ($method !== null && \strtoupper($method) !== 'GET') {
+                        return false;
+                    }
+
+                    if ($exception instanceof ConnectionException) {
+                        return true;
+                    }
+
+                    if ($exception instanceof RequestException && $exception->response !== null) {
+                        return \in_array($exception->response->status(), $retryOnStatus, true);
+                    }
+
+                    return false;
+                },
+                throw: false,
+            );
+        }
+
+        return $request;
+    }
+
+    /**
      * Call the Horizon HTTP API for a given service.
      *
      * @param Service $service
@@ -312,8 +371,9 @@ class HorizonApiProxyService {
         $url = "$base/" . \ltrim($path, '/');
 
         try {
-            $request = Http::timeout(\config('horizonhub.api_timeout'));
-            $response = match (\strtolower($method)) {
+            $httpMethod = \strtolower($method);
+            $request = $this->private__newHorizonPendingRequest($httpMethod);
+            $response = match ($httpMethod) {
                 'get' => $request->get($url),
                 'delete' => $request->delete($url),
                 default => $request->post($url),
@@ -354,10 +414,10 @@ class HorizonApiProxyService {
             return null;
         }
 
-        $cookieJar = new CookieJar();
+        $cookieJar = new CookieJar;
 
         try {
-            $response = Http::timeout(10)
+            $response = $this->private__newHorizonPendingRequest()
                 ->withOptions(['cookies' => $cookieJar])
                 ->get($dashboardUrl);
         } catch (\Throwable $e) {
@@ -434,15 +494,17 @@ class HorizonApiProxyService {
 
         $url = "$base/" . \ltrim($path, '/');
 
-        $attempt = function () use ($service, $url, $method): ?Response {
+        $httpMethod = \strtolower($method);
+        $attempt = function () use ($service, $url, $httpMethod): ?Response {
             $bootstrap = $this->private__bootstrapDashboardSession($service);
             if ($bootstrap === null) {
                 return null;
             }
-            $request = Http::timeout(10)
+            $request = $this->private__newHorizonPendingRequest($httpMethod)
                 ->withOptions(['cookies' => $bootstrap['cookies']])
                 ->withHeaders(['X-CSRF-TOKEN' => $bootstrap['csrf_token']]);
-            return match (\strtolower($method)) {
+
+            return match ($httpMethod) {
                 'get' => $request->get($url),
                 'delete' => $request->delete($url),
                 default => $request->post($url),

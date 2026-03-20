@@ -53,6 +53,37 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Horizon HTTP connect timeout
+    |--------------------------------------------------------------------------
+    |
+    | Optional connect timeout in seconds for outbound Horizon HTTP calls.
+    | Null or zero disables an explicit connect timeout (Guzzle default applies).
+    |
+    */
+    'horizon_http_connect_timeout' => \is_numeric(env('HORIZON_HUB_HTTP_CONNECT_TIMEOUT', 0))
+        ? (float) env('HORIZON_HUB_HTTP_CONNECT_TIMEOUT', 0)
+        : 0,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Horizon HTTP retry (GET only)
+    |--------------------------------------------------------------------------
+    |
+    | Retries apply only to safe GET requests (API reads and dashboard bootstrap).
+    | POST/DELETE (e.g. job retry) are not retried here; session flow still handles 419.
+    |
+    | times: total attempts (1 = no retry). sleep_ms: base backoff in milliseconds (exponential).
+    | retry_on_status: HTTP statuses to retry after a response is received.
+    |
+    */
+    'horizon_http_retry' => [
+        'times' => (int) env('HORIZON_HUB_HTTP_RETRY_TIMES', 3),
+        'sleep_ms' => (int) env('HORIZON_HUB_HTTP_RETRY_SLEEP_MS', 100),
+        'retry_on_status' => [429, 502, 503, 504],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Stale Minutes
     |--------------------------------------------------------------------------
     |

@@ -7,9 +7,12 @@ use App\Models\Service;
 use App\Services\HorizonApiProxyService;
 use App\Services\HorizonMetricsService;
 use App\Support\Horizon\JobRuntimeHelper;
+use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class ServiceController extends Controller {
 
@@ -32,6 +35,7 @@ class ServiceController extends Controller {
     /**
      * Display the list of services and registration form.
      *
+     * @param HorizonApiProxyService $horizonApi
      * @return View
      */
     public function index(HorizonApiProxyService $horizonApi): View {
@@ -220,7 +224,7 @@ class ServiceController extends Controller {
         $statsData = $statsResponse['data'] ?? null;
 
         if (($statsResponse['success'] ?? false) && \is_array($statsData)) {
-            if (isset($statsData['status']) && !empty((string) $statsData['status'])) {
+            if (isset($statsData['status']) && ! empty((string) $statsData['status'])) {
                 $horizonStatus = (string) $statsData['status'];
             }
             if (isset($statsData['processes']) && \is_numeric($statsData['processes'])) {
@@ -383,7 +387,7 @@ class ServiceController extends Controller {
         $baseQuery = $request->query();
         $path = $request->url();
 
-        $paginatorProcessing = new \Illuminate\Pagination\LengthAwarePaginator(
+        $paginatorProcessing = new LengthAwarePaginator(
             $pageItemsProcessing,
             $totalProcessing,
             $perPage,
@@ -392,7 +396,7 @@ class ServiceController extends Controller {
         );
         $paginatorProcessing->setPageName('page_processing');
 
-        $paginatorProcessed = new \Illuminate\Pagination\LengthAwarePaginator(
+        $paginatorProcessed = new LengthAwarePaginator(
             $pageItemsProcessed,
             $totalProcessed,
             $perPage,
@@ -401,7 +405,7 @@ class ServiceController extends Controller {
         );
         $paginatorProcessed->setPageName('page_processed');
 
-        $paginatorFailed = new \Illuminate\Pagination\LengthAwarePaginator(
+        $paginatorFailed = new LengthAwarePaginator(
             $pageItemsFailed,
             $totalFailed,
             $perPage,
@@ -436,7 +440,7 @@ class ServiceController extends Controller {
     /**
      * Append job items from an API response to the collection for service dashboard.
      *
-     * @param \Illuminate\Support\Collection $jobs
+     * @param Collection $jobs
      * @param array $response
      * @param string $status
      * @param string $search
@@ -461,7 +465,7 @@ class ServiceController extends Controller {
             $queue = (string) ($job['queue'] ?? '');
             $name = (string) ($job['name'] ?? '');
             if ($search !== '') {
-                $haystack = $queue . ' ' . $name . ' ' . $uuid;
+                $haystack = "$queue $name $uuid";
                 if (\stripos($haystack, $search) === false) {
                     continue;
                 }
@@ -515,9 +519,9 @@ class ServiceController extends Controller {
         }
         if (\is_numeric($value)) {
             $seconds = (float) $value;
-            return \Carbon\Carbon::createFromTimestampMs((int) \round($seconds * 1000));
+            return Carbon::createFromTimestampMs((int) \round($seconds * 1000));
         }
-        return \Carbon\Carbon::parse($value);
+        return Carbon::parse($value);
     }
 
     /**
@@ -528,7 +532,8 @@ class ServiceController extends Controller {
     private function private__generateApiKey(): string {
         do {
             $apiKey = \Str::random(64);
-        } while (Service::where('api_key', $apiKey)->exists());
+            $apiKeyHash = Service::hashApiKey($apiKey);
+        } while (Service::where('api_key_hash', $apiKeyHash)->exists());
 
         return $apiKey;
     }

@@ -44,7 +44,7 @@ class HorizonApiProxyServiceTest extends TestCase {
             'status' => 'offline',
         ]);
 
-        $proxy = new HorizonApiProxyService();
+        $proxy = new HorizonApiProxyService;
         $result = $proxy->getWorkload($service);
 
         $this->assertTrue($result['success']);
@@ -86,7 +86,7 @@ class HorizonApiProxyServiceTest extends TestCase {
             'status' => 'online',
         ]);
 
-        $proxy = new HorizonApiProxyService();
+        $proxy = new HorizonApiProxyService;
         $result = $proxy->retryJob($service, 'job-uuid-419');
 
         $this->assertTrue($result['success']);
@@ -109,7 +109,7 @@ class HorizonApiProxyServiceTest extends TestCase {
             'status' => 'offline',
         ]);
 
-        $proxy = new HorizonApiProxyService();
+        $proxy = new HorizonApiProxyService;
         $result = $proxy->ping($service);
 
         $this->assertFalse($result['success']);
@@ -122,6 +122,11 @@ class HorizonApiProxyServiceTest extends TestCase {
             '*' => Http::response('Rate limited by upstream', 429, ['Content-Type' => 'text/plain']),
         ]);
 
+        \config()->set('horizonhub.horizon_http_retry', [
+            'times' => 1,
+            'sleep_ms' => 100,
+            'retry_on_status' => [429, 502, 503, 504],
+        ]);
         \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
         \config()->set('horizonhub.horizon_paths.failed_jobs', '/jobs/failed');
 
@@ -132,7 +137,7 @@ class HorizonApiProxyServiceTest extends TestCase {
             'status' => 'online',
         ]);
 
-        $proxy = new HorizonApiProxyService();
+        $proxy = new HorizonApiProxyService;
         $result = $proxy->getFailedJobs($service, ['starting_at' => 0, 'limit' => 10]);
 
         $this->assertFalse($result['success']);
@@ -156,12 +161,46 @@ class HorizonApiProxyServiceTest extends TestCase {
             'last_seen_at' => null,
         ]);
 
-        $proxy = new HorizonApiProxyService();
+        $proxy = new HorizonApiProxyService;
         $result = $proxy->ping($service);
 
         $freshService = $service->fresh();
         $this->assertTrue($result['success']);
         $this->assertSame('online', $freshService->status);
         $this->assertNotNull($freshService->last_seen_at);
+    }
+
+    public function test_get_failed_jobs_retries_on_429_then_succeeds(): void {
+        $calls = 0;
+        Http::fake(function () use (&$calls) {
+            $calls++;
+            if ($calls < 3) {
+                return Http::response(['message' => 'Rate limited'], 429);
+            }
+
+            return Http::response(['data' => ['jobs' => []]], 200);
+        });
+
+        \config()->set('horizonhub.horizon_http_retry', [
+            'times' => 3,
+            'sleep_ms' => 0,
+            'retry_on_status' => [429, 502, 503, 504],
+        ]);
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.failed_jobs', '/jobs/failed');
+
+        $service = Service::create([
+            'name' => 'svc-retry-429',
+            'api_key' => 'k62345678901234567890123456789012345678901234567890123456789012',
+            'base_url' => 'https://service-retry-429.test',
+            'status' => 'online',
+        ]);
+
+        $proxy = new HorizonApiProxyService;
+        $result = $proxy->getFailedJobs($service, ['starting_at' => 0, 'limit' => 10]);
+
+        $this->assertTrue($result['success']);
+        $this->assertSame(3, $calls);
+        $this->assertArrayHasKey('data', $result);
     }
 }

@@ -41,7 +41,7 @@ class AgentProxyServiceTest extends TestCase {
         \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
         \config()->set('horizonhub.horizon_paths.retry', '/jobs/retry/{id}');
 
-        $proxy = new HorizonApiProxyService();
+        $proxy = new HorizonApiProxyService;
 
         $result = $proxy->retryJob($service, 'job-uuid-1');
 
@@ -62,7 +62,7 @@ class AgentProxyServiceTest extends TestCase {
 
         \config()->set('horizonhub.horizon_paths.ping', '/stats');
 
-        $proxy = new HorizonApiProxyService();
+        $proxy = new HorizonApiProxyService;
         $result = $proxy->ping($service);
 
         $this->assertFalse($result['success']);
@@ -75,6 +75,12 @@ class AgentProxyServiceTest extends TestCase {
             '*' => Http::response('{"message":"Rate limited"}', 429, ['Content-Type' => 'application/json']),
         ]);
 
+        \config()->set('horizonhub.horizon_http_retry', [
+            'times' => 1,
+            'sleep_ms' => 100,
+            'retry_on_status' => [429, 502, 503, 504],
+        ]);
+
         $service = Service::create([
             'name' => 'proxy-err',
             'api_key' => 'c12345678901234567890123456789012345678901234567890123456789012',
@@ -85,7 +91,7 @@ class AgentProxyServiceTest extends TestCase {
         \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
         \config()->set('horizonhub.horizon_paths.failed_jobs', '/jobs/failed');
 
-        $proxy = new HorizonApiProxyService();
+        $proxy = new HorizonApiProxyService;
         $result = $proxy->getFailedJobs($service, ['starting_at' => 0, 'limit' => 5]);
 
         $this->assertFalse($result['success']);

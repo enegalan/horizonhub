@@ -14,7 +14,7 @@ class HorizonEventProcessorTest extends TestCase {
     use RefreshDatabase;
 
     public function test_job_failed_event_persists_models_and_triggers_alert_engine(): void {
-        Event::fake();
+        Event::fake([HorizonEventReceived::class]);
 
         $service = Service::create([
             'name' => 'svc',
@@ -47,7 +47,7 @@ class HorizonEventProcessorTest extends TestCase {
     }
 
     public function test_queue_paused_event_creates_or_updates_horizon_queue_state(): void {
-        Event::fake();
+        Event::fake([HorizonEventReceived::class]);
 
         $service = Service::create([
             'name' => 'svc',
@@ -72,7 +72,7 @@ class HorizonEventProcessorTest extends TestCase {
     }
 
     public function test_queue_resumed_event_updates_horizon_queue_state_to_not_paused(): void {
-        Event::fake();
+        Event::fake([HorizonEventReceived::class]);
 
         $service = Service::create([
             'name' => 'svc',
