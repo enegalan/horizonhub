@@ -338,9 +338,9 @@ function applyMetricsPayload(payload) {
             v.innerHTML = r.rate + '% <span class="text-xs font-normal text-muted-foreground">(' + r.failed + ' failed / ' + r.processed + ' processed)</span>';
         }
     }
-    if (payload.avgRuntimeOverTime) {
+    if (payload.jobRuntimesLast24h) {
         hideLoader('metrics-loader-runtime-chart');
-        renderChart({ avgRuntimeOverTime: payload.avgRuntimeOverTime });
+        renderChart({ jobRuntimesLast24h: payload.jobRuntimesLast24h });
     }
     if (payload.failureRateOverTime) {
         hideLoader('metrics-loader-failure-rate-chart');
@@ -546,7 +546,7 @@ function loadAllMetrics(baseUrls, serviceIds) {
 
     var urls = {
         summary: appendServiceIdsToUrl(baseUrls.summary, serviceIds),
-        avgRuntime: appendServiceIdsToUrl(baseUrls.avgRuntime, serviceIds),
+        jobRuntimesLast24h: appendServiceIdsToUrl(baseUrls.jobRuntimesLast24h, serviceIds),
         failureRate: appendServiceIdsToUrl(baseUrls.failureRate, serviceIds),
         jobsVolumeLast24h: appendServiceIdsToUrl(baseUrls.jobsVolumeLast24h, serviceIds),
         supervisors: appendServiceIdsToUrl(baseUrls.supervisors, serviceIds),
@@ -569,21 +569,21 @@ function loadAllMetrics(baseUrls, serviceIds) {
 
     Promise.all([
         fetchJson(urls.summary),
-        fetchJson(urls.avgRuntime),
+        fetchJson(urls.jobRuntimesLast24h),
         fetchJson(urls.failureRate),
         fetchJson(urls.jobsVolumeLast24h),
         fetchJson(urls.workload),
         fetchJson(urls.supervisors),
     ]).then(function (results) {
         var summary = results[0] && !results[0].error ? results[0] : null;
-        var avgRuntime = results[1] && !results[1].error ? results[1] : null;
+        var jobRuntimesLast24h = results[1] && !results[1].error ? results[1] : null;
         var failureRate = results[2] && !results[2].error ? results[2] : null;
         var jobsVolumeLast24h = results[3] && !results[3].error ? results[3] : null;
         var workloadData = results[4];
         var supervisorsData = results[5];
         applyMetricsPayload({
             summary: summary,
-            avgRuntimeOverTime: avgRuntime,
+            jobRuntimesLast24h: jobRuntimesLast24h,
             failureRateOverTime: failureRate,
             jobsVolumeLast24h: jobsVolumeLast24h,
             workload: workloadData && workloadData.workload ? workloadData.workload : [],

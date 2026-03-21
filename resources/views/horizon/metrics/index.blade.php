@@ -1,7 +1,7 @@
 @php($horizonStreamMode = 'metrics')
 @php($metricsBaseUrls = [
     'summary' => route('horizon.metrics.data.summary'),
-    'avgRuntime' => route('horizon.metrics.data.avg-runtime'),
+    'jobRuntimesLast24h' => route('horizon.metrics.data.job-runtimes-last-24h'),
     'failureRate' => route('horizon.metrics.data.failure-rate-over-time'),
     'jobsVolumeLast24h' => route('horizon.metrics.data.jobs-volume-last-24h'),
     'supervisors' => route('horizon.metrics.data.supervisors'),
@@ -9,10 +9,10 @@
 ])
 @php($metricsChartData = [
     'jobsVolumeLast24h' => $jobsVolumeLast24h ?? ['xAxis' => [], 'completed' => [], 'failed' => []],
-    'avgRuntimeOverTime' => $avgRuntimeOverTime ?? ['xAxis' => [], 'avgSeconds' => []],
+    'jobRuntimesLast24h' => $jobRuntimesLast24h ?? ['points' => []],
     'failureRateOverTime' => $failureRateOverTime ?? ['xAxis' => [], 'rate' => []],
 ])
-@php($hasRuntimeChart = \is_array($avgRuntimeOverTime ?? null))
+@php($hasRuntimeChart = \is_array($jobRuntimesLast24h ?? null))
 @php($hasFailureRateChart = \is_array($failureRateOverTime ?? null))
 @php($hasJobsVolumeChart = \is_array($jobsVolumeLast24h ?? null))
 @extends('layouts.app')
@@ -96,7 +96,8 @@
             </div>
 
             <div class="card p-4">
-                <h3 class="text-section-title text-foreground mb-2">Average job runtime (last 24h, seconds)</h3>
+                <h3 class="text-section-title text-foreground mb-2">Job runtimes (last 24 hours, seconds)</h3>
+                <p class="text-xs text-muted-foreground mb-2">Each vertex is one job (finish time vs duration), connected in time order within Completed vs Failed.</p>
                 <div class="relative h-56">
                     <div id="metrics-loader-runtime-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ $hasRuntimeChart ? 'display:none;' : '' }}">
                         <x-loader class="size-8 text-muted-foreground" />

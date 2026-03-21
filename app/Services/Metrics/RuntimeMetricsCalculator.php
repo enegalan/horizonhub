@@ -3,46 +3,39 @@
 namespace App\Services\Metrics;
 
 use App\Models\Service;
-use Carbon\Carbon;
 
 class RuntimeMetricsCalculator extends HorizonMetricsComputation
 {
     /**
-     * Get the average runtime over time from 00:00 of the previous day until now.
+     * Per-job runtimes over the rolling last 24 hours (completed and failed), for scatter charts.
      *
-     * @return array{xAxis: list<string>, avgSeconds: list<float|null>}
+     * @return array{points: list<array{endAtMs: int, seconds: float, name: string, service: string, status: string}>}
      */
-    public function getAvgRuntimeOverTime(array $serviceScope = []): array
+    public function getJobRuntimesLast24h(array $serviceScope = []): array
     {
         $now = \now();
-        $since = $now->copy()->subDay()->startOfDay();
-        $sinceTimestamp = $since->getTimestamp();
-        $bucketFormat = 'Y-m-d H:00';
-        $endHour = $now->copy()->startOfHour();
-
-        $buckets = $this->private__initHourlyBuckets(
-            $since,
-            $endHour,
-            $bucketFormat,
-            48,
-            static function (): array {
-                return ['sum' => 0.0, 'count' => 0];
-            },
-        );
+        $sinceTimestamp = $now->copy()->subHours(24)->getTimestamp();
 
         $services = $this->private__getServicesForMetrics($serviceScope);
         if ($services->isEmpty()) {
-            return ['xAxis' => [], 'avgSeconds' => []];
+            return ['points' => []];
         }
 
         $jobsLimit = (int) \config('horizonhub.metrics_24h_jobs_limit', 500);
+        $points = [];
 
         /** @var Service $service */
         foreach ($services as $service) {
+            $serviceName = (string) $service->name;
+
             $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
             foreach ($completedJobs as $job) {
+                if (! \is_array($job)) {
+                    continue;
+                }
+
                 $queuedAt = $job['reserved_at'] ?? null;
-                $completedAt = $job['completed_at'] ?? null;
+                $completedAt = $job['completed_at'] ?? $job['processed_at'] ?? null;
                 if (! \is_numeric($queuedAt) || ! \is_numeric($completedAt)) {
                     continue;
                 }
@@ -53,15 +46,21 @@ class RuntimeMetricsCalculator extends HorizonMetricsComputation
                     continue;
                 }
 
-                $bucket = Carbon::createFromTimestamp($end)->format($bucketFormat);
-                if (isset($buckets[$bucket])) {
-                    $buckets[$bucket]['sum'] += (float) ($end - $start);
-                    $buckets[$bucket]['count']++;
-                }
+                $points[] = [
+                    'endAtMs' => $end * 1000,
+                    'seconds' => \round((float) ($end - $start), 2),
+                    'name' => (string) ($job['name'] ?? ''),
+                    'service' => $serviceName,
+                    'status' => 'completed',
+                ];
             }
 
             $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
             foreach ($failedJobs as $job) {
+                if (! \is_array($job)) {
+                    continue;
+                }
+
                 $queuedAt = $job['reserved_at'] ?? null;
                 $failedAt = $job['failed_at'] ?? null;
                 if (! \is_numeric($queuedAt) || ! \is_numeric($failedAt)) {
@@ -74,22 +73,20 @@ class RuntimeMetricsCalculator extends HorizonMetricsComputation
                     continue;
                 }
 
-                $bucket = Carbon::createFromTimestamp($end)->format($bucketFormat);
-                if (isset($buckets[$bucket])) {
-                    $buckets[$bucket]['sum'] += (float) ($end - $start);
-                    $buckets[$bucket]['count']++;
-                }
+                $points[] = [
+                    'endAtMs' => $end * 1000,
+                    'seconds' => \round((float) ($end - $start), 2),
+                    'name' => (string) ($job['name'] ?? ''),
+                    'service' => $serviceName,
+                    'status' => 'failed',
+                ];
             }
         }
 
-        $xAxis = [];
-        $series = [];
+        \usort($points, static function (array $a, array $b): int {
+            return $a['endAtMs'] <=> $b['endAtMs'];
+        });
 
-        foreach ($buckets as $k => $v) {
-            $xAxis[] = Carbon::parse($k)->format('d/m H:i');
-            $series[] = $v['count'] > 0 ? \round($v['sum'] / $v['count'], 2) : null;
-        }
-
-        return ['xAxis' => $xAxis, 'avgSeconds' => $series];
+        return ['points' => $points];
     }
 }

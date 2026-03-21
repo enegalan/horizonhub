@@ -37,7 +37,7 @@ class MetricsController extends Controller
         $jobsPastHour = $throughput['jobsPastHour'];
         $failedPastSevenDays = $throughput['failedPastSevenDays'];
         $failureRate24h = $this->metrics->getFailureRate24h($scope);
-        $avgRuntimeOverTime = $this->metrics->getAvgRuntimeOverTime($scope);
+        $jobRuntimesLast24h = $this->metrics->getJobRuntimesLast24h($scope);
         $failureRateOverTime = $this->metrics->getFailureRateOverTime($scope);
         $jobsVolumeLast24h = $this->metrics->getJobsVolumeLast24h($scope);
         $workloadRows = $this->metrics->getWorkloadData($scope);
@@ -75,7 +75,7 @@ class MetricsController extends Controller
             'jobsPastHour' => $jobsPastHour,
             'failedPastSevenDays' => $failedPastSevenDays,
             'failureRate24h' => $failureRate24h,
-            'avgRuntimeOverTime' => $avgRuntimeOverTime,
+            'jobRuntimesLast24h' => $jobRuntimesLast24h,
             'failureRateOverTime' => $failureRateOverTime,
             'jobsVolumeLast24h' => $jobsVolumeLast24h,
             'workloadRows' => $workloadRows,
@@ -106,13 +106,13 @@ class MetricsController extends Controller
     }
 
     /**
-     * Get the average runtime data for the metrics dashboard.
+     * Get per-job runtime data for the metrics dashboard (rolling last 24 hours).
      */
-    public function dataAvgRuntime(ServiceRequest $request): JsonResponse
+    public function dataJobRuntimesLast24h(ServiceRequest $request): JsonResponse
     {
         $scope = $request->getServiceIds();
 
-        return \response()->json($this->metrics->getAvgRuntimeOverTime($scope));
+        return \response()->json($this->metrics->getJobRuntimesLast24h($scope));
     }
 
     /**

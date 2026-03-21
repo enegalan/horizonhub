@@ -30,8 +30,8 @@ class MetricsStreamController extends StreamController
      * - Each event carries a JSON payload with:
      *   - "summary": counters for jobs past minute/hour, failed past 7 days,
      *     and 24h failure rate.
-     *   - "avgRuntimeOverTime": time-series data used to draw the average
-     *     runtime chart.
+     *   - "jobRuntimesLast24h": per-job runtime points for the runtime scatter
+     *     chart (rolling 24h).
      *   - "failureRateOverTime": time-series data used to draw the failure
      *     rate chart.
      *   - "jobsVolumeLast24h": hourly completed/failed counts for the jobs
@@ -55,7 +55,7 @@ class MetricsStreamController extends StreamController
                         'failedPastSevenDays' => $throughput['failedPastSevenDays'],
                         'failureRate24h' => $this->metrics->getFailureRate24h($serviceIds),
                     ],
-                    'avgRuntimeOverTime' => $this->metrics->getAvgRuntimeOverTime($serviceIds),
+                    'jobRuntimesLast24h' => $this->metrics->getJobRuntimesLast24h($serviceIds),
                     'failureRateOverTime' => $this->metrics->getFailureRateOverTime($serviceIds),
                     'jobsVolumeLast24h' => $this->metrics->getJobsVolumeLast24h($serviceIds),
                     'workload' => $this->metrics->getWorkloadData($serviceIds),

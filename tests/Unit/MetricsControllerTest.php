@@ -69,32 +69,44 @@ class MetricsControllerTest extends TestCase
         $this->assertSame(3, $data['failureRate24h']['failed']);
     }
 
-    public function test_data_avg_runtime_returns_payload_and_delegates(): void
+    public function test_data_job_runtimes_last24h_returns_payload_and_delegates(): void
     {
         $service = Service::create([
-            'name' => 'svc-metrics-controller-avg-runtime',
+            'name' => 'svc-metrics-controller-job-runtimes',
             'api_key' => 'k22345678901234567890123456789012345678901234567890123456789012',
-            'base_url' => 'https://metrics-controller-avg-runtime.test',
+            'base_url' => 'https://metrics-controller-job-runtimes.test',
             'status' => 'online',
         ]);
 
         $metrics = $this->createMock(HorizonMetricsService::class);
 
+        $payload = [
+            'points' => [
+                [
+                    'endAtMs' => 1_720_000_000_000,
+                    'seconds' => 12.5,
+                    'name' => 'App\\Jobs\\Example',
+                    'service' => 'svc-metrics-controller-job-runtimes',
+                    'status' => 'completed',
+                ],
+            ],
+        ];
+
         $metrics->expects($this->once())
-            ->method('getAvgRuntimeOverTime')
-            ->willReturnCallback(static function (array $scope) use ($service): array {
+            ->method('getJobRuntimesLast24h')
+            ->willReturnCallback(static function (array $scope) use ($service, $payload): array {
                 Assert::assertSame([(int) $service->id], $scope);
 
-                return ['xAxis' => ['01/01 00:00'], 'avgSeconds' => [1.23]];
+                return $payload;
             });
 
         $controller = new MetricsController($metrics);
-        $request = $this->createServiceRequest('/horizon/metrics/data/avg-runtime?service_id='.$service->id);
+        $request = $this->createServiceRequest('/horizon/metrics/data/job-runtimes-last-24h?service_id='.$service->id);
 
-        $response = $controller->dataAvgRuntime($request);
+        $response = $controller->dataJobRuntimesLast24h($request);
         $data = $response->getData(true);
 
-        $this->assertSame(['xAxis' => ['01/01 00:00'], 'avgSeconds' => [1.23]], $data);
+        $this->assertSame($payload, $data);
     }
 
     public function test_data_failure_rate_over_time_returns_payload_and_delegates(): void

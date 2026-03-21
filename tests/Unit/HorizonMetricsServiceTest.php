@@ -316,7 +316,7 @@ class HorizonMetricsServiceTest extends TestCase
         Carbon::setTestNow();
     }
 
-    public function test_get_avg_runtime_over_time_builds_expected_avg_seconds(): void
+    public function test_get_job_runtimes_last24h_returns_sorted_points_with_seconds(): void
     {
         $api = $this->createMock(HorizonApiProxyService::class);
 
@@ -330,28 +330,28 @@ class HorizonMetricsServiceTest extends TestCase
             'status' => 'online',
         ]);
 
-        $since = $now->copy()->subDay()->startOfDay();
-        $bucket = $since->copy()->addHours(2);
+        $endNewer = $now->copy()->subHours(1)->getTimestamp();
+        $reservedNewer = $endNewer - 120;
 
-        $completedAt1 = $bucket->copy()->addMinutes(10)->getTimestamp();
-        $reservedAt1 = $completedAt1 - 120;
-        $completedAt2 = $bucket->copy()->addMinutes(20)->getTimestamp();
-        $reservedAt2 = $completedAt2 - 180;
+        $endMid = $now->copy()->subHours(2)->getTimestamp();
+        $reservedMid = $endMid - 180;
 
-        $failedAt = $bucket->copy()->addMinutes(30)->getTimestamp();
-        $reservedAtFailed = $failedAt - 240;
+        $endOlder = $now->copy()->subHours(3)->getTimestamp();
+        $reservedOlder = $endOlder - 240;
 
         $api->method('getCompletedJobs')->willReturn([
             'success' => true,
             'data' => [
                 'jobs' => [
                     [
-                        'reserved_at' => $reservedAt1,
-                        'completed_at' => $completedAt1,
+                        'name' => 'App\\Jobs\\Newer',
+                        'reserved_at' => $reservedNewer,
+                        'completed_at' => $endNewer,
                     ],
                     [
-                        'reserved_at' => $reservedAt2,
-                        'completed_at' => $completedAt2,
+                        'name' => 'App\\Jobs\\Mid',
+                        'reserved_at' => $reservedMid,
+                        'completed_at' => $endMid,
                     ],
                 ],
             ],
@@ -361,30 +361,31 @@ class HorizonMetricsServiceTest extends TestCase
             'data' => [
                 'jobs' => [
                     [
-                        'reserved_at' => $reservedAtFailed,
-                        'failed_at' => $failedAt,
+                        'name' => 'App\\Jobs\\OlderFailed',
+                        'reserved_at' => $reservedOlder,
+                        'failed_at' => $endOlder,
                     ],
                 ],
             ],
         ]);
 
         $metrics = new HorizonMetricsService($api);
-        $result = $metrics->getAvgRuntimeOverTime([(int) $service->id]);
+        $result = $metrics->getJobRuntimesLast24h([(int) $service->id]);
 
-        $endHour = $now->copy()->startOfHour();
-        $expectedBucketCount = \min(
-            48,
-            ($endHour->getTimestamp() - $since->getTimestamp()) / 3600 + 1
-        );
+        $this->assertCount(3, $result['points']);
 
-        $this->assertCount((int) $expectedBucketCount, $result['xAxis']);
-        $this->assertCount((int) $expectedBucketCount, $result['avgSeconds']);
+        $this->assertSame($endOlder * 1000, $result['points'][0]['endAtMs']);
+        $this->assertSame(240.0, $result['points'][0]['seconds']);
+        $this->assertSame('failed', $result['points'][0]['status']);
+        $this->assertSame('App\\Jobs\\OlderFailed', $result['points'][0]['name']);
 
-        $indexBucket = (int) (($bucket->getTimestamp() - $since->getTimestamp()) / 3600);
+        $this->assertSame($endMid * 1000, $result['points'][1]['endAtMs']);
+        $this->assertSame(180.0, $result['points'][1]['seconds']);
+        $this->assertSame('completed', $result['points'][1]['status']);
 
-        // Sum = 120 + 180 + 240 = 540; Count = 3 => 180.00
-        $this->assertSame(180.0, $result['avgSeconds'][$indexBucket]);
-        $this->assertNull($result['avgSeconds'][$indexBucket + 1]);
+        $this->assertSame($endNewer * 1000, $result['points'][2]['endAtMs']);
+        $this->assertSame(120.0, $result['points'][2]['seconds']);
+        $this->assertSame('completed', $result['points'][2]['status']);
 
         Carbon::setTestNow();
     }

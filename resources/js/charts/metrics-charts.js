@@ -130,16 +130,114 @@ function initMetricsCharts(data) {
     }
 
     var runtimeEl = document.getElementById('runtime-chart');
-    if (runtimeEl && data.avgRuntimeOverTime) {
-        applyChartOptions(runtimeEl, {
-            animation: false,
-            color: [c.line],
-            tooltip: { trigger: 'axis', formatter: params => { var v = params[0].value; return params[0].axisValue + ': ' + (v != null ? v + 's' : '–'); } },
-            grid: { left: 48, right: 24, top: 16, bottom: 32 },
-            xAxis: { type: 'category', data: data.avgRuntimeOverTime.xAxis, axisLine: { lineStyle: { color: c.axis } }, axisLabel: { color: c.axis, fontSize: 10 } },
-            yAxis: { type: 'value', name: 's', min: 0, axisLine: { show: false }, splitLine: { lineStyle: { color: c.axis, opacity: 0.3 } }, axisLabel: { color: c.axis, fontSize: 10 } },
-            series: [{ type: 'line', name: 'Avg runtime', data: data.avgRuntimeOverTime.avgSeconds, smooth: true, symbol: 'circle', symbolSize: 4 }]
-        });
+    if (runtimeEl && data.jobRuntimesLast24h) {
+        var rawPoints = data.jobRuntimesLast24h.points || [];
+        if (!rawPoints.length) {
+            var existingRuntime = window.echarts.getInstanceByDom(runtimeEl);
+            if (existingRuntime) {
+                existingRuntime.dispose();
+            }
+        } else {
+            function mapJobRuntimeLineVertex(p) {
+                return {
+                    value: [p.endAtMs, p.seconds],
+                    labelName: p.name || '',
+                    labelService: p.service || ''
+                };
+            }
+            function sortJobRuntimeVerticesByTime(vertices) {
+                return vertices.slice().sort(function (a, b) {
+                    return a.value[0] - b.value[0];
+                });
+            }
+            var completedPts = sortJobRuntimeVerticesByTime(
+                rawPoints.filter(function (p) { return p.status === 'completed'; }).map(mapJobRuntimeLineVertex)
+            );
+            var failedPts = sortJobRuntimeVerticesByTime(
+                rawPoints.filter(function (p) { return p.status === 'failed'; }).map(mapJobRuntimeLineVertex)
+            );
+            var series = [];
+            if (completedPts.length) {
+                series.push({
+                    type: 'line',
+                    name: 'Completed',
+                    data: completedPts,
+                    smooth: false,
+                    showSymbol: false,
+                    lineStyle: { width: 2, color: c.processed },
+                    itemStyle: { color: c.processed }
+                });
+            }
+            if (failedPts.length) {
+                series.push({
+                    type: 'line',
+                    name: 'Failed',
+                    data: failedPts,
+                    smooth: false,
+                    showSymbol: false,
+                    lineStyle: { width: 2, color: c.failed },
+                    itemStyle: { color: c.failed }
+                });
+            }
+            if (series.length) {
+                applyChartOptions(runtimeEl, {
+                    animation: false,
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: {
+                            type: 'line',
+                            lineStyle: { color: c.axis, opacity: 0.45 }
+                        },
+                        formatter: function (params) {
+                            if (!params || !params.length) return '';
+                            var blocks = [];
+                            for (var i = 0; i < params.length; i++) {
+                                var param = params[i];
+                                var v = param.value;
+                                if (!v || v.length < 2) continue;
+                                var date = new Date(v[0]);
+                                var timeStr = date.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+                                var jobName = param.data && param.data.labelName ? param.data.labelName : '—';
+                                var svc = param.data && param.data.labelService ? param.data.labelService : '';
+                                var lines = [
+                                    param.marker + param.seriesName,
+                                    jobName,
+                                    v[1] + ' s',
+                                    timeStr
+                                ];
+                                if (svc) {
+                                    lines.splice(2, 0, svc);
+                                }
+                                blocks.push(lines.join('<br/>'));
+                            }
+                            return blocks.length ? blocks.join('<br/><br/>') : '';
+                        }
+                    },
+                    legend: {
+                        data: series.map(function (s) { return s.name; }),
+                        bottom: 0,
+                        textStyle: { color: c.axis, fontSize: 10 }
+                    },
+                    grid: { left: 48, right: 24, top: 16, bottom: 36 },
+                    xAxis: {
+                        type: 'time',
+                        axisLine: { lineStyle: { color: c.axis } },
+                        axisLabel: { color: c.axis, fontSize: 10 },
+                        splitLine: { show: false }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: 's',
+                        min: 0,
+                        scale: true,
+                        axisLine: { show: false },
+                        splitLine: { lineStyle: { color: c.axis, opacity: 0.3 } },
+                        axisLabel: { color: c.axis, fontSize: 10 }
+                    },
+                    series: series
+                });
+            }
+        }
     }
 
     var serviceEl = document.getElementById('service-distribution-chart');
@@ -223,6 +321,51 @@ export function initAlertDetailCharts(data) {
 }
 
 /**
+ * Read legend series visibility from an existing chart (ECharts toggles this when the user clicks the legend).
+ * @param {object} chart
+ * @returns {object|null} Map of series name -> selected boolean
+ */
+function getLegendSelectedFromChart(chart) {
+    try {
+        var opt = chart.getOption();
+        if (!opt || opt.legend === undefined) return null;
+        var legends = Array.isArray(opt.legend) ? opt.legend : [opt.legend];
+        for (var i = 0; i < legends.length; i++) {
+            var leg = legends[i];
+            if (leg && leg.selected && typeof leg.selected === 'object' && Object.keys(leg.selected).length) {
+                return Object.assign({}, leg.selected);
+            }
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * Merge prior legend visibility into new options so hot reload / data refresh keeps user filters.
+ * @param {object} options
+ * @param {object} previousSelected
+ * @returns {void}
+ */
+function mergeLegendSelectedIntoOptions(options, previousSelected) {
+    if (!previousSelected || !options || !options.legend) return;
+    var leg = options.legend;
+    var data = leg.data;
+    if (!Array.isArray(data) || data.length === 0) return;
+    var selected = {};
+    for (var i = 0; i < data.length; i++) {
+        var name = data[i];
+        if (Object.prototype.hasOwnProperty.call(previousSelected, name)) {
+            selected[name] = !!previousSelected[name];
+        } else {
+            selected[name] = true;
+        }
+    }
+    options.legend = Object.assign({}, leg, { selected: selected });
+}
+
+/**
  * Apply the chart options.
  * @param {Element} el
  * @param {object} options
@@ -230,8 +373,12 @@ export function initAlertDetailCharts(data) {
  */
 function applyChartOptions(el, options) {
     var existing = window.echarts.getInstanceByDom(el);
+    var previousLegendSelected = existing ? getLegendSelectedFromChart(existing) : null;
+    if (previousLegendSelected) {
+        mergeLegendSelectedIntoOptions(options, previousLegendSelected);
+    }
     if (existing) {
-        existing.setOption(options);
+        existing.setOption(options, { notMerge: true });
         existing.resize();
     } else {
         var chart = window.echarts.init(el);

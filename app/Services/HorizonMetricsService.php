@@ -175,13 +175,13 @@ class HorizonMetricsService
     }
 
     /**
-     * Get the average runtime over time from 00:00 of the previous day until now.
+     * Get per-job runtimes over the rolling last 24 hours (completed and failed).
      *
-     * @return array{xAxis: list<string>, avgSeconds: list<float|null>}
+     * @return array{points: list<array{endAtMs: int, seconds: float, name: string, service: string, status: string}>}
      */
-    public function getAvgRuntimeOverTime(array $serviceScope = []): array
+    public function getJobRuntimesLast24h(array $serviceScope = []): array
     {
-        return $this->runtimeMetrics->getAvgRuntimeOverTime($serviceScope);
+        return $this->runtimeMetrics->getJobRuntimesLast24h($serviceScope);
     }
 
     /**
