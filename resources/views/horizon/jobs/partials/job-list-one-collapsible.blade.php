@@ -61,7 +61,13 @@
                         </a>
                     </td>
                     @if($showServiceColumn)
-                        <td class="px-4 py-2.5 text-sm font-medium text-foreground truncate max-w-[180px]" data-column-id="service">{{ $job->service?->name ?? '–' }}</td>
+                        <td class="px-4 py-2.5 text-sm font-medium text-foreground truncate max-w-[180px]" data-column-id="service">
+                            @if($job->service)
+                                <a href="{{ route('horizon.services.show', $job->service) }}" class="link">{{ $job->service->name }}</a>
+                            @else
+                                –
+                            @endif
+                        </td>
                     @endif
                     <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="queue">{{ $job->queue }}</td>
                     <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="job">{{ $job->name ?? $job->uuid }}</td>
@@ -100,8 +106,10 @@
                 </tr>
             @endforelse
         </x-data-table>
-        <div class="border-t border-border px-4 py-2 mt-2">
-            <x-pagination :paginator="$paginator" />
-        </div>
+        @if($paginator->hasPages())
+            <div class="px-4 py-2 mt-2">
+                <x-pagination :paginator="$paginator" />
+            </div>
+        @endif
     </div>
 </details>
