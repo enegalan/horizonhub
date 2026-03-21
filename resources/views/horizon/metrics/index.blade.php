@@ -19,7 +19,7 @@
 
 @section('content')
     <div
-        x-data="window.horizonMetricsPage ? window.horizonMetricsPage({ baseUrls: {{ Js::from($metricsBaseUrls) }}, initialServiceIds: {{ Js::from(array_map('strval', $serviceIds ?? [])) }} }) : {}"
+        x-data="window.horizonMetricsPage ? window.horizonMetricsPage({ baseUrls: {{ Js::from($metricsBaseUrls) }}, initialServiceIds: {{ Js::from(array_map('strval', $serviceIds ?? [])) }}, serviceShowBaseUrl: {{ Js::from(rtrim(url('/horizon/services'), '/')) }} }) : {}"
         x-init="typeof init === 'function' ? init() : null"
     >
         <script type="application/json" id="metrics-chart-data">@json($metricsChartData)</script>
@@ -137,7 +137,13 @@
                             </tr>
                             @foreach($workloadRows ?? [] as $row)
                                 <tr class="transition-colors hover:bg-muted/30">
-                                    <td class="px-4 py-2.5 text-sm text-muted-foreground break-all" data-column-id="service">{{ $row['service'] ?? '' }}</td>
+                                    <td class="px-4 py-2.5 text-sm text-muted-foreground break-all" data-column-id="service">
+                                        @if(! empty($row['service_id']))
+                                            <a href="{{ route('horizon.services.show', ['service' => $row['service_id']]) }}" class="link">{{ $row['service'] ?? '' }}</a>
+                                        @else
+                                            {{ $row['service'] ?? '' }}
+                                        @endif
+                                    </td>
                                     <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground break-all" data-column-id="queue">{{ $row['queue'] ?? '' }}</td>
                                     <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="jobs">{{ isset($row['jobs']) ? (int) $row['jobs'] : 0 }}</td>
                                     <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="processes">
@@ -195,7 +201,13 @@
                             </tr>
                             @foreach($supervisorsRows ?? [] as $row)
                                 <tr class="transition-colors hover:bg-muted/30">
-                                    <td class="px-4 py-2.5 text-sm text-muted-foreground break-all" data-column-id="service">{{ $row['service'] ?? '' }}</td>
+                                    <td class="px-4 py-2.5 text-sm text-muted-foreground break-all" data-column-id="service">
+                                        @if(! empty($row['service_id']))
+                                            <a href="{{ route('horizon.services.show', ['service' => $row['service_id']]) }}" class="link">{{ $row['service'] ?? '' }}</a>
+                                        @else
+                                            {{ $row['service'] ?? '' }}
+                                        @endif
+                                    </td>
                                     <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground break-all" data-column-id="supervisor">{{ $row['name'] ?? '' }}</td>
                                     <td class="px-4 py-2.5 text-sm text-muted-foreground text-right" data-column-id="jobs">
                                         {{ isset($row['jobs']) ? (int) $row['jobs'] : 0 }}

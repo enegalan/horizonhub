@@ -64,7 +64,11 @@
                                 <a href="{{ route('horizon.alerts.show', $alert) }}" class="link">{{ $alert->name ?: ('Alert #' . $alert->id) }}</a>
                             </td>
                             <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="service">
-                                {{ $alert->service_id ? $alert->service->name : 'All' }}
+                                @if($alert->service_id && $alert->service)
+                                    <a href="{{ route('horizon.services.show', $alert->service) }}" class="link">{{ $alert->service->name }}</a>
+                                @else
+                                    All
+                                @endif
                             </td>
                             <td class="px-4 py-2.5 text-sm font-mono text-muted-foreground" data-column-id="rule_type">{{ $alert->rule_type }}</td>
                             <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="queue">

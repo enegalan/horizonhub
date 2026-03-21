@@ -175,7 +175,13 @@
                             @forelse($logs as $log)
                                 <tr class="transition-colors hover:bg-muted/30">
                                     <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="sent_at">{{ $log->sent_at->format('Y-m-d H:i:s') }}</td>
-                                    <td class="px-4 py-2.5 text-sm text-foreground" data-column-id="service">{{ $log->service?->name ?? '–' }}</td>
+                                    <td class="px-4 py-2.5 text-sm text-foreground" data-column-id="service">
+                                        @if($log->service)
+                                            <a href="{{ route('horizon.services.show', $log->service) }}" class="link">{{ $log->service->name }}</a>
+                                        @else
+                                            –
+                                        @endif
+                                    </td>
                                     <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="events">
                                         @php $tc = (int) ($log->trigger_count ?? 0); @endphp
                                         @if($tc >= 1)
