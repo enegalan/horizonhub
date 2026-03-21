@@ -209,6 +209,63 @@ class HorizonMetricsServiceTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_get_failure_rate_24h_fetches_multiple_horizon_pages_using_index_cursor(): void
+    {
+        $api = $this->createMock(HorizonApiProxyService::class);
+
+        $now = Carbon::parse('2026-03-20 15:30:00');
+        Carbon::setTestNow($now);
+
+        $service = Service::create([
+            'name' => 'svc-pagination',
+            'api_key' => 'k52345678901234567890123456789012345678901234567890123456789012',
+            'base_url' => 'https://metrics-pagination.test',
+            'status' => 'online',
+        ]);
+
+        $since = $now->copy()->subDay()->startOfDay();
+        $sinceTs = $since->getTimestamp();
+        $completedTs = $sinceTs + 3600;
+
+        $api->method('getCompletedJobs')->willReturnCallback(function ($svc, array $query) use ($service, $completedTs): array {
+            $this->assertInstanceOf(Service::class, $svc);
+            $this->assertSame((int) $service->id, (int) $svc->id);
+            $startingAt = (int) ($query['starting_at'] ?? -1);
+            if ($startingAt === -1) {
+                $jobs = [];
+                for ($i = 0; $i < 50; $i++) {
+                    $jobs[] = [
+                        'completed_at' => $completedTs + $i,
+                        'index' => $i,
+                    ];
+                }
+
+                return ['success' => true, 'data' => ['jobs' => $jobs]];
+            }
+            if ($startingAt === 49) {
+                return ['success' => true, 'data' => ['jobs' => [
+                    ['completed_at' => $completedTs + 100, 'index' => 50],
+                ]]];
+            }
+
+            return ['success' => true, 'data' => ['jobs' => []]];
+        });
+
+        $api->method('getFailedJobs')->willReturn([
+            'success' => true,
+            'data' => ['jobs' => []],
+        ]);
+
+        $metrics = new HorizonMetricsService($api);
+        $result = $metrics->getFailureRate24h([(int) $service->id]);
+
+        $this->assertSame(51, $result['processed']);
+        $this->assertSame(0, $result['failed']);
+        $this->assertSame(0.0, $result['rate']);
+
+        Carbon::setTestNow();
+    }
+
     public function test_get_avg_runtime_over_time_builds_expected_avg_seconds(): void
     {
         $api = $this->createMock(HorizonApiProxyService::class);
