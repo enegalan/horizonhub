@@ -2,6 +2,35 @@ import { processMetricsChartQueue } from "../charts/metrics-charts";
 import { formatQueueWaitElements } from "../lib/queue-wait-format";
 
 /**
+ * Base URL for service detail pages (no trailing slash), set from metrics page config.
+ * @type {string}
+ */
+var metricsServiceShowBaseUrl = "";
+
+/**
+ * Fill a workload/supervisors table cell with the service name (linked when possible).
+ * @param {HTMLTableCellElement} td
+ * @param {{ service?: string, service_id?: number }} row
+ * @returns {void}
+ */
+function fillMetricsServiceNameCell(td, row) {
+    td.className = "px-4 py-2.5 text-sm text-muted-foreground break-all";
+    td.setAttribute("data-column-id", "service");
+    var name = row.service || "";
+    var base = metricsServiceShowBaseUrl.replace(/\/$/, "");
+    var id = row.service_id;
+    if (base && id !== null && id !== undefined && String(id) !== "" && Number(id) > 0) {
+        var a = document.createElement("a");
+        a.className = "link";
+        a.href = base + "/" + encodeURIComponent(String(id));
+        a.textContent = name;
+        td.appendChild(a);
+    } else {
+        td.textContent = name;
+    }
+}
+
+/**
  * All loader IDs.
  * @type {string[]}
  */
@@ -198,9 +227,7 @@ function renderWorkloadRows(rows) {
         tr.className = 'transition-colors hover:bg-muted/30';
 
         var tdService = document.createElement('td');
-        tdService.className = 'px-4 py-2.5 text-sm text-muted-foreground break-all';
-        tdService.setAttribute('data-column-id', 'service');
-        tdService.textContent = row.service || '';
+        fillMetricsServiceNameCell(tdService, row);
         tr.appendChild(tdService);
 
         var tdQueue = document.createElement('td');
@@ -275,9 +302,7 @@ function renderSupervisorsRows(rows) {
         tr.className = 'transition-colors hover:bg-muted/30';
 
         var tdService = document.createElement('td');
-        tdService.className = 'px-4 py-2.5 text-sm text-muted-foreground break-all';
-        tdService.setAttribute('data-column-id', 'service');
-        tdService.textContent = row.service || '';
+        fillMetricsServiceNameCell(tdService, row);
         tr.appendChild(tdService);
 
         var tdName = document.createElement('td');
@@ -630,6 +655,8 @@ export function horizonMetricsPage(config) {
          */
         init: function () {
             if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+            metricsServiceShowBaseUrl = config && config.serviceShowBaseUrl ? String(config.serviceShowBaseUrl) : '';
 
             var filterEl = document.getElementById('metrics-service-filter');
             if (filterEl) {
