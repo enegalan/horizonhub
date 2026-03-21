@@ -224,7 +224,42 @@ export function horizonJobsPage(config) {
             if (newTbody && currentTbody) {
                 currentTbody.replaceWith(newTbody);
                 formatDateTimeElements(currentTable);
+                if (typeof window !== 'undefined' && window.Alpine && typeof window.Alpine.initTree === 'function') {
+                    window.Alpine.initTree(newTbody);
+                }
             }
+        },
+    };
+}
+
+/**
+ * Single failed job row retry (actions column).
+ * @param {object} config
+ * @param {string} config.retryUrl
+ * @returns {object}
+ */
+export function horizonJobRowRetry(config) {
+    return {
+        retrying: false,
+        /**
+         * Retry the job.
+         * @returns {void}
+         */
+        retry() {
+            if (!window.horizon || !window.horizon.http) return;
+            this.retrying = true;
+            var self = this;
+            window.horizon.http.post(config.retryUrl, {}).then(function () {
+                if (window.toast && window.toast.success) {
+                    window.toast.success('Retry requested.');
+                }
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('horizonhub-refresh'));
+                }
+            }).catch(function () {
+            }).finally(function () {
+                self.retrying = false;
+            });
         },
     };
 }

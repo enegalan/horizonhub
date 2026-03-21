@@ -81,7 +81,11 @@
                         <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="runtime">{{ $job->runtime ?? '–' }}</td>
                     @endif
                     <td class="px-4 py-2.5" data-column-id="actions">
-                        @include('horizon.jobs.partials.job-row-actions', ['job' => $job, 'pageService' => $pageService])
+                        @include('horizon.jobs.partials.job-row-actions', [
+                            'job' => $job,
+                            'pageService' => $pageService,
+                            'showRetry' => $kind === 'failed' && $job->service && $job->service->base_url,
+                        ])
                     </td>
                 </tr>
             @empty

@@ -1,6 +1,6 @@
 import './bootstrap';
 import './components/resizable-table';
-import { horizonJobsPage, horizonJobDetail } from './horizon/jobs';
+import { horizonJobsPage, horizonJobDetail, horizonJobRowRetry } from './horizon/jobs';
 import { horizonServiceDashboard, horizonServiceList } from './horizon/services';
 import { horizonQueueList } from './horizon/queues';
 import { horizonAlertsList, horizonAlertDetail } from './horizon/alerts';
@@ -24,6 +24,7 @@ if (!window.moment) window.moment = moment;
 
 window.horizonJobsPage = horizonJobsPage;
 window.horizonJobDetail = horizonJobDetail;
+window.horizonJobRowRetry = horizonJobRowRetry;
 window.horizonServiceDashboard = horizonServiceDashboard;
 window.horizonServiceList = horizonServiceList;
 window.horizonQueueList = horizonQueueList;
