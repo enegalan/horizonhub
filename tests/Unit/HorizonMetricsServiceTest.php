@@ -188,7 +188,7 @@ class HorizonMetricsServiceTest extends TestCase
         ]);
 
         $metrics = new HorizonMetricsService($api);
-        $result = $metrics->getFailureRateOverTime($service->id);
+        $result = $metrics->getFailureRateOverTime([(int) $service->id]);
 
         $endHour = $now->copy()->startOfHour();
         $expectedBucketCount = \min(
@@ -262,7 +262,7 @@ class HorizonMetricsServiceTest extends TestCase
         ]);
 
         $metrics = new HorizonMetricsService($api);
-        $result = $metrics->getAvgRuntimeOverTime($service->id);
+        $result = $metrics->getAvgRuntimeOverTime([(int) $service->id]);
 
         $endHour = $now->copy()->startOfHour();
         $expectedBucketCount = \min(
@@ -332,7 +332,7 @@ class HorizonMetricsServiceTest extends TestCase
         ]);
 
         $metrics = new HorizonMetricsService($api);
-        $rows = $metrics->getSupervisorsData($service->id);
+        $rows = $metrics->getSupervisorsData([(int) $service->id]);
 
         $this->assertCount(2, $rows);
 

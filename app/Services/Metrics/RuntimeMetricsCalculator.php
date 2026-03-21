@@ -12,7 +12,7 @@ class RuntimeMetricsCalculator extends HorizonMetricsComputation
      *
      * @return array{xAxis: list<string>, avgSeconds: list<float|null>}
      */
-    public function getAvgRuntimeOverTime(?int $service_id = null): array
+    public function getAvgRuntimeOverTime(array $serviceScope = []): array
     {
         $now = \now();
         $since = $now->copy()->subDay()->startOfDay();
@@ -30,7 +30,7 @@ class RuntimeMetricsCalculator extends HorizonMetricsComputation
             },
         );
 
-        $services = $this->private__getServicesForMetrics($service_id);
+        $services = $this->private__getServicesForMetrics($serviceScope);
         if ($services->isEmpty()) {
             return ['xAxis' => [], 'avgSeconds' => []];
         }

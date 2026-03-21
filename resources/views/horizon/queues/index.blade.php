@@ -8,14 +8,19 @@
         <div class="card">
             <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
                 <div class="space-y-2">
-                    <x-input-label>Service</x-input-label>
+                    <x-input-label>Services</x-input-label>
                     <form method="GET" action="{{ route('horizon.queues.index') }}">
-                        <x-select name="service" class="w-48" onchange="this.form.submit()">
-                            <option value="">All</option>
+                        <x-multiselect
+                            name="queue_services"
+                            class="w-56"
+                            :submit-on-change="true"
+                            :selected="$serviceIds ?? []"
+                            placeholder="All services"
+                        >
                             @foreach($services as $s)
-                                <option value="{{ $s->id }}" @selected($serviceFilter !== '' && (int) $serviceFilter === (int) $s->id)>{{ $s->name }}</option>
+                                <option value="{{ $s->id }}">{{ $s->name }}</option>
                             @endforeach
-                        </x-select>
+                        </x-multiselect>
                     </form>
                 </div>
                 @if($queueCount > 0)

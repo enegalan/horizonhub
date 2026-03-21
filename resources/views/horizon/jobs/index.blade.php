@@ -12,13 +12,19 @@
     >
         <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
             <div class="space-y-2">
-                <x-input-label>Service</x-input-label>
+                <x-input-label>Services</x-input-label>
                 <form method="GET" action="{{ route('horizon.index') }}">
-                    <x-select name="serviceFilter" class="w-44" onchange="this.form.submit()" placeholder="All">
+                    <x-multiselect
+                        name="serviceFilter"
+                        class="w-56"
+                        :submit-on-change="true"
+                        :selected="$filters['serviceIds'] ?? []"
+                        placeholder="All services"
+                    >
                         @foreach($services as $s)
-                            <option value="{{ $s->id }}" @selected(($filters['serviceFilter'] ?? '') === (string) $s->id)>{{ $s->name }} ({{ $s->status }})</option>
+                            <option value="{{ $s->id }}">{{ $s->name }} ({{ $s->status }})</option>
                         @endforeach
-                    </x-select>
+                    </x-multiselect>
                     <input type="hidden" name="search" value="{{ $filters['search'] ?? '' }}">
                 </form>
             </div>
@@ -32,7 +38,9 @@
                         placeholder="Queue, job or UUID"
                         class="w-56"
                     />
-                    <input type="hidden" name="serviceFilter" value="{{ $filters['serviceFilter'] ?? '' }}">
+                    @foreach($filters['serviceIds'] ?? [] as $sid)
+                        <input type="hidden" name="serviceFilter[]" value="{{ $sid }}">
+                    @endforeach
                 </form>
             </div>
             <div class="flex items-end gap-2 ml-auto">

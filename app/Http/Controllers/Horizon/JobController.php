@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Horizon;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
 use App\Services\HorizonJobDetailService;
 use App\Services\HorizonJobListService;
@@ -46,14 +47,14 @@ class JobController extends Controller
      */
     public function index(Request $request): View
     {
-        $serviceFilter = (string) $request->query('serviceFilter', '');
+        $serviceFilterIds = ServiceRequest::existingIdsFromRequest($request, ['serviceFilter']);
         $search = (string) $request->query('search', '');
 
         $perPage = (int) \config('horizonhub.jobs_per_page');
 
         $servicesQuery = Service::query()->whereNotNull('base_url');
-        if ($serviceFilter !== '') {
-            $servicesQuery->where('id', (int) $serviceFilter);
+        if ($serviceFilterIds !== []) {
+            $servicesQuery->whereIn('id', $serviceFilterIds);
         }
 
         /** @var Collection<int, Service> $servicesWithApi */
@@ -82,7 +83,7 @@ class JobController extends Controller
             'jobsFailed' => $paginators['failed'],
             'services' => $services,
             'filters' => [
-                'serviceFilter' => $serviceFilter,
+                'serviceIds' => $serviceFilterIds,
                 'search' => $search,
             ],
             'header' => 'Horizon Hub – Jobs',

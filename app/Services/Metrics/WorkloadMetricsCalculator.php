@@ -90,9 +90,9 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
      *     processes: int|null
      * }>
      */
-    public function getSupervisorsData(?int $service_id = null): array
+    public function getSupervisorsData(array $serviceScope = []): array
     {
-        $services = $this->private__getServicesForMetrics($service_id);
+        $services = $this->private__getServicesForMetrics($serviceScope);
         if ($services->isEmpty()) {
             return [];
         }
@@ -176,9 +176,9 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
      *     wait: float|null
      * }>
      */
-    public function getWorkloadData(?int $service_id = null): array
+    public function getWorkloadData(array $serviceScope = []): array
     {
-        $services = $this->private__getServicesForMetrics($service_id, true);
+        $services = $this->private__getServicesForMetrics($serviceScope, true);
         if ($services->isEmpty()) {
             return [];
         }

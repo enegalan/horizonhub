@@ -26,11 +26,19 @@ abstract class HorizonMetricsComputation
 
     /**
      * Maximum number of API pages to fetch when building 24h metrics (avoids infinite loops).
+     *
+     * @var int
      */
     protected const METRICS_24H_MAX_PAGES = 20;
 
+    /**
+     * The Horizon API proxy service.
+     */
     protected HorizonApiProxyService $horizonApi;
 
+    /**
+     * Construct the Horizon metrics computation.
+     */
     public function __construct(HorizonApiProxyService $horizonApi)
     {
         $this->horizonApi = $horizonApi;
@@ -146,15 +154,23 @@ abstract class HorizonMetricsComputation
     /**
      * Get services that can provide Horizon metrics.
      *
+     * @param  list<int>  $serviceScope  Empty = all services with base_url; non-empty = restrict by id.
      * @param  array<int, string>  $selectColumns
      * @return Collection<int, Service>
      */
-    protected function private__getServicesForMetrics(?int $service_id = null, bool $orderByName = false, array $selectColumns = []): Collection
+    protected function private__getServicesForMetrics(array $serviceScope = [], bool $orderByName = false, array $selectColumns = []): Collection
     {
         $servicesQuery = Service::query()->whereNotNull('base_url');
 
-        if ($service_id !== null) {
-            $servicesQuery->where('id', $service_id);
+        if ($serviceScope !== []) {
+            $ids = \array_values(\array_unique(\array_filter(
+                \array_map(static fn ($v): int => (int) $v, $serviceScope),
+                static fn (int $id): bool => $id > 0,
+            )));
+            if ($ids === []) {
+                return new Collection;
+            }
+            $servicesQuery->whereIn('id', $ids);
         }
 
         if ($orderByName) {

@@ -16,15 +16,49 @@ var ALL_LOADER_IDS = [
 ];
 
 /**
- * Get the URL.
+ * Loader IDs for KPI summary cards only (not chart canvases).
+ * @type {string[]}
+ */
+var SUMMARY_KPI_LOADER_IDS = [
+    'metrics-loader-jobs-minute',
+    'metrics-loader-jobs-hour',
+    'metrics-loader-failed-seven',
+];
+
+/**
+ * Append service_id[] query params for metrics API URLs.
  * @param {string} base
- * @param {string} serviceId
+ * @param {string[]} serviceIds
  * @returns {string}
  */
-function getUrl(base, serviceId) {
-    if (!serviceId) return base;
+function appendServiceIdsToUrl(base, serviceIds) {
+    if (!base) return base;
+    var ids = Array.isArray(serviceIds) ? serviceIds.filter(function (x) { return x !== null && x !== undefined && String(x) !== ''; }) : [];
+    if (ids.length === 0) return base;
     var sep = base.indexOf('?') === -1 ? '?' : '&';
-    return base + sep + 'service_id=' + encodeURIComponent(serviceId);
+    var out = base;
+    for (var i = 0; i < ids.length; i++) {
+        out += sep + 'service_id[]=' + encodeURIComponent(String(ids[i]));
+        sep = '&';
+    }
+    return out;
+}
+
+/**
+ * Remove service_id / service_id[] from a URL object search params.
+ * @param {URL} url
+ * @returns {void}
+ */
+function deleteServiceIdSearchParams(url) {
+    var toRemove = [];
+    url.searchParams.forEach(function (_, k) {
+        if (k === 'service_id' || k === 'service_id[]') {
+            toRemove.push(k);
+        }
+    });
+    toRemove.forEach(function (k) {
+        url.searchParams.delete(k);
+    });
 }
 
 /**
@@ -289,7 +323,8 @@ function applyMetricsPayload(payload) {
 
     var s = payload.summary;
     if (s) {
-        ALL_LOADER_IDS.forEach(hideLoader);
+        SUMMARY_KPI_LOADER_IDS.forEach(hideLoader);
+        hideLoader('metrics-loader-failure-rate');
         var v = document.getElementById('metrics-value-jobs-minute');
         if (v) v.textContent = formatNum(s.jobsPastMinute);
         v = document.getElementById('metrics-value-jobs-hour');
@@ -366,12 +401,12 @@ var METRICS_STREAM_BACKOFF_MULTIPLIER = 2;
 /**
  * Start the metrics stream.
  * @param {string} streamUrl
- * @param {function} getServiceId
+ * @param {function(): string[]} getServiceIds
  * @param {function} onPayload
- * @param {string|null} initialServiceId Service id for first connection (avoids DOM timing issues).
+ * @param {string[]|null} initialServiceIds Ids for first connection (avoids DOM timing issues).
  * @returns {object}
  */
-function startMetricsStream(streamUrl, getServiceId, onPayload, initialServiceId) {
+function startMetricsStream(streamUrl, getServiceIds, onPayload, initialServiceIds) {
     var eventSource = null;
     var reconnectTimeout = null;
     var backoffMs = METRICS_STREAM_BACKOFF_INITIAL_MS;
@@ -403,11 +438,11 @@ function startMetricsStream(streamUrl, getServiceId, onPayload, initialServiceId
         closeStream();
         connectionToken += 1;
         var thisToken = connectionToken;
-        var sid = isFirstConnect && (initialServiceId !== undefined && initialServiceId !== null && initialServiceId !== '')
-            ? String(initialServiceId)
-            : (typeof getServiceId === 'function' ? getServiceId() : null);
+        var ids = isFirstConnect && initialServiceIds && initialServiceIds.length
+            ? initialServiceIds.map(String)
+            : (typeof getServiceIds === 'function' ? getServiceIds() : []);
         if (isFirstConnect) isFirstConnect = false;
-        var url = streamUrl + (sid ? (streamUrl.indexOf('?') === -1 ? '?' : '&') + 'service_id=' + encodeURIComponent(sid) : '');
+        var url = appendServiceIdsToUrl(streamUrl, ids);
         eventSource = new EventSource(url);
 
         eventSource.addEventListener('metrics', function (e) {
@@ -495,21 +530,21 @@ function startMetricsStream(streamUrl, getServiceId, onPayload, initialServiceId
 /**
  * Load all metrics.
  * @param {object} baseUrls
- * @param {string} serviceId
+ * @param {string[]} serviceIds
  * @returns {void}
  */
-function loadAllMetrics(baseUrls, serviceId) {
+function loadAllMetrics(baseUrls, serviceIds) {
     ALL_LOADER_IDS.forEach(showLoader);
     setSummaryPlaceholders();
     clearWorkloadTable();
     clearSupervisorsTable();
 
     var urls = {
-        summary: getUrl(baseUrls.summary, serviceId),
-        avgRuntime: getUrl(baseUrls.avgRuntime, serviceId),
-        failureRate: getUrl(baseUrls.failureRate, serviceId),
-        supervisors: getUrl(baseUrls.supervisors, serviceId),
-        workload: getUrl(baseUrls.workload, serviceId),
+        summary: appendServiceIdsToUrl(baseUrls.summary, serviceIds),
+        avgRuntime: appendServiceIdsToUrl(baseUrls.avgRuntime, serviceIds),
+        failureRate: appendServiceIdsToUrl(baseUrls.failureRate, serviceIds),
+        supervisors: appendServiceIdsToUrl(baseUrls.supervisors, serviceIds),
+        workload: appendServiceIdsToUrl(baseUrls.workload, serviceIds),
     };
 
     /**
@@ -552,26 +587,31 @@ function loadAllMetrics(baseUrls, serviceId) {
 }
 
 /**
- * Get current service id from the metrics filter element.
- * The id is on the hidden select (x-select puts attrs on the select), so filterEl may be the select itself.
+ * Read selected service ids from the metrics multiselect (hidden inputs).
  * @param {HTMLElement|null} filterEl
- * @returns {string|null}
+ * @returns {string[]}
  */
-function getMetricsServiceId(filterEl) {
-    if (!filterEl) return null;
-    var sel = filterEl.tagName === 'SELECT' ? filterEl : filterEl.querySelector('select');
-    var v = sel ? sel.value : null;
-    return (v === undefined || v === null || v === '') ? null : String(v);
+function getMetricsServiceIdsFromDom(filterEl) {
+    if (!filterEl) return [];
+    var inputs = filterEl.querySelectorAll('input[type="hidden"][name="service_id[]"]');
+    var out = [];
+    inputs.forEach(function (inp) {
+        if (inp && inp.value) out.push(String(inp.value));
+    });
+    out.sort();
+    return out;
 }
 
 /**
  * Alpine component for the metrics page. Same pattern as horizonQueueList / horizonServiceDashboard.
- * @param {{ baseUrls: object, initialServiceId?: string|null }} config
+ * @param {{ baseUrls: object, initialServiceIds?: string[] }} config
  * @returns {object}
  */
 export function horizonMetricsPage(config) {
     var baseUrls = config && config.baseUrls ? config.baseUrls : {};
-    var initialServiceIdFromServer = config && (config.initialServiceId !== undefined && config.initialServiceId !== null && config.initialServiceId !== '') ? String(config.initialServiceId) : null;
+    var initialServiceIdsFromServer = config && Array.isArray(config.initialServiceIds)
+        ? config.initialServiceIds.map(String).filter(Boolean)
+        : [];
     var streamApi = null;
 
     return {
@@ -585,13 +625,14 @@ export function horizonMetricsPage(config) {
             var filterEl = document.getElementById('metrics-service-filter');
             if (filterEl) {
                 filterEl.addEventListener('change', function (e) {
-                    var sid = (e.target && e.target.tagName === 'SELECT' ? e.target.value : getMetricsServiceId(filterEl)) || '';
+                    var ids = (e.detail && Array.isArray(e.detail.values))
+                        ? e.detail.values.map(String).filter(Boolean).sort()
+                        : getMetricsServiceIdsFromDom(filterEl);
                     var url = new URL(window.location.href);
-                    if (sid) {
-                        url.searchParams.set('service_id', sid);
-                    } else {
-                        url.searchParams.delete('service_id');
-                    }
+                    deleteServiceIdSearchParams(url);
+                    ids.forEach(function (id) {
+                        url.searchParams.append('service_id[]', id);
+                    });
                     window.history.replaceState({}, '', url.toString());
                     ALL_LOADER_IDS.forEach(showLoader);
                     setSummaryPlaceholders();
@@ -599,24 +640,28 @@ export function horizonMetricsPage(config) {
                     clearSupervisorsTable();
                     if (streamApi && typeof streamApi.reconnect === 'function') {
                         streamApi.reconnect();
+                    } else if (baseUrls && typeof baseUrls === 'object' && Object.keys(baseUrls).length > 0) {
+                        loadAllMetrics(baseUrls, ids);
                     }
                 });
             }
 
-            var initialServiceId = initialServiceIdFromServer !== null ? initialServiceIdFromServer : getMetricsServiceId(filterEl);
+            var initialServiceIds = initialServiceIdsFromServer.length
+                ? initialServiceIdsFromServer.slice()
+                : getMetricsServiceIdsFromDom(filterEl);
             if (typeof window.horizonHubMetricsStreamUrl === 'string' && window.horizonHubMetricsStreamUrl) {
                 if (typeof window.__horizonHubMetricsStreamClose === 'function') {
                     window.__horizonHubMetricsStreamClose();
                 }
                 streamApi = startMetricsStream(
                     window.horizonHubMetricsStreamUrl,
-                    function () { return getMetricsServiceId(filterEl); },
+                    function () { return getMetricsServiceIdsFromDom(filterEl); },
                     applyMetricsPayload,
-                    initialServiceId
+                    initialServiceIds.length ? initialServiceIds : null
                 );
                 window.__horizonHubMetricsStreamClose = streamApi.close;
             } else {
-                loadAllMetrics(baseUrls, initialServiceId);
+                loadAllMetrics(baseUrls, initialServiceIds);
             }
         },
     };

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Stream;
 
 use App\Http\Controllers\StreamController;
 use App\Http\Requests\Horizon\ServiceRequest;
-use App\Models\Service;
 use App\Services\HorizonMetricsService;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -37,27 +36,27 @@ class MetricsStreamController extends StreamController
      *     rate chart.
      *   - "workload": current queue workload snapshot.
      *   - "supervisors": current supervisors snapshot.
-     * - If a valid "service_id" query is present, all metrics are scoped to
-     *   that service; otherwise they are aggregated across services.
+     * - If valid "service_id" / "service_id[]" query values are present, metrics
+     *   are scoped to those services; otherwise they are aggregated across all.
      */
     public function stream(ServiceRequest $request): StreamedResponse
     {
-        $serviceId = $request->getServiceId();
-        $service = $serviceId !== null ? Service::find($serviceId) : null;
+        $serviceIds = $request->getServiceIds();
+        $throughput = $this->metrics->getThroughputTotalsForServiceIds($serviceIds);
 
-        return $this->runStream(function () use ($serviceId, $service): array {
+        return $this->runStream(function () use ($serviceIds, $throughput): array {
             try {
                 return [
                     'summary' => [
-                        'jobsPastMinute' => $this->metrics->getJobsPastMinute($service),
-                        'jobsPastHour' => $this->metrics->getJobsPastHour($service),
-                        'failedPastSevenDays' => $this->metrics->getFailedPastSevenDays($service),
-                        'failureRate24h' => $this->metrics->getFailureRate24h($serviceId),
+                        'jobsPastMinute' => $throughput['jobsPastMinute'],
+                        'jobsPastHour' => $throughput['jobsPastHour'],
+                        'failedPastSevenDays' => $throughput['failedPastSevenDays'],
+                        'failureRate24h' => $this->metrics->getFailureRate24h($serviceIds),
                     ],
-                    'avgRuntimeOverTime' => $this->metrics->getAvgRuntimeOverTime($serviceId),
-                    'failureRateOverTime' => $this->metrics->getFailureRateOverTime($serviceId),
-                    'workload' => $this->metrics->getWorkloadData($serviceId),
-                    'supervisors' => $this->metrics->getSupervisorsData($serviceId),
+                    'avgRuntimeOverTime' => $this->metrics->getAvgRuntimeOverTime($serviceIds),
+                    'failureRateOverTime' => $this->metrics->getFailureRateOverTime($serviceIds),
+                    'workload' => $this->metrics->getWorkloadData($serviceIds),
+                    'supervisors' => $this->metrics->getSupervisorsData($serviceIds),
                 ];
             } catch (\Throwable $e) {
                 \Log::error('MetricsStreamController stream failed', [

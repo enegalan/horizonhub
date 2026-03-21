@@ -73,6 +73,41 @@ class HorizonMetricsService
     }
 
     /**
+     * Aggregate throughput counters for no filter (all services) or a subset by id.
+     *
+     * @param  list<int>  $serviceIds
+     * @return array{jobsPastMinute: int, jobsPastHour: int, failedPastSevenDays: int}
+     */
+    public function getThroughputTotalsForServiceIds(array $serviceIds): array
+    {
+        if ($serviceIds === []) {
+            return [
+                'jobsPastMinute' => $this->getJobsPastMinute(null),
+                'jobsPastHour' => $this->getJobsPastHour(null),
+                'failedPastSevenDays' => $this->getFailedPastSevenDays(null),
+            ];
+        }
+
+        $minute = 0;
+        $hour = 0;
+        $failed = 0;
+
+        $services = Service::query()->whereIn('id', $serviceIds)->orderBy('name')->get();
+        /** @var Service $service */
+        foreach ($services as $service) {
+            $minute += $this->getJobsPastMinute($service);
+            $hour += $this->getJobsPastHour($service);
+            $failed += $this->getFailedPastSevenDays($service);
+        }
+
+        return [
+            'jobsPastMinute' => $minute,
+            'jobsPastHour' => $hour,
+            'failedPastSevenDays' => $failed,
+        ];
+    }
+
+    /**
      * Get the workload for a single service.
      *
      * @return array<int, array{queue: string, jobs: int, processes: int|null, wait: float|null}>
@@ -87,9 +122,9 @@ class HorizonMetricsService
      *
      * @return array<int, array{name: string, status: string, processes: int, last_heartbeat: string, options: array<string, mixed>}>
      */
-    public function getSupervisorsData(?int $service_id = null): array
+    public function getSupervisorsData(array $serviceScope = []): array
     {
-        return $this->workloadMetrics->getSupervisorsData($service_id);
+        return $this->workloadMetrics->getSupervisorsData($serviceScope);
     }
 
     /**
@@ -97,9 +132,9 @@ class HorizonMetricsService
      *
      * @return array<int, array{service_id: int, service: string, queue: string, jobs: int, processes: int|null, wait: float|null}>
      */
-    public function getWorkloadData(?int $service_id = null): array
+    public function getWorkloadData(array $serviceScope = []): array
     {
-        return $this->workloadMetrics->getWorkloadData($service_id);
+        return $this->workloadMetrics->getWorkloadData($serviceScope);
     }
 
     /**
@@ -107,9 +142,9 @@ class HorizonMetricsService
      *
      * @return array{rate: float, processed: int, failed: int}
      */
-    public function getFailureRate24h(?int $service_id = null): array
+    public function getFailureRate24h(array $serviceScope = []): array
     {
-        return $this->failureMetrics->getFailureRate24h($service_id);
+        return $this->failureMetrics->getFailureRate24h($serviceScope);
     }
 
     /**
@@ -117,9 +152,9 @@ class HorizonMetricsService
      *
      * @return array{xAxis: list<string>, rate: list<float|null>}
      */
-    public function getFailureRateOverTime(?int $service_id = null): array
+    public function getFailureRateOverTime(array $serviceScope = []): array
     {
-        return $this->failureMetrics->getFailureRateOverTime($service_id);
+        return $this->failureMetrics->getFailureRateOverTime($serviceScope);
     }
 
     /**
@@ -127,9 +162,9 @@ class HorizonMetricsService
      *
      * @return array{xAxis: list<string>, avgSeconds: list<float|null>}
      */
-    public function getAvgRuntimeOverTime(?int $service_id = null): array
+    public function getAvgRuntimeOverTime(array $serviceScope = []): array
     {
-        return $this->runtimeMetrics->getAvgRuntimeOverTime($service_id);
+        return $this->runtimeMetrics->getAvgRuntimeOverTime($serviceScope);
     }
 
     /**
@@ -137,9 +172,9 @@ class HorizonMetricsService
      *
      * @return array{queue: string, processed: int, failed: int}
      */
-    public function getProcessedFailedByQueue(?int $service_id = null): array
+    public function getProcessedFailedByQueue(array $serviceScope = []): array
     {
-        return $this->queueFailureCounters->getProcessedFailedByQueue($service_id);
+        return $this->queueFailureCounters->getProcessedFailedByQueue($serviceScope);
     }
 
     /**

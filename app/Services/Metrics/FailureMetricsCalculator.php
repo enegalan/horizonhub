@@ -12,12 +12,12 @@ class FailureMetricsCalculator extends HorizonMetricsComputation
      *
      * @return array{rate: float, processed: int, failed: int}
      */
-    public function getFailureRate24h(?int $service_id = null): array
+    public function getFailureRate24h(array $serviceScope = []): array
     {
         $since = \now()->subDay()->startOfDay();
         $sinceTimestamp = $since->getTimestamp();
 
-        $services = $this->private__getServicesForMetrics($service_id);
+        $services = $this->private__getServicesForMetrics($serviceScope);
         if ($services->isEmpty()) {
             return [
                 'rate' => 0.0,
@@ -54,7 +54,7 @@ class FailureMetricsCalculator extends HorizonMetricsComputation
      *
      * @return array{xAxis: list<string>, rate: list<float|null>}
      */
-    public function getFailureRateOverTime(?int $service_id = null): array
+    public function getFailureRateOverTime(array $serviceScope = []): array
     {
         $now = \now();
         $since = $now->copy()->subDay()->startOfDay();
@@ -72,7 +72,7 @@ class FailureMetricsCalculator extends HorizonMetricsComputation
             },
         );
 
-        $services = $this->private__getServicesForMetrics($service_id);
+        $services = $this->private__getServicesForMetrics($serviceScope);
         if ($services->isEmpty()) {
             return ['xAxis' => [], 'rate' => []];
         }

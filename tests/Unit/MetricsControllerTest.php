@@ -35,36 +35,18 @@ class MetricsControllerTest extends TestCase
         $serviceId = (int) $service->id;
 
         $metrics->expects($this->once())
-            ->method('getJobsPastMinute')
-            ->willReturnCallback(static function ($svc) use ($serviceId): int {
-                Assert::assertInstanceOf(Service::class, $svc);
-                Assert::assertSame($serviceId, (int) $svc->id);
-
-                return 11;
-            });
-
-        $metrics->expects($this->once())
-            ->method('getJobsPastHour')
-            ->willReturnCallback(static function ($svc) use ($serviceId): int {
-                Assert::assertInstanceOf(Service::class, $svc);
-                Assert::assertSame($serviceId, (int) $svc->id);
-
-                return 22;
-            });
-
-        $metrics->expects($this->once())
-            ->method('getFailedPastSevenDays')
-            ->willReturnCallback(static function ($svc) use ($serviceId): int {
-                Assert::assertInstanceOf(Service::class, $svc);
-                Assert::assertSame($serviceId, (int) $svc->id);
-
-                return 33;
-            });
+            ->method('getThroughputTotalsForServiceIds')
+            ->with([$serviceId])
+            ->willReturn([
+                'jobsPastMinute' => 11,
+                'jobsPastHour' => 22,
+                'failedPastSevenDays' => 33,
+            ]);
 
         $metrics->expects($this->once())
             ->method('getFailureRate24h')
-            ->willReturnCallback(static function ($serviceIdArg) use ($serviceId): array {
-                Assert::assertSame($serviceId, (int) $serviceIdArg);
+            ->willReturnCallback(static function (array $scope) use ($serviceId): array {
+                Assert::assertSame([$serviceId], $scope);
 
                 return [
                     'rate' => 1.2,
@@ -100,8 +82,8 @@ class MetricsControllerTest extends TestCase
 
         $metrics->expects($this->once())
             ->method('getAvgRuntimeOverTime')
-            ->willReturnCallback(static function ($serviceIdArg) use ($service): array {
-                Assert::assertSame((int) $service->id, (int) $serviceIdArg);
+            ->willReturnCallback(static function (array $scope) use ($service): array {
+                Assert::assertSame([(int) $service->id], $scope);
 
                 return ['xAxis' => ['01/01 00:00'], 'avgSeconds' => [1.23]];
             });
@@ -128,8 +110,8 @@ class MetricsControllerTest extends TestCase
 
         $metrics->expects($this->once())
             ->method('getFailureRateOverTime')
-            ->willReturnCallback(static function ($serviceIdArg) use ($service): array {
-                Assert::assertSame((int) $service->id, (int) $serviceIdArg);
+            ->willReturnCallback(static function (array $scope) use ($service): array {
+                Assert::assertSame([(int) $service->id], $scope);
 
                 return ['xAxis' => ['01/01 00:00'], 'rate' => [12.3]];
             });
@@ -156,8 +138,8 @@ class MetricsControllerTest extends TestCase
 
         $metrics->expects($this->once())
             ->method('getSupervisorsData')
-            ->willReturnCallback(static function ($serviceIdArg) use ($service): array {
-                Assert::assertSame((int) $service->id, (int) $serviceIdArg);
+            ->willReturnCallback(static function (array $scope) use ($service): array {
+                Assert::assertSame([(int) $service->id], $scope);
 
                 return [
                     [
@@ -195,8 +177,8 @@ class MetricsControllerTest extends TestCase
 
         $metrics->expects($this->once())
             ->method('getWorkloadData')
-            ->willReturnCallback(static function ($serviceIdArg) use ($service): array {
-                Assert::assertSame((int) $service->id, (int) $serviceIdArg);
+            ->willReturnCallback(static function (array $scope) use ($service): array {
+                Assert::assertSame([(int) $service->id], $scope);
 
                 return [
                     [
@@ -233,23 +215,17 @@ class MetricsControllerTest extends TestCase
         $metrics = $this->createMock(HorizonMetricsService::class);
 
         $metrics->expects($this->once())
-            ->method('getJobsPastMinute')
-            ->with(null)
-            ->willReturn(11);
-
-        $metrics->expects($this->once())
-            ->method('getJobsPastHour')
-            ->with(null)
-            ->willReturn(22);
-
-        $metrics->expects($this->once())
-            ->method('getFailedPastSevenDays')
-            ->with(null)
-            ->willReturn(33);
+            ->method('getThroughputTotalsForServiceIds')
+            ->with([])
+            ->willReturn([
+                'jobsPastMinute' => 11,
+                'jobsPastHour' => 22,
+                'failedPastSevenDays' => 33,
+            ]);
 
         $metrics->expects($this->once())
             ->method('getFailureRate24h')
-            ->with(null)
+            ->with([])
             ->willReturn([
                 'rate' => 1.2,
                 'processed' => 10,

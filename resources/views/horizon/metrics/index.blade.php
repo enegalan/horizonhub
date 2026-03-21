@@ -16,18 +16,24 @@
 
 @section('content')
     <div
-        x-data="window.horizonMetricsPage ? window.horizonMetricsPage({ baseUrls: {{ Js::from($metricsBaseUrls) }}, initialServiceId: {{ Js::from(isset($serviceFilter) && $serviceFilter !== '' ? $serviceFilter : null) }} }) : {}"
+        x-data="window.horizonMetricsPage ? window.horizonMetricsPage({ baseUrls: {{ Js::from($metricsBaseUrls) }}, initialServiceIds: {{ Js::from(array_map('strval', $serviceIds ?? [])) }} }) : {}"
         x-init="typeof init === 'function' ? init() : null"
     >
         <script type="application/json" id="metrics-chart-data">@json($metricsChartData)</script>
 
         <div class="mb-4 flex flex-wrap items-center gap-3">
-            <label for="metrics-service-filter" class="label-muted text-sm">Filter by service</label>
-            <x-select id="metrics-service-filter" class="w-48" placeholder="All services">
+            <label for="metrics-service-filter" class="label-muted text-sm">Filter by services</label>
+            <x-multiselect
+                id="metrics-service-filter"
+                name="service_id"
+                class="w-64"
+                :selected="$serviceIds ?? []"
+                placeholder="All services"
+            >
                 @foreach($services as $service)
-                    <option value="{{ $service->id }}" @selected(isset($serviceFilter) && $serviceFilter !== '' && (int) $serviceFilter === (int) $service->id)>{{ $service->name }}</option>
+                    <option value="{{ $service->id }}">{{ $service->name }}</option>
                 @endforeach
-            </x-select>
+            </x-multiselect>
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">

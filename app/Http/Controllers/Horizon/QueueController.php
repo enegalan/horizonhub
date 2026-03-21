@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Horizon;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
 use App\Services\HorizonMetricsService;
 use App\Support\Horizon\QueueNameNormalizer;
@@ -29,11 +30,19 @@ class QueueController extends Controller
      */
     public function index(Request $request): View
     {
-        $serviceFilter = (string) $request->query('service', '');
+        $serviceFilterIds = ServiceRequest::existingIdsFromRequest($request, ['queue_services', 'service']);
 
-        $serviceIdFilter = $serviceFilter !== '' ? (int) $serviceFilter : null;
+        $workloadRows = $this->metrics->getWorkloadData($serviceFilterIds);
 
-        $workloadRows = $this->metrics->getWorkloadData($serviceIdFilter);
+        if ($serviceFilterIds !== []) {
+            $allowedServiceIds = \array_fill_keys($serviceFilterIds, true);
+            $workloadRows = \array_values(\array_filter(
+                $workloadRows,
+                static function (array $row) use ($allowedServiceIds): bool {
+                    return isset($allowedServiceIds[(int) ($row['service_id'] ?? 0)]);
+                }
+            ));
+        }
 
         $serviceIds = \array_values(\array_unique(\array_map(
             static fn (array $row): int => (int) $row['service_id'],
@@ -68,7 +77,7 @@ class QueueController extends Controller
             'queues' => $queues,
             'services' => $services,
             'totalJobs' => $totalJobs,
-            'serviceFilter' => $serviceFilter,
+            'serviceIds' => $serviceFilterIds,
             'header' => 'Horizon Hub – Queues',
         ]);
     }
