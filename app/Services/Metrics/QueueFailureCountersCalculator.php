@@ -4,15 +4,15 @@ namespace App\Services\Metrics;
 
 use App\Models\Service;
 
-class QueueFailureCountersCalculator extends HorizonMetricsComputation {
-
+class QueueFailureCountersCalculator extends HorizonMetricsComputation
+{
     /**
      * Get the processed vs failed data by queue.
      *
-     * @param int|null $service_id
      * @return array{queues: list<string>, processed: list<int>, failed: list<int>}
      */
-    public function getProcessedFailedByQueue(?int $service_id = null): array {
+    public function getProcessedFailedByQueue(?int $service_id = null): array
+    {
         $since = \now()->subDays(self::DAYS_7);
         $sinceTimestamp = $since->getTimestamp();
 

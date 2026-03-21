@@ -7,19 +7,23 @@ use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
 use App\Services\HorizonMetricsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Assert;
 use Tests\TestCase;
 
-class MetricsControllerTest extends TestCase {
+class MetricsControllerTest extends TestCase
+{
     use RefreshDatabase;
 
-    private function createServiceRequest(string $uri): ServiceRequest {
+    private function createServiceRequest(string $uri): ServiceRequest
+    {
         $request = ServiceRequest::create($uri, 'GET');
         $request->setContainer($this->app);
 
         return $request;
     }
 
-    public function test_data_summary_returns_expected_keys_and_delegates(): void {
+    public function test_data_summary_returns_expected_keys_and_delegates(): void
+    {
         $service = Service::create([
             'name' => 'svc-metrics-controller-summary',
             'api_key' => 'k12345678901234567890123456789012345678901234567890123456789012',
@@ -33,8 +37,8 @@ class MetricsControllerTest extends TestCase {
         $metrics->expects($this->once())
             ->method('getJobsPastMinute')
             ->willReturnCallback(static function ($svc) use ($serviceId): int {
-                \PHPUnit\Framework\Assert::assertInstanceOf(Service::class, $svc);
-                \PHPUnit\Framework\Assert::assertSame($serviceId, (int) $svc->id);
+                Assert::assertInstanceOf(Service::class, $svc);
+                Assert::assertSame($serviceId, (int) $svc->id);
 
                 return 11;
             });
@@ -42,8 +46,8 @@ class MetricsControllerTest extends TestCase {
         $metrics->expects($this->once())
             ->method('getJobsPastHour')
             ->willReturnCallback(static function ($svc) use ($serviceId): int {
-                \PHPUnit\Framework\Assert::assertInstanceOf(Service::class, $svc);
-                \PHPUnit\Framework\Assert::assertSame($serviceId, (int) $svc->id);
+                Assert::assertInstanceOf(Service::class, $svc);
+                Assert::assertSame($serviceId, (int) $svc->id);
 
                 return 22;
             });
@@ -51,8 +55,8 @@ class MetricsControllerTest extends TestCase {
         $metrics->expects($this->once())
             ->method('getFailedPastSevenDays')
             ->willReturnCallback(static function ($svc) use ($serviceId): int {
-                \PHPUnit\Framework\Assert::assertInstanceOf(Service::class, $svc);
-                \PHPUnit\Framework\Assert::assertSame($serviceId, (int) $svc->id);
+                Assert::assertInstanceOf(Service::class, $svc);
+                Assert::assertSame($serviceId, (int) $svc->id);
 
                 return 33;
             });
@@ -60,7 +64,7 @@ class MetricsControllerTest extends TestCase {
         $metrics->expects($this->once())
             ->method('getFailureRate24h')
             ->willReturnCallback(static function ($serviceIdArg) use ($serviceId): array {
-                \PHPUnit\Framework\Assert::assertSame($serviceId, (int) $serviceIdArg);
+                Assert::assertSame($serviceId, (int) $serviceIdArg);
 
                 return [
                     'rate' => 1.2,
@@ -70,7 +74,7 @@ class MetricsControllerTest extends TestCase {
             });
 
         $controller = new MetricsController($metrics);
-        $request = $this->createServiceRequest('/horizon/metrics/data/summary?service_id=' . $serviceId);
+        $request = $this->createServiceRequest('/horizon/metrics/data/summary?service_id='.$serviceId);
 
         $response = $controller->dataSummary($request);
         $data = $response->getData(true);
@@ -83,7 +87,8 @@ class MetricsControllerTest extends TestCase {
         $this->assertSame(3, $data['failureRate24h']['failed']);
     }
 
-    public function test_data_avg_runtime_returns_payload_and_delegates(): void {
+    public function test_data_avg_runtime_returns_payload_and_delegates(): void
+    {
         $service = Service::create([
             'name' => 'svc-metrics-controller-avg-runtime',
             'api_key' => 'k22345678901234567890123456789012345678901234567890123456789012',
@@ -96,13 +101,13 @@ class MetricsControllerTest extends TestCase {
         $metrics->expects($this->once())
             ->method('getAvgRuntimeOverTime')
             ->willReturnCallback(static function ($serviceIdArg) use ($service): array {
-                \PHPUnit\Framework\Assert::assertSame((int) $service->id, (int) $serviceIdArg);
+                Assert::assertSame((int) $service->id, (int) $serviceIdArg);
 
                 return ['xAxis' => ['01/01 00:00'], 'avgSeconds' => [1.23]];
             });
 
         $controller = new MetricsController($metrics);
-        $request = $this->createServiceRequest('/horizon/metrics/data/avg-runtime?service_id=' . $service->id);
+        $request = $this->createServiceRequest('/horizon/metrics/data/avg-runtime?service_id='.$service->id);
 
         $response = $controller->dataAvgRuntime($request);
         $data = $response->getData(true);
@@ -110,7 +115,8 @@ class MetricsControllerTest extends TestCase {
         $this->assertSame(['xAxis' => ['01/01 00:00'], 'avgSeconds' => [1.23]], $data);
     }
 
-    public function test_data_failure_rate_over_time_returns_payload_and_delegates(): void {
+    public function test_data_failure_rate_over_time_returns_payload_and_delegates(): void
+    {
         $service = Service::create([
             'name' => 'svc-metrics-controller-failure-rate',
             'api_key' => 'k32345678901234567890123456789012345678901234567890123456789012',
@@ -123,13 +129,13 @@ class MetricsControllerTest extends TestCase {
         $metrics->expects($this->once())
             ->method('getFailureRateOverTime')
             ->willReturnCallback(static function ($serviceIdArg) use ($service): array {
-                \PHPUnit\Framework\Assert::assertSame((int) $service->id, (int) $serviceIdArg);
+                Assert::assertSame((int) $service->id, (int) $serviceIdArg);
 
                 return ['xAxis' => ['01/01 00:00'], 'rate' => [12.3]];
             });
 
         $controller = new MetricsController($metrics);
-        $request = $this->createServiceRequest('/horizon/metrics/data/failure-rate-over-time?service_id=' . $service->id);
+        $request = $this->createServiceRequest('/horizon/metrics/data/failure-rate-over-time?service_id='.$service->id);
 
         $response = $controller->dataFailureRateOverTime($request);
         $data = $response->getData(true);
@@ -137,7 +143,8 @@ class MetricsControllerTest extends TestCase {
         $this->assertSame(['xAxis' => ['01/01 00:00'], 'rate' => [12.3]], $data);
     }
 
-    public function test_data_supervisors_returns_payload_and_delegates(): void {
+    public function test_data_supervisors_returns_payload_and_delegates(): void
+    {
         $service = Service::create([
             'name' => 'svc-metrics-controller-supervisors',
             'api_key' => 'k42345678901234567890123456789012345678901234567890123456789012',
@@ -150,7 +157,7 @@ class MetricsControllerTest extends TestCase {
         $metrics->expects($this->once())
             ->method('getSupervisorsData')
             ->willReturnCallback(static function ($serviceIdArg) use ($service): array {
-                \PHPUnit\Framework\Assert::assertSame((int) $service->id, (int) $serviceIdArg);
+                Assert::assertSame((int) $service->id, (int) $serviceIdArg);
 
                 return [
                     [
@@ -165,7 +172,7 @@ class MetricsControllerTest extends TestCase {
             });
 
         $controller = new MetricsController($metrics);
-        $request = $this->createServiceRequest('/horizon/metrics/data/supervisors?service_id=' . $service->id);
+        $request = $this->createServiceRequest('/horizon/metrics/data/supervisors?service_id='.$service->id);
 
         $response = $controller->dataSupervisors($request);
         $data = $response->getData(true);
@@ -175,7 +182,8 @@ class MetricsControllerTest extends TestCase {
         $this->assertSame('sup-1', $data['supervisors'][0]['name']);
     }
 
-    public function test_data_workload_returns_payload_and_delegates(): void {
+    public function test_data_workload_returns_payload_and_delegates(): void
+    {
         $service = Service::create([
             'name' => 'svc-metrics-controller-workload',
             'api_key' => 'k52345678901234567890123456789012345678901234567890123456789012',
@@ -188,7 +196,7 @@ class MetricsControllerTest extends TestCase {
         $metrics->expects($this->once())
             ->method('getWorkloadData')
             ->willReturnCallback(static function ($serviceIdArg) use ($service): array {
-                \PHPUnit\Framework\Assert::assertSame((int) $service->id, (int) $serviceIdArg);
+                Assert::assertSame((int) $service->id, (int) $serviceIdArg);
 
                 return [
                     [
@@ -203,7 +211,7 @@ class MetricsControllerTest extends TestCase {
             });
 
         $controller = new MetricsController($metrics);
-        $request = $this->createServiceRequest('/horizon/metrics/data/workload?service_id=' . $service->id);
+        $request = $this->createServiceRequest('/horizon/metrics/data/workload?service_id='.$service->id);
 
         $response = $controller->dataWorkload($request);
         $data = $response->getData(true);
@@ -213,7 +221,8 @@ class MetricsControllerTest extends TestCase {
         $this->assertSame('alpha', $data['workload'][0]['queue']);
     }
 
-    public function test_data_summary_sanitizes_invalid_service_id_to_null(): void {
+    public function test_data_summary_sanitizes_invalid_service_id_to_null(): void
+    {
         $service = Service::create([
             'name' => 'svc-metrics-controller-summary-invalid-service-id',
             'api_key' => 'k62345678901234567890123456789012345678901234567890123456789012',

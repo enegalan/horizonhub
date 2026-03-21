@@ -8,8 +8,8 @@ use App\Models\Service;
 use App\Services\HorizonApiProxyService;
 use Illuminate\Support\Facades\Http;
 
-class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier {
-
+class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier
+{
     /**
      * Maximum number of events to include in the Slack message.
      *
@@ -26,22 +26,19 @@ class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier 
 
     /**
      * Construct the Slack notifier.
-     *
-     * @param HorizonApiProxyService $horizonApi
      */
-    public function __construct(HorizonApiProxyService $horizonApi) {
+    public function __construct(HorizonApiProxyService $horizonApi)
+    {
         parent::__construct($horizonApi);
     }
 
     /**
      * Send a batched alert.
      *
-     * @param Alert $alert
-     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events
-     * @param array $config
-     * @return void
+     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $events
      */
-    public function sendBatched(Alert $alert, array $events, array $config): void {
+    public function sendBatched(Alert $alert, array $events, array $config): void
+    {
         $webhookUrl = $config['webhook_url'] ?? '';
         if ($webhookUrl === '' || empty($events)) {
             return;
@@ -54,13 +51,13 @@ class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier 
 
         $enrichedEvents = $this->enrichEvents($events, self::MAX_EVENTS_IN_SLACK, self::SLACK_EXCEPTION_MAX_LENGTH);
 
-        $lines = array(
+        $lines = [
             \sprintf('🚨 *[Horizon Hub]* *Alert:* %s | *Service:* %s', $alert->rule_type, $service ? $service->name : (string) $serviceId),
             "📊 *Events:* $count",
-        );
+        ];
 
         if ($alert->rule_type === 'failure_count') {
-            $threshold = $alert->threshold ?? array();
+            $threshold = $alert->threshold ?? [];
             $thresholdCount = (int) (isset($threshold['count']) ? $threshold['count'] : 5);
             $thresholdMinutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 15);
             $queueName = $alert->queue ?? null;
@@ -72,7 +69,7 @@ class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier 
             );
 
             if ($queueName !== null && $queueName !== '') {
-                $condition .= ' (_queue:_ ' . $queueName . ')';
+                $condition .= ' (_queue:_ '.$queueName.')';
             }
 
             $lines[] = $condition;
@@ -87,42 +84,42 @@ class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier 
             $exception = $event['exception'] ?? null;
 
             if ($jobClass !== null) {
-                $line = '❌ *Job:* ' . $jobClass;
+                $line = '❌ *Job:* '.$jobClass;
             } elseif ($jobUuid !== null) {
-                $line = '❌ *Job UUID:* ' . $jobUuid;
+                $line = '❌ *Job UUID:* '.$jobUuid;
             } else {
                 $line = '❌ *Job:* unknown';
             }
 
             if ($queue !== null) {
-                $line .= ' (_queue:_ ' . $queue . ')';
+                $line .= ' (_queue:_ '.$queue.')';
             }
 
             if ($triggeredAt !== '') {
-                $line .= ' _at_ ' . $triggeredAt;
+                $line .= ' _at_ '.$triggeredAt;
             }
 
             $lines[] = $line;
 
             if ($failedAt !== null) {
-                $lines[] = '   🕐 *failed_at:* ' . $failedAt;
+                $lines[] = '   🕐 *failed_at:* '.$failedAt;
             }
 
             if ($attempts !== null) {
-                $lines[] = '   🔄 *attempts:* ' . $attempts;
+                $lines[] = '   🔄 *attempts:* '.$attempts;
             }
 
             if ($exception !== null && $exception !== '') {
-                $lines[] = '   ⚠️ *exception:* ' . $exception;
+                $lines[] = '   ⚠️ *exception:* '.$exception;
             }
         }
         if ($count > self::MAX_EVENTS_IN_SLACK) {
-            $lines[] = "📎 … and *" . ($count - self::MAX_EVENTS_IN_SLACK) . "* more";
+            $lines[] = '📎 … and *'.($count - self::MAX_EVENTS_IN_SLACK).'* more';
         }
         $text = \implode("\n", $lines);
 
-        Http::post($webhookUrl, array(
+        Http::post($webhookUrl, [
             'text' => $text,
-        ));
+        ]);
     }
 }

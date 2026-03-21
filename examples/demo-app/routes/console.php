@@ -7,14 +7,14 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::call(function (): void {
-    ProcessOrder::dispatch(['order_id' => 'ORD-' . uniqid(), 'amount' => rand(10, 500)]);
+    ProcessOrder::dispatch(['order_id' => 'ORD-'.uniqid(), 'amount' => rand(10, 500)]);
     SendNotification::dispatch(['user_id' => rand(1, 1000), 'type' => 'order_shipped']);
     GenerateReport::dispatch(['report_type' => 'daily', 'date' => now()->toDateString()]);
 })->everyMinute();
 
 Artisan::command('demo:dispatch-successful-jobs', function (): void {
     for ($i = 0; $i < 5; $i++) {
-        ProcessOrder::dispatch(['order_id' => 'ORD-' . uniqid(), 'amount' => rand(10, 500)]);
+        ProcessOrder::dispatch(['order_id' => 'ORD-'.uniqid(), 'amount' => rand(10, 500)]);
         SendNotification::dispatch(['user_id' => rand(1, 1000), 'type' => 'welcome']);
     }
     $this->info('Dispatched 5 ProcessOrder and 5 SendNotification jobs. Horizon in this container will process them and the agent will push events to the hub.');

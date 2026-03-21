@@ -8,16 +8,19 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
-class HorizonApiProxyServiceTest extends TestCase {
+class HorizonApiProxyServiceTest extends TestCase
+{
     use RefreshDatabase;
 
-    public function test_get_workload_retries_with_dashboard_session_after_unauthorized_response(): void {
+    public function test_get_workload_retries_with_dashboard_session_after_unauthorized_response(): void
+    {
         $apiCalls = 0;
         $dashboardCalls = 0;
 
         Http::fake(function ($request) use (&$apiCalls, &$dashboardCalls) {
             if ($request->method() === 'GET' && \str_ends_with($request->url(), '/horizon')) {
                 $dashboardCalls++;
+
                 return Http::response('<html><head><meta name="csrf-token" content="csrf-123"></head></html>', 200);
             }
 
@@ -53,13 +56,15 @@ class HorizonApiProxyServiceTest extends TestCase {
         $this->assertSame('offline', $service->fresh()->status);
     }
 
-    public function test_retry_job_retries_once_after_419_response(): void {
+    public function test_retry_job_retries_once_after_419_response(): void
+    {
         $retryCalls = 0;
         $dashboardCalls = 0;
 
         Http::fake(function ($request) use (&$retryCalls, &$dashboardCalls) {
             if ($request->method() === 'GET' && \str_ends_with($request->url(), '/horizon')) {
                 $dashboardCalls++;
+
                 return Http::response('<html><head><meta name="csrf-token" content="csrf-419"></head></html>', 200);
             }
 
@@ -94,7 +99,8 @@ class HorizonApiProxyServiceTest extends TestCase {
         $this->assertSame(2, $dashboardCalls);
     }
 
-    public function test_ping_returns_502_on_http_exception(): void {
+    public function test_ping_returns_502_on_http_exception(): void
+    {
         Http::fake(function () {
             throw new \RuntimeException('network down');
         });
@@ -117,7 +123,8 @@ class HorizonApiProxyServiceTest extends TestCase {
         $this->assertSame('network down', $result['message'] ?? null);
     }
 
-    public function test_get_failed_jobs_returns_trimmed_plain_text_error_message(): void {
+    public function test_get_failed_jobs_returns_trimmed_plain_text_error_message(): void
+    {
         Http::fake([
             '*' => Http::response('Rate limited by upstream', 429, ['Content-Type' => 'text/plain']),
         ]);
@@ -145,7 +152,8 @@ class HorizonApiProxyServiceTest extends TestCase {
         $this->assertSame('Rate limited by upstream', $result['message'] ?? null);
     }
 
-    public function test_ping_success_updates_last_seen_at_and_status(): void {
+    public function test_ping_success_updates_last_seen_at_and_status(): void
+    {
         Http::fake([
             '*' => Http::response(['status' => 'ok'], 200),
         ]);
@@ -170,7 +178,8 @@ class HorizonApiProxyServiceTest extends TestCase {
         $this->assertNotNull($freshService->last_seen_at);
     }
 
-    public function test_get_failed_jobs_retries_on_429_then_succeeds(): void {
+    public function test_get_failed_jobs_retries_on_429_then_succeeds(): void
+    {
         $calls = 0;
         Http::fake(function () use (&$calls) {
             $calls++;

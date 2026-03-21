@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
-class Setting extends Model {
-
+class Setting extends Model
+{
     /**
      * The "incrementing" property is set to false to prevent the model from using an auto-incrementing ID.
      *
@@ -47,13 +47,10 @@ class Setting extends Model {
 
     /**
      * Get a setting value by key. Returns null if not found.
-     *
-     * @param string $key
-     * @param mixed $default
-     * @return mixed
      */
-    public static function get(string $key, mixed $default = null): mixed {
-        $cacheKey = self::CACHE_PREFIX . $key;
+    public static function get(string $key, mixed $default = null): mixed
+    {
+        $cacheKey = self::CACHE_PREFIX.$key;
 
         $value = Cache::remember($cacheKey, self::CACHE_TTL_SECONDS, function () use ($key) {
             $row = static::query()->where('key', $key)->first();
@@ -75,12 +72,9 @@ class Setting extends Model {
 
     /**
      * Set a setting value. Arrays and scalars are JSON-encoded when appropriate.
-     *
-     * @param string $key
-     * @param mixed $value
-     * @return void
      */
-    public static function set(string $key, mixed $value): void {
+    public static function set(string $key, mixed $value): void
+    {
         $serialized = \is_array($value) || \is_bool($value) ? \json_encode($value) : (string) $value;
 
         static::query()->updateOrInsert(
@@ -88,6 +82,6 @@ class Setting extends Model {
             ['value' => $serialized]
         );
 
-        Cache::forget(self::CACHE_PREFIX . $key);
+        Cache::forget(self::CACHE_PREFIX.$key);
     }
 }

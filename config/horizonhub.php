@@ -148,6 +148,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Max Horizon API pages (pagination loops)
+    |--------------------------------------------------------------------------
+    |
+    | Upper bound for how many paginated responses Hub reads from a Horizon
+    | HTTP endpoint. Reuse for any feature that walks Horizon pages to avoid
+    | unbounded memory or time.
+    |
+    */
+    'max_horizon_pages' => (int) env('HORIZON_HUB_MAX_HORIZON_PAGES', 40),
+
+    /*
+    |--------------------------------------------------------------------------
     | Job resolver cache TTL (seconds)
     |--------------------------------------------------------------------------
     |

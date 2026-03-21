@@ -8,7 +8,8 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
-class ProcessOrder implements ShouldQueue {
+class ProcessOrder implements ShouldQueue
+{
     use Dispatchable;
     use InteractsWithQueue;
     use Queueable;
@@ -20,7 +21,8 @@ class ProcessOrder implements ShouldQueue {
         $this->onQueue('default');
     }
 
-    public function handle(): void {
+    public function handle(): void
+    {
         usleep(random_int(0, 10_000_000));
     }
 }

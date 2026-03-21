@@ -3,16 +3,15 @@
 namespace App\Services\Metrics;
 
 use App\Models\Service;
+use Illuminate\Support\Collection;
 
-class JobsThroughputMetricsCalculator extends HorizonMetricsComputation {
-
+class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
+{
     /**
      * Get the number of jobs processed in the past minute.
-     *
-     * @param Service|null $service
-     * @return int
      */
-    public function getJobsPastMinute(?Service $service = null): int {
+    public function getJobsPastMinute(?Service $service = null): int
+    {
         if ($service !== null && $service->base_url) {
             $response = $this->horizonApi->getStats($service);
             $data = $response['data'] ?? null;
@@ -32,7 +31,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation {
             return 0;
         }
 
-        /** @var \Illuminate\Support\Collection<int, Service> $services */
+        /** @var Collection<int, Service> $services */
         $services = $this->private__getServicesForMetrics();
 
         if ($services->isEmpty()) {
@@ -52,11 +51,9 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation {
 
     /**
      * Get the number of jobs processed in the past hour.
-     *
-     * @param Service|null $service
-     * @return int
      */
-    public function getJobsPastHour(?Service $service = null): int {
+    public function getJobsPastHour(?Service $service = null): int
+    {
         if ($service !== null && $service->base_url) {
             $response = $this->horizonApi->getStats($service);
             $data = $response['data'] ?? null;
@@ -68,7 +65,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation {
             return 0;
         }
 
-        /** @var \Illuminate\Support\Collection<int, Service> $services */
+        /** @var Collection<int, Service> $services */
         $services = $this->private__getServicesForMetrics();
 
         if ($services->isEmpty()) {
@@ -96,11 +93,9 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation {
 
     /**
      * Get the number of failed jobs in the past seven days.
-     *
-     * @param Service|null $service
-     * @return int
      */
-    public function getFailedPastSevenDays(?Service $service = null): int {
+    public function getFailedPastSevenDays(?Service $service = null): int
+    {
         if ($service !== null && $service->base_url) {
             $response = $this->horizonApi->getStats($service);
             $data = $response['data'] ?? null;
@@ -112,7 +107,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation {
             return 0;
         }
 
-        /** @var \Illuminate\Support\Collection<int, Service> $services */
+        /** @var Collection<int, Service> $services */
         $services = $this->private__getServicesForMetrics();
 
         if ($services->isEmpty()) {
@@ -143,8 +138,9 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation {
      *
      * @return array{services: list<string>, jobsPastHour: list<int>}
      */
-    public function getJobsPastHourByService(): array {
-        /** @var \Illuminate\Support\Collection<int, Service> $services */
+    public function getJobsPastHourByService(): array
+    {
+        /** @var Collection<int, Service> $services */
         $services = $this->private__getServicesForMetrics(null, true, ['id', 'name', 'base_url']);
 
         if ($services->isEmpty()) {

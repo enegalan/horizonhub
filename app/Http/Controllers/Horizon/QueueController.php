@@ -9,31 +9,26 @@ use App\Support\Horizon\QueueNameNormalizer;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
-class QueueController extends Controller {
-
+class QueueController extends Controller
+{
     /**
      * The Horizon metrics service.
-     *
-     * @var HorizonMetricsService
      */
     private HorizonMetricsService $metrics;
 
     /**
      * Construct the queue controller.
-     *
-     * @param HorizonMetricsService $metrics
      */
-    public function __construct(HorizonMetricsService $metrics) {
+    public function __construct(HorizonMetricsService $metrics)
+    {
         $this->metrics = $metrics;
     }
 
     /**
      * Display the queue list.
-     *
-     * @param Request $request
-     * @return View
      */
-    public function index(Request $request): View {
+    public function index(Request $request): View
+    {
         $serviceFilter = (string) $request->query('service', '');
 
         $serviceIdFilter = $serviceFilter !== '' ? (int) $serviceFilter : null;
@@ -77,6 +72,4 @@ class QueueController extends Controller {
             'header' => 'Horizon Hub – Queues',
         ]);
     }
-
-
 }

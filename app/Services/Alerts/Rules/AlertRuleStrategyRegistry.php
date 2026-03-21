@@ -13,8 +13,8 @@ use App\Services\Alerts\Rules\Strategies\QueueBlockedAlertRuleStrategy;
 use App\Services\Alerts\Rules\Strategies\SupervisorOfflineAlertRuleStrategy;
 use App\Services\Alerts\Rules\Strategies\WorkerOfflineAlertRuleStrategy;
 
-final class AlertRuleStrategyRegistry {
-
+final class AlertRuleStrategyRegistry
+{
     /**
      * The strategies.
      *
@@ -24,23 +24,11 @@ final class AlertRuleStrategyRegistry {
 
     /**
      * The null strategy.
-     *
-     * @var NullAlertRuleStrategy
      */
     private NullAlertRuleStrategy $nullStrategy;
 
     /**
      * Construct the strategy registry.
-     *
-     * @param NullAlertRuleStrategy $nullStrategy
-     * @param JobSpecificFailureAlertRuleStrategy $jobSpecificFailure
-     * @param JobTypeFailureAlertRuleStrategy $jobTypeFailure
-     * @param FailureCountAlertRuleStrategy $failureCount
-     * @param AvgExecutionTimeAlertRuleStrategy $avgExecutionTime
-     * @param QueueBlockedAlertRuleStrategy $queueBlocked
-     * @param WorkerOfflineAlertRuleStrategy $workerOffline
-     * @param SupervisorOfflineAlertRuleStrategy $supervisorOffline
-     * @param HorizonOfflineAlertRuleStrategy $horizonOffline
      */
     public function __construct(
         NullAlertRuleStrategy $nullStrategy,
@@ -68,11 +56,9 @@ final class AlertRuleStrategyRegistry {
 
     /**
      * Resolve the strategy for the given rule type.
-     *
-     * @param string $ruleType
-     * @return AlertRuleStrategyInterface
      */
-    public function resolve(string $ruleType): AlertRuleStrategyInterface {
+    public function resolve(string $ruleType): AlertRuleStrategyInterface
+    {
         return $this->strategies[$ruleType] ?? $this->nullStrategy;
     }
 }

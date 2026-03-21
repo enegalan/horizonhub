@@ -1,13 +1,13 @@
 <?php
 
+use App\Http\Controllers\Horizon\AlertController;
 use App\Http\Controllers\Horizon\JobActionController;
 use App\Http\Controllers\Horizon\JobController;
-use App\Http\Controllers\Horizon\AlertController;
-use App\Http\Controllers\Horizon\ServiceController;
-use App\Http\Controllers\Horizon\QueueController;
 use App\Http\Controllers\Horizon\MetricsController;
-use App\Http\Controllers\Horizon\SettingsController;
 use App\Http\Controllers\Horizon\ProviderController;
+use App\Http\Controllers\Horizon\QueueController;
+use App\Http\Controllers\Horizon\ServiceController;
+use App\Http\Controllers\Horizon\SettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/horizon');
@@ -24,13 +24,13 @@ Route::prefix('horizon')->name('horizon.')->middleware(['throttle:60,1'])->group
     Route::get('/metrics/data/failure-rate-over-time', [MetricsController::class, 'dataFailureRateOverTime'])->name('metrics.data.failure-rate-over-time');
     Route::get('/metrics/data/supervisors', [MetricsController::class, 'dataSupervisors'])->name('metrics.data.supervisors');
     Route::get('/metrics/data/workload', [MetricsController::class, 'dataWorkload'])->name('metrics.data.workload');
-    
+
     // Jobs routes...
     Route::get('/jobs/failed', [JobActionController::class, 'failedList'])->name('jobs.failed');
     Route::post('/jobs/retry-batch', [JobActionController::class, 'retryBatch'])->name('jobs.retry-batch');
     Route::post('/jobs/{uuid}/retry', [JobActionController::class, 'retry'])->name('jobs.retry');
     Route::get('/jobs/{job}', [JobController::class, 'show'])->name('jobs.show');
-    
+
     // Queues
     Route::get('/queues', [QueueController::class, 'index'])->name('queues.index');
 
@@ -42,7 +42,7 @@ Route::prefix('horizon')->name('horizon.')->middleware(['throttle:60,1'])->group
     Route::put('/services/{service}', [ServiceController::class, 'update'])->name('services.update');
     Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
     Route::post('/services/{service}/test-connection', [ServiceController::class, 'testConnection'])->name('services.test-connection');
-    
+
     // Alerts routes...
     Route::get('/alerts', [AlertController::class, 'index'])->name('alerts.index');
     Route::get('/alerts/create', [AlertController::class, 'create'])->name('alerts.create');
@@ -55,7 +55,7 @@ Route::prefix('horizon')->name('horizon.')->middleware(['throttle:60,1'])->group
     Route::post('/alerts/{alert}/evaluate', [AlertController::class, 'evaluateAlert'])->name('alerts.evaluate');
     Route::post('/alerts/evaluate-all', [AlertController::class, 'evaluateAllAlerts'])->name('alerts.evaluate-all');
     Route::get('/alerts/evaluations/{evaluationId}', [AlertController::class, 'evaluationStatus'])->name('alerts.evaluations.status');
-    
+
     // Providers routes...
     Route::redirect('/providers', '/horizon/settings?tab=providers')->name('providers.index');
     Route::get('/providers/create', [ProviderController::class, 'create'])->name('providers.create');
@@ -63,7 +63,7 @@ Route::prefix('horizon')->name('horizon.')->middleware(['throttle:60,1'])->group
     Route::get('/providers/{provider}/edit', [ProviderController::class, 'edit'])->name('providers.edit');
     Route::put('/providers/{provider}', [ProviderController::class, 'update'])->name('providers.update');
     Route::delete('/providers/{provider}', [ProviderController::class, 'destroy'])->name('providers.destroy');
-    
+
     // Settings
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
 });

@@ -5,15 +5,15 @@ namespace App\Services\Metrics;
 use App\Models\Service;
 use Carbon\Carbon;
 
-class FailureMetricsCalculator extends HorizonMetricsComputation {
-
+class FailureMetricsCalculator extends HorizonMetricsComputation
+{
     /**
      * Get the failure rate from 00:00 of the previous day until now.
      *
-     * @param int|null $service_id
      * @return array{rate: float, processed: int, failed: int}
      */
-    public function getFailureRate24h(?int $service_id = null): array {
+    public function getFailureRate24h(?int $service_id = null): array
+    {
         $since = \now()->subDay()->startOfDay();
         $sinceTimestamp = $since->getTimestamp();
 
@@ -52,10 +52,10 @@ class FailureMetricsCalculator extends HorizonMetricsComputation {
     /**
      * Get the failure rate over time from 00:00 of the previous day until now.
      *
-     * @param int|null $service_id
      * @return array{xAxis: list<string>, rate: list<float|null>}
      */
-    public function getFailureRateOverTime(?int $service_id = null): array {
+    public function getFailureRateOverTime(?int $service_id = null): array
+    {
         $now = \now();
         $since = $now->copy()->subDay()->startOfDay();
         $sinceTimestamp = $since->getTimestamp();

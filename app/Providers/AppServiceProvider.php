@@ -11,31 +11,31 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
-class AppServiceProvider extends ServiceProvider {
-
+class AppServiceProvider extends ServiceProvider
+{
     /**
      * Register services.
-     *
-     * @return void
      */
-    public function register(): void {
+    public function register(): void
+    {
         $this->app->bind(EmailAlertNotifier::class, EmailNotifier::class);
         $this->app->bind(SlackAlertNotifier::class, SlackNotifier::class);
     }
 
     /**
      * Bootstrap services.
-     *
-     * @return void
      */
-    public function boot(): void {
+    public function boot(): void
+    {
         RateLimiter::for('hub-events', function (Request $request): Limit {
             $key = $request->header('X-Api-Key') ?: $request->ip();
+
             return Limit::perMinute(\config('horizonhub.events_rate_limit'))->by($key);
         });
 
         RateLimiter::for('horizon-stream', function (Request $request): Limit {
             $limit = \config('horizonhub.stream_rate_limit');
+
             return Limit::perMinute(\max(1, $limit))->by($request->user()?->id ?: $request->ip());
         });
     }

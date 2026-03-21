@@ -9,27 +9,20 @@ use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
 use App\Services\HorizonApiProxyService;
 use Carbon\Carbon;
 
-final class AvgExecutionTimeAlertRuleStrategy implements AlertRuleStrategyInterface {
-
+final class AvgExecutionTimeAlertRuleStrategy implements AlertRuleStrategyInterface
+{
     /**
      * The evaluation support.
-     *
-     * @var AlertRuleEvaluationSupport
      */
     private AlertRuleEvaluationSupport $support;
 
     /**
      * The Horizon API proxy service.
-     *
-     * @var HorizonApiProxyService
      */
     private HorizonApiProxyService $horizonApi;
 
     /**
      * Construct the strategy.
-     *
-     * @param AlertRuleEvaluationSupport $support
-     * @param HorizonApiProxyService $horizonApi
      */
     public function __construct(
         AlertRuleEvaluationSupport $support,
@@ -42,12 +35,10 @@ final class AvgExecutionTimeAlertRuleStrategy implements AlertRuleStrategyInterf
     /**
      * Evaluate the rule and return whether it triggered plus triggering job UUIDs (if applicable).
      *
-     * @param Alert $alert
-     * @param int $serviceId
-     * @param string|null $jobUuid
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array {
+    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array
+    {
         $threshold = $alert->threshold ?? [];
         $maxSeconds = (float) ($threshold['seconds'] ?? 60);
         $minutes = (int) ($threshold['minutes'] ?? 15);

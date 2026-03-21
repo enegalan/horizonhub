@@ -4,17 +4,15 @@ namespace App\Support\Horizon;
 
 use Carbon\Carbon;
 
-class JobRuntimeHelper {
-
+class JobRuntimeHelper
+{
     /**
      * Compute the runtime in seconds for a job, using either a precomputed
      * runtime value or the difference between queued_at and processed/failed_at.
      *
-     * @param float|null $runtimeSeconds
-     * @param Carbon|string|null $queuedAt
-     * @param Carbon|string|null $processedAt
-     * @param Carbon|string|null $failedAt
-     * @return float|null
+     * @param  Carbon|string|null  $queuedAt
+     * @param  Carbon|string|null  $processedAt
+     * @param  Carbon|string|null  $failedAt
      */
     public static function getRuntimeSeconds(
         ?float $runtimeSeconds,
@@ -40,16 +38,14 @@ class JobRuntimeHelper {
 
     /**
      * Human-readable runtime in seconds (e.g. "0.08 s", "1.23 s").
-     *
-     * @param float|null $seconds
-     * @return string|null
      */
-    public static function getFormattedRuntime(?float $seconds): ?string {
+    public static function getFormattedRuntime(?float $seconds): ?string
+    {
         if ($seconds === null) {
             return null;
         }
 
-        return \number_format($seconds, 2) . ' s';
+        return \number_format($seconds, 2).' s';
     }
 
     /**
@@ -59,12 +55,12 @@ class JobRuntimeHelper {
      * - For "failed" jobs, processed_at is cleared.
      * - For "processing" jobs, both processed_at and failed_at are cleared.
      *
-     * @param string|null $status
-     * @param Carbon|string|null $processedAt
-     * @param Carbon|string|null $failedAt
+     * @param  Carbon|string|null  $processedAt
+     * @param  Carbon|string|null  $failedAt
      * @return void
      */
-    public static function normalizeStatusDates(?string $status, &$processedAt, &$failedAt) {
+    public static function normalizeStatusDates(?string $status, &$processedAt, &$failedAt)
+    {
         if ($status === 'processed') {
             $failedAt = null;
         } elseif ($status === 'failed') {
@@ -76,10 +72,10 @@ class JobRuntimeHelper {
     }
 
     /**
-     * @param Carbon|string|null $value
-     * @return Carbon|null
+     * @param  Carbon|string|null  $value
      */
-    private static function private__normalizeToCarbon($value): ?Carbon {
+    private static function private__normalizeToCarbon($value): ?Carbon
+    {
         if ($value instanceof Carbon) {
             return $value;
         }

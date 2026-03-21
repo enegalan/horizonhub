@@ -9,49 +9,38 @@ use App\Services\Metrics\QueueFailureCountersCalculator;
 use App\Services\Metrics\RuntimeMetricsCalculator;
 use App\Services\Metrics\WorkloadMetricsCalculator;
 
-class HorizonMetricsService {
-
+class HorizonMetricsService
+{
     /**
      * The jobs throughput metrics calculator.
-     *
-     * @var JobsThroughputMetricsCalculator
      */
     private JobsThroughputMetricsCalculator $jobsThroughputMetrics;
 
     /**
      * The workload metrics calculator.
-     *
-     * @var WorkloadMetricsCalculator
      */
     private WorkloadMetricsCalculator $workloadMetrics;
 
     /**
      * The failure metrics calculator.
-     *
-     * @var FailureMetricsCalculator
      */
     private FailureMetricsCalculator $failureMetrics;
 
     /**
      * The runtime metrics calculator.
-     *
-     * @var RuntimeMetricsCalculator
      */
     private RuntimeMetricsCalculator $runtimeMetrics;
 
     /**
      * The queue failure counters calculator.
-     *
-     * @var QueueFailureCountersCalculator
      */
     private QueueFailureCountersCalculator $queueFailureCounters;
 
     /**
      * Construct the Horizon metrics service.
-     *
-     * @param HorizonApiProxyService $horizonApi
      */
-    public function __construct(HorizonApiProxyService $horizonApi) {
+    public function __construct(HorizonApiProxyService $horizonApi)
+    {
         $this->jobsThroughputMetrics = new JobsThroughputMetricsCalculator($horizonApi);
         $this->workloadMetrics = new WorkloadMetricsCalculator($horizonApi);
         $this->failureMetrics = new FailureMetricsCalculator($horizonApi);
@@ -61,101 +50,95 @@ class HorizonMetricsService {
 
     /**
      * Get the number of jobs processed in the past minute.
-     *
-     * @param Service|null $service
-     * @return int
      */
-    public function getJobsPastMinute(?Service $service = null): int {
+    public function getJobsPastMinute(?Service $service = null): int
+    {
         return $this->jobsThroughputMetrics->getJobsPastMinute($service);
     }
 
     /**
      * Get the number of jobs processed in the past hour.
-     *
-     * @param Service|null $service
-     * @return int
      */
-    public function getJobsPastHour(?Service $service = null): int {
+    public function getJobsPastHour(?Service $service = null): int
+    {
         return $this->jobsThroughputMetrics->getJobsPastHour($service);
     }
 
     /**
      * Get the number of jobs failed in the past seven days.
-     *
-     * @param Service|null $service
-     * @return int
      */
-    public function getFailedPastSevenDays(?Service $service = null): int {
+    public function getFailedPastSevenDays(?Service $service = null): int
+    {
         return $this->jobsThroughputMetrics->getFailedPastSevenDays($service);
     }
 
     /**
      * Get the workload for a single service.
      *
-     * @param Service $service
      * @return array<int, array{queue: string, jobs: int, processes: int|null, wait: float|null}>
      */
-    public function getWorkloadForService(Service $service): array {
+    public function getWorkloadForService(Service $service): array
+    {
         return $this->workloadMetrics->getWorkloadForService($service);
     }
 
     /**
      * Get the supervisors data for a single service.
      *
-     * @param int|null $service_id
      * @return array<int, array{name: string, status: string, processes: int, last_heartbeat: string, options: array<string, mixed>}>
      */
-    public function getSupervisorsData(?int $service_id = null): array {
+    public function getSupervisorsData(?int $service_id = null): array
+    {
         return $this->workloadMetrics->getSupervisorsData($service_id);
     }
 
     /**
      * Get the workload data for a single service.
      *
-     * @param int|null $service_id
      * @return array<int, array{service_id: int, service: string, queue: string, jobs: int, processes: int|null, wait: float|null}>
      */
-    public function getWorkloadData(?int $service_id = null): array {
+    public function getWorkloadData(?int $service_id = null): array
+    {
         return $this->workloadMetrics->getWorkloadData($service_id);
     }
 
     /**
      * Get the failure rate from 00:00 of the previous day until now.
      *
-     * @param int|null $service_id
      * @return array{rate: float, processed: int, failed: int}
      */
-    public function getFailureRate24h(?int $service_id = null): array {
+    public function getFailureRate24h(?int $service_id = null): array
+    {
         return $this->failureMetrics->getFailureRate24h($service_id);
     }
 
     /**
      * Get the failure rate over time from 00:00 of the previous day until now.
      *
-     * @param int|null $service_id
      * @return array{xAxis: list<string>, rate: list<float|null>}
      */
-    public function getFailureRateOverTime(?int $service_id = null): array {
+    public function getFailureRateOverTime(?int $service_id = null): array
+    {
         return $this->failureMetrics->getFailureRateOverTime($service_id);
     }
 
     /**
      * Get the average runtime over time from 00:00 of the previous day until now.
      *
-     * @param int|null $service_id
      * @return array{xAxis: list<string>, avgSeconds: list<float|null>}
      */
-    public function getAvgRuntimeOverTime(?int $service_id = null): array {
+    public function getAvgRuntimeOverTime(?int $service_id = null): array
+    {
         return $this->runtimeMetrics->getAvgRuntimeOverTime($service_id);
     }
 
     /**
      * Get the processed and failed jobs by queue.
      *
-     * @param int|null $service_id
      * @return array{queue: string, processed: int, failed: int}
      */
-    public function getProcessedFailedByQueue(?int $service_id = null): array {
+    public function getProcessedFailedByQueue(?int $service_id = null): array
+    {
         return $this->queueFailureCounters->getProcessedFailedByQueue($service_id);
     }
 
@@ -164,7 +147,8 @@ class HorizonMetricsService {
      *
      * @return array<int, array{service_id: int, service: string, jobs: int}>
      */
-    public function getJobsPastHourByService(): array {
+    public function getJobsPastHourByService(): array
+    {
         return $this->jobsThroughputMetrics->getJobsPastHourByService();
     }
 }

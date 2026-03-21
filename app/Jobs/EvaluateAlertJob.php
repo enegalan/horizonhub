@@ -13,7 +13,8 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
-class EvaluateAlertJob implements ShouldQueue {
+class EvaluateAlertJob implements ShouldQueue
+{
     use Batchable;
     use Dispatchable;
     use InteractsWithQueue;
@@ -29,9 +30,6 @@ class EvaluateAlertJob implements ShouldQueue {
 
     /**
      * Create a new job instance.
-     *
-     * @param int $alertId
-     * @param string $evaluationId
      */
     public function __construct(
         public int $alertId,
@@ -40,11 +38,9 @@ class EvaluateAlertJob implements ShouldQueue {
 
     /**
      * Execute the job.
-     *
-     * @param AlertEngine $engine
-     * @return void
      */
-    public function handle(AlertEngine $engine): void {
+    public function handle(AlertEngine $engine): void
+    {
         try {
             $alert = Alert::query()
                 ->with('notificationProviders')
@@ -66,6 +62,7 @@ class EvaluateAlertJob implements ShouldQueue {
                 );
                 Cache::increment($this->private__cacheKeyForEvaluatedCount(), 1);
                 Cache::increment($this->private__cacheKeyForErrorCount(), 1);
+
                 return;
             }
 
@@ -116,66 +113,58 @@ class EvaluateAlertJob implements ShouldQueue {
 
     /**
      * Get the cache key namespace.
-     *
-     * @return string
      */
-    private function private__cacheKeyNamespace(): string {
+    private function private__cacheKeyNamespace(): string
+    {
         return "horizonhub.alert_evaluation_batches.$this->evaluationId";
     }
 
     /**
      * Get the cache key for the alert result.
-     *
-     * @return string
      */
-    private function private__cacheKeyForAlertResult(): string {
-        return $this->private__cacheKeyNamespace() . '.results.' . $this->alertId;
+    private function private__cacheKeyForAlertResult(): string
+    {
+        return $this->private__cacheKeyNamespace().'.results.'.$this->alertId;
     }
 
     /**
      * Get the cache key for the evaluated count.
-     *
-     * @return string
      */
-    private function private__cacheKeyForEvaluatedCount(): string {
-        return $this->private__cacheKeyNamespace() . '.evaluated_count';
+    private function private__cacheKeyForEvaluatedCount(): string
+    {
+        return $this->private__cacheKeyNamespace().'.evaluated_count';
     }
 
     /**
      * Get the cache key for the triggered count.
-     *
-     * @return string
      */
-    private function private__cacheKeyForTriggeredCount(): string {
-        return $this->private__cacheKeyNamespace() . '.triggered_count';
+    private function private__cacheKeyForTriggeredCount(): string
+    {
+        return $this->private__cacheKeyNamespace().'.triggered_count';
     }
 
     /**
      * Get the cache key for the delivered count.
-     *
-     * @return string
      */
-    private function private__cacheKeyForDeliveredCount(): string {
-        return $this->private__cacheKeyNamespace() . '.delivered_count';
+    private function private__cacheKeyForDeliveredCount(): string
+    {
+        return $this->private__cacheKeyNamespace().'.delivered_count';
     }
 
     /**
      * Get the cache key for the error count.
-     *
-     * @return string
      */
-    private function private__cacheKeyForErrorCount(): string {
-        return $this->private__cacheKeyNamespace() . '.error_count';
+    private function private__cacheKeyForErrorCount(): string
+    {
+        return $this->private__cacheKeyNamespace().'.error_count';
     }
 
     /**
      * Cache the first error message.
-     *
-     * @param string $message
-     * @return void
      */
-    private function private__cacheFirstErrorMessage(string $message): void {
-        $key = $this->private__cacheKeyNamespace() . '.first_error_message';
+    private function private__cacheFirstErrorMessage(string $message): void
+    {
+        $key = $this->private__cacheKeyNamespace().'.first_error_message';
         if (Cache::get($key) !== null) {
             return;
         }

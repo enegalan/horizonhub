@@ -9,34 +9,27 @@ use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
 use App\Services\HorizonApiProxyService;
 use Carbon\Carbon;
 
-final class QueueBlockedAlertRuleStrategy implements AlertRuleStrategyInterface {
-
+final class QueueBlockedAlertRuleStrategy implements AlertRuleStrategyInterface
+{
     /**
      * The evaluation support.
-     *
-     * @var AlertRuleEvaluationSupport
      */
     private AlertRuleEvaluationSupport $support;
 
     /**
      * The Horizon API proxy service.
-     *
-     * @var HorizonApiProxyService
      */
 
     /**
      * Construct the strategy.
      *
-     * @param AlertRuleEvaluationSupport $support
-     * @param HorizonApiProxyService $horizonApi
+     * @param  AlertRuleEvaluationSupport  $support
+     * @param  HorizonApiProxyService  $horizonApi
      */
     private HorizonApiProxyService $horizonApi;
 
     /**
      * Construct the strategy.
-     *
-     * @param AlertRuleEvaluationSupport $support
-     * @param HorizonApiProxyService $horizonApi
      */
     public function __construct(
         AlertRuleEvaluationSupport $support,
@@ -49,12 +42,10 @@ final class QueueBlockedAlertRuleStrategy implements AlertRuleStrategyInterface 
     /**
      * Evaluate the rule and return whether it triggered plus triggering job UUIDs (if applicable).
      *
-     * @param Alert $alert
-     * @param int $serviceId
-     * @param string|null $jobUuid
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array {
+    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array
+    {
         return [
             'triggered' => $this->private__evaluateQueueBlocked($alert, $serviceId),
             'job_uuids' => [],
@@ -63,12 +54,9 @@ final class QueueBlockedAlertRuleStrategy implements AlertRuleStrategyInterface 
 
     /**
      * Evaluate the queue blocked.
-     *
-     * @param Alert $alert
-     * @param int $serviceId
-     * @return bool
      */
-    private function private__evaluateQueueBlocked(Alert $alert, int $serviceId): bool {
+    private function private__evaluateQueueBlocked(Alert $alert, int $serviceId): bool
+    {
         $threshold = $alert->threshold ?? [];
         $minutes = (int) ($threshold['minutes'] ?? 30);
 

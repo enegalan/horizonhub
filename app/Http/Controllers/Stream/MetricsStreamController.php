@@ -8,21 +8,18 @@ use App\Models\Service;
 use App\Services\HorizonMetricsService;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-class MetricsStreamController extends StreamController {
-
+class MetricsStreamController extends StreamController
+{
     /**
      * The Horizon metrics service.
-     *
-     * @var HorizonMetricsService
      */
     private HorizonMetricsService $metrics;
 
     /**
      * Create a new metrics stream controller.
-     *
-     * @param HorizonMetricsService $metrics
      */
-    public function __construct(HorizonMetricsService $metrics) {
+    public function __construct(HorizonMetricsService $metrics)
+    {
         $this->metrics = $metrics;
     }
 
@@ -42,11 +39,9 @@ class MetricsStreamController extends StreamController {
      *   - "supervisors": current supervisors snapshot.
      * - If a valid "service_id" query is present, all metrics are scoped to
      *   that service; otherwise they are aggregated across services.
-     *
-     * @param ServiceRequest $request
-     * @return StreamedResponse
      */
-    public function stream(ServiceRequest $request): StreamedResponse {
+    public function stream(ServiceRequest $request): StreamedResponse
+    {
         $serviceId = $request->getServiceId();
         $service = $serviceId !== null ? Service::find($serviceId) : null;
 

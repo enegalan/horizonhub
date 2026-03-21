@@ -216,8 +216,8 @@ export function horizonJobsPage(config) {
         refreshJobsTable(preloadedDoc) {
             if (typeof window === 'undefined' || typeof document === 'undefined') return;
             if (!preloadedDoc) return;
-            var newTable = preloadedDoc.querySelector('[data-resizable-table="horizon-job-list"]');
-            var currentTable = document.querySelector('[data-resizable-table="horizon-job-list"]');
+            var newTable = preloadedDoc.querySelector('[data-resizable-table^="horizon-job-list"]');
+            var currentTable = document.querySelector('[data-resizable-table^="horizon-job-list"]');
             if (!newTable || !currentTable) return;
             var newTbody = newTable.querySelector('tbody');
             var currentTbody = currentTable.querySelector('tbody');

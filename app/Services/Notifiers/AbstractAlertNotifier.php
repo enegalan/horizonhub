@@ -9,34 +9,26 @@ use App\Services\HorizonApiProxyService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
-abstract class AbstractAlertNotifier implements AlertNotifier {
-
+abstract class AbstractAlertNotifier implements AlertNotifier
+{
     /**
      * The Horizon API proxy service.
-     *
-     * @var HorizonApiProxyService
      */
     protected HorizonApiProxyService $horizonApi;
 
     /**
      * Construct the alert notifier.
-     *
-     * @param HorizonApiProxyService $horizonApi
      */
-    public function __construct(HorizonApiProxyService $horizonApi) {
+    public function __construct(HorizonApiProxyService $horizonApi)
+    {
         $this->horizonApi = $horizonApi;
     }
 
     /**
      * Send an alert for a single event.
-     *
-     * @param Alert $alert
-     * @param int $serviceId
-     * @param string|null $jobUuid
-     * @param array $config
-     * @return void
      */
-    public function send(Alert $alert, int $serviceId, ?string $jobUuid, array $config): void {
+    public function send(Alert $alert, int $serviceId, ?string $jobUuid, array $config): void
+    {
         $this->sendBatched($alert, [
             [
                 'service_id' => $serviceId,
@@ -49,11 +41,11 @@ abstract class AbstractAlertNotifier implements AlertNotifier {
     /**
      * Load failed job details from the Horizon API for the given service and UUIDs.
      *
-     * @param Service $service
-     * @param array<int, string> $jobUuids
+     * @param  array<int, string>  $jobUuids
      * @return Collection<string, object{payload: array, name: string|null, queue: string|null, failed_at: Carbon|null, exception: string, attempts: int|null}>
      */
-    protected function getJobs(Service $service, array $jobUuids): Collection {
+    protected function getJobs(Service $service, array $jobUuids): Collection
+    {
         $jobs = \collect();
         foreach ($jobUuids as $jobUuid) {
             if ($jobUuid === '') {
@@ -87,18 +79,18 @@ abstract class AbstractAlertNotifier implements AlertNotifier {
             ];
             $jobs->put($jobUuid, $job);
         }
+
         return $jobs;
     }
 
     /**
      * Enrich events with job details from the Horizon API.
      *
-     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events
-     * @param int $maxEvents
-     * @param int $exceptionMaxLength
+     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $events
      * @return array<int, array{service_id: int, job_uuid: string|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}>
      */
-    protected function enrichEvents(array $events, int $maxEvents, int $exceptionMaxLength): array {
+    protected function enrichEvents(array $events, int $maxEvents, int $exceptionMaxLength): array
+    {
         $eventsToEnrich = \count($events) > $maxEvents
             ? \array_slice($events, 0, $maxEvents)
             : $events;
@@ -153,12 +145,9 @@ abstract class AbstractAlertNotifier implements AlertNotifier {
 
     /**
      * Truncate exception text to the given maximum length.
-     *
-     * @param string $text
-     * @param int $maxLength
-     * @return string
      */
-    protected function truncateException(string $text, int $maxLength): string {
+    protected function truncateException(string $text, int $maxLength): string
+    {
         if (\strlen($text) <= $maxLength) {
             return $text;
         }
@@ -169,6 +158,6 @@ abstract class AbstractAlertNotifier implements AlertNotifier {
             $truncated = \substr($truncated, 0, $lastNewLine);
         }
 
-        return \rtrim($truncated) . "\n\n…";
+        return \rtrim($truncated)."\n\n…";
     }
 }

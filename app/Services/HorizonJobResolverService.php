@@ -4,9 +4,10 @@ namespace App\Services;
 
 use App\Models\Service;
 use Illuminate\Contracts\Cache\Repository as CacheContract;
+use Illuminate\Support\Collection;
 
-class HorizonJobResolverService {
-
+class HorizonJobResolverService
+{
     /**
      * The cache prefix for the job service mapping.
      *
@@ -16,15 +17,11 @@ class HorizonJobResolverService {
 
     /**
      * The Horizon API proxy service.
-     *
-     * @var HorizonApiProxyService
      */
     private HorizonApiProxyService $horizonApi;
 
     /**
      * The cache repository.
-     *
-     * @var CacheContract
      */
     private CacheContract $cache;
 
@@ -39,11 +36,11 @@ class HorizonJobResolverService {
     /**
      * Resolve the service and job data for a job UUID.
      *
-     * @param string $jobUuid
      * @return array{service: Service, job: array<string, mixed>}|null
      */
-    public function getJobAndService(string $jobUuid): ?array {
-        $cacheKey = self::CACHE_PREFIX . $jobUuid;
+    public function getJobAndService(string $jobUuid): ?array
+    {
+        $cacheKey = self::CACHE_PREFIX.$jobUuid;
         $ttl = (int) \config('horizonhub.job_resolver_cache_ttl');
 
         $serviceId = $this->cache->get($cacheKey);
@@ -61,7 +58,7 @@ class HorizonJobResolverService {
             }
         }
 
-        /** @var \Illuminate\Support\Collection<int, Service> $services */
+        /** @var Collection<int, Service> $services */
         $services = Service::query()->whereNotNull('base_url')->get();
 
         foreach ($services as $service) {
@@ -86,33 +83,31 @@ class HorizonJobResolverService {
 
     /**
      * Resolve only the service that owns the job (when job data is not needed).
-     *
-     * @param string $jobUuid
-     * @return Service|null
      */
-    public function getServiceForJob(string $jobUuid): ?Service {
+    public function getServiceForJob(string $jobUuid): ?Service
+    {
         $resolved = $this->getJobAndService($jobUuid);
+
         return $resolved !== null ? $resolved['service'] : null;
     }
 
     /**
      * Resolve only the job data for a job UUID.
      *
-     * @param string $jobUuid
      * @return array<string, mixed>|null
      */
-    public function getJobData(string $jobUuid): ?array {
+    public function getJobData(string $jobUuid): ?array
+    {
         $resolved = $this->getJobAndService($jobUuid);
+
         return $resolved !== null ? $resolved['job'] : null;
     }
 
     /**
      * Clear the cache for a job UUID.
-     *
-     * @param string $jobUuid
-     * @return void
      */
-    public function clearCache(string $jobUuid): void {
-        $this->cache->forget(self::CACHE_PREFIX . $jobUuid);
+    public function clearCache(string $jobUuid): void
+    {
+        $this->cache->forget(self::CACHE_PREFIX.$jobUuid);
     }
 }

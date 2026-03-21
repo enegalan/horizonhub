@@ -2,42 +2,33 @@
 
 namespace App\Services;
 
-use App\Services\Alerts\AlertBatchStore;
-use App\Services\Alerts\AlertNotificationDispatcher;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\Service;
+use App\Services\Alerts\AlertBatchStore;
+use App\Services\Alerts\AlertNotificationDispatcher;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 
-class AlertEngine {
-
+class AlertEngine
+{
     /**
      * The rule evaluator.
-     *
-     * @var AlertRuleEvaluator
      */
     private AlertRuleEvaluator $ruleEvaluator;
 
     /**
      * The batch store.
-     *
-     * @var AlertBatchStore
      */
     private AlertBatchStore $batchStore;
 
     /**
      * The notification dispatcher.
-     *
-     * @var AlertNotificationDispatcher
      */
     private AlertNotificationDispatcher $notificationDispatcher;
 
     /**
      * Construct the alert engine.
-     *
-     * @param AlertRuleEvaluator $ruleEvaluator
-     * @param AlertBatchStore $batchStore
-     * @param AlertNotificationDispatcher $notificationDispatcher
      */
     public function __construct(
         AlertRuleEvaluator $ruleEvaluator,
@@ -51,11 +42,10 @@ class AlertEngine {
 
     /**
      * Flush pending alerts.
-     *
-     * @return void
      */
-    public function flushPendingAlerts(): void {
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Alert> $alerts */
+    public function flushPendingAlerts(): void
+    {
+        /** @var Collection<int, Alert> $alerts */
         $alerts = Alert::where('enabled', true)
             ->with('notificationProviders')
             ->get();
@@ -79,14 +69,10 @@ class AlertEngine {
 
     /**
      * Evaluate the alert after an event.
-     *
-     * @param int $serviceId
-     * @param string $eventType
-     * @param string|null $jobUuid
-     * @return void
      */
-    public function evaluateAfterEvent(int $serviceId, string $eventType, ?string $jobUuid = null): void {
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Alert> $alerts */
+    public function evaluateAfterEvent(int $serviceId, string $eventType, ?string $jobUuid = null): void
+    {
+        /** @var Collection<int, Alert> $alerts */
         $alerts = Alert::where('enabled', true)
             ->where(function ($q) use ($serviceId) {
                 $q->whereNull('service_id')->orWhere('service_id', $serviceId);
@@ -106,13 +92,12 @@ class AlertEngine {
 
     /**
      * Evaluate the scheduled alerts.
-     *
-     * @return void
      */
-    public function evaluateScheduled(): void {
+    public function evaluateScheduled(): void
+    {
         $this->flushPendingAlerts();
 
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Alert> $alerts */
+        /** @var Collection<int, Alert> $alerts */
         $alerts = Alert::where('enabled', true)
             ->with('notificationProviders')
             ->get();
@@ -123,6 +108,7 @@ class AlertEngine {
                 $serviceIds = $alert->service_id ? [$alert->service_id] : $services->pluck('id')->all();
                 if (empty($serviceIds)) {
                     Log::warning('Horizon Hub: no services to evaluate alert (add at least one service)', ['alert_id' => $alert->id]);
+
                     continue;
                 }
                 foreach ($serviceIds as $serviceId) {
@@ -141,7 +127,6 @@ class AlertEngine {
     /**
      * Evaluate a single alert immediately (scheduled context).
      *
-     * @param Alert $alert
      * @return array{
      *     alert_id: int,
      *     pending_flushed: bool,
@@ -152,7 +137,8 @@ class AlertEngine {
      *     delivered: bool
      * }
      */
-    public function evaluateAlert(Alert $alert): array {
+    public function evaluateAlert(Alert $alert): array
+    {
         $alertId = (int) $alert->id;
         $pendingFlushed = false;
         $triggered = false;
@@ -188,6 +174,7 @@ class AlertEngine {
             $serviceIds = $alert->service_id ? [(int) $alert->service_id] : Service::all()->pluck('id')->all();
             if (empty($serviceIds)) {
                 $errorMessage ??= 'No services to evaluate alert (add at least one service).';
+
                 return [
                     'alert_id' => $alertId,
                     'pending_flushed' => $pendingFlushed,
@@ -219,7 +206,8 @@ class AlertEngine {
         try {
             $lastSentAtAfter = $this->batchStore->getLastSentAt($alert);
             $delivered = $lastSentAtAfter !== null && ($lastSentAtBefore === null || ! $lastSentAtAfter->eq($lastSentAtBefore));
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+        }
 
         return [
             'alert_id' => $alertId,
@@ -234,11 +222,9 @@ class AlertEngine {
 
     /**
      * Retry the alert log.
-     *
-     * @param AlertLog $log
-     * @return void
      */
-    public function retryAlertLog(AlertLog $log): void {
+    public function retryAlertLog(AlertLog $log): void
+    {
         $alert = $log->alert;
         if (! $alert || $log->status !== 'failed') {
             return;
@@ -265,12 +251,9 @@ class AlertEngine {
 
     /**
      * Should evaluate the alert.
-     *
-     * @param Alert $alert
-     * @param string $eventType
-     * @return bool
      */
-    private function private__shouldEvaluate(Alert $alert, string $eventType): bool {
+    private function private__shouldEvaluate(Alert $alert, string $eventType): bool
+    {
         if ($alert->rule_type === Alert::RULE_JOB_SPECIFIC_FAILURE && $eventType !== 'JobFailed') {
             return false;
         }
@@ -291,32 +274,32 @@ class AlertEngine {
         ], true)) {
             return false;
         }
+
         return true;
     }
 
     /**
      * Evaluate the rule and return triggering job UUIDs when applicable.
      *
-     * @param Alert $alert
-     * @param int $serviceId
-     * @param string|null $jobUuid
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    private function private__evaluateRuleWithJobs(Alert $alert, int $serviceId, ?string $jobUuid): array {
+    private function private__evaluateRuleWithJobs(Alert $alert, int $serviceId, ?string $jobUuid): array
+    {
         return $this->ruleEvaluator->evaluateWithTriggeringJobs($alert, $serviceId, $jobUuid);
     }
 
     /**
      * Rebuild the events from the log.
      *
-     * @param AlertLog $log
      * @description This method reconstructs alert trigger events from a stored log.
      *              It uses the current time for all reconstructed events and will
      *              generate placeholder events with null job UUIDs when the
      *              trigger_count is greater than the number of stored job UUIDs.
+     *
      * @return array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>
      */
-    private function private__rebuildEventsFromLog(AlertLog $log): array {
+    private function private__rebuildEventsFromLog(AlertLog $log): array
+    {
         $events = [];
         $serviceId = (int) $log->service_id;
         $jobUuids = \is_array($log->job_uuids) ? $log->job_uuids : [];
@@ -336,19 +319,17 @@ class AlertEngine {
                 'triggered_at' => \now()->toIso8601String(),
             ];
         }
+
         return $events;
     }
 
     /**
      * Trigger the alert.
      *
-     * @param Alert $alert
-     * @param int $serviceId
-     * @param string|null $jobUuid
-     * @param array<int, string> $triggeringJobUuids
-     * @return void
+     * @param  array<int, string>  $triggeringJobUuids
      */
-    private function private__triggerAlert(Alert $alert, int $serviceId, ?string $jobUuid, array $triggeringJobUuids = []): void {
+    private function private__triggerAlert(Alert $alert, int $serviceId, ?string $jobUuid, array $triggeringJobUuids = []): void
+    {
         $triggeredAt = \now()->toIso8601String();
         $eventsToAdd = [];
         if (\count($triggeringJobUuids) > 0) {
@@ -384,10 +365,10 @@ class AlertEngine {
     /**
      * Send the batched alert.
      *
-     * @param Alert $alert
-     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events
+     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $events
      */
-    private function private__sendBatchedAlert(Alert $alert, array $events): void {
+    private function private__sendBatchedAlert(Alert $alert, array $events): void
+    {
         $first = $events[0];
         $serviceId = (int) $first['service_id'];
         $jobUuids = \array_values(\array_filter(\array_column($events, 'job_uuid')));

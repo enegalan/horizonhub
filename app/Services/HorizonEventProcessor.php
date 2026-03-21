@@ -4,22 +4,18 @@ namespace App\Services;
 
 use App\Events\HorizonEventReceived;
 use App\Models\Service;
-use Carbon\Carbon;
 use App\Support\Horizon\QueueNameNormalizer;
+use Carbon\Carbon;
 
-class HorizonEventProcessor {
-
+class HorizonEventProcessor
+{
     /**
      * The alert engine.
-     *
-     * @var AlertEngine
      */
     private AlertEngine $alertEngine;
 
     /**
      * Construct the Horizon event processor.
-     *
-     * @param AlertEngine $alertEngine
      */
     public function __construct(
         AlertEngine $alertEngine
@@ -30,11 +26,10 @@ class HorizonEventProcessor {
     /**
      * Process an event.
      *
-     * @param Service $service
-     * @param array<string, mixed> $event
-     * @return void
+     * @param  array<string, mixed>  $event
      */
-    public function process(Service $service, array $event): void {
+    public function process(Service $service, array $event): void
+    {
         $eventType = (string) ($event['event_type'] ?? '');
 
         if ($eventType === 'SupervisorLooped') {
@@ -89,25 +84,23 @@ class HorizonEventProcessor {
     /**
      * Process a supervisor looped event.
      *
-     * @param Service $service
-     * @param array<string, mixed> $event
-     * @return void
+     * @param  array<string, mixed>  $event
      */
-    private function private__processSupervisorLooped(Service $service, array $event): void {
+    private function private__processSupervisorLooped(Service $service, array $event): void
+    {
         $service->forceFill([
             'last_seen_at' => \now(),
             'status' => 'online',
         ])->saveQuietly();
     }
 
-
     /**
      * Resolve the job UUID from the event.
      *
-     * @param array<string, mixed> $event
-     * @return string
+     * @param  array<string, mixed>  $event
      */
-    private function private__resolveJobUuid(array $event): string {
+    private function private__resolveJobUuid(array $event): string
+    {
         foreach (['job_uuid', 'job_id', 'id'] as $key) {
             if (isset($event[$key]) && (string) $event[$key] !== '') {
                 return (string) $event[$key];
@@ -116,5 +109,4 @@ class HorizonEventProcessor {
 
         return '';
     }
-
 }

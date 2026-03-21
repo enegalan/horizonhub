@@ -5,40 +5,38 @@ namespace App\Http\Controllers\Horizon;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Services\HorizonApiProxyService;
+use App\Services\HorizonJobListService;
 use App\Services\HorizonMetricsService;
-use App\Support\Horizon\JobRuntimeHelper;
-use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 
-class ServiceController extends Controller {
-
+class ServiceController extends Controller
+{
     /**
      * The Horizon metrics service.
-     *
-     * @var HorizonMetricsService
      */
     private HorizonMetricsService $metrics;
 
     /**
-     * Construct the service controller.
-     *
-     * @param HorizonMetricsService $metrics
+     * The job list service.
      */
-    public function __construct(HorizonMetricsService $metrics) {
+    private HorizonJobListService $jobList;
+
+    /**
+     * Construct the service controller.
+     */
+    public function __construct(HorizonMetricsService $metrics, HorizonJobListService $jobList)
+    {
         $this->metrics = $metrics;
+        $this->jobList = $jobList;
     }
 
     /**
      * Display the list of services and registration form.
-     *
-     * @param HorizonApiProxyService $horizonApi
-     * @return View
      */
-    public function index(HorizonApiProxyService $horizonApi): View {
+    public function index(HorizonApiProxyService $horizonApi): View
+    {
         $services = Service::query()
             ->orderBy('name')
             ->get();
@@ -52,6 +50,7 @@ class ServiceController extends Controller {
             if (! $service->base_url) {
                 $failedJobCounts[$service->id] = 0;
                 $recentJobCounts[$service->id] = 0;
+
                 continue;
             }
 
@@ -83,11 +82,9 @@ class ServiceController extends Controller {
 
     /**
      * Store a new service.
-     *
-     * @param Request $request
-     * @return RedirectResponse
      */
-    public function store(Request $request): RedirectResponse {
+    public function store(Request $request): RedirectResponse
+    {
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:services,name',
             'base_url' => 'required|url',
@@ -111,11 +108,9 @@ class ServiceController extends Controller {
 
     /**
      * Edit an existing service.
-     *
-     * @param Service $service
-     * @return View
      */
-    public function edit(Service $service): View {
+    public function edit(Service $service): View
+    {
         return \view('horizon.services.edit', [
             'service' => $service,
             'header' => 'Edit service',
@@ -124,14 +119,11 @@ class ServiceController extends Controller {
 
     /**
      * Update an existing service.
-     *
-     * @param Request $request
-     * @param Service $service
-     * @return RedirectResponse
      */
-    public function update(Request $request, Service $service): RedirectResponse {
+    public function update(Request $request, Service $service): RedirectResponse
+    {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:services,name,' . (int) $service->id,
+            'name' => 'required|string|max:255|unique:services,name,'.(int) $service->id,
             'base_url' => 'required|url',
             'public_url' => 'nullable|url',
         ]);
@@ -149,11 +141,9 @@ class ServiceController extends Controller {
 
     /**
      * Delete a service.
-     *
-     * @param Service $service
-     * @return RedirectResponse
      */
-    public function destroy(Service $service): RedirectResponse {
+    public function destroy(Service $service): RedirectResponse
+    {
         $service->delete();
 
         return redirect()
@@ -163,12 +153,9 @@ class ServiceController extends Controller {
 
     /**
      * Test connectivity with the Horizon HTTP API for the given service.
-     *
-     * @param Service $service
-     * @param HorizonApiProxyService $horizonApi
-     * @return RedirectResponse
      */
-    public function testConnection(Service $service, HorizonApiProxyService $horizonApi): RedirectResponse {
+    public function testConnection(Service $service, HorizonApiProxyService $horizonApi): RedirectResponse
+    {
         if (! $service->base_url) {
             return redirect()
                 ->route('horizon.services.index')
@@ -199,12 +186,9 @@ class ServiceController extends Controller {
 
     /**
      * Show the service dashboard.
-     *
-     * @param Service $service
-     * @param HorizonApiProxyService $horizonApi
-     * @return View
      */
-    public function show(Request $request, Service $service, HorizonApiProxyService $horizonApi): View {
+    public function show(Request $request, Service $service, HorizonApiProxyService $horizonApi): View
+    {
         $search = (string) $request->query('search', '');
 
         $jobsPastMinute = $this->metrics->getJobsPastMinute($service);
@@ -351,68 +335,21 @@ class ServiceController extends Controller {
         $workloadQueues = $workloadQueues->values();
 
         $perPage = (int) \config('horizonhub.jobs_per_page');
-        $apiLimit = $perPage > 0 ? $perPage * 3 : 50;
-        $apiLimit = \max($apiLimit, 50);
-        $apiQuery = ['starting_at' => 0, 'limit' => $apiLimit];
-
-        $jobsProcessing = \collect();
-        $jobsProcessed = \collect();
-        $jobsFailed = \collect();
-
-        $pendingResponse = $horizonApi->getPendingJobs($service, $apiQuery);
-        $this->private__appendServiceJobs($jobsProcessing, $pendingResponse, 'processing', $search);
-
-        $completedResponse = $horizonApi->getCompletedJobs($service, $apiQuery);
-        $this->private__appendServiceJobs($jobsProcessed, $completedResponse, 'processed', $search);
-
-        $failedResponse = $horizonApi->getFailedJobs($service, $apiQuery);
-        $this->private__appendServiceJobs($jobsFailed, $failedResponse, 'failed', $search);
 
         $pageProcessing = \max(1, (int) $request->query('page_processing', 1));
         $pageProcessed = \max(1, (int) $request->query('page_processed', 1));
         $pageFailed = \max(1, (int) $request->query('page_failed', 1));
 
-        $totalProcessing = $jobsProcessing->count();
-        $totalProcessed = $jobsProcessed->count();
-        $totalFailed = $jobsFailed->count();
-
-        $offsetProcessing = ($pageProcessing - 1) * $perPage;
-        $offsetProcessed = ($pageProcessed - 1) * $perPage;
-        $offsetFailed = ($pageFailed - 1) * $perPage;
-
-        $pageItemsProcessing = $perPage > 0 ? $jobsProcessing->slice($offsetProcessing, $perPage)->values() : $jobsProcessing;
-        $pageItemsProcessed = $perPage > 0 ? $jobsProcessed->slice($offsetProcessed, $perPage)->values() : $jobsProcessed;
-        $pageItemsFailed = $perPage > 0 ? $jobsFailed->slice($offsetFailed, $perPage)->values() : $jobsFailed;
-
-        $baseQuery = $request->query();
-        $path = $request->url();
-
-        $paginatorProcessing = new LengthAwarePaginator(
-            $pageItemsProcessing,
-            $totalProcessing,
-            $perPage,
+        $paginators = $this->jobList->buildServiceStatusPaginators(
+            $service,
+            $search,
             $pageProcessing,
-            ['path' => $path, 'query' => $baseQuery]
-        );
-        $paginatorProcessing->setPageName('page_processing');
-
-        $paginatorProcessed = new LengthAwarePaginator(
-            $pageItemsProcessed,
-            $totalProcessed,
-            $perPage,
             $pageProcessed,
-            ['path' => $path, 'query' => $baseQuery]
-        );
-        $paginatorProcessed->setPageName('page_processed');
-
-        $paginatorFailed = new LengthAwarePaginator(
-            $pageItemsFailed,
-            $totalFailed,
-            $perPage,
             $pageFailed,
-            ['path' => $path, 'query' => $baseQuery]
+            $perPage,
+            $request->url(),
+            $request->query(),
         );
-        $paginatorFailed->setPageName('page_failed');
 
         return \view('horizon.services.show', [
             'service' => $service,
@@ -427,9 +364,9 @@ class ServiceController extends Controller {
             'supervisorGroups' => $supervisorGroups,
             'supervisors' => $supervisors,
             'workloadQueues' => $workloadQueues,
-            'jobsProcessing' => $paginatorProcessing,
-            'jobsProcessed' => $paginatorProcessed,
-            'jobsFailed' => $paginatorFailed,
+            'jobsProcessing' => $paginators['processing'],
+            'jobsProcessed' => $paginators['processed'],
+            'jobsFailed' => $paginators['failed'],
             'filters' => [
                 'search' => $search,
             ],
@@ -438,98 +375,10 @@ class ServiceController extends Controller {
     }
 
     /**
-     * Append job items from an API response to the collection for service dashboard.
-     *
-     * @param Collection $jobs
-     * @param array $response
-     * @param string $status
-     * @param string $search
-     * @return void
-     */
-    private function private__appendServiceJobs($jobs, array $response, string $status, string $search = ''): void {
-        $data = $response['data'] ?? null;
-        if (! ($response['success'] ?? false) || ! \is_array($data)) {
-            return;
-        }
-
-        foreach ($data['jobs'] ?? [] as $job) {
-            if (! \is_array($job)) {
-                continue;
-            }
-
-            $uuid = (string) ($job['id'] ?? '');
-            if ($uuid === '') {
-                continue;
-            }
-
-            $queue = (string) ($job['queue'] ?? '');
-            $name = (string) ($job['name'] ?? '');
-            if ($search !== '') {
-                $haystack = "$queue $name $uuid";
-                if (\stripos($haystack, $search) === false) {
-                    continue;
-                }
-            }
-
-            $payload = $job['payload'] ?? [];
-            $pushedAt = $job['pushedAt'] ?? $payload['pushedAt'] ?? null;
-            $completedAt = $job['completed_at'] ?? null;
-            $failedAtRaw = $job['failed_at'] ?? null;
-            $queuedAt = $this->private__parseJobTimestamp($pushedAt);
-            $processedAt = $this->private__parseJobTimestamp($completedAt);
-            $failedAt = $this->private__parseJobTimestamp($failedAtRaw);
-            JobRuntimeHelper::normalizeStatusDates($status, $processedAt, $failedAt);
-
-            $attemptsRaw = $job['attempts'] ?? $payload['attempts'] ?? null;
-            $attempts = $attemptsRaw !== null && $attemptsRaw !== '' ? (int) $attemptsRaw : null;
-            if ($attempts !== null && $attempts < 1) {
-                $attempts = null;
-            }
-
-            $runtimeSeconds = isset($job['runtime']) && \is_numeric($job['runtime']) ? (float) $job['runtime'] : null;
-            $runtime = JobRuntimeHelper::getFormattedRuntime(
-                JobRuntimeHelper::getRuntimeSeconds($runtimeSeconds, $queuedAt, $processedAt, $failedAt)
-            );
-
-            $jobs->push((object) [
-                'id' => $uuid,
-                'job_uuid' => $uuid,
-                'uuid' => $uuid,
-                'queue' => $queue,
-                'name' => $name,
-                'status' => $status,
-                'attempts' => $attempts,
-                'queued_at' => $queuedAt,
-                'processed_at' => $processedAt,
-                'failed_at' => $failedAt,
-                'runtime' => $runtime,
-            ]);
-        }
-    }
-
-    /**
-     * Parse a job timestamp (ISO string or Unix float).
-     *
-     * @param mixed $value
-     * @return \Carbon\Carbon|null
-     */
-    private function private__parseJobTimestamp($value): ?\Carbon\Carbon {
-        if ($value === null || $value === '') {
-            return null;
-        }
-        if (\is_numeric($value)) {
-            $seconds = (float) $value;
-            return Carbon::createFromTimestampMs((int) \round($seconds * 1000));
-        }
-        return Carbon::parse($value);
-    }
-
-    /**
      * Generate a unique API key for a service.
-     *
-     * @return string
      */
-    private function private__generateApiKey(): string {
+    private function private__generateApiKey(): string
+    {
         do {
             $apiKey = \Str::random(64);
             $apiKeyHash = Service::hashApiKey($apiKey);

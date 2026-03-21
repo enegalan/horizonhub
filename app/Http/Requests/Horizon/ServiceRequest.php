@@ -5,20 +5,18 @@ namespace App\Http\Requests\Horizon;
 use App\Models\Service;
 use Illuminate\Foundation\Http\FormRequest;
 
-class ServiceRequest extends FormRequest {
+class ServiceRequest extends FormRequest
+{
     /**
      * Cached service model resolved from service_id.
-     *
-     * @var Service|null
      */
     private ?Service $resolvedService = null;
 
     /**
      * Authorize the request.
-     *
-     * @return bool
      */
-    public function authorize(): bool {
+    public function authorize(): bool
+    {
         return true;
     }
 
@@ -26,10 +24,9 @@ class ServiceRequest extends FormRequest {
      * Normalize the `service_id` query parameter:
      * - empty/non-numeric => null
      * - numeric but not existing in `services` => null
-     *
-     * @return void
      */
-    protected function prepareForValidation(): void {
+    protected function prepareForValidation(): void
+    {
         $rawServiceId = $this->input('service_id');
 
         if ($rawServiceId === null || $rawServiceId === '') {
@@ -60,7 +57,8 @@ class ServiceRequest extends FormRequest {
      *
      * @return array<string, array<int, string>>
      */
-    public function rules(): array {
+    public function rules(): array
+    {
         return [
             'service_id' => ['nullable', 'integer', 'exists:services,id'],
         ];
@@ -68,10 +66,9 @@ class ServiceRequest extends FormRequest {
 
     /**
      * Get the service ID from the request.
-     *
-     * @return int|null
      */
-    public function getServiceId(): ?int {
+    public function getServiceId(): ?int
+    {
         if ($this->validator === null) {
             $this->prepareForValidation();
         }
@@ -83,10 +80,9 @@ class ServiceRequest extends FormRequest {
 
     /**
      * Get the service model from the request.
-     *
-     * @return Service|null
      */
-    public function getService(): ?Service {
+    public function getService(): ?Service
+    {
         if ($this->validator === null) {
             $this->prepareForValidation();
         }

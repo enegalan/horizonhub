@@ -10,10 +10,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
-class HorizonEventProcessorTest extends TestCase {
+class HorizonEventProcessorTest extends TestCase
+{
     use RefreshDatabase;
 
-    public function test_job_failed_event_persists_models_and_triggers_alert_engine(): void {
+    public function test_job_failed_event_persists_models_and_triggers_alert_engine(): void
+    {
         Event::fake([HorizonEventReceived::class]);
 
         $service = Service::create([
@@ -46,7 +48,8 @@ class HorizonEventProcessorTest extends TestCase {
         Event::assertDispatched(HorizonEventReceived::class, 1);
     }
 
-    public function test_queue_paused_event_creates_or_updates_horizon_queue_state(): void {
+    public function test_queue_paused_event_creates_or_updates_horizon_queue_state(): void
+    {
         Event::fake([HorizonEventReceived::class]);
 
         $service = Service::create([
@@ -71,7 +74,8 @@ class HorizonEventProcessorTest extends TestCase {
         Event::assertDispatched(HorizonEventReceived::class, 1);
     }
 
-    public function test_queue_resumed_event_updates_horizon_queue_state_to_not_paused(): void {
+    public function test_queue_resumed_event_updates_horizon_queue_state_to_not_paused(): void
+    {
         Event::fake([HorizonEventReceived::class]);
 
         $service = Service::create([

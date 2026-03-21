@@ -13,7 +13,7 @@ return new class extends Migration
         Alert::query()
             ->whereNotNull('notification_channels')
             ->chunkById(100, function ($alerts): void {
-                /** @var \App\Models\Alert $alert */
+                /** @var Alert $alert */
                 foreach ($alerts as $alert) {
                     $rawChannels = $alert->getAttribute('notification_channels');
 

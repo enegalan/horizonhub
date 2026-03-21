@@ -2,8 +2,8 @@
 
 namespace App\Support\Horizon;
 
-class QueueNameNormalizer {
-
+class QueueNameNormalizer
+{
     /**
      * Separators between Laravel queue connection name and queue name in Horizon payloads.
      *
@@ -27,11 +27,9 @@ class QueueNameNormalizer {
      *    Longer keys are tried first (e.g. `redis_cluster` before `redis`).
      * 2. Otherwise strip one segment if the whole string matches a standard Laravel Horizon
      *    `connection.queue` / `connection:queue` pattern (letter-first connection identifier).
-     *
-     * @param string|null $queue
-     * @return string|null
      */
-    public static function normalize(?string $queue): ?string {
+    public static function normalize(?string $queue): ?string
+    {
         if ($queue === null || $queue === '') {
             return $queue;
         }
@@ -59,7 +57,8 @@ class QueueNameNormalizer {
     /**
      * @return list<string>
      */
-    private static function connectionNamesFromConfig(): array {
+    private static function connectionNamesFromConfig(): array
+    {
         $fromConfig = \array_keys(\config('queue.connections'));
         $names = [];
         foreach ($fromConfig as $name) {

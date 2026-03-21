@@ -9,7 +9,8 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use RuntimeException;
 
-class GenerateReport implements ShouldQueue {
+class GenerateReport implements ShouldQueue
+{
     use Dispatchable;
     use InteractsWithQueue;
     use Queueable;
@@ -21,8 +22,9 @@ class GenerateReport implements ShouldQueue {
         $this->onQueue('reports');
     }
 
-    public function handle(): void {
+    public function handle(): void
+    {
         usleep(random_int(0, 10_000_000));
-        throw new RuntimeException('Demo: report generation failed for ' . json_encode($this->payload));
+        throw new RuntimeException('Demo: report generation failed for '.json_encode($this->payload));
     }
 }

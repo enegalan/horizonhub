@@ -7,15 +7,13 @@ use App\Models\NotificationProvider;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
-class SettingsController extends Controller {
-
+class SettingsController extends Controller
+{
     /**
      * Display the settings page.
-     *
-     * @param Request $request
-     * @return View
      */
-    public function index(Request $request): View {
+    public function index(Request $request): View
+    {
         $tab = (string) $request->query('tab', 'appearance');
         if (! \in_array($tab, ['appearance', 'providers'], true)) {
             $tab = 'appearance';

@@ -8,33 +8,28 @@ use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
 use App\Services\HorizonApiProxyService;
 use Carbon\Carbon;
 
-final class SupervisorOfflineAlertRuleStrategy implements AlertRuleStrategyInterface {
-
+final class SupervisorOfflineAlertRuleStrategy implements AlertRuleStrategyInterface
+{
     /**
      * The Horizon API proxy service.
-     *
-     * @var HorizonApiProxyService
      */
     private HorizonApiProxyService $horizonApi;
 
     /**
      * Construct the strategy.
-     *
-     * @param HorizonApiProxyService $horizonApi
      */
-    public function __construct(HorizonApiProxyService $horizonApi) {
+    public function __construct(HorizonApiProxyService $horizonApi)
+    {
         $this->horizonApi = $horizonApi;
     }
 
     /**
      * Evaluate the rule and return whether it triggered plus triggering job UUIDs (if applicable).
      *
-     * @param Alert $alert
-     * @param int $serviceId
-     * @param string|null $jobUuid
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array {
+    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array
+    {
         return [
             'triggered' => $this->private__evaluateSupervisorOffline($alert, $serviceId),
             'job_uuids' => [],
@@ -43,12 +38,9 @@ final class SupervisorOfflineAlertRuleStrategy implements AlertRuleStrategyInter
 
     /**
      * Evaluate the supervisor offline.
-     *
-     * @param Alert $alert
-     * @param int $serviceId
-     * @return bool
      */
-    private function private__evaluateSupervisorOffline(Alert $alert, int $serviceId): bool {
+    private function private__evaluateSupervisorOffline(Alert $alert, int $serviceId): bool
+    {
         $threshold = $alert->threshold ?? [];
         $minutes = (int) ($threshold['minutes'] ?? 5);
 

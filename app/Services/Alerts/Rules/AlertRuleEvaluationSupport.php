@@ -8,8 +8,8 @@ use App\Services\HorizonApiProxyService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
-final class AlertRuleEvaluationSupport {
-
+final class AlertRuleEvaluationSupport
+{
     /**
      * The maximum number of triggering job UUIDs to collect.
      */
@@ -22,20 +22,19 @@ final class AlertRuleEvaluationSupport {
 
     /**
      * Construct the evaluation support.
-     *
-     * @param HorizonApiProxyService $horizonApi
      */
-    public function __construct(HorizonApiProxyService $horizonApi) {
+    public function __construct(HorizonApiProxyService $horizonApi)
+    {
         $this->horizonApi = $horizonApi;
     }
 
     /**
      * Resolve the job patterns from the alert threshold.
      *
-     * @param Alert $alert
      * @return array<int, string>
      */
-    public function resolveJobPatterns(Alert $alert): array {
+    public function resolveJobPatterns(Alert $alert): array
+    {
         $threshold = $alert->threshold ?? [];
         $fromThreshold = $threshold['job_patterns'] ?? [];
         if (! \is_array($fromThreshold)) {
@@ -61,10 +60,10 @@ final class AlertRuleEvaluationSupport {
     /**
      * Resolve the queue patterns from the alert threshold.
      *
-     * @param Alert $alert
      * @return list<string>
      */
-    public function resolveQueuePatterns(Alert $alert): array {
+    public function resolveQueuePatterns(Alert $alert): array
+    {
         $threshold = $alert->threshold ?? [];
         $fromThreshold = $threshold['queue_patterns'] ?? [];
         if (! \is_array($fromThreshold)) {
@@ -89,10 +88,10 @@ final class AlertRuleEvaluationSupport {
     /**
      * Check if the job matches the queue patterns.
      *
-     * @param Alert $alert
-     * @param array<string, mixed> $job
+     * @param  array<string, mixed>  $job
      */
-    public function jobMatchesQueuePatterns(Alert $alert, array $job): bool {
+    public function jobMatchesQueuePatterns(Alert $alert, array $job): bool
+    {
         $patterns = $this->resolveQueuePatterns($alert);
         if ($patterns === []) {
             return true;
@@ -111,10 +110,10 @@ final class AlertRuleEvaluationSupport {
     /**
      * Check if the failed job row matches the alert.
      *
-     * @param Alert $alert
-     * @param array<string, mixed> $job
+     * @param  array<string, mixed>  $job
      */
-    public function failedJobRowMatches(Alert $alert, array $job): bool {
+    public function failedJobRowMatches(Alert $alert, array $job): bool
+    {
         return $this->jobMatchesQueuePatterns($alert, $job)
             && $this->private__jobMatchesJobPatterns($alert, $job);
     }
@@ -122,10 +121,10 @@ final class AlertRuleEvaluationSupport {
     /**
      * Check if the completed job row matches the alert.
      *
-     * @param Alert $alert
-     * @param array<string, mixed> $job
+     * @param  array<string, mixed>  $job
      */
-    public function completedJobRowMatches(Alert $alert, array $job): bool {
+    public function completedJobRowMatches(Alert $alert, array $job): bool
+    {
         return $this->jobMatchesQueuePatterns($alert, $job)
             && $this->private__jobMatchesJobPatterns($alert, $job);
     }
@@ -133,12 +132,12 @@ final class AlertRuleEvaluationSupport {
     /**
      * Filter the failed jobs in the window.
      *
-     * @param Collection<int, mixed> $jobs
-     * @param Carbon $cutoff
-     * @param Collection<int, mixed> $jobs
+     * @param  Collection<int, mixed>  $jobs
+     * @param  Collection<int, mixed>  $jobs
      * @return Collection<int, array<string, mixed>>
      */
-    public function filterFailedJobsInWindow(Collection $jobs, Carbon $cutoff): Collection {
+    public function filterFailedJobsInWindow(Collection $jobs, Carbon $cutoff): Collection
+    {
         return $jobs->filter(function ($job) use ($cutoff) {
             if (! \is_array($job)) {
                 return false;
@@ -152,12 +151,10 @@ final class AlertRuleEvaluationSupport {
     /**
      * Find the matching failed jobs in the window.
      *
-     * @param Alert $alert
-     * @param Service $service
-     * @param Carbon $cutoff
      * @return Collection<int, array<string, mixed>>
      */
-    public function matchingFailedJobsInWindow(Alert $alert, Service $service, Carbon $cutoff): Collection {
+    public function matchingFailedJobsInWindow(Alert $alert, Service $service, Carbon $cutoff): Collection
+    {
         $response = $this->horizonApi->getFailedJobs($service, ['starting_at' => 0]);
         $data = $response['data'] ?? null;
         if (! ($response['success'] ?? false) || ! \is_array($data)) {
@@ -175,10 +172,11 @@ final class AlertRuleEvaluationSupport {
     /**
      * Collect the triggering job UUIDs.
      *
-     * @param Collection<int, array<string, mixed>> $jobs
+     * @param  Collection<int, array<string, mixed>>  $jobs
      * @return array<int, string>
      */
-    public function collectTriggeringJobUuids(Collection $jobs): array {
+    public function collectTriggeringJobUuids(Collection $jobs): array
+    {
         return $jobs->take(self::MAX_TRIGGERING_JOB_UUIDS)
             ->map(function ($job) {
                 $id = $job['id'] ?? null;
@@ -192,10 +190,9 @@ final class AlertRuleEvaluationSupport {
 
     /**
      * Parse the failed at value.
-     *
-     * @param mixed $value
      */
-    private function private__parseFailedAt(mixed $value): ?Carbon {
+    private function private__parseFailedAt(mixed $value): ?Carbon
+    {
         if ($value === null || $value === '') {
             return null;
         }
@@ -222,9 +219,10 @@ final class AlertRuleEvaluationSupport {
     /**
      * Get the job payload haystack.
      *
-     * @param array<string, mixed> $job
+     * @param  array<string, mixed>  $job
      */
-    private function private__jobPayloadHaystack(array $job): string {
+    private function private__jobPayloadHaystack(array $job): string
+    {
         $payload = $job['payload'] ?? [];
         if (! \is_array($payload)) {
             $payload = [];
@@ -238,10 +236,10 @@ final class AlertRuleEvaluationSupport {
     /**
      * Check if the job matches the job patterns.
      *
-     * @param Alert $alert
-     * @param array<string, mixed> $job
+     * @param  array<string, mixed>  $job
      */
-    private function private__jobMatchesJobPatterns(Alert $alert, array $job): bool {
+    private function private__jobMatchesJobPatterns(Alert $alert, array $job): bool
+    {
         $patterns = $this->resolveJobPatterns($alert);
         if ($patterns === []) {
             return true;

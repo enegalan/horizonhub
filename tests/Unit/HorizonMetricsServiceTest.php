@@ -2,18 +2,20 @@
 
 namespace Tests\Unit;
 
-use Carbon\Carbon;
 use App\Models\Service;
-use App\Support\Horizon\QueueNameNormalizer;
 use App\Services\HorizonApiProxyService;
 use App\Services\HorizonMetricsService;
+use App\Support\Horizon\QueueNameNormalizer;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class HorizonMetricsServiceTest extends TestCase {
+class HorizonMetricsServiceTest extends TestCase
+{
     use RefreshDatabase;
 
-    public function test_queue_name_normalizer_strips_redis_prefix(): void {
+    public function test_queue_name_normalizer_strips_redis_prefix(): void
+    {
         $this->assertNull(QueueNameNormalizer::normalize(null));
         $this->assertSame('', QueueNameNormalizer::normalize(''));
         $this->assertSame('default', QueueNameNormalizer::normalize('redis.default'));
@@ -24,23 +26,27 @@ class HorizonMetricsServiceTest extends TestCase {
         $this->assertSame('alpha', QueueNameNormalizer::normalize('alpha'));
     }
 
-    public function test_queue_name_normalizer_strips_custom_connection_prefix_via_fallback_pattern(): void {
+    public function test_queue_name_normalizer_strips_custom_connection_prefix_via_fallback_pattern(): void
+    {
         $this->assertSame('jobs', QueueNameNormalizer::normalize('acme_worker:jobs'));
         $this->assertSame('emails', QueueNameNormalizer::normalize('acme_worker.emails'));
     }
 
-    public function test_queue_name_normalizer_prefers_longest_queue_config_connection_name(): void {
+    public function test_queue_name_normalizer_prefers_longest_queue_config_connection_name(): void
+    {
         \config(['queue.connections.redis_cluster' => ['driver' => 'redis']]);
 
         $this->assertSame('default', QueueNameNormalizer::normalize('redis_cluster:default'));
         $this->assertSame('default', QueueNameNormalizer::normalize('redis:default'));
     }
 
-    public function test_queue_name_normalizer_does_not_strip_when_leading_segment_starts_with_digit(): void {
+    public function test_queue_name_normalizer_does_not_strip_when_leading_segment_starts_with_digit(): void
+    {
         $this->assertSame('1queue:jobs', QueueNameNormalizer::normalize('1queue:jobs'));
     }
 
-    public function test_get_workload_for_service_maps_nested_data_payload(): void {
+    public function test_get_workload_for_service_maps_nested_data_payload(): void
+    {
         $api = $this->createMock(HorizonApiProxyService::class);
         $api->expects($this->once())
             ->method('getWorkload')
@@ -70,7 +76,8 @@ class HorizonMetricsServiceTest extends TestCase {
         $this->assertSame(1.5, $rows[0]['wait']);
     }
 
-    public function test_get_workload_for_service_returns_empty_without_base_url(): void {
+    public function test_get_workload_for_service_returns_empty_without_base_url(): void
+    {
         $api = $this->createMock(HorizonApiProxyService::class);
         $api->expects($this->never())->method('getWorkload');
 
@@ -85,7 +92,8 @@ class HorizonMetricsServiceTest extends TestCase {
         $this->assertSame([], $metrics->getWorkloadForService($service));
     }
 
-    public function test_get_workload_for_service_returns_empty_when_api_fails(): void {
+    public function test_get_workload_for_service_returns_empty_when_api_fails(): void
+    {
         $api = $this->createMock(HorizonApiProxyService::class);
         $api->method('getWorkload')->willReturn([
             'success' => false,
@@ -104,7 +112,8 @@ class HorizonMetricsServiceTest extends TestCase {
         $this->assertSame([], $metrics->getWorkloadForService($service));
     }
 
-    public function test_get_workload_for_service_accepts_numeric_indexed_rows(): void {
+    public function test_get_workload_for_service_accepts_numeric_indexed_rows(): void
+    {
         $api = $this->createMock(HorizonApiProxyService::class);
         $api->method('getWorkload')->willReturn([
             'success' => true,
@@ -128,7 +137,8 @@ class HorizonMetricsServiceTest extends TestCase {
         $this->assertSame(4, $rows[0]['jobs']);
     }
 
-    public function test_get_failure_rate_over_time_builds_expected_buckets_and_rates(): void {
+    public function test_get_failure_rate_over_time_builds_expected_buckets_and_rates(): void
+    {
         $api = $this->createMock(HorizonApiProxyService::class);
 
         $now = Carbon::parse('2026-03-20 15:30:00');
@@ -165,6 +175,7 @@ class HorizonMetricsServiceTest extends TestCase {
                     foreach ($completedJobsBucket2 as $job) {
                         $jobs[] = $job;
                     }
+
                     return $jobs;
                 })(),
             ],
@@ -198,7 +209,8 @@ class HorizonMetricsServiceTest extends TestCase {
         Carbon::setTestNow();
     }
 
-    public function test_get_avg_runtime_over_time_builds_expected_avg_seconds(): void {
+    public function test_get_avg_runtime_over_time_builds_expected_avg_seconds(): void
+    {
         $api = $this->createMock(HorizonApiProxyService::class);
 
         $now = Carbon::parse('2026-03-20 15:30:00');
@@ -270,7 +282,8 @@ class HorizonMetricsServiceTest extends TestCase {
         Carbon::setTestNow();
     }
 
-    public function test_get_supervisors_data_aggregates_jobs_by_queue_and_processes(): void {
+    public function test_get_supervisors_data_aggregates_jobs_by_queue_and_processes(): void
+    {
         $api = $this->createMock(HorizonApiProxyService::class);
 
         $service = Service::create([

@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class NotificationProvider extends Model {
-
+class NotificationProvider extends Model
+{
     /**
      * The type of the provider.
      *
@@ -33,20 +33,18 @@ class NotificationProvider extends Model {
 
     /**
      * Get the alerts of the provider.
-     *
-     * @return BelongsToMany
      */
-    public function alerts(): BelongsToMany {
+    public function alerts(): BelongsToMany
+    {
         return $this->belongsToMany(Alert::class, 'alert_notification_provider')
             ->withTimestamps();
     }
 
     /**
      * Get the webhook URL of the provider.
-     *
-     * @return string
      */
-    public function getWebhookUrl(): string {
+    public function getWebhookUrl(): string
+    {
         if ($this->type !== self::TYPE_SLACK) {
             return '';
         }
@@ -59,7 +57,8 @@ class NotificationProvider extends Model {
      *
      * @return array<int, string>
      */
-    public function getToEmails(): array {
+    public function getToEmails(): array
+    {
         if ($this->type !== self::TYPE_EMAIL) {
             return [];
         }

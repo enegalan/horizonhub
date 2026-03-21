@@ -5,15 +5,15 @@ namespace App\Services\Metrics;
 use App\Models\Service;
 use App\Support\Horizon\QueueNameNormalizer;
 
-class WorkloadMetricsCalculator extends HorizonMetricsComputation {
-
+class WorkloadMetricsCalculator extends HorizonMetricsComputation
+{
     /**
      * Get the current workload rows for a single service.
      *
-     * @param Service $service
      * @return array<int, array{queue: string, jobs: int, processes: int|null, wait: float|null}>
      */
-    public function getWorkloadForService(Service $service): array {
+    public function getWorkloadForService(Service $service): array
+    {
         if (! $service->base_url) {
             return [];
         }
@@ -81,7 +81,6 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation {
     /**
      * Get supervisors aggregated across services (optionally filtered by service).
      *
-     * @param int|null $service_id
      * @return array<int, array{
      *     service_id: int,
      *     service: string,
@@ -91,7 +90,8 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation {
      *     processes: int|null
      * }>
      */
-    public function getSupervisorsData(?int $service_id = null): array {
+    public function getSupervisorsData(?int $service_id = null): array
+    {
         $services = $this->private__getServicesForMetrics($service_id);
         if ($services->isEmpty()) {
             return [];
@@ -167,7 +167,6 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation {
     /**
      * Get current workload aggregated across services (optionally filtered by service).
      *
-     * @param int|null $service_id
      * @return array<int, array{
      *     service_id: int,
      *     service: string,
@@ -177,7 +176,8 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation {
      *     wait: float|null
      * }>
      */
-    public function getWorkloadData(?int $service_id = null): array {
+    public function getWorkloadData(?int $service_id = null): array
+    {
         $services = $this->private__getServicesForMetrics($service_id, true);
         if ($services->isEmpty()) {
             return [];

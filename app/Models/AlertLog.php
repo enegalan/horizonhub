@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class AlertLog extends Model {
-
+class AlertLog extends Model
+{
     /**
      * The fillable attributes of the alert log.
      *
@@ -34,19 +34,17 @@ class AlertLog extends Model {
 
     /**
      * Get the alert of the alert log.
-     *
-     * @return BelongsTo
      */
-    public function alert(): BelongsTo {
+    public function alert(): BelongsTo
+    {
         return $this->belongsTo(Alert::class);
     }
 
     /**
      * Get the service of the alert log.
-     *
-     * @return BelongsTo
      */
-    public function service(): BelongsTo {
+    public function service(): BelongsTo
+    {
         return $this->belongsTo(Service::class);
     }
 }

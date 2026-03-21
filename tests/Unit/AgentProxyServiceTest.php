@@ -8,10 +8,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
-class AgentProxyServiceTest extends TestCase {
+class AgentProxyServiceTest extends TestCase
+{
     use RefreshDatabase;
 
-    public function test_retry_job_calls_horizon_api_and_returns_success(): void {
+    public function test_retry_job_calls_horizon_api_and_returns_success(): void
+    {
         $capturedRetryRequest = null;
 
         Http::fake(function ($request) use (&$capturedRetryRequest) {
@@ -50,7 +52,8 @@ class AgentProxyServiceTest extends TestCase {
         $this->assertSame('https://example.test/horizon/api/jobs/retry/job-uuid-1', $capturedRetryRequest->url());
     }
 
-    public function test_ping_returns_error_when_service_has_no_base_url(): void {
+    public function test_ping_returns_error_when_service_has_no_base_url(): void
+    {
         Http::fake();
 
         $service = Service::create([
@@ -70,7 +73,8 @@ class AgentProxyServiceTest extends TestCase {
         $this->assertStringContainsString('base_url', (string) ($result['message'] ?? ''));
     }
 
-    public function test_get_failed_jobs_surfaces_json_message_from_error_response(): void {
+    public function test_get_failed_jobs_surfaces_json_message_from_error_response(): void
+    {
         Http::fake([
             '*' => Http::response('{"message":"Rate limited"}', 429, ['Content-Type' => 'application/json']),
         ]);

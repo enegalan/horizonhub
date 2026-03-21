@@ -8,24 +8,21 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
-class ProviderController extends Controller {
-
+class ProviderController extends Controller
+{
     /**
      * Show the form to create a new provider.
-     *
-     * @return View
      */
-    public function create(): View {
-        return $this->private__formView(new NotificationProvider());
+    public function create(): View
+    {
+        return $this->private__formView(new NotificationProvider);
     }
 
     /**
      * Store a new provider.
-     *
-     * @param Request $request
-     * @return RedirectResponse
      */
-    public function store(Request $request): RedirectResponse {
+    public function store(Request $request): RedirectResponse
+    {
         $data = $this->private__validateProvider($request, null);
         NotificationProvider::create($data);
 
@@ -36,22 +33,17 @@ class ProviderController extends Controller {
 
     /**
      * Show the form to edit an existing provider.
-     *
-     * @param NotificationProvider $provider
-     * @return View
      */
-    public function edit(NotificationProvider $provider): View {
+    public function edit(NotificationProvider $provider): View
+    {
         return $this->private__formView($provider);
     }
 
     /**
      * Update an existing provider.
-     *
-     * @param Request $request
-     * @param NotificationProvider $provider
-     * @return RedirectResponse
      */
-    public function update(Request $request, NotificationProvider $provider): RedirectResponse {
+    public function update(Request $request, NotificationProvider $provider): RedirectResponse
+    {
         $data = $this->private__validateProvider($request, $provider);
         $provider->update($data);
 
@@ -62,11 +54,9 @@ class ProviderController extends Controller {
 
     /**
      * Delete a provider.
-     *
-     * @param NotificationProvider $provider
-     * @return RedirectResponse
      */
-    public function destroy(NotificationProvider $provider): RedirectResponse {
+    public function destroy(NotificationProvider $provider): RedirectResponse
+    {
         $provider->delete();
 
         return redirect()
@@ -76,11 +66,9 @@ class ProviderController extends Controller {
 
     /**
      * Build data for the provider form view.
-     *
-     * @param NotificationProvider $provider
-     * @return View
      */
-    private function private__formView(NotificationProvider $provider): View {
+    private function private__formView(NotificationProvider $provider): View
+    {
         $config = $provider->config ?? [];
         $webhookUrl = $provider->type === NotificationProvider::TYPE_SLACK ? (string) ($config['webhook_url'] ?? '') : '';
         $emailTo = '';
@@ -93,18 +81,17 @@ class ProviderController extends Controller {
             'provider' => $provider,
             'webhookUrl' => $webhookUrl,
             'emailTo' => $emailTo,
-            'header' => 'Horizon Hub – ' . ($provider->exists ? 'Edit provider' : 'New provider'),
+            'header' => 'Horizon Hub – '.($provider->exists ? 'Edit provider' : 'New provider'),
         ]);
     }
 
     /**
      * Validate and normalize provider data.
      *
-     * @param Request $request
-     * @param NotificationProvider|null $provider
      * @return array<string, mixed>
      */
-    private function private__validateProvider(Request $request, ?NotificationProvider $provider): array {
+    private function private__validateProvider(Request $request, ?NotificationProvider $provider): array
+    {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:slack,email',

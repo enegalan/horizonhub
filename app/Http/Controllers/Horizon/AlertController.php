@@ -5,28 +5,49 @@ namespace App\Http\Controllers\Horizon;
 use App\Http\Controllers\Controller;
 use App\Models\Alert;
 use App\Models\AlertLog;
-use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\AlertEngine;
-use App\Jobs\EvaluateAlertJob;
+use App\Services\Alerts\AlertChartDataService;
+use App\Services\Alerts\AlertEvaluationBatchService;
+use App\Services\Alerts\AlertUpsertService;
+use App\Support\Alerts\AlertDeliveryLogPresenter;
 use Illuminate\Contracts\View\View;
-use Illuminate\Bus\Batch;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Bus;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 
-class AlertController extends Controller {
+class AlertController extends Controller
+{
+    /**
+     * The alert upsert service.
+     */
+    private AlertUpsertService $alertUpsert;
+
+    /**
+     * The alert chart data service.
+     */
+    private AlertChartDataService $chartData;
+
+    /**
+     * The alert evaluation batch service.
+     */
+    private AlertEvaluationBatchService $evaluationBatch;
+
+    /**
+     * The constructor.
+     */
+    public function __construct(AlertUpsertService $alertUpsert, AlertChartDataService $chartData, AlertEvaluationBatchService $evaluationBatch)
+    {
+        $this->alertUpsert = $alertUpsert;
+        $this->chartData = $chartData;
+        $this->evaluationBatch = $evaluationBatch;
+    }
 
     /**
      * Display the list of alerts.
-     *
-     * @return View
      */
-    public function index(): View {
+    public function index(): View
+    {
         $alerts = Alert::with('service')
             ->withCount('alertLogs')
             ->withMax('alertLogs', 'sent_at')
@@ -41,21 +62,18 @@ class AlertController extends Controller {
 
     /**
      * Show the form to create a new alert.
-     *
-     * @return View
      */
-    public function create(): View {
-        return $this->private__formView(new Alert());
+    public function create(): View
+    {
+        return \view('horizon.alerts.form', $this->alertUpsert->buildFormViewVariables(new Alert));
     }
 
     /**
      * Store a new alert.
-     *
-     * @param Request $request
-     * @return RedirectResponse
      */
-    public function store(Request $request): RedirectResponse {
-        $data = $this->private__validateAlert($request, null);
+    public function store(Request $request): RedirectResponse
+    {
+        $data = $this->alertUpsert->validateAlert($request);
         $alert = Alert::create($data['alert']);
         $alert->notificationProviders()->sync($data['provider_ids']);
 
@@ -66,23 +84,18 @@ class AlertController extends Controller {
 
     /**
      * Show the form to edit an existing alert.
-     *
-     * @param Alert $alert
-     * @return View
      */
-    public function edit(Alert $alert): View {
-        return $this->private__formView($alert);
+    public function edit(Alert $alert): View
+    {
+        return \view('horizon.alerts.form', $this->alertUpsert->buildFormViewVariables($alert));
     }
 
     /**
      * Update an existing alert.
-     *
-     * @param Request $request
-     * @param Alert $alert
-     * @return RedirectResponse
      */
-    public function update(Request $request, Alert $alert): RedirectResponse {
-        $data = $this->private__validateAlert($request, $alert);
+    public function update(Request $request, Alert $alert): RedirectResponse
+    {
+        $data = $this->alertUpsert->validateAlert($request);
         $alert->update($data['alert']);
         $alert->notificationProviders()->sync($data['provider_ids']);
 
@@ -93,17 +106,14 @@ class AlertController extends Controller {
 
     /**
      * Show alert detail.
-     *
-     * @param Alert $alert
-     * @param Request $request
-     * @return View
      */
-    public function show(Alert $alert, Request $request): View {
+    public function show(Alert $alert, Request $request): View
+    {
         $statusFilter = (string) $request->query('status', '');
         $serviceFilter = $request->query('service_id');
-        $perPage = (int) $request->query('per_page', \config('horizonhub.alerts_per_page'));
+        $perPage = (int) $request->query('per_page', \config('horizonhub.jobs_per_page'));
         if ($perPage <= 0) {
-            $perPage = \config('horizonhub.alerts_per_page');
+            $perPage = \config('horizonhub.jobs_per_page');
         }
 
         $logsQuery = $alert->alertLogs()
@@ -120,12 +130,12 @@ class AlertController extends Controller {
         $logs = $logsQuery->paginate($perPage)->withQueryString();
 
         $chartData = [
-            'chart24h' => $this->private__buildChart($alert, 1),
-            'chart7d' => $this->private__buildChart($alert, 7),
-            'chart30d' => $this->private__buildChart($alert, 30),
+            'chart24h' => $this->chartData->buildChart($alert, 1),
+            'chart7d' => $this->chartData->buildChart($alert, 7),
+            'chart30d' => $this->chartData->buildChart($alert, 30),
         ];
 
-        $alertName = $alert->name ?: 'Alert #' . $alert->id;
+        $alertName = $alert->name ?: 'Alert #'.$alert->id;
 
         $selectedLogId = $request->query('log');
         $selectedLog = null;
@@ -153,6 +163,7 @@ class AlertController extends Controller {
             'services' => $services,
             'ruleConfig' => $ruleConfig,
             'selectedLog' => $selectedLog,
+            'initialDeliveryLogPayload' => AlertDeliveryLogPresenter::payloadFromLog($selectedLog),
             'filters' => [
                 'status' => $statusFilter,
                 'service_id' => $serviceFilter !== null ? (string) $serviceFilter : '',
@@ -164,27 +175,22 @@ class AlertController extends Controller {
 
     /**
      * Delete an alert.
-     *
-     * @param Alert $alert
-     * @return RedirectResponse
      */
-    public function destroy(Alert $alert): RedirectResponse {
-        $name = $alert->name ?: ('Alert #' . $alert->id);
+    public function destroy(Alert $alert): RedirectResponse
+    {
+        $name = $alert->name ?: ('Alert #'.$alert->id);
         $alert->delete();
 
         return redirect()
             ->route('horizon.alerts.index')
-            ->with('status', 'Alert ' . $name . ' deleted.');
+            ->with('status', 'Alert '.$name.' deleted.');
     }
 
     /**
      * Retry a failed alert log delivery.
-     *
-     * @param AlertLog $log
-     * @param AlertEngine $engine
-     * @return RedirectResponse
      */
-    public function retryLog(AlertLog $log, AlertEngine $engine): RedirectResponse {
+    public function retryLog(AlertLog $log, AlertEngine $engine): RedirectResponse
+    {
         if ($log->status === 'failed') {
             $engine->retryAlertLog($log);
         }
@@ -196,12 +202,9 @@ class AlertController extends Controller {
 
     /**
      * Evaluate a single alert immediately.
-     *
-     * @param Alert $alert
-     * @param AlertEngine $engine
-     * @return JsonResponse
      */
-    public function evaluateAlert(Alert $alert, AlertEngine $engine): JsonResponse {
+    public function evaluateAlert(Alert $alert, AlertEngine $engine): JsonResponse
+    {
         $alert->loadMissing('notificationProviders');
         $result = $engine->evaluateAlert($alert);
 
@@ -210,405 +213,19 @@ class AlertController extends Controller {
 
     /**
      * Evaluate all enabled alerts using a background batch job.
-     *
-     * @return JsonResponse
      */
-    public function evaluateAllAlerts(): JsonResponse {
-        $alertIds = Alert::query()
-            ->where('enabled', true)
-            ->pluck('id')
-            ->all();
+    public function evaluateAllAlerts(): JsonResponse
+    {
+        $payload = $this->evaluationBatch->startEvaluateAll();
 
-        $total = \count($alertIds);
-        $evaluationId = (string) Str::uuid();
-        $namespace = "horizonhub.alert_evaluation_batches.$evaluationId";
-
-        Cache::put("$namespace.status", $total > 0 ? 'running' : 'completed', now()->addMinutes(30));
-        Cache::put("$namespace.total_alerts", $total, now()->addMinutes(30));
-        Cache::put("$namespace.evaluated_count", 0, now()->addMinutes(30));
-        Cache::put("$namespace.triggered_count", 0, now()->addMinutes(30));
-        Cache::put("$namespace.delivered_count", 0, now()->addMinutes(30));
-        Cache::put("$namespace.error_count", 0, now()->addMinutes(30));
-
-        if ($total === 0) {
-            return \response()->json([
-                'evaluation_id' => $evaluationId,
-                'status' => 'completed',
-                'total_alerts' => 0,
-                'evaluated_count' => 0,
-                'triggered_count' => 0,
-                'delivered_count' => 0,
-                'error_count' => 0,
-            ]);
-        }
-
-        Cache::forget("$namespace.error_message");
-        Cache::forget("$namespace.first_error_message");
-
-        $jobs = [];
-        foreach ($alertIds as $alertId) {
-            $jobs[] = new EvaluateAlertJob((int) $alertId, $evaluationId);
-        }
-
-        Bus::batch($jobs)
-            ->name('HorizonHub: Evaluate all alerts')
-            ->then(function (Batch $batch) use ($namespace): void {
-                Cache::put("$namespace.status", 'completed', now()->addMinutes(30));
-            })
-            ->catch(function (Batch $batch, \Throwable $e) use ($namespace): void {
-                Cache::put("$namespace.status", 'failed', now()->addMinutes(30));
-                Cache::put("$namespace.error_message", $e->getMessage(), now()->addMinutes(30));
-            })
-            ->dispatch();
-
-        return \response()->json([
-            'evaluation_id' => $evaluationId,
-            'status' => 'running',
-            'total_alerts' => $total,
-        ]);
+        return \response()->json($payload);
     }
 
     /**
      * Get evaluation batch status and progress.
-     *
-     * @param string $evaluationId
-     * @return JsonResponse
      */
-    public function evaluationStatus(string $evaluationId): JsonResponse {
-        $namespace = "horizonhub.alert_evaluation_batches.$evaluationId";
-
-        $status = (string) (Cache::get($namespace . '.status') ?? 'running');
-        $totalAlerts = (int) (Cache::get("$namespace.total_alerts") ?? 0);
-        $evaluatedCount = (int) (Cache::get("$namespace.evaluated_count") ?? 0);
-        $triggeredCount = (int) (Cache::get("$namespace.triggered_count") ?? 0);
-        $deliveredCount = (int) (Cache::get("$namespace.delivered_count") ?? 0);
-        $errorCount = (int) (Cache::get("$namespace.error_count") ?? 0);
-        $firstErrorMessage = Cache::get("$namespace.first_error_message");
-        $errorMessage = Cache::get("$namespace.error_message");
-
-        return \response()->json([
-            'evaluation_id' => $evaluationId,
-            'status' => $status,
-            'total_alerts' => $totalAlerts,
-            'evaluated_count' => $evaluatedCount,
-            'triggered_count' => $triggeredCount,
-            'delivered_count' => $deliveredCount,
-            'error_count' => $errorCount,
-            'first_error_message' => \is_string($firstErrorMessage) ? $firstErrorMessage : null,
-            'error_message' => \is_string($errorMessage) ? $errorMessage : null,
-        ]);
-    }
-
-    /**
-     * Build common data for create/edit alert form.
-     *
-     * @param Alert $alert
-     * @return View
-     */
-    private function private__formView(Alert $alert): View {
-        $services = Service::orderBy('name')->get();
-        $providers = NotificationProvider::orderBy('type')->orderBy('name')->get();
-        $ruleTypes = [
-            'job_specific_failure' => 'Job failed (any)',
-            'job_type_failure' => 'Job type failed',
-            'failure_count' => 'Failure count in window',
-            'avg_execution_time' => 'Avg execution time exceeded',
-            'queue_blocked' => 'Queue blocked',
-            'worker_offline' => 'Worker offline',
-            'supervisor_offline' => 'Supervisor offline',
-            'horizon_offline' => 'Horizon offline',
-        ];
-        $header = $alert->exists ? 'Edit alert' : 'New alert';
-
-        return \view('horizon.alerts.form', [
-            'alert' => $alert,
-            'services' => $services,
-            'providers' => $providers,
-            'ruleTypes' => $ruleTypes,
-            'selectedProviderIds' => $alert->exists ? $alert->notificationProviders()->pluck('notification_providers.id')->all() : [],
-            'header' => "Horizon Hub – $header",
-        ]);
-    }
-
-    /**
-     * Maximum lines accepted for job or queue pattern textareas.
-     *
-     * @var int
-     */
-    private const ALERT_PATTERN_LINES_MAX = 20;
-
-    /**
-     * Normalize job_patterns[] / queue_patterns[] request input.
-     *
-     * @param mixed $raw
-     * @return list<string>
-     */
-    private function private__sanitizePatternArray(mixed $raw): array {
-        if (! \is_array($raw)) {
-            return [];
-        }
-        $out = [];
-        foreach ($raw as $v) {
-            if (! \is_string($v)) {
-                continue;
-            }
-            $t = \trim($v);
-            if ($t !== '') {
-                $out[] = $t;
-            }
-        }
-        $out = \array_values(\array_unique($out));
-
-        return \array_slice($out, 0, self::ALERT_PATTERN_LINES_MAX);
-    }
-
-    /**
-     * Append optional single job_type field into the pattern list when not already present.
-     *
-     * @param list<string> $patterns
-     * @return list<string>
-     */
-    private function private__mergeJobTypeIntoPatterns(array $patterns, ?string $jobType): array {
-        if ($jobType === null || $jobType === '') {
-            return $patterns;
-        }
-        $jt = \trim($jobType);
-        if ($jt === '') {
-            return $patterns;
-        }
-        if (\in_array($jt, $patterns, true)) {
-            return $patterns;
-        }
-        $merged = $patterns;
-        $merged[] = $jt;
-
-        return \array_slice(\array_values(\array_unique($merged)), 0, self::ALERT_PATTERN_LINES_MAX);
-    }
-
-    /**
-     * Summary for alerts.job_type column (list UI); DB column is varchar(255).
-     */
-    private function private__jobTypeColumnFromPatterns(array $patterns): ?string {
-        if ($patterns === []) {
-            return null;
-        }
-
-        return Str::limit(\implode(', ', $patterns), 252);
-    }
-
-    /**
-     * Validate and normalize alert data from the request.
-     *
-     * @param Request $request
-     * @param Alert|null $alert
-     * @return array{alert: array<string, mixed>, provider_ids: array<int>}
-     */
-    private function private__validateAlert(Request $request, ?Alert $alert): array {
-        $baseRules = [
-            'rule_type' => 'required|in:job_specific_failure,job_type_failure,failure_count,avg_execution_time,queue_blocked,worker_offline,supervisor_offline,horizon_offline',
-            'service_id' => 'nullable|exists:services,id',
-            'queue' => 'nullable|string|max:255',
-            'job_type' => 'nullable|string|max:255',
-            'job_patterns' => 'nullable|array|max:' . self::ALERT_PATTERN_LINES_MAX,
-            'job_patterns.*' => 'nullable|string|max:255',
-            'queue_patterns' => 'nullable|array|max:' . self::ALERT_PATTERN_LINES_MAX,
-            'queue_patterns.*' => 'nullable|string|max:255',
-            'thresholdCount' => 'nullable|integer|min:1',
-            'thresholdMinutes' => 'nullable|integer|min:1',
-            'thresholdSeconds' => 'nullable|numeric|min:0.1',
-            'provider_ids' => 'required|array|min:1',
-            'provider_ids.*' => 'integer|exists:notification_providers,id',
-            'email_interval_minutes' => 'required|integer|min:0|max:1440',
-            'enabled' => 'required|boolean',
-            'name' => 'nullable|string|max:255',
-        ];
-
-        $ruleType = (string) $request->input('rule_type', 'failure_count');
-
-        if ($ruleType === 'job_type_failure') {
-            $baseRules['thresholdMinutes'] = 'required|integer|min:1';
-            $baseRules['thresholdCount'] = 'nullable|integer|min:1';
-        }
-        if (\in_array($ruleType, ['failure_count', 'avg_execution_time', 'queue_blocked', 'worker_offline', 'supervisor_offline', 'horizon_offline'], true)) {
-            $baseRules['thresholdMinutes'] = 'required|integer|min:1';
-        }
-        if ($ruleType === 'failure_count') {
-            $baseRules['thresholdCount'] = 'required|integer|min:1';
-        }
-        if ($ruleType === 'avg_execution_time') {
-            $baseRules['thresholdSeconds'] = 'required|numeric|min:0.1';
-        }
-        if ($ruleType === 'job_specific_failure') {
-            $baseRules['thresholdCount'] = 'nullable|integer|min:1';
-            $baseRules['thresholdMinutes'] = 'nullable|integer|min:1';
-        }
-
-        $validator = Validator::make($request->all(), $baseRules);
-        $validator->after(function (\Illuminate\Validation\Validator $v) use ($ruleType, $request): void {
-            $jobPatterns = $this->private__sanitizePatternArray($request->input('job_patterns'));
-            $queuePatterns = $this->private__sanitizePatternArray($request->input('queue_patterns'));
-
-            $jobTypeInput = \trim((string) $request->input('job_type', ''));
-            $jobPatternsMerged = $this->private__mergeJobTypeIntoPatterns($jobPatterns, $jobTypeInput !== '' ? $jobTypeInput : null);
-            if ($ruleType === 'job_type_failure' && $jobPatternsMerged === []) {
-                $v->errors()->add('job_type', 'Enter a job type substring or add at least one job pattern.');
-            }
-            foreach ($jobPatternsMerged as $p) {
-                if (\strlen($p) > 255) {
-                    $v->errors()->add('job_patterns', 'Each job pattern must be at most 255 characters.');
-
-                    break;
-                }
-            }
-            foreach ($queuePatterns as $p) {
-                if (\strlen($p) > 255) {
-                    $v->errors()->add('queue_patterns', 'Each queue name must be at most 255 characters.');
-
-                    break;
-                }
-            }
-            if ($ruleType === 'job_specific_failure') {
-                $minFails = (int) $request->input('thresholdCount', 1);
-                if ($minFails < 1) {
-                    $minFails = 1;
-                }
-                $winMin = $request->input('thresholdMinutes');
-                if ($minFails > 1 && ($winMin === null || $winMin === '' || (int) $winMin < 1)) {
-                    $v->errors()->add('thresholdMinutes', 'Window minutes is required when minimum failures is greater than 1.');
-                }
-            }
-        });
-
-        $validated = $validator->validate();
-
-        $jobPatterns = $this->private__sanitizePatternArray($request->input('job_patterns'));
-        $jobPatterns = $this->private__mergeJobTypeIntoPatterns(
-            $jobPatterns,
-            ! empty($validated['job_type']) ? (string) $validated['job_type'] : null
-        );
-        $queuePatterns = $this->private__sanitizePatternArray($request->input('queue_patterns'));
-
-        $threshold = [];
-        if (\in_array($ruleType, ['failure_count', 'avg_execution_time', 'queue_blocked', 'worker_offline', 'supervisor_offline', 'horizon_offline'], true)) {
-            $threshold['minutes'] = (int) ($validated['thresholdMinutes'] ?? 0);
-        }
-        if ($ruleType === 'job_type_failure') {
-            $threshold['minutes'] = (int) ($validated['thresholdMinutes'] ?? 0);
-            $typeFailCount = (int) ($validated['thresholdCount'] ?? 1);
-            if ($typeFailCount > 1) {
-                $threshold['count'] = $typeFailCount;
-            }
-        }
-        if ($ruleType === 'failure_count') {
-            $threshold['count'] = (int) ($validated['thresholdCount'] ?? 0);
-        }
-        if ($ruleType === 'avg_execution_time') {
-            $threshold['seconds'] = (float) ($validated['thresholdSeconds'] ?? 0.0);
-        }
-        if ($ruleType === 'job_specific_failure') {
-            $jsCount = (int) ($validated['thresholdCount'] ?? 1);
-            if ($jsCount > 1) {
-                $threshold['count'] = $jsCount;
-                $threshold['minutes'] = (int) ($validated['thresholdMinutes'] ?? 15);
-            }
-        }
-
-        $patternRuleTypes = ['job_specific_failure', 'job_type_failure', 'failure_count', 'avg_execution_time'];
-        $queuePatternRuleTypes = ['job_specific_failure', 'job_type_failure', 'failure_count', 'avg_execution_time', 'queue_blocked'];
-        if (\in_array($ruleType, $patternRuleTypes, true)) {
-            if ($jobPatterns !== []) {
-                $threshold['job_patterns'] = $jobPatterns;
-            }
-        }
-        $queuePatternsMerged = $queuePatterns;
-        if ($queuePatternsMerged === [] && ! empty($validated['queue'])) {
-            $queuePatternsMerged = [(string) $validated['queue']];
-        }
-        if (\in_array($ruleType, $queuePatternRuleTypes, true)) {
-            if ($queuePatternsMerged !== []) {
-                $threshold['queue_patterns'] = $queuePatternsMerged;
-            }
-        }
-
-        $queueColumn = null;
-        if (\in_array($ruleType, $queuePatternRuleTypes, true) && $queuePatternsMerged !== []) {
-            $queueColumn = $queuePatternsMerged[0];
-        } elseif (! empty($validated['queue'])) {
-            $queueColumn = (string) $validated['queue'];
-        }
-
-        $jobTypeColumn = $this->private__jobTypeColumnFromPatterns($jobPatterns);
-
-        $alertData = [
-            'name' => $validated['name'] ?? null,
-            'service_id' => ! empty($validated['service_id']) ? (int) $validated['service_id'] : null,
-            'rule_type' => $ruleType,
-            'threshold' => $threshold,
-            'queue' => $queueColumn,
-            'job_type' => $jobTypeColumn,
-            'enabled' => (bool) $validated['enabled'],
-            'email_interval_minutes' => (int) $validated['email_interval_minutes'],
-        ];
-
-        return [
-            'alert' => $alertData,
-            'provider_ids' => $validated['provider_ids'],
-        ];
-    }
-
-    /**
-     * Build chart data for an alert for a given window.
-     *
-     * @param Alert $alert
-     * @param int $days
-     * @return array{xAxis: list<string>, sent: list<int>, failed: list<int>}
-     */
-    private function private__buildChart(Alert $alert, int $days): array {
-        $since = $days === 1
-            ? \now()->subDay()
-            : \now()->subDays($days - 1)->startOfDay();
-
-        $bucketFormatPhp = $days === 1 ? 'Y-m-d H:00' : 'Y-m-d';
-        $bucketFormatSql = $days === 1 ? '%Y-%m-%d %H:00' : '%Y-%m-%d';
-
-        $buckets = [];
-        $totalSlots = $days === 1 ? 24 : $days;
-        for ($i = 0; $i < $totalSlots; $i++) {
-            $key = $days === 1
-                ? \now()->subHours(23 - $i)->format($bucketFormatPhp)
-                : \now()->subDays($days - 1 - $i)->format($bucketFormatPhp);
-            $buckets[$key] = ['sent' => 0, 'failed' => 0];
-        }
-
-        $logs = AlertLog::where('alert_id', $alert->id)
-            ->where('sent_at', '>=', $since)
-            ->selectRaw("DATE_FORMAT(sent_at, '$bucketFormatSql') as bucket, status, COUNT(*) as total")
-            ->groupBy('bucket', 'status')
-            ->get();
-
-        foreach ($logs as $row) {
-            $key = $row->bucket;
-            if (! isset($buckets[$key])) {
-                continue;
-            }
-            if ($row->status === 'sent') {
-                $buckets[$key]['sent'] += (int) $row->total;
-            } else {
-                $buckets[$key]['failed'] += (int) $row->total;
-            }
-        }
-
-        $xAxis = [];
-        $sent = [];
-        $failed = [];
-        foreach ($buckets as $k => $v) {
-            $xAxis[] = $days === 1
-                ? \Carbon\Carbon::parse($k)->format('H:i')
-                : \Carbon\Carbon::parse($k)->format('M j');
-            $sent[] = $v['sent'];
-            $failed[] = $v['failed'];
-        }
-
-        return ['xAxis' => $xAxis, 'sent' => $sent, 'failed' => $failed];
+    public function evaluationStatus(string $evaluationId): JsonResponse
+    {
+        return \response()->json($this->evaluationBatch->getEvaluationStatus($evaluationId));
     }
 }

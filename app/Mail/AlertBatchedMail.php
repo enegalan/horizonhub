@@ -10,13 +10,12 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class AlertBatchedMail extends Mailable {
+class AlertBatchedMail extends Mailable
+{
     use Queueable, SerializesModels;
 
     /**
      * The alert.
-     *
-     * @var Alert
      */
     public Alert $alert;
 
@@ -29,33 +28,23 @@ class AlertBatchedMail extends Mailable {
 
     /**
      * The service.
-     *
-     * @var Service|null
      */
     public ?Service $service;
 
     /**
      * The mail subject.
-     *
-     * @var string
      */
     public string $mailSubject;
 
     /**
      * Total number of events (may exceed count of enrichedEvents when capped).
-     *
-     * @var int
      */
     public int $totalEventCount;
 
     /**
      * Construct the alert batched mail.
      *
-     * @param Alert $alert
-     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}> $enrichedEvents
-     * @param Service|null $service
-     * @param string $mailSubject
-     * @param int $totalEventCount
+     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}>  $enrichedEvents
      */
     public function __construct(
         Alert $alert,
@@ -73,10 +62,9 @@ class AlertBatchedMail extends Mailable {
 
     /**
      * Get the envelope for the email.
-     *
-     * @return Envelope
      */
-    public function envelope(): Envelope {
+    public function envelope(): Envelope
+    {
         return new Envelope(
             subject: $this->mailSubject
         );
@@ -84,10 +72,9 @@ class AlertBatchedMail extends Mailable {
 
     /**
      * Get the content for the email.
-     *
-     * @return Content
      */
-    public function content(): Content {
+    public function content(): Content
+    {
         return new Content(
             view: 'emails.alert-batched',
             text: 'emails.alert-batched-text'

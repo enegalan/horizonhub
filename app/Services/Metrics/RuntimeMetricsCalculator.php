@@ -5,15 +5,15 @@ namespace App\Services\Metrics;
 use App\Models\Service;
 use Carbon\Carbon;
 
-class RuntimeMetricsCalculator extends HorizonMetricsComputation {
-
+class RuntimeMetricsCalculator extends HorizonMetricsComputation
+{
     /**
      * Get the average runtime over time from 00:00 of the previous day until now.
      *
-     * @param int|null $service_id
      * @return array{xAxis: list<string>, avgSeconds: list<float|null>}
      */
-    public function getAvgRuntimeOverTime(?int $service_id = null): array {
+    public function getAvgRuntimeOverTime(?int $service_id = null): array
+    {
         $now = \now();
         $since = $now->copy()->subDay()->startOfDay();
         $sinceTimestamp = $since->getTimestamp();

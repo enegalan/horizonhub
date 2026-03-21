@@ -6,8 +6,8 @@ use App\Http\Controllers\StreamController;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-class RefreshStreamController extends StreamController {
-
+class RefreshStreamController extends StreamController
+{
     /** @var array<int, string> Allowed query param names when fetching page HTML. */
     private const ALLOWED_QUERY_KEYS = ['service', 'service_id', 'serviceFilter', 'statusFilter', 'search', 'page'];
 
@@ -21,11 +21,9 @@ class RefreshStreamController extends StreamController {
      *   fragment without issuing a new HTTP request.
      * - If no valid "path" is provided, each event only includes a timestamp,
      *   and the client is free to decide whether to perform a manual fetch.
-     *
-     * @param Request $request
-     * @return StreamedResponse
      */
-    public function stream(Request $request): StreamedResponse {
+    public function stream(Request $request): StreamedResponse
+    {
         $path = $this->private__resolvePath($request);
         $query = $this->private__resolveQuery($request);
         $pushHtml = $path !== null;
@@ -44,38 +42,36 @@ class RefreshStreamController extends StreamController {
                     $payload['html'] = $html;
                 }
             }
+
             return $payload;
         }, 'refresh');
     }
 
     /**
      * Resolve and validate path query. Returns path or null if invalid/unsafe.
-     *
-     * @param Request $request
-     * @return string|null
      */
-    private function private__resolvePath(Request $request): ?string {
+    private function private__resolvePath(Request $request): ?string
+    {
         $path = $request->query('path');
         if ($path === null || $path === '') {
             return null;
         }
-        $path = '/' . \ltrim((string) $path, '/');
+        $path = '/'.\ltrim((string) $path, '/');
         if (\str_contains($path, '..')) {
             return null;
         }
         if ($path === '/horizon' || \str_starts_with($path, '/horizon/')) {
             return $path;
         }
+
         return null;
     }
 
     /**
      * Resolve and validate query string for page fetch (whitelist keys). Returns raw query string or empty.
-     *
-     * @param Request $request
-     * @return string
      */
-    private function private__resolveQuery(Request $request): string {
+    private function private__resolveQuery(Request $request): string
+    {
         $raw = $request->query('query');
         if ($raw === null || $raw === '' || ! \is_string($raw)) {
             return '';
@@ -94,18 +90,18 @@ class RefreshStreamController extends StreamController {
             $value = $eq !== false ? \substr($segment, $eq + 1) : '';
             $pairs[] = "$key=$value";
         }
+
         return \implode('&', $pairs);
     }
 
     /**
      * Perform internal request to get full page HTML.
      *
-     * @param string $url
-     * @param array<string, string> $cookies
-     * @param array<string, mixed> $server
-     * @return string|null
+     * @param  array<string, string>  $cookies
+     * @param  array<string, mixed>  $server
      */
-    private function private__fetchPageHtml(string $url, array $cookies, array $server): ?string {
+    private function private__fetchPageHtml(string $url, array $cookies, array $server): ?string
+    {
         try {
             $subRequest = Request::create($url, 'GET', [], $cookies, [], $server);
             $subRequest->headers->set('X-Requested-With', 'XMLHttpRequest');

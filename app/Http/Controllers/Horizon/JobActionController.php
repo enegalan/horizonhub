@@ -5,48 +5,48 @@ namespace App\Http\Controllers\Horizon;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Services\HorizonApiProxyService;
+use App\Services\HorizonJobListService;
 use App\Services\HorizonJobResolverService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Symfony\Component\HttpFoundation\Response;
 
-class JobActionController extends Controller {
-
+class JobActionController extends Controller
+{
     /**
      * The Horizon API proxy service.
-     *
-     * @var HorizonApiProxyService
      */
     private HorizonApiProxyService $horizonApi;
 
     /**
-     * The job resolver.
-     *
-     * @var HorizonJobResolverService
+     * The job resolver service.
      */
     private HorizonJobResolverService $jobResolver;
 
     /**
-     * Construct the job action controller.
-     *
-     * @param HorizonApiProxyService $horizonApi
-     * @param HorizonJobResolverService $jobResolver
+     * The job list service.
+     */
+    private HorizonJobListService $jobList;
+
+    /**
+     * The constructor.
      */
     public function __construct(
         HorizonApiProxyService $horizonApi,
-        HorizonJobResolverService $jobResolver
+        HorizonJobResolverService $jobResolver,
+        HorizonJobListService $jobList,
     ) {
         $this->horizonApi = $horizonApi;
         $this->jobResolver = $jobResolver;
+        $this->jobList = $jobList;
     }
 
     /**
      * Retry a job.
-     *
-     * @param string $uuid
-     * @return JsonResponse
      */
-    public function retry(string $uuid): JsonResponse {
+    public function retry(string $uuid): JsonResponse
+    {
         $service = $this->jobResolver->getServiceForJob($uuid);
         if (! $service) {
             return \response()->json(['message' => 'Job not found'], 404);
@@ -65,11 +65,9 @@ class JobActionController extends Controller {
 
     /**
      * List failed jobs for the retry modal (with filters).
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
-    public function failedList(Request $request): JsonResponse {
+    public function failedList(Request $request): JsonResponse
+    {
         $validated = $request->validate([
             'service_id' => 'nullable|integer|exists:services,id',
             'search' => 'nullable|string|max:255',
@@ -102,7 +100,7 @@ class JobActionController extends Controller {
             $servicesQuery->where('id', (int) $serviceIdFilter);
         }
 
-        /** @var \Illuminate\Support\Collection<int, Service> $services */
+        /** @var Collection<int, Service> $services */
         $services = $servicesQuery->get();
 
         if ($services->count() === 0) {
@@ -113,118 +111,27 @@ class JobActionController extends Controller {
         $dateFrom = $validated['date_from'] ?? null;
         $dateTo = $validated['date_to'] ?? null;
 
-        $rows = [];
+        $pageData = $this->jobList->buildFailedJobsRetryModalPage(
+            $services,
+            $search,
+            $dateFrom,
+            $dateTo,
+            $page,
+            $perPage,
+        );
 
-        foreach ($services as $service) {
-            $apiQuery = [
-                'starting_at' => 0,
-                'limit' => $perPage,
-            ];
+        $returnData['data'] = $pageData['rows'];
+        $returnData['meta']['last_page'] = $pageData['last_page'];
+        $returnData['meta']['total'] = $pageData['total'];
 
-            $apiResponse = $this->horizonApi->getFailedJobs($service, $apiQuery);
-            $apiData = $apiResponse['data'] ?? null;
-
-            if (! ($apiResponse['success'] ?? false) || ! \is_array($apiData)) {
-                continue;
-            }
-
-            foreach ($apiData['jobs'] ?? [] as $job) {
-                if (! \is_array($job)) {
-                    continue;
-                }
-
-                $jobUuid = (string) $job['id'];
-                if (empty($jobUuid)) {
-                    continue;
-                }
-
-                $queue = (string) $job['queue'];
-                $name = (string) $job['name'];
-
-                if (! empty($search)) {
-                    $haystack = "$queue $name $jobUuid";
-                    if (\stripos($haystack, $search) === false) {
-                        continue;
-                    }
-                }
-
-                $failedAtRaw = $job['failed_at'] ?? null;
-                $failedAtCarbon = null;
-                if (\is_string($failedAtRaw) && !empty($failedAtRaw)) {
-                    try {
-                        $failedAtCarbon = new \Carbon\Carbon($failedAtRaw);
-                    } catch (\Throwable $e) {
-                        $failedAtCarbon = null;
-                    }
-                }
-
-                $failedAtDate = $failedAtCarbon?->toDateString() ?? null;
-                if ($dateFrom !== null && $failedAtDate !== null && $failedAtDate < $dateFrom) {
-                    continue;
-                }
-
-                if ($dateTo !== null && $failedAtDate !== null && $failedAtDate > $dateTo) {
-                    continue;
-                }
-
-                $rows[] = [
-                    'uuid' => $jobUuid,
-                    'service_id' => $service->id,
-                    'service_name' => $service->name,
-                    'queue' => $job['queue'] ?? null,
-                    'name' => $job['name'] ?? ($job['displayName'] ?? $jobUuid),
-                    'failed_at' => $failedAtCarbon,
-                    'failed_at_formatted' => $failedAtCarbon ? $failedAtCarbon->format('Y-m-d H:i') : null,
-                    'failed_at_iso' => $failedAtCarbon ? $failedAtCarbon->toIso8601String() : null,
-                ];
-            }
-        }
-
-        \usort($rows, static function (array $a, array $b): int {
-            $aTime = $a['failed_at'];
-            $bTime = $b['failed_at'];
-
-            if ($aTime === null && $bTime === null) {
-                return 0;
-            }
-            if ($aTime === null) {
-                return 1;
-            }
-            if ($bTime === null) {
-                return -1;
-            }
-
-            if ($aTime->eq($bTime)) {
-                return 0;
-            }
-
-            return $aTime->lt($bTime) ? 1 : -1;
-        });
-
-        $total = \count($rows);
-        $lastPage = $perPage > 0 ? (int) \max(1, \ceil($total / $perPage)) : 1;
-        $offset = ($page - 1) * $perPage;
-        $pageRows = $perPage > 0 ? \array_slice($rows, $offset, $perPage) : $rows;
-
-        $data = [];
-        foreach ($pageRows as $row) {
-            unset($row['failed_at']);
-            $data[] = $row;
-        }
-
-        $returnData['data'] = $data;
-        $returnData['meta']['last_page'] = $lastPage;
-        $returnData['meta']['total'] = $total;
         return \response()->json($returnData);
     }
 
     /**
      * Retry multiple jobs by ID
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
-    public function retryBatch(Request $request): JsonResponse {
+    public function retryBatch(Request $request): JsonResponse
+    {
         $validated = $request->validate([
             'jobs' => ['required', 'array'],
             'jobs.*.id' => ['required', 'string'],
@@ -247,6 +154,7 @@ class JobActionController extends Controller {
             if (! $service) {
                 $results[] = ['id' => $id, 'success' => false, 'message' => 'Service not found'];
                 $failed++;
+
                 continue;
             }
             $result = $this->horizonApi->retryJob($service, $id);

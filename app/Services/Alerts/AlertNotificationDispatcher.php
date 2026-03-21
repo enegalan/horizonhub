@@ -10,27 +10,20 @@ use App\Models\NotificationProvider;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 
-class AlertNotificationDispatcher {
-
+class AlertNotificationDispatcher
+{
     /**
      * The email notifier.
-     *
-     * @var EmailAlertNotifier
      */
     private EmailAlertNotifier $emailNotifier;
 
     /**
      * The slack notifier.
-     *
-     * @var SlackAlertNotifier
      */
     private SlackAlertNotifier $slackNotifier;
 
     /**
      * Construct the dispatcher.
-     *
-     * @param EmailAlertNotifier $emailNotifier
-     * @param SlackAlertNotifier $slackNotifier
      */
     public function __construct(
         EmailAlertNotifier $emailNotifier,
@@ -43,12 +36,10 @@ class AlertNotificationDispatcher {
     /**
      * Send alert notifications for the given log using notification providers.
      *
-     * @param Alert $alert
-     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events
-     * @param AlertLog $log
-     * @return void
+     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $events
      */
-    public function dispatch(Alert $alert, array $events, AlertLog $log): void {
+    public function dispatch(Alert $alert, array $events, AlertLog $log): void
+    {
         $providers = $alert->notificationProviders;
 
         if (! ($providers instanceof Collection) || $providers->isEmpty()) {

@@ -7,33 +7,28 @@ use App\Models\Service;
 use App\Services\Alerts\Rules\AlertRuleEvaluationSupport;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
 
-final class JobTypeFailureAlertRuleStrategy implements AlertRuleStrategyInterface {
-
+final class JobTypeFailureAlertRuleStrategy implements AlertRuleStrategyInterface
+{
     /**
      * The evaluation support.
-     *
-     * @var AlertRuleEvaluationSupport
      */
     private AlertRuleEvaluationSupport $support;
 
     /**
      * Construct the strategy.
-     *
-     * @param AlertRuleEvaluationSupport $support
      */
-    public function __construct(AlertRuleEvaluationSupport $support) {
+    public function __construct(AlertRuleEvaluationSupport $support)
+    {
         $this->support = $support;
     }
 
     /**
      * Evaluate the rule and return whether it triggered plus triggering job UUIDs (if applicable).
      *
-     * @param Alert $alert
-     * @param int $serviceId
-     * @param string|null $jobUuid
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array {
+    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array
+    {
         $patterns = $this->support->resolveJobPatterns($alert);
         if ($patterns === []) {
             return ['triggered' => false, 'job_uuids' => []];

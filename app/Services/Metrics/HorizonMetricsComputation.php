@@ -6,9 +6,10 @@ use App\Models\Service;
 use App\Services\HorizonApiProxyService;
 use App\Support\Horizon\QueueNameNormalizer;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 
-abstract class HorizonMetricsComputation {
-
+abstract class HorizonMetricsComputation
+{
     /**
      * The number of days in a week.
      *
@@ -28,24 +29,20 @@ abstract class HorizonMetricsComputation {
      */
     protected const METRICS_24H_MAX_PAGES = 20;
 
-    /**
-     * @var HorizonApiProxyService
-     */
     protected HorizonApiProxyService $horizonApi;
 
-    public function __construct(HorizonApiProxyService $horizonApi) {
+    public function __construct(HorizonApiProxyService $horizonApi)
+    {
         $this->horizonApi = $horizonApi;
     }
 
     /**
      * Fetch all completed jobs with completed_at >= $sinceTimestamp by paginating the Horizon API.
      *
-     * @param Service $service
-     * @param int $sinceTimestamp
-     * @param int $pageLimit
      * @return list<array<string, mixed>>
      */
-    protected function private__fetchCompletedJobsInWindow(Service $service, int $sinceTimestamp, int $pageLimit): array {
+    protected function private__fetchCompletedJobsInWindow(Service $service, int $sinceTimestamp, int $pageLimit): array
+    {
         return $this->private__fetchJobsInWindow(
             $sinceTimestamp,
             $pageLimit,
@@ -66,12 +63,10 @@ abstract class HorizonMetricsComputation {
     /**
      * Fetch all failed jobs with failed_at >= $sinceTimestamp by paginating the Horizon API.
      *
-     * @param Service $service
-     * @param int $sinceTimestamp
-     * @param int $pageLimit
      * @return list<array<string, mixed>>
      */
-    protected function private__fetchFailedJobsInWindow(Service $service, int $sinceTimestamp, int $pageLimit): array {
+    protected function private__fetchFailedJobsInWindow(Service $service, int $sinceTimestamp, int $pageLimit): array
+    {
         return $this->private__fetchJobsInWindow(
             $sinceTimestamp,
             $pageLimit,
@@ -92,10 +87,8 @@ abstract class HorizonMetricsComputation {
     /**
      * Fetch jobs in a time window by paginating Horizon until we cross the lower bound.
      *
-     * @param int $sinceTimestamp
-     * @param int $pageLimit
-     * @param callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>} $pageFetcher
-     * @param callable(array<string, mixed>): ?int $jobTimestampExtractor
+     * @param  callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>}  $pageFetcher
+     * @param  callable(array<string, mixed>): ?int  $jobTimestampExtractor
      * @return list<array<string, mixed>>
      */
     protected function private__fetchJobsInWindow(
@@ -153,12 +146,11 @@ abstract class HorizonMetricsComputation {
     /**
      * Get services that can provide Horizon metrics.
      *
-     * @param int|null $service_id
-     * @param bool $orderByName
-     * @param array<int, string> $selectColumns
-     * @return \Illuminate\Database\Eloquent\Collection<int, Service>
+     * @param  array<int, string>  $selectColumns
+     * @return Collection<int, Service>
      */
-    protected function private__getServicesForMetrics(?int $service_id = null, bool $orderByName = false, array $selectColumns = []): \Illuminate\Database\Eloquent\Collection {
+    protected function private__getServicesForMetrics(?int $service_id = null, bool $orderByName = false, array $selectColumns = []): Collection
+    {
         $servicesQuery = Service::query()->whereNotNull('base_url');
 
         if ($service_id !== null) {
@@ -179,14 +171,11 @@ abstract class HorizonMetricsComputation {
     /**
      * Initialize hourly buckets between $since and $endHour (inclusive).
      *
-     * @param Carbon $since
-     * @param Carbon $endHour
-     * @param string $bucketFormat
-     * @param int $maxBuckets
-     * @param callable(): array $bucketInitializer
+     * @param  callable(): array  $bucketInitializer
      * @return array<string, array<string, mixed>>
      */
-    protected function private__initHourlyBuckets(Carbon $since, Carbon $endHour, string $bucketFormat, int $maxBuckets, callable $bucketInitializer): array {
+    protected function private__initHourlyBuckets(Carbon $since, Carbon $endHour, string $bucketFormat, int $maxBuckets, callable $bucketInitializer): array
+    {
         $buckets = [];
         $bucketStart = $since->copy();
 
@@ -202,10 +191,11 @@ abstract class HorizonMetricsComputation {
     /**
      * Extract a normalized queue list from supervisor options.
      *
-     * @param array<string, mixed> $options
+     * @param  array<string, mixed>  $options
      * @return array<int, string>
      */
-    protected function private__extractQueuesFromSupervisorOptions(array $options): array {
+    protected function private__extractQueuesFromSupervisorOptions(array $options): array
+    {
         $queues = $options['queue'] ?? null;
         if (! \is_array($queues)) {
             if (empty($queues)) {
@@ -213,6 +203,7 @@ abstract class HorizonMetricsComputation {
             }
 
             $queue = QueueNameNormalizer::normalize((string) $queues);
+
             return $queue !== null && $queue !== '' ? [$queue] : [];
         }
 
@@ -232,11 +223,11 @@ abstract class HorizonMetricsComputation {
     /**
      * Sum jobs by queue names using a precomputed lookup table.
      *
-     * @param array<int, string> $queueNames
-     * @param array<string, int> $jobsByQueue
-     * @return int
+     * @param  array<int, string>  $queueNames
+     * @param  array<string, int>  $jobsByQueue
      */
-    protected function private__sumJobsByQueueNames(array $queueNames, array $jobsByQueue): int {
+    protected function private__sumJobsByQueueNames(array $queueNames, array $jobsByQueue): int
+    {
         $jobs = 0;
 
         foreach ($queueNames as $q) {
@@ -249,13 +240,10 @@ abstract class HorizonMetricsComputation {
     /**
      * Aggregate queue counters from Horizon jobs payload.
      *
-     * @param mixed $jobsPayload
-     * @param int $sinceTimestamp
-     * @param string $timestampField
-     * @param array<string, int> $queueCounts
-     * @return void
+     * @param  array<string, int>  $queueCounts
      */
-    protected function private__aggregateQueueCountsFromJobsPayload(mixed $jobsPayload, int $sinceTimestamp, string $timestampField, array &$queueCounts): void {
+    protected function private__aggregateQueueCountsFromJobsPayload(mixed $jobsPayload, int $sinceTimestamp, string $timestampField, array &$queueCounts): void
+    {
         foreach ($jobsPayload as $job) {
             if (! \is_array($job)) {
                 continue;
@@ -283,10 +271,10 @@ abstract class HorizonMetricsComputation {
     /**
      * Get queue rows (name + 0 jobs) from masters/supervisors when workload API returns nothing.
      *
-     * @param Service $service
      * @return array<int, array{queue: string, jobs: int, processes: int|null, wait: float|null}>
      */
-    protected function private__getWorkloadFallbackFromMasters(Service $service): array {
+    protected function private__getWorkloadFallbackFromMasters(Service $service): array
+    {
         $mastersResponse = $this->horizonApi->getMasters($service);
         $mastersData = $mastersResponse['data'] ?? null;
         if (! ($mastersResponse['success'] ?? false) || ! \is_array($mastersData)) {

@@ -8,7 +8,8 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
-class SendNotification implements ShouldQueue {
+class SendNotification implements ShouldQueue
+{
     use Dispatchable;
     use InteractsWithQueue;
     use Queueable;
@@ -20,7 +21,8 @@ class SendNotification implements ShouldQueue {
         $this->onQueue('notifications');
     }
 
-    public function handle(): void {
+    public function handle(): void
+    {
         usleep(random_int(0, 10_000_000));
     }
 }

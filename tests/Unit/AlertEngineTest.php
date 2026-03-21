@@ -11,10 +11,12 @@ use App\Services\Alerts\AlertNotificationDispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class AlertEngineTest extends TestCase {
+class AlertEngineTest extends TestCase
+{
     use RefreshDatabase;
 
-    public function test_evaluate_after_event_does_not_call_evaluator_for_scheduled_only_rules(): void {
+    public function test_evaluate_after_event_does_not_call_evaluator_for_scheduled_only_rules(): void
+    {
         $evaluator = $this->createMock(AlertRuleEvaluator::class);
         $evaluator->expects($this->never())->method('evaluateWithTriggeringJobs');
 
@@ -46,7 +48,8 @@ class AlertEngineTest extends TestCase {
         $engine->evaluateAfterEvent((int) $service->id, 'JobFailed', 'job-uuid');
     }
 
-    public function test_evaluate_after_event_calls_evaluator_for_job_failed_rule(): void {
+    public function test_evaluate_after_event_calls_evaluator_for_job_failed_rule(): void
+    {
         $evaluator = $this->createMock(AlertRuleEvaluator::class);
         $evaluator->expects($this->once())
             ->method('evaluateWithTriggeringJobs')

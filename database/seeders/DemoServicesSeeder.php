@@ -5,7 +5,8 @@ namespace Database\Seeders;
 use App\Models\Service;
 use Illuminate\Database\Seeder;
 
-class DemoServicesSeeder extends Seeder {
+class DemoServicesSeeder extends Seeder
+{
     private const DEMO_SERVICES = [
         [
             'name' => 'Demo Orders',
@@ -27,7 +28,8 @@ class DemoServicesSeeder extends Seeder {
         ],
     ];
 
-    public function run(): void {
+    public function run(): void
+    {
         foreach (self::DEMO_SERVICES as $row) {
             Service::firstOrCreate(
                 ['name' => $row['name']],

@@ -5,12 +5,14 @@ namespace App\Console\Commands;
 use App\Models\Service;
 use Illuminate\Console\Command;
 
-class MarkStaleServicesOfflineCommand extends Command {
+class MarkStaleServicesOfflineCommand extends Command
+{
     protected $signature = 'horizonhub:mark-stale-services-offline';
 
     protected $description = 'Mark services stand-by/offline and remove dead supervisors by last_seen_at thresholds';
 
-    public function handle(): int {
+    public function handle(): int
+    {
         $stale_minutes = \config('horizonhub.stale_minutes');
         $dead_minutes = \config('horizonhub.dead_service_minutes');
         $stale_threshold = \now()->subMinutes($stale_minutes);

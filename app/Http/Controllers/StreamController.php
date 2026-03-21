@@ -4,14 +4,15 @@ namespace App\Http\Controllers;
 
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-abstract class StreamController extends Controller {
-
+abstract class StreamController extends Controller
+{
     /**
      * Get the stream headers.
      *
      * @return array<string, string>
      */
-    protected function streamHeaders(): array {
+    protected function streamHeaders(): array
+    {
         return [
             'Content-Type' => 'text/event-stream',
             'Cache-Control' => 'no-cache, no-store, must-revalidate',
@@ -22,23 +23,23 @@ abstract class StreamController extends Controller {
 
     /**
      * Get the interval for the stream.
-     *
-     * @return int
      */
-    protected function getInterval(): int {
+    protected function getInterval(): int
+    {
         $interval = (int) \config('horizonhub.hot_reload_interval');
+
         return $interval >= 1 ? $interval : 1;
     }
 
     /**
      * Run a streaming SSE loop for the given event type.
      *
-     * @param callable(): array<string, mixed> $payloadCallback
-     * @param string $eventType
-     * @return StreamedResponse
+     * @param  callable(): array<string, mixed>  $payloadCallback
      */
-    protected function runStream(callable $payloadCallback, string $eventType): StreamedResponse {
+    protected function runStream(callable $payloadCallback, string $eventType): StreamedResponse
+    {
         $interval = $this->getInterval();
+
         return \response()->stream(function () use ($interval, $payloadCallback, $eventType): void {
             while (true) {
                 if (\connection_aborted()) {
