@@ -11,6 +11,5 @@ $extraAttrs ??= '';
     role="button"
     tabindex="-1"
     aria-label="Close"
-    @if(!empty($wireClick)) wire:click="{{ $wireClick }}" @endif
     {!! $extraAttrs !!}
 ></div>

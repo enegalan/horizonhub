@@ -56,9 +56,6 @@
                 <x-confirm-modal
                     title="Retry jobs"
                     size="xl"
-                    cancelText="Cancel"
-                    :cancelAction="null"
-                    :backdropAction="null"
                     x-data
                     x-show="showRetryModal"
                     x-on:close-modal.window="closeRetryModal()"

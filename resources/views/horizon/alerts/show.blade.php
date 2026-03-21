@@ -246,9 +246,6 @@
                     <x-confirm-modal
                         title="Delivery log"
                         size="lg"
-                        cancelText="Close"
-                        :cancelAction="null"
-                        :backdropAction="null"
                         x-data
                         x-show="showDeliveryLogModal"
                         x-on:close-modal.window="closeDeliveryLogModal()"
