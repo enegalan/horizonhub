@@ -24,6 +24,53 @@ function initMetricsCharts(data) {
 
     var c = getChartColors();
 
+    var jobsVolumeEl = document.getElementById('jobs-volume-last-24h-chart');
+    if (jobsVolumeEl && data.jobsVolumeLast24h && data.jobsVolumeLast24h.xAxis && data.jobsVolumeLast24h.xAxis.length) {
+        applyChartOptions(jobsVolumeEl, {
+            animation: false,
+            color: [c.processed, c.failed],
+            tooltip: { trigger: 'axis' },
+            legend: {
+                data: ['Completed', 'Failed'],
+                bottom: 0,
+                textStyle: { color: c.axis, fontSize: 10 }
+            },
+            grid: { left: 48, right: 24, top: 16, bottom: 36 },
+            xAxis: {
+                type: 'category',
+                data: data.jobsVolumeLast24h.xAxis,
+                axisLine: { lineStyle: { color: c.axis } },
+                axisLabel: { color: c.axis, fontSize: 10 }
+            },
+            yAxis: {
+                type: 'value',
+                name: 'Jobs',
+                minInterval: 1,
+                axisLine: { show: false },
+                splitLine: { lineStyle: { color: c.axis, opacity: 0.3 } },
+                axisLabel: { color: c.axis, fontSize: 10 }
+            },
+            series: [
+                {
+                    type: 'line',
+                    name: 'Completed',
+                    data: data.jobsVolumeLast24h.completed,
+                    smooth: false,
+                    showSymbol: false,
+                    lineStyle: { width: 2 }
+                },
+                {
+                    type: 'line',
+                    name: 'Failed',
+                    data: data.jobsVolumeLast24h.failed,
+                    smooth: false,
+                    showSymbol: false,
+                    lineStyle: { width: 2 }
+                }
+            ]
+        });
+    }
+
     var processedFailedEl = document.getElementById('processed-failed-chart');
     if (processedFailedEl && data.jobsPastHourByService && data.jobsPastHourByService.services && data.jobsPastHourByService.services.length) {
         applyChartOptions(processedFailedEl, {

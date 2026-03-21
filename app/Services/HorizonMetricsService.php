@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Service;
 use App\Services\Metrics\FailureMetricsCalculator;
 use App\Services\Metrics\JobsThroughputMetricsCalculator;
+use App\Services\Metrics\JobsVolumeLast24hCalculator;
 use App\Services\Metrics\QueueFailureCountersCalculator;
 use App\Services\Metrics\RuntimeMetricsCalculator;
 use App\Services\Metrics\WorkloadMetricsCalculator;
@@ -37,6 +38,11 @@ class HorizonMetricsService
     private QueueFailureCountersCalculator $queueFailureCounters;
 
     /**
+     * The jobs volume (last 24h) calculator.
+     */
+    private JobsVolumeLast24hCalculator $jobsVolumeLast24h;
+
+    /**
      * Construct the Horizon metrics service.
      */
     public function __construct(HorizonApiProxyService $horizonApi)
@@ -46,6 +52,7 @@ class HorizonMetricsService
         $this->failureMetrics = new FailureMetricsCalculator($horizonApi);
         $this->runtimeMetrics = new RuntimeMetricsCalculator($horizonApi);
         $this->queueFailureCounters = new QueueFailureCountersCalculator($horizonApi);
+        $this->jobsVolumeLast24h = new JobsVolumeLast24hCalculator($horizonApi);
     }
 
     /**
@@ -155,6 +162,16 @@ class HorizonMetricsService
     public function getFailureRateOverTime(array $serviceScope = []): array
     {
         return $this->failureMetrics->getFailureRateOverTime($serviceScope);
+    }
+
+    /**
+     * Get hourly completed and failed job counts over the rolling last 24 hours.
+     *
+     * @return array{xAxis: list<string>, completed: list<int>, failed: list<int>}
+     */
+    public function getJobsVolumeLast24h(array $serviceScope = []): array
+    {
+        return $this->jobsVolumeLast24h->getJobsVolumeLast24h($serviceScope);
     }
 
     /**

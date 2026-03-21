@@ -34,6 +34,8 @@ class MetricsStreamController extends StreamController
      *     runtime chart.
      *   - "failureRateOverTime": time-series data used to draw the failure
      *     rate chart.
+     *   - "jobsVolumeLast24h": hourly completed/failed counts for the jobs
+     *     volume chart (rolling 24h).
      *   - "workload": current queue workload snapshot.
      *   - "supervisors": current supervisors snapshot.
      * - If valid "service_id" / "service_id[]" query values are present, metrics
@@ -55,6 +57,7 @@ class MetricsStreamController extends StreamController
                     ],
                     'avgRuntimeOverTime' => $this->metrics->getAvgRuntimeOverTime($serviceIds),
                     'failureRateOverTime' => $this->metrics->getFailureRateOverTime($serviceIds),
+                    'jobsVolumeLast24h' => $this->metrics->getJobsVolumeLast24h($serviceIds),
                     'workload' => $this->metrics->getWorkloadData($serviceIds),
                     'supervisors' => $this->metrics->getSupervisorsData($serviceIds),
                 ];

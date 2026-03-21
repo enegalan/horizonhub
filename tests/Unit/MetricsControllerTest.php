@@ -125,6 +125,41 @@ class MetricsControllerTest extends TestCase
         $this->assertSame(['xAxis' => ['01/01 00:00'], 'rate' => [12.3]], $data);
     }
 
+    public function test_data_jobs_volume_last24h_returns_payload_and_delegates(): void
+    {
+        $service = Service::create([
+            'name' => 'svc-metrics-controller-jobs-volume',
+            'api_key' => 'k62345678901234567890123456789012345678901234567890123456789012',
+            'base_url' => 'https://metrics-controller-jobs-volume.test',
+            'status' => 'online',
+        ]);
+
+        $metrics = $this->createMock(HorizonMetricsService::class);
+
+        $metrics->expects($this->once())
+            ->method('getJobsVolumeLast24h')
+            ->willReturnCallback(static function (array $scope) use ($service): array {
+                Assert::assertSame([(int) $service->id], $scope);
+
+                return [
+                    'xAxis' => ['20/03 15:00'],
+                    'completed' => [1],
+                    'failed' => [0],
+                ];
+            });
+
+        $controller = new MetricsController($metrics);
+        $request = $this->createServiceRequest('/horizon/metrics/data/jobs-volume-last-24h?service_id='.$service->id);
+
+        $response = $controller->dataJobsVolumeLast24h($request);
+        $data = $response->getData(true);
+
+        $this->assertSame(
+            ['xAxis' => ['20/03 15:00'], 'completed' => [1], 'failed' => [0]],
+            $data
+        );
+    }
+
     public function test_data_supervisors_returns_payload_and_delegates(): void
     {
         $service = Service::create([

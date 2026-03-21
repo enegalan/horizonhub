@@ -209,6 +209,56 @@ class HorizonMetricsServiceTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_get_jobs_volume_last24h_counts_hourly_completed_and_failed(): void
+    {
+        $api = $this->createMock(HorizonApiProxyService::class);
+
+        $now = Carbon::parse('2026-03-21 15:30:00');
+        Carbon::setTestNow($now);
+
+        $service = Service::create([
+            'name' => 'svc-jobs-volume-24h',
+            'api_key' => 'k72345678901234567890123456789012345678901234567890123456789012',
+            'base_url' => 'https://jobs-volume-24h.test',
+            'status' => 'online',
+        ]);
+
+        $sinceBucketStart = $now->copy()->subHours(24)->startOfHour();
+        $activeHour = $sinceBucketStart->copy()->addHour();
+
+        $api->method('getCompletedJobs')->willReturn([
+            'success' => true,
+            'data' => [
+                'jobs' => [
+                    ['completed_at' => $activeHour->copy()->addMinutes(10)->getTimestamp()],
+                    ['completed_at' => $activeHour->copy()->addMinutes(20)->getTimestamp()],
+                ],
+            ],
+        ]);
+        $api->method('getFailedJobs')->willReturn([
+            'success' => true,
+            'data' => [
+                'jobs' => [
+                    ['failed_at' => $activeHour->copy()->addMinutes(30)->getTimestamp()],
+                ],
+            ],
+        ]);
+
+        $metrics = new HorizonMetricsService($api);
+        $result = $metrics->getJobsVolumeLast24h([(int) $service->id]);
+
+        $this->assertCount(25, $result['xAxis']);
+        $this->assertCount(25, $result['completed']);
+        $this->assertCount(25, $result['failed']);
+
+        $this->assertSame(0, $result['completed'][0]);
+        $this->assertSame(0, $result['failed'][0]);
+        $this->assertSame(2, $result['completed'][1]);
+        $this->assertSame(1, $result['failed'][1]);
+
+        Carbon::setTestNow();
+    }
+
     public function test_get_failure_rate_24h_fetches_multiple_horizon_pages_using_index_cursor(): void
     {
         $api = $this->createMock(HorizonApiProxyService::class);

@@ -10,6 +10,7 @@ var ALL_LOADER_IDS = [
     'metrics-loader-jobs-hour',
     'metrics-loader-failed-seven',
     'metrics-loader-failure-rate',
+    'metrics-loader-jobs-volume-chart',
     'metrics-loader-failure-rate-chart',
     'metrics-loader-runtime-chart',
     'metrics-loader-service-chart',
@@ -79,7 +80,7 @@ function hideLoader(id) {
 function showLoader(id) {
     var el = document.getElementById(id);
     if (!el) return;
-    if (id === 'metrics-loader-failure-rate-chart' || id === 'metrics-loader-runtime-chart') {
+    if (id === 'metrics-loader-jobs-volume-chart' || id === 'metrics-loader-failure-rate-chart' || id === 'metrics-loader-runtime-chart') {
         el.style.display = 'flex';
     } else {
         el.style.display = '';
@@ -345,6 +346,10 @@ function applyMetricsPayload(payload) {
         hideLoader('metrics-loader-failure-rate-chart');
         renderChart({ failureRateOverTime: payload.failureRateOverTime });
     }
+    if (payload.jobsVolumeLast24h) {
+        hideLoader('metrics-loader-jobs-volume-chart');
+        renderChart({ jobsVolumeLast24h: payload.jobsVolumeLast24h });
+    }
     var rows = payload.workload;
     if (Array.isArray(rows)) {
         renderWorkloadRows(rows);
@@ -543,6 +548,7 @@ function loadAllMetrics(baseUrls, serviceIds) {
         summary: appendServiceIdsToUrl(baseUrls.summary, serviceIds),
         avgRuntime: appendServiceIdsToUrl(baseUrls.avgRuntime, serviceIds),
         failureRate: appendServiceIdsToUrl(baseUrls.failureRate, serviceIds),
+        jobsVolumeLast24h: appendServiceIdsToUrl(baseUrls.jobsVolumeLast24h, serviceIds),
         supervisors: appendServiceIdsToUrl(baseUrls.supervisors, serviceIds),
         workload: appendServiceIdsToUrl(baseUrls.workload, serviceIds),
     };
@@ -565,18 +571,21 @@ function loadAllMetrics(baseUrls, serviceIds) {
         fetchJson(urls.summary),
         fetchJson(urls.avgRuntime),
         fetchJson(urls.failureRate),
+        fetchJson(urls.jobsVolumeLast24h),
         fetchJson(urls.workload),
         fetchJson(urls.supervisors),
     ]).then(function (results) {
         var summary = results[0] && !results[0].error ? results[0] : null;
         var avgRuntime = results[1] && !results[1].error ? results[1] : null;
         var failureRate = results[2] && !results[2].error ? results[2] : null;
-        var workloadData = results[3];
-        var supervisorsData = results[4];
+        var jobsVolumeLast24h = results[3] && !results[3].error ? results[3] : null;
+        var workloadData = results[4];
+        var supervisorsData = results[5];
         applyMetricsPayload({
             summary: summary,
             avgRuntimeOverTime: avgRuntime,
             failureRateOverTime: failureRate,
+            jobsVolumeLast24h: jobsVolumeLast24h,
             workload: workloadData && workloadData.workload ? workloadData.workload : [],
             supervisors: supervisorsData && supervisorsData.supervisors ? supervisorsData.supervisors : [],
         });

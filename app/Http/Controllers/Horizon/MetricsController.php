@@ -39,6 +39,7 @@ class MetricsController extends Controller
         $failureRate24h = $this->metrics->getFailureRate24h($scope);
         $avgRuntimeOverTime = $this->metrics->getAvgRuntimeOverTime($scope);
         $failureRateOverTime = $this->metrics->getFailureRateOverTime($scope);
+        $jobsVolumeLast24h = $this->metrics->getJobsVolumeLast24h($scope);
         $workloadRows = $this->metrics->getWorkloadData($scope);
         $supervisorsRows = $this->metrics->getSupervisorsData($scope);
 
@@ -76,6 +77,7 @@ class MetricsController extends Controller
             'failureRate24h' => $failureRate24h,
             'avgRuntimeOverTime' => $avgRuntimeOverTime,
             'failureRateOverTime' => $failureRateOverTime,
+            'jobsVolumeLast24h' => $jobsVolumeLast24h,
             'workloadRows' => $workloadRows,
             'supervisorsRows' => $supervisorsRows,
             'workloadSummary' => $workloadSummary,
@@ -121,6 +123,16 @@ class MetricsController extends Controller
         $scope = $request->getServiceIds();
 
         return \response()->json($this->metrics->getFailureRateOverTime($scope));
+    }
+
+    /**
+     * Get hourly job counts over the rolling last 24 hours for the metrics dashboard.
+     */
+    public function dataJobsVolumeLast24h(ServiceRequest $request): JsonResponse
+    {
+        $scope = $request->getServiceIds();
+
+        return \response()->json($this->metrics->getJobsVolumeLast24h($scope));
     }
 
     /**

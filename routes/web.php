@@ -22,6 +22,7 @@ Route::prefix('horizon')->name('horizon.')->middleware(['throttle:60,1'])->group
     Route::get('/metrics/data/summary', [MetricsController::class, 'dataSummary'])->name('metrics.data.summary');
     Route::get('/metrics/data/avg-runtime', [MetricsController::class, 'dataAvgRuntime'])->name('metrics.data.avg-runtime');
     Route::get('/metrics/data/failure-rate-over-time', [MetricsController::class, 'dataFailureRateOverTime'])->name('metrics.data.failure-rate-over-time');
+    Route::get('/metrics/data/jobs-volume-last-24h', [MetricsController::class, 'dataJobsVolumeLast24h'])->name('metrics.data.jobs-volume-last-24h');
     Route::get('/metrics/data/supervisors', [MetricsController::class, 'dataSupervisors'])->name('metrics.data.supervisors');
     Route::get('/metrics/data/workload', [MetricsController::class, 'dataWorkload'])->name('metrics.data.workload');
 
