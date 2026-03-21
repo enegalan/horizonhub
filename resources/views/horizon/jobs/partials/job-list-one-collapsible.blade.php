@@ -19,7 +19,7 @@
     ];
 @endphp
 <details
-    class="group border-b border-border pb-4"
+    class="group border-b border-border"
     :open="sectionOpen.{{ $sectionKey }}"
     @toggle="onToggle('{{ $sectionKey }}', $event)"
 >
