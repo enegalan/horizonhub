@@ -202,45 +202,36 @@ td[data-column-id="actions"] > div {
     @apply justify-center;
 }
 
-html.dark [data-sonner-toaster] {
-    --normal-bg: #000;
-    --normal-bg-hover: hsl(0, 0%, 12%);
-    --normal-border: hsl(0, 0%, 20%);
-    --normal-border-hover: hsl(0, 0%, 25%);
-    --normal-text: hsl(0, 0%, 99%);
+@layer components {
+    .hub-toaster {
+        @apply fixed bottom-4 right-4 z-[100] flex max-w-[min(100vw-2rem,24rem)] w-[min(100vw-2rem,24rem)] flex-col gap-2 pointer-events-none;
+    }
 
-    --success-bg: hsl(150, 100%, 6%);
-    --success-border: hsl(147, 100%, 12%);
-    --success-text: hsl(150, 86%, 65%);
+    .hub-toast {
+        @apply pointer-events-auto rounded-lg border px-4 py-2.5 text-sm shadow-soft-lg opacity-0 translate-y-1 transition-[opacity,transform] duration-200 ease-out;
+    }
 
-    --info-bg: hsl(215, 100%, 6%);
-    --info-border: hsl(223, 43%, 17%);
-    --info-text: hsl(216, 87%, 65%);
+    .hub-toast--visible {
+        @apply opacity-100 translate-y-0;
+    }
 
-    --warning-bg: hsl(64, 100%, 6%);
-    --warning-border: hsl(60, 100%, 9%);
-    --warning-text: hsl(46, 87%, 65%);
+    .hub-toast--success {
+        @apply border-emerald-200 bg-emerald-50 text-emerald-900
+            dark:border-[hsl(147,100%,12%)] dark:bg-[hsl(150,100%,6%)] dark:text-[hsl(150,86%,65%)];
+    }
 
-    --error-bg: hsl(358, 76%, 10%);
-    --error-border: hsl(357, 89%, 16%);
-    --error-text: hsl(358, 100%, 81%);
-}
+    .hub-toast--error {
+        @apply border-red-200 bg-red-50 text-red-900
+            dark:border-[hsl(357,89%,16%)] dark:bg-[hsl(358,76%,10%)] dark:text-[hsl(358,100%,81%)];
+    }
 
-html.dark [data-sonner-toaster] [data-sonner-toast] [data-description] {
-    color: hsl(0, 0%, 91%);
-}
+    .hub-toast--info {
+        @apply border-sky-200 bg-sky-50 text-sky-900
+            dark:border-[hsl(223,43%,17%)] dark:bg-[hsl(215,100%,6%)] dark:text-[hsl(216,87%,65%)];
+    }
 
-html.dark [data-sonner-toaster] [data-sonner-toast][data-styled='true'] [data-cancel] {
-    background: rgba(255, 255, 255, 0.3);
-}
-
-html.dark [data-sonner-toaster] [data-sonner-toast] [data-close-button] {
-    background: var(--normal-bg);
-    border-color: var(--normal-border);
-    color: var(--normal-text);
-}
-
-html.dark [data-sonner-toaster] [data-sonner-toast] [data-close-button]:hover {
-    background: var(--normal-bg-hover);
-    border-color: var(--normal-border-hover);
+    .hub-toast--warning {
+        @apply border-amber-200 bg-amber-50 text-amber-950
+            dark:border-[hsl(60,100%,9%)] dark:bg-[hsl(64,100%,6%)] dark:text-[hsl(46,87%,65%)];
+    }
 }
