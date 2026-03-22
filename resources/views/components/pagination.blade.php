@@ -22,7 +22,7 @@
         @if ($paginator->onFirstPage())
             <span class="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm text-muted-foreground cursor-not-allowed">Previous</span>
         @else
-            <a href="{{ $paginator->previousPageUrl() }}" wire:navigate class="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm text-muted-foreground hover:text-foreground transition-colors">Previous</a>
+            <a href="{{ $paginator->previousPageUrl() }}" class="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm text-muted-foreground hover:text-foreground transition-colors">Previous</a>
         @endif
 
         @foreach ($slider as $page)
@@ -31,12 +31,12 @@
             @elseif ($page == $current)
                 <span class="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm font-medium bg-primary text-primary-foreground" aria-current="page">{{ $page }}</span>
             @else
-                <a href="{{ $paginator->url($page) }}" wire:navigate class="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm text-muted-foreground hover:text-foreground transition-colors">{{ $page }}</a>
+                <a href="{{ $paginator->url($page) }}" class="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm text-muted-foreground hover:text-foreground transition-colors">{{ $page }}</a>
             @endif
         @endforeach
 
         @if ($paginator->hasMorePages())
-            <a href="{{ $paginator->nextPageUrl() }}" wire:navigate class="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm text-muted-foreground hover:text-foreground transition-colors">Next</a>
+            <a href="{{ $paginator->nextPageUrl() }}" class="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm text-muted-foreground hover:text-foreground transition-colors">Next</a>
         @else
             <span class="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm text-muted-foreground cursor-not-allowed">Next</span>
         @endif

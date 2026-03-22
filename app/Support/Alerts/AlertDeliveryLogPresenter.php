@@ -3,6 +3,7 @@
 namespace App\Support\Alerts;
 
 use App\Models\AlertLog;
+use App\Support\Horizon\ConfigHelper;
 
 class AlertDeliveryLogPresenter
 {
@@ -29,7 +30,7 @@ class AlertDeliveryLogPresenter
         }
         $initialUniqueJobTypesCount = \count($initialJobTotals);
         $initialEffectiveJobTypesCount = \min($initialUniqueJobTypesCount, $initialTriggerCount);
-        $initialVisibleJobTypesLimit = \min(\config('horizonhub.jobs_per_page'), $initialEffectiveJobTypesCount);
+        $maxDistinctJobs = ConfigHelper::getIntWithMin('horizonhub.alerts.delivery_log_max_distinct_jobs', $initialEffectiveJobTypesCount);
         $initialJobItems = [];
         foreach (\array_slice(\array_keys($initialJobTotals), 0, $initialVisibleJobTypesLimit) as $initialJobId) {
             $initialJobItems[] = [
@@ -46,7 +47,7 @@ class AlertDeliveryLogPresenter
             'status' => (string) ($log->status ?? ''),
             'failure_message' => (string) ($log->failure_message ?? ''),
             'job_items' => $initialJobItems,
-            'job_ids_more' => \max(0, $initialEffectiveJobTypesCount - $initialVisibleJobTypesLimit),
+            'job_ids_more' => \max(0, $initialEffectiveJobTypesCount - $maxDistinctJobs),
         ];
     }
 }

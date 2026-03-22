@@ -3,6 +3,7 @@
 namespace App\Services\Alerts;
 
 use App\Models\Alert;
+use App\Support\Horizon\ConfigHelper;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 
@@ -51,7 +52,7 @@ class AlertBatchStore
 
             return;
         }
-        Cache::put($key, $pending, \now()->addMinutes(\config('horizonhub.alerts.pending_ttl_minutes')));
+        Cache::put($key, $pending, \now()->addMinutes(ConfigHelper::get('horizonhub.alerts.pending_ttl_minutes')));
     }
 
     /**
@@ -81,7 +82,7 @@ class AlertBatchStore
      */
     public function setLastSentAt(Alert $alert, ?Carbon $time = null): void
     {
-        $expiresAt = \now()->addMinutes(\config('horizonhub.alerts.pending_ttl_minutes'));
+        $expiresAt = \now()->addMinutes(ConfigHelper::get('horizonhub.alerts.pending_ttl_minutes'));
         $value = $time ?: \now();
         Cache::put(self::SENT_AT_CACHE_PREFIX.$alert->id, $value, $expiresAt);
     }

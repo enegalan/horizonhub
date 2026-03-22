@@ -4,6 +4,7 @@ namespace App\Services\Metrics;
 
 use App\Models\Service;
 use App\Services\HorizonApiProxyService;
+use App\Support\Horizon\ConfigHelper;
 use App\Support\Horizon\QueueNameNormalizer;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
@@ -25,14 +26,6 @@ abstract class HorizonMetricsComputation
     protected const TOP_N_QUEUES = 12;
 
     /**
-     * Horizon lists (completed/failed) return at most this many jobs per HTTP response
-     * (see Laravel Horizon RedisJobRepository::getJobsByType).
-     *
-     * @var int
-     */
-    protected const HORIZON_JOBS_LIST_CHUNK = 50;
-
-    /**
      * The Horizon API proxy service.
      */
     protected HorizonApiProxyService $horizonApi;
@@ -46,15 +39,17 @@ abstract class HorizonMetricsComputation
     }
 
     /**
-     * Fetch all completed jobs with completed_at >= $sinceTimestamp by paginating the Horizon API.
+     * Fetch completed jobs with completed_at >= $sinceTimestamp by paginating the Horizon API.
+     *
+     * Each request uses Horizon query `limit` = horizonhub.horizon_api_job_list_page_size.
+     * The number of HTTP pages per service is capped by horizonhub.max_horizon_pages.
      *
      * @return list<array<string, mixed>>
      */
-    protected function private__fetchCompletedJobsInWindow(Service $service, int $sinceTimestamp, int $pageLimit): array
+    protected function private__fetchCompletedJobsInWindow(Service $service, int $sinceTimestamp): array
     {
         return $this->private__fetchJobsInWindow(
             $sinceTimestamp,
-            $pageLimit,
             function (array $query) use ($service): array {
                 return $this->horizonApi->getCompletedJobs($service, $query);
             },
@@ -70,15 +65,17 @@ abstract class HorizonMetricsComputation
     }
 
     /**
-     * Fetch all failed jobs with failed_at >= $sinceTimestamp by paginating the Horizon API.
+     * Fetch failed jobs with failed_at >= $sinceTimestamp by paginating the Horizon API.
+     *
+     * Each request uses Horizon query `limit` = horizonhub.horizon_api_job_list_page_size.
+     * The number of HTTP pages per service is capped by horizonhub.max_horizon_pages.
      *
      * @return list<array<string, mixed>>
      */
-    protected function private__fetchFailedJobsInWindow(Service $service, int $sinceTimestamp, int $pageLimit): array
+    protected function private__fetchFailedJobsInWindow(Service $service, int $sinceTimestamp): array
     {
         return $this->private__fetchJobsInWindow(
             $sinceTimestamp,
-            $pageLimit,
             function (array $query) use ($service): array {
                 return $this->horizonApi->getFailedJobs($service, $query);
             },
@@ -96,28 +93,26 @@ abstract class HorizonMetricsComputation
     /**
      * Fetch jobs in a time window by paginating Horizon until we cross the lower bound.
      *
+     * @param  int  $sinceTimestamp  Unix timestamp.
      * @param  callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>}  $pageFetcher
      * @param  callable(array<string, mixed>): ?int  $jobTimestampExtractor
      * @return list<array<string, mixed>>
      */
     protected function private__fetchJobsInWindow(
         int $sinceTimestamp,
-        int $pageLimit,
         callable $pageFetcher,
         callable $jobTimestampExtractor,
     ): array {
         $jobs = [];
         $startingAt = -1;
         $page = 0;
-        $maxPages = (int) \config('horizonhub.max_horizon_pages');
-        if ($maxPages < 1) {
-            $maxPages = 1;
-        }
+        $jobsPerRequest = ConfigHelper::getIntWithMin('horizonhub.horizon_api_job_list_page_size', 1);
+        $maxPages = ConfigHelper::getIntWithMin('horizonhub.max_horizon_pages', 1);
 
         while ($page < $maxPages) {
             $response = $pageFetcher([
                 'starting_at' => $startingAt,
-                'limit' => $pageLimit,
+                'limit' => $jobsPerRequest,
             ]);
             if (! ($response['success'] ?? false)) {
                 break;
@@ -146,7 +141,7 @@ abstract class HorizonMetricsComputation
                 }
             }
 
-            if ($oldestInBatch === null || $oldestInBatch < $sinceTimestamp || \count($batch) < self::HORIZON_JOBS_LIST_CHUNK) {
+            if ($oldestInBatch === null || $oldestInBatch < $sinceTimestamp || \count($batch) < $jobsPerRequest) {
                 break;
             }
             $startingAt = $this->private__nextMetricsJobsStartingAt($startingAt, $batch);

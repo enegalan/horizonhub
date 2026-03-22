@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Horizon\ConfigHelper;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 abstract class StreamController extends Controller
@@ -22,23 +23,13 @@ abstract class StreamController extends Controller
     }
 
     /**
-     * Get the interval for the stream.
-     */
-    protected function getInterval(): int
-    {
-        $interval = (int) \config('horizonhub.hot_reload_interval');
-
-        return $interval >= 1 ? $interval : 1;
-    }
-
-    /**
      * Run a streaming SSE loop for the given event type.
      *
      * @param  callable(): array<string, mixed>  $payloadCallback
      */
     protected function runStream(callable $payloadCallback, string $eventType): StreamedResponse
     {
-        $interval = $this->getInterval();
+        $interval = ConfigHelper::getIntWithMin('horizonhub.hot_reload_interval', 1);
 
         return \response()->stream(function () use ($interval, $payloadCallback, $eventType): void {
             while (true) {

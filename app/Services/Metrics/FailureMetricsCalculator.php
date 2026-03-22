@@ -28,14 +28,12 @@ class FailureMetricsCalculator extends HorizonMetricsComputation
 
         $processed = 0;
         $failed = 0;
-        $jobsLimit = (int) \config('horizonhub.metrics_24h_jobs_limit', 500);
-
         /** @var Service $service */
         foreach ($services as $service) {
-            $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
+            $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp);
             $processed += \count($completedJobs);
 
-            $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
+            $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp);
             $failed += \count($failedJobs);
         }
 
@@ -77,11 +75,9 @@ class FailureMetricsCalculator extends HorizonMetricsComputation
             return ['xAxis' => [], 'rate' => []];
         }
 
-        $jobsLimit = (int) \config('horizonhub.metrics_24h_jobs_limit', 500);
-
         /** @var Service $service */
         foreach ($services as $service) {
-            $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
+            $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp);
             foreach ($completedJobs as $job) {
                 $completedAt = $job['completed_at'] ?? $job['processed_at'] ?? null;
                 if (! \is_numeric($completedAt)) {
@@ -95,7 +91,7 @@ class FailureMetricsCalculator extends HorizonMetricsComputation
                 }
             }
 
-            $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
+            $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp);
             foreach ($failedJobs as $job) {
                 $failedAt = $job['failed_at'] ?? null;
                 if (! \is_numeric($failedAt)) {

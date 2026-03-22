@@ -5,7 +5,6 @@
     $selectAttrs = $attributes->except('class');
 @endphp
 <div class="relative {{ $wrapperClass }}"
-    wire:ignore
     x-data="{
         open: false,
         selectedValue: '',

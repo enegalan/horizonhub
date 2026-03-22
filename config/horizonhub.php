@@ -26,6 +26,7 @@ return [
     | - completed_jobs: the relative path to list completed jobs.
     | - pending_jobs: the relative path to list pending/processing jobs.
     | - masters: the relative path to list Horizon masters.
+    | - metrics_queues: the relative path for per-queue metrics (24h charts).
     */
     'horizon_paths' => [
         'dashboard' => '/horizon',
@@ -107,23 +108,27 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Events Rate Limit
+    | SSE stream tick interval
     |--------------------------------------------------------------------------
     |
-    | This is the number of events per second that are allowed to be processed.
-    |
-    */
-    'events_rate_limit' => (int) env('HORIZON_HUB_EVENTS_RATE_LIMIT', 2000),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Hot Reload Interval
-    |--------------------------------------------------------------------------
-    |
-    | This is the number of seconds after which the dashboard will reload.
+    | Seconds to wait between emitting consecutive Server-Sent Events on the
+    | refresh and metrics streams (sleep inside the long-lived SSE response).
+    | This is not a full browser reload interval.
     |
     */
     'hot_reload_interval' => (int) env('HORIZON_HUB_HOT_RELOAD_INTERVAL', 5),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Horizon API: job list page size
+    |--------------------------------------------------------------------------
+    |
+    | How many jobs each paginated response returns when Hub calls Horizon’s
+    | completed / failed / pending list HTTP endpoints (maps to query `limit`).
+    | Typical Horizon default is 50.
+    |
+    */
+    'horizon_api_job_list_page_size' => (int) env('HORIZON_HUB_API_JOB_LIST_PAGE_SIZE', 50),
 
     /*
     |--------------------------------------------------------------------------
@@ -151,9 +156,10 @@ return [
     | Max Horizon API pages (pagination loops)
     |--------------------------------------------------------------------------
     |
-    | Upper bound for how many paginated responses Hub reads from a Horizon
-    | HTTP endpoint. Reuse for any feature that walks Horizon pages to avoid
-    | unbounded memory or time.
+    | Upper bound for how many paginated HTTP responses Hub reads from a Horizon
+    | jobs list endpoint per service (completed/failed/pending in the job UI,
+    | and the scrolling fetch used for rolling 24h metrics). Each response is at
+    | most ~50 jobs (Horizon default chunk size).
     |
     */
     'max_horizon_pages' => (int) env('HORIZON_HUB_MAX_HORIZON_PAGES', 40),
@@ -177,11 +183,15 @@ return [
     | Configuration related to Horizon Hub alerts, including batching and
     | email interval defaults.
     |
-    | pending_ttl_minutes: The TTL minutes for pending alert events to be batched into one notification, just for internal optimization.
+    | pending_ttl_minutes: Minutes to batch pending alert events before one notification.
+    |
+    | delivery_log_max_distinct_jobs: Max distinct job UUID rows shown in the alert
+    | delivery log modal (not related to the jobs table page size).
     |
     */
     'alerts' => [
         'pending_ttl_minutes' => (int) env('HORIZON_HUB_ALERT_PENDING_TTL_MINUTES', 60),
+        'delivery_log_max_distinct_jobs' => (int) env('HORIZON_HUB_ALERT_DELIVERY_LOG_MAX_DISTINCT_JOBS', 20),
     ],
 
 ];

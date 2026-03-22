@@ -9,7 +9,20 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class RefreshStreamController extends StreamController
 {
     /** @var array<int, string> Allowed query param names when fetching page HTML. */
-    private const ALLOWED_QUERY_KEYS = ['service', 'queue_services', 'service_id', 'serviceFilter', 'statusFilter', 'search', 'page'];
+    private const ALLOWED_QUERY_KEYS = [
+        'log',
+        'page',
+        'page_failed',
+        'page_processed',
+        'page_processing',
+        'per_page',
+        'queue_services',
+        'search',
+        'serviceFilter',
+        'service_id',
+        'status',
+        'tab',
+    ];
 
     /**
      * Open the generic Horizon Hub refresh stream (SSE).

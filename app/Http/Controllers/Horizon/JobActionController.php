@@ -8,6 +8,7 @@ use App\Rules\RetryModalDateFilter;
 use App\Services\HorizonApiProxyService;
 use App\Services\HorizonJobListService;
 use App\Services\HorizonJobResolverService;
+use App\Support\Horizon\ConfigHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -78,7 +79,7 @@ class JobActionController extends Controller
             'per_page' => 'nullable|integer|min:1|max:100',
         ]);
 
-        $perPage = (int) ($validated['per_page'] ?? \config('horizonhub.jobs_per_page'));
+        $perPage = (int) ($validated['per_page'] ?? ConfigHelper::getIntWithMin('horizonhub.jobs_per_page'));
         $page = (int) ($validated['page'] ?? 1);
         if ($page < 1) {
             $page = 1;

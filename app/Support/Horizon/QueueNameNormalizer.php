@@ -59,7 +59,7 @@ class QueueNameNormalizer
      */
     private static function connectionNamesFromConfig(): array
     {
-        $fromConfig = \array_keys(\config('queue.connections'));
+        $fromConfig = \array_keys(ConfigHelper::get('queue.connections'));
         $names = [];
         foreach ($fromConfig as $name) {
             $name = (string) $name;

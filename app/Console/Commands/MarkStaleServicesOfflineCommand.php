@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Service;
+use App\Support\Horizon\ConfigHelper;
 use Illuminate\Console\Command;
 
 class MarkStaleServicesOfflineCommand extends Command
@@ -13,8 +14,8 @@ class MarkStaleServicesOfflineCommand extends Command
 
     public function handle(): int
     {
-        $stale_minutes = \config('horizonhub.stale_minutes');
-        $dead_minutes = \config('horizonhub.dead_service_minutes');
+        $stale_minutes = ConfigHelper::get('horizonhub.stale_minutes');
+        $dead_minutes = ConfigHelper::get('horizonhub.dead_service_minutes');
         $stale_threshold = \now()->subMinutes($stale_minutes);
         $dead_threshold = \now()->subMinutes($dead_minutes);
 

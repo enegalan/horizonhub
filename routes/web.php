@@ -58,7 +58,7 @@ Route::prefix('horizon')->name('horizon.')->middleware(['throttle:60,1'])->group
     Route::get('/alerts/evaluations/{evaluationId}', [AlertController::class, 'evaluationStatus'])->name('alerts.evaluations.status');
 
     // Providers routes...
-    Route::redirect('/providers', '/horizon/settings?tab=providers')->name('providers.index');
+    Route::redirect('/providers', '/horizon/settings?tab=providers');
     Route::get('/providers/create', [ProviderController::class, 'create'])->name('providers.create');
     Route::post('/providers', [ProviderController::class, 'store'])->name('providers.store');
     Route::get('/providers/{provider}/edit', [ProviderController::class, 'edit'])->name('providers.edit');
