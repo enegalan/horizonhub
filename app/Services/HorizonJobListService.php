@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Service;
 use App\Support\Horizon\JobRuntimeHelper;
+use App\Support\Horizon\RetryModalDatetimeBoundaries;
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -101,6 +102,11 @@ class HorizonJobListService
     ): array {
         $rows = [];
 
+        $dateFromStr = \is_string($dateFrom) ? $dateFrom : null;
+        $dateToStr = \is_string($dateTo) ? $dateTo : null;
+        $dateFromCarbon = RetryModalDatetimeBoundaries::parseLower($dateFromStr);
+        $dateToCarbon = RetryModalDatetimeBoundaries::parseUpper($dateToStr);
+
         foreach ($services as $service) {
             $rawJobs = $this->private__fetchAllJobsForService(
                 $service,
@@ -135,12 +141,11 @@ class HorizonJobListService
                     }
                 }
 
-                $failedAtDate = $failedAtCarbon?->toDateString() ?? null;
-                if ($dateFrom !== null && $failedAtDate !== null && $failedAtDate < $dateFrom) {
+                if ($dateFromCarbon !== null && $failedAtCarbon !== null && $failedAtCarbon->lt($dateFromCarbon)) {
                     continue;
                 }
 
-                if ($dateTo !== null && $failedAtDate !== null && $failedAtDate > $dateTo) {
+                if ($dateToCarbon !== null && $failedAtCarbon !== null && $failedAtCarbon->gt($dateToCarbon)) {
                     continue;
                 }
 

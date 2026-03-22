@@ -13,9 +13,12 @@ import { mountToaster } from './components/toaster';
 import { hydrateMetricsChartsFromDom, hydrateAlertDetailChartsFromDom } from './charts/metrics-charts';
 import { registerToastEventListeners } from './components/toast-events';
 import { applyTheme } from './components/theme';
+import { registerInputDatePicker } from './components/input-date-picker';
 import { onDocumentReady, schedule } from './utils/init';
 import Alpine from 'alpinejs';
 import moment from 'moment';
+
+registerInputDatePicker(Alpine);
 
 if (!window.horizon) window.horizon = {};
 window.horizon.http = createHttpHelpers();

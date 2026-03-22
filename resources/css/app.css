@@ -234,4 +234,47 @@ td[data-column-id="actions"] > div {
         @apply border-amber-200 bg-amber-50 text-amber-950
             dark:border-[hsl(60,100%,9%)] dark:bg-[hsl(64,100%,6%)] dark:text-[hsl(46,87%,65%)];
     }
+
+    .air-datepicker {
+        --adp-border-radius: calc(var(--radius) - 2px) !important;
+        --adp-background-color: hsl(var(--popover)) !important;
+        --adp-color: hsl(var(--popover-foreground)) !important;
+        --adp-border-color: hsl(var(--border)) !important;
+        --adp-border-color-inline: hsl(var(--border)) !important;
+        --adp-border-color-inner: hsl(var(--border)) !important;
+        --adp-background-color-hover: hsl(var(--accent)) !important;
+        --adp-background-color-active: hsl(var(--accent)) !important;
+        --adp-color-secondary: hsl(var(--muted-foreground)) !important;
+        --adp-accent-color: var(--primary) !important;
+        --adp-cell-border-color-in-range: hsl(var(--border)) !important;
+        --adp-nav-arrow-color: hsl(var(--muted-foreground)) !important;
+        --adp-day-name-color: hsl(var(--muted-foreground)) !important;
+        --adp-day-name-color-hover: hsl(var(--accent-foreground)) !important;
+        --adp-cell-background-color-hover: hsl(var(--accent)) !important;
+        --adp-cell-background-color-in-range: hsl(var(--muted)) !important;
+        --adp-cell-background-color-selected: hsl(var(--primary)) !important;
+        --adp-cell-background-color-selected-hover: hsl(var(--primary)) !important;
+        --adp-btn-color: hsl(var(--primary)) !important;
+        --adp-btn-color-hover: hsl(var(--foreground)) !important;
+        --adp-time-track-color: hsl(var(--border)) !important;
+        --adp-time-track-color-hover: hsl(var(--muted-foreground)) !important;
+        --adp-background-color-in-range: hsl(var(--muted)) !important;
+        --adp-background-color-in-range-focused: hsl(var(--border)) !important;
+        --adp-cell-background-color-in-range-hover: hsl(var(--border)) !important;
+        --adp-background-color-selected-other-month: hsl(var(--accent)) !important;
+        --adp-background-color-selected-other-month-focused: hsl(var(--border)) !important;
+        @apply shadow-lg;
+    }
+}
+.air-datepicker i.air-datepicker--pointer:after {
+    background: hsl(var(--popover)) !important;
+    border-top-color: hsl(var(--border)) !important;
+    border-right-color: hsl(var(--border)) !important;
+}
+
+.air-datepicker div.air-datepicker-cell.-selected-:not(.-other-month-) {
+    color: hsl(var(--primary-foreground)) !important;
+}
+div.-selected-.air-datepicker-cell.-day-.-other-month- {
+    color: var(--adp-color) !important;
 }

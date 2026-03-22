@@ -1,6 +1,29 @@
 import { formatDateTimeElements } from '../lib/datetime-format';
 
 /**
+ * Split retry modal range field into API params (separator: " to ").
+ * @param {string} rangeValue
+ * @returns {{ dateFrom: string, dateTo: string }}
+ */
+function parseFailedAtRange(rangeValue) {
+    var v = typeof rangeValue === 'string' ? rangeValue.trim() : '';
+    if (!v) {
+        return { dateFrom: '', dateTo: '' };
+    }
+    var parts = v.split(/\s+to\s+/i).map(function (s) {
+        return s.trim();
+    }).filter(Boolean);
+    if (parts.length === 0) {
+        return { dateFrom: '', dateTo: '' };
+    }
+    if (parts.length === 1) {
+        return { dateFrom: parts[0], dateTo: '' };
+    }
+
+    return { dateFrom: parts[0], dateTo: parts[1] };
+}
+
+/**
  * Horizon jobs page.
  * @param {object} config
  * @returns {object}
@@ -59,8 +82,7 @@ export function horizonJobsPage(config) {
         retryFilters: {
             service_id: '',
             search: '',
-            date_from: '',
-            date_to: '',
+            failed_at_range: '',
         },
         /**
          * Initialize the jobs page.
@@ -113,8 +135,9 @@ export function horizonJobsPage(config) {
             var params = new URLSearchParams();
             if (this.retryFilters.service_id) params.append('service_id', this.retryFilters.service_id);
             if (this.retryFilters.search) params.append('search', this.retryFilters.search);
-            if (this.retryFilters.date_from) params.append('date_from', this.retryFilters.date_from);
-            if (this.retryFilters.date_to) params.append('date_to', this.retryFilters.date_to);
+            var rangeParts = parseFailedAtRange(this.retryFilters.failed_at_range);
+            if (rangeParts.dateFrom) params.append('date_from', rangeParts.dateFrom);
+            if (rangeParts.dateTo) params.append('date_to', rangeParts.dateTo);
             if (this.retryPage) params.append('page', this.retryPage);
             if (this.retryPerPage) params.append('per_page', this.retryPerPage);
             var url = config.failedListUrl + (params.toString() ? ('?' + params.toString()) : '');

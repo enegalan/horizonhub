@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Horizon;
 
 use App\Http\Controllers\Controller;
 use App\Models\Service;
+use App\Rules\RetryModalDateFilter;
 use App\Services\HorizonApiProxyService;
 use App\Services\HorizonJobListService;
 use App\Services\HorizonJobResolverService;
@@ -71,8 +72,8 @@ class JobActionController extends Controller
         $validated = $request->validate([
             'service_id' => 'nullable|integer|exists:services,id',
             'search' => 'nullable|string|max:255',
-            'date_from' => 'nullable|date',
-            'date_to' => 'nullable|date',
+            'date_from' => ['nullable', 'string', 'max:32', new RetryModalDateFilter],
+            'date_to' => ['nullable', 'string', 'max:32', new RetryModalDateFilter],
             'page' => 'nullable|integer|min:1',
             'per_page' => 'nullable|integer|min:1|max:100',
         ]);

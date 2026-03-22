@@ -72,7 +72,7 @@
                         class="flex min-h-0 flex-1 flex-col overflow-hidden p-2"
                     >
                             <p class="text-sm text-muted-foreground mb-3">
-                                Select failed jobs to retry. Filter by service, search or date range.
+                                Select failed jobs to retry. Filter by service, search, or failed-at range (date and time).
                             </p>
                         <div class="mb-3 flex shrink-0 flex-wrap items-end gap-3">
                             <div class="space-y-2">
@@ -100,21 +100,13 @@
                                         @change.debounce.300ms="loadFailedJobs()"
                                     />
                                 </div>
-                                <div class="space-y-2">
-                                    <x-input-label for="retry-modal-date-from">From</x-input-label>
+                                <div class="space-y-2 min-w-64 max-w-md flex-1">
+                                    <x-input-label for="retry-modal-failed-at-range">Failed at range</x-input-label>
                                     <x-input-date
-                                        id="retry-modal-date-from"
-                                        class="w-40"
-                                        x-model="retryFilters.date_from"
-                                        @change="loadFailedJobs()"
-                                    />
-                                </div>
-                                <div class="space-y-2">
-                                    <x-input-label for="retry-modal-date-to">To</x-input-label>
-                                    <x-input-date
-                                        id="retry-modal-date-to"
-                                        class="w-40"
-                                        x-model="retryFilters.date_to"
+                                        id="retry-modal-failed-at-range"
+                                        :range="true"
+                                        :with-time="true"
+                                        x-model="retryFilters.failed_at_range"
                                         @change="loadFailedJobs()"
                                     />
                                 </div>
