@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Service;
+use App\Support\Horizon\ConfigHelper;
 use GuzzleHttp\Cookie\CookieJar;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
@@ -32,7 +33,7 @@ class HorizonApiProxyService
      */
     public function ping(Service $service): array
     {
-        $relativePath = (string) \config('horizonhub.horizon_paths.ping');
+        $relativePath = (string) ConfigHelper::get('horizonhub.horizon_paths.ping');
 
         return $this->private__call($service, $relativePath, 'get');
     }
@@ -44,7 +45,7 @@ class HorizonApiProxyService
      */
     public function getWorkload(Service $service): array
     {
-        $relativePath = (string) \config('horizonhub.horizon_paths.workload');
+        $relativePath = (string) ConfigHelper::get('horizonhub.horizon_paths.workload');
 
         $result = $this->private__call($service, $relativePath, 'get');
         if (! ($result['success'] ?? false) && \in_array($result['status'] ?? 0, [401, 403], true)) {
@@ -64,7 +65,7 @@ class HorizonApiProxyService
      */
     public function getStats(Service $service): array
     {
-        $relativePath = (string) \config('horizonhub.horizon_paths.ping');
+        $relativePath = (string) ConfigHelper::get('horizonhub.horizon_paths.ping');
 
         return $this->private__call($service, $relativePath, 'get');
     }
@@ -76,7 +77,7 @@ class HorizonApiProxyService
      */
     public function getMasters(Service $service): array
     {
-        $relativePath = (string) \config('horizonhub.horizon_paths.masters');
+        $relativePath = (string) ConfigHelper::get('horizonhub.horizon_paths.masters');
 
         return $this->private__call($service, $relativePath, 'get');
     }
@@ -89,10 +90,11 @@ class HorizonApiProxyService
      */
     public function getFailedJobs(Service $service, array $query = []): array
     {
-        $path = (string) \config('horizonhub.horizon_paths.failed_jobs');
-        if ($query === []) {
-            $query = ['starting_at' => 0, 'limit' => 50];
-        }
+        $path = (string) ConfigHelper::get('horizonhub.horizon_paths.failed_jobs');
+        $query = \array_merge(
+            ['starting_at' => 0, 'limit' => ConfigHelper::getIntWithMin('horizonhub.horizon_api_job_list_page_size', 1)],
+            $query,
+        );
         $queryString = \http_build_query($query);
 
         return $this->private__call($service, "$path?$queryString", 'get');
@@ -118,10 +120,11 @@ class HorizonApiProxyService
      */
     public function getCompletedJobs(Service $service, array $query = []): array
     {
-        $path = (string) \config('horizonhub.horizon_paths.completed_jobs');
-        if ($query === []) {
-            $query = ['starting_at' => 0, 'limit' => 50];
-        }
+        $path = (string) ConfigHelper::get('horizonhub.horizon_paths.completed_jobs');
+        $query = \array_merge(
+            ['starting_at' => 0, 'limit' => ConfigHelper::getIntWithMin('horizonhub.horizon_api_job_list_page_size', 1)],
+            $query,
+        );
         $queryString = \http_build_query($query);
 
         return $this->private__call($service, "$path?$queryString", 'get');
@@ -135,10 +138,11 @@ class HorizonApiProxyService
      */
     public function getPendingJobs(Service $service, array $query = []): array
     {
-        $path = (string) \config('horizonhub.horizon_paths.pending_jobs');
-        if ($query === []) {
-            $query = ['starting_at' => 0, 'limit' => 50];
-        }
+        $path = (string) ConfigHelper::get('horizonhub.horizon_paths.pending_jobs');
+        $query = \array_merge(
+            ['starting_at' => 0, 'limit' => ConfigHelper::getIntWithMin('horizonhub.horizon_api_job_list_page_size', 1)],
+            $query,
+        );
         $queryString = \http_build_query($query);
 
         return $this->private__call($service, "$path?$queryString", 'get');
@@ -151,7 +155,7 @@ class HorizonApiProxyService
      */
     public function getMetricsQueues(Service $service): array
     {
-        $relativePath = (string) \config('horizonhub.horizon_paths.metrics_queues', '/metrics/queues');
+        $relativePath = (string) ConfigHelper::get('horizonhub.horizon_paths.metrics_queues');
 
         return $this->private__call($service, $relativePath, 'get');
     }
@@ -174,7 +178,7 @@ class HorizonApiProxyService
      */
     private function private__buildBaseUrl(Service $service): string
     {
-        $apiBasePath = (string) \config('horizonhub.horizon_paths.api');
+        $apiBasePath = (string) ConfigHelper::get('horizonhub.horizon_paths.api');
         $apiBasePath = '/'.\ltrim($apiBasePath, '/');
 
         return $this->private__getServiceBase($service).\rtrim($apiBasePath, '/');
@@ -185,7 +189,7 @@ class HorizonApiProxyService
      */
     private function private__buildDashboardUrl(Service $service): string
     {
-        $dashboardPath = (string) \config('horizonhub.horizon_paths.dashboard');
+        $dashboardPath = (string) ConfigHelper::get('horizonhub.horizon_paths.dashboard');
         $dashboardPath = \ltrim($dashboardPath, '/');
 
         return $this->private__getServiceBase($service).'/'.$dashboardPath;
@@ -196,7 +200,7 @@ class HorizonApiProxyService
      */
     private function private__parseTemplate(string $templateKey, string $placeholder, mixed $value): string
     {
-        $template = (string) \config($templateKey);
+        $template = (string) ConfigHelper::get($templateKey);
         if ($template === '') {
             throw new \RuntimeException("Invalid configuration: {$templateKey} is empty.");
         }
@@ -292,21 +296,20 @@ class HorizonApiProxyService
     private function private__newHorizonPendingRequest(string $httpMethod = 'get'): PendingRequest
     {
         $httpMethod = \strtoupper($httpMethod);
-        $timeoutSeconds = (int) \config('horizonhub.api_timeout');
-        $request = Http::timeout($timeoutSeconds > 0 ? $timeoutSeconds : 10);
+        $timeoutSeconds = ConfigHelper::getIntWithMin('horizonhub.api_timeout', 10);
+        $request = Http::timeout($timeoutSeconds);
 
-        $connectTimeout = \config('horizonhub.horizon_http_connect_timeout');
+        $connectTimeout = ConfigHelper::get('horizonhub.horizon_http_connect_timeout');
         if ($connectTimeout !== null && (float) $connectTimeout > 0) {
             $request->connectTimeout((float) $connectTimeout);
         }
 
-        $retryConfig = \config('horizonhub.horizon_http_retry', []);
-        $retryTimes = (int) ($retryConfig['times'] ?? 1);
-        $sleepBaseMs = (int) ($retryConfig['sleep_ms'] ?? 100);
-        /** @var list<int> $retryOnStatus */
-        $retryOnStatus = $retryConfig['retry_on_status'] ?? [429, 502, 503, 504];
+        $retryConfig = ConfigHelper::get('horizonhub.horizon_http_retry');
+        $retryTimes = (int) $retryConfig['times'];
+        $sleepBaseMs = (int) $retryConfig['sleep_ms'];
+        $retryOnStatus = $retryConfig['retry_on_status'];
 
-        if ($httpMethod === 'GET' && $retryTimes > 1) {
+        if ($retryConfig && $httpMethod === 'GET' && $retryTimes > 1) {
             $request = $request->retry(
                 $retryTimes,
                 function (int $attempt, \Throwable $e) use ($sleepBaseMs): int {

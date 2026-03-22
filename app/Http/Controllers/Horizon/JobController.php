@@ -8,6 +8,7 @@ use App\Models\Service;
 use App\Services\HorizonJobDetailService;
 use App\Services\HorizonJobListService;
 use App\Services\HorizonJobResolverService;
+use App\Support\Horizon\ConfigHelper;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -50,7 +51,7 @@ class JobController extends Controller
         $serviceFilterIds = ServiceRequest::existingIdsFromRequest($request, ['serviceFilter']);
         $search = (string) $request->query('search', '');
 
-        $perPage = (int) \config('horizonhub.jobs_per_page');
+        $perPage = (int) ConfigHelper::get('horizonhub.jobs_per_page');
 
         $servicesQuery = Service::query()->whereNotNull('base_url');
         if ($serviceFilterIds !== []) {

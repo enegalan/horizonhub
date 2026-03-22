@@ -21,14 +21,13 @@ class RuntimeMetricsCalculator extends HorizonMetricsComputation
             return ['points' => []];
         }
 
-        $jobsLimit = (int) \config('horizonhub.metrics_24h_jobs_limit', 500);
         $points = [];
 
         /** @var Service $service */
         foreach ($services as $service) {
             $serviceName = (string) $service->name;
 
-            $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
+            $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp);
             foreach ($completedJobs as $job) {
                 if (! \is_array($job)) {
                     continue;
@@ -55,7 +54,7 @@ class RuntimeMetricsCalculator extends HorizonMetricsComputation
                 ];
             }
 
-            $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp, $jobsLimit);
+            $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp);
             foreach ($failedJobs as $job) {
                 if (! \is_array($job)) {
                     continue;

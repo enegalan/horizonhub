@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Service;
+use App\Support\Horizon\ConfigHelper;
 use Illuminate\Contracts\Cache\Repository as CacheContract;
 use Illuminate\Support\Collection;
 
@@ -41,7 +42,7 @@ class HorizonJobResolverService
     public function getJobAndService(string $jobUuid): ?array
     {
         $cacheKey = self::CACHE_PREFIX.$jobUuid;
-        $ttl = (int) \config('horizonhub.job_resolver_cache_ttl');
+        $ttl = (int) ConfigHelper::get('horizonhub.job_resolver_cache_ttl');
 
         $serviceId = $this->cache->get($cacheKey);
         if ($serviceId !== null) {

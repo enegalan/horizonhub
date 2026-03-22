@@ -30,7 +30,7 @@ class QueueController extends Controller
      */
     public function index(Request $request): View
     {
-        $serviceFilterIds = ServiceRequest::existingIdsFromRequest($request, ['queue_services', 'service']);
+        $serviceFilterIds = ServiceRequest::existingIdsFromRequest($request, ['queue_services']);
 
         $workloadRows = $this->metrics->getWorkloadData($serviceFilterIds);
 

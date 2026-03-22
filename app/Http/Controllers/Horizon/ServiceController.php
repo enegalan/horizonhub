@@ -7,6 +7,7 @@ use App\Models\Service;
 use App\Services\HorizonApiProxyService;
 use App\Services\HorizonJobListService;
 use App\Services\HorizonMetricsService;
+use App\Support\Horizon\ConfigHelper;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -334,7 +335,7 @@ class ServiceController extends Controller
 
         $workloadQueues = $workloadQueues->values();
 
-        $perPage = (int) \config('horizonhub.jobs_per_page');
+        $perPage = (int) ConfigHelper::get('horizonhub.jobs_per_page');
 
         $pageProcessing = \max(1, (int) $request->query('page_processing', 1));
         $pageProcessed = \max(1, (int) $request->query('page_processed', 1));

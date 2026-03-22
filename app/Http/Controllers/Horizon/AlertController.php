@@ -11,6 +11,7 @@ use App\Services\Alerts\AlertChartDataService;
 use App\Services\Alerts\AlertEvaluationBatchService;
 use App\Services\Alerts\AlertUpsertService;
 use App\Support\Alerts\AlertDeliveryLogPresenter;
+use App\Support\Horizon\ConfigHelper;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -111,9 +112,9 @@ class AlertController extends Controller
     {
         $statusFilter = (string) $request->query('status', '');
         $serviceFilter = $request->query('service_id');
-        $perPage = (int) $request->query('per_page', \config('horizonhub.jobs_per_page'));
-        if ($perPage <= 0) {
-            $perPage = \config('horizonhub.jobs_per_page');
+        $perPage = (int) $request->query('per_page');
+        if (! $perPage || $perPage <= 0) {
+            $perPage = ConfigHelper::get('horizonhub.jobs_per_page');
         }
 
         $logsQuery = $alert->alertLogs()

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Service;
+use App\Support\Horizon\ConfigHelper;
 use App\Support\Horizon\JobRuntimeHelper;
 use App\Support\Horizon\RetryModalDatetimeBoundaries;
 use Carbon\Carbon;
@@ -11,13 +12,6 @@ use Illuminate\Support\Collection;
 
 class HorizonJobListService
 {
-    /**
-     * Horizon returns up to 50 jobs per HTTP response for pending/completed/failed lists.
-     *
-     * @var int
-     */
-    private const HORIZON_DEFAULT_CHUNK = 50;
-
     /**
      * The Horizon API proxy service.
      */
@@ -109,7 +103,6 @@ class HorizonJobListService
 
         foreach ($services as $service) {
             $rawJobs = $this->private__fetchAllJobsForService(
-                $service,
                 fn (array $query): array => $this->horizonApi->getFailedJobs($service, $query),
             );
             foreach ($rawJobs as $job) {
@@ -213,7 +206,7 @@ class HorizonJobListService
         $merged = \collect();
         foreach ($services as $service) {
             $fetcher = $this->private__apiFetcherForStatus($service, $status);
-            $rawJobs = $this->private__fetchAllJobsForService($service, $fetcher);
+            $rawJobs = $this->private__fetchAllJobsForService($fetcher);
             foreach ($rawJobs as $job) {
                 $row = $this->private__mapRawJobToListRow(\is_array($job) ? $job : [], $service, $status);
                 if ($row === null) {
@@ -238,7 +231,7 @@ class HorizonJobListService
     private function private__collectAndSortJobsForService(Service $service, string $status, string $search): Collection
     {
         $fetcher = $this->private__apiFetcherForStatus($service, $status);
-        $rawJobs = $this->private__fetchAllJobsForService($service, $fetcher);
+        $rawJobs = $this->private__fetchAllJobsForService($fetcher);
         $merged = \collect();
         foreach ($rawJobs as $job) {
             $row = $this->private__mapRawJobToListRow(\is_array($job) ? $job : [], $service, $status);
@@ -260,20 +253,18 @@ class HorizonJobListService
      * @param  callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>}  $fetcher
      * @return list<mixed>
      */
-    private function private__fetchAllJobsForService(Service $service, callable $fetcher): array
+    private function private__fetchAllJobsForService(callable $fetcher): array
     {
-        $maxPages = (int) \config('horizonhub.max_horizon_pages');
-        if ($maxPages < 1) {
-            $maxPages = 1;
-        }
+        $maxPages = ConfigHelper::getIntWithMin('horizonhub.max_horizon_pages', 1);
 
+        $jobsPerRequest = ConfigHelper::getIntWithMin('horizonhub.horizon_api_job_list_page_size', 1);
         $accumulated = [];
         $startingAt = -1;
 
         for ($pageIdx = 0; $pageIdx < $maxPages; $pageIdx++) {
             $response = $fetcher([
                 'starting_at' => $startingAt,
-                'limit' => self::HORIZON_DEFAULT_CHUNK,
+                'limit' => $jobsPerRequest,
             ]);
 
             if (! ($response['success'] ?? false)) {
@@ -294,7 +285,7 @@ class HorizonJobListService
                 $accumulated[] = $job;
             }
 
-            if (\count($batch) < self::HORIZON_DEFAULT_CHUNK) {
+            if (\count($batch) < $jobsPerRequest) {
                 break;
             }
 
