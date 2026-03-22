@@ -202,45 +202,134 @@ td[data-column-id="actions"] > div {
     @apply justify-center;
 }
 
-html.dark [data-sonner-toaster] {
-    --normal-bg: #000;
-    --normal-bg-hover: hsl(0, 0%, 12%);
-    --normal-border: hsl(0, 0%, 20%);
-    --normal-border-hover: hsl(0, 0%, 25%);
-    --normal-text: hsl(0, 0%, 99%);
+@layer components {
+    .notyf__toast.hub-notyf {
+        @apply rounded-lg border text-sm shadow-soft-lg;
+        max-width: min(100vw - 2rem, 24rem);
+    }
 
-    --success-bg: hsl(150, 100%, 6%);
-    --success-border: hsl(147, 100%, 12%);
-    --success-text: hsl(150, 86%, 65%);
+    .notyf__toast.hub-notyf .notyf__wrapper {
+        @apply px-1 py-0.5;
+        padding-top: 0.625rem;
+        padding-bottom: 0.625rem;
+    }
 
-    --info-bg: hsl(215, 100%, 6%);
-    --info-border: hsl(223, 43%, 17%);
-    --info-text: hsl(216, 87%, 65%);
+    .notyf__toast.hub-notyf .notyf__message {
+        @apply text-sm leading-snug;
+    }
 
-    --warning-bg: hsl(64, 100%, 6%);
-    --warning-border: hsl(60, 100%, 9%);
-    --warning-text: hsl(46, 87%, 65%);
+    .notyf__toast.hub-notyf--success {
+        @apply border-emerald-200 bg-emerald-50;
+        background-color: rgb(236 253 245) !important;
+    }
 
-    --error-bg: hsl(358, 76%, 10%);
-    --error-border: hsl(357, 89%, 16%);
-    --error-text: hsl(358, 100%, 81%);
+    .notyf__toast.hub-notyf--success .notyf__message {
+        @apply text-emerald-900;
+    }
+
+    .dark .notyf__toast.hub-notyf--success {
+        border-color: hsl(147, 100%, 12%);
+        background-color: hsl(150, 100%, 6%) !important;
+    }
+
+    .dark .notyf__toast.hub-notyf--success .notyf__message {
+        color: hsl(150, 86%, 65%);
+    }
+
+    .notyf__toast.hub-notyf--error {
+        @apply border-red-200 bg-red-50;
+        background-color: rgb(254 242 242) !important;
+    }
+
+    .notyf__toast.hub-notyf--error .notyf__message {
+        @apply text-red-900;
+    }
+
+    .dark .notyf__toast.hub-notyf--error {
+        border-color: hsl(357, 89%, 16%);
+        background-color: hsl(358, 76%, 10%) !important;
+    }
+
+    .dark .notyf__toast.hub-notyf--error .notyf__message {
+        color: hsl(358, 100%, 81%);
+    }
+
+    .notyf__toast.hub-notyf--info {
+        @apply border-sky-200 bg-sky-50;
+        background-color: rgb(240 249 255) !important;
+    }
+
+    .notyf__toast.hub-notyf--info .notyf__message {
+        @apply text-sky-900;
+    }
+
+    .dark .notyf__toast.hub-notyf--info {
+        border-color: hsl(223, 43%, 17%);
+        background-color: hsl(215, 100%, 6%) !important;
+    }
+
+    .dark .notyf__toast.hub-notyf--info .notyf__message {
+        color: hsl(216, 87%, 65%);
+    }
+
+    .notyf__toast.hub-notyf--warning {
+        @apply border-amber-200 bg-amber-50;
+        background-color: rgb(255 251 235) !important;
+    }
+
+    .notyf__toast.hub-notyf--warning .notyf__message {
+        @apply text-amber-950;
+    }
+
+    .dark .notyf__toast.hub-notyf--warning {
+        border-color: hsl(60, 100%, 9%);
+        background-color: hsl(64, 100%, 6%) !important;
+    }
+
+    .dark .notyf__toast.hub-notyf--warning .notyf__message {
+        color: hsl(46, 87%, 65%);
+    }
+
+    .air-datepicker {
+        --adp-border-radius: calc(var(--radius) - 2px) !important;
+        --adp-background-color: hsl(var(--popover)) !important;
+        --adp-color: hsl(var(--popover-foreground)) !important;
+        --adp-border-color: hsl(var(--border)) !important;
+        --adp-border-color-inline: hsl(var(--border)) !important;
+        --adp-border-color-inner: hsl(var(--border)) !important;
+        --adp-background-color-hover: hsl(var(--accent)) !important;
+        --adp-background-color-active: hsl(var(--accent)) !important;
+        --adp-color-secondary: hsl(var(--muted-foreground)) !important;
+        --adp-accent-color: var(--primary) !important;
+        --adp-cell-border-color-in-range: hsl(var(--border)) !important;
+        --adp-nav-arrow-color: hsl(var(--muted-foreground)) !important;
+        --adp-day-name-color: hsl(var(--muted-foreground)) !important;
+        --adp-day-name-color-hover: hsl(var(--accent-foreground)) !important;
+        --adp-cell-background-color-hover: hsl(var(--accent)) !important;
+        --adp-cell-background-color-in-range: hsl(var(--muted)) !important;
+        --adp-cell-background-color-selected: hsl(var(--primary)) !important;
+        --adp-cell-background-color-selected-hover: hsl(var(--primary)) !important;
+        --adp-btn-color: hsl(var(--primary)) !important;
+        --adp-btn-color-hover: hsl(var(--foreground)) !important;
+        --adp-time-track-color: hsl(var(--border)) !important;
+        --adp-time-track-color-hover: hsl(var(--muted-foreground)) !important;
+        --adp-background-color-in-range: hsl(var(--muted)) !important;
+        --adp-background-color-in-range-focused: hsl(var(--border)) !important;
+        --adp-cell-background-color-in-range-hover: hsl(var(--border)) !important;
+        --adp-background-color-selected-other-month: hsl(var(--accent)) !important;
+        --adp-background-color-selected-other-month-focused: hsl(var(--border)) !important;
+        @apply shadow-lg;
+    }
+}
+.air-datepicker i.air-datepicker--pointer:after {
+    background: hsl(var(--popover)) !important;
+    border-top-color: hsl(var(--border)) !important;
+    border-right-color: hsl(var(--border)) !important;
 }
 
-html.dark [data-sonner-toaster] [data-sonner-toast] [data-description] {
-    color: hsl(0, 0%, 91%);
+.air-datepicker div.air-datepicker-cell.-selected-:not(.-other-month-) {
+    color: hsl(var(--primary-foreground)) !important;
 }
-
-html.dark [data-sonner-toaster] [data-sonner-toast][data-styled='true'] [data-cancel] {
-    background: rgba(255, 255, 255, 0.3);
-}
-
-html.dark [data-sonner-toaster] [data-sonner-toast] [data-close-button] {
-    background: var(--normal-bg);
-    border-color: var(--normal-border);
-    color: var(--normal-text);
-}
-
-html.dark [data-sonner-toaster] [data-sonner-toast] [data-close-button]:hover {
-    background: var(--normal-bg-hover);
-    border-color: var(--normal-border-hover);
+div.-selected-.air-datepicker-cell.-day-.-other-month- {
+    color: var(--adp-color) !important;
 }

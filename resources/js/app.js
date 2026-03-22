@@ -1,6 +1,6 @@
 import './bootstrap';
 import './components/resizable-table';
-import { horizonJobsPage, horizonJobDetail } from './horizon/jobs';
+import { horizonJobsPage, horizonJobDetail, horizonJobRowRetry } from './horizon/jobs';
 import { horizonServiceDashboard, horizonServiceList } from './horizon/services';
 import { horizonQueueList } from './horizon/queues';
 import { horizonAlertsList, horizonAlertDetail } from './horizon/alerts';
@@ -11,11 +11,13 @@ import { formatQueueWaitElements, observeQueueWaitElements } from './lib/queue-w
 import { formatDateTimeElements } from './lib/datetime-format';
 import { mountToaster } from './components/toaster';
 import { hydrateMetricsChartsFromDom, hydrateAlertDetailChartsFromDom } from './charts/metrics-charts';
-import { registerToastEventListeners } from './components/toast-events';
 import { applyTheme } from './components/theme';
+import { registerInputDatePicker } from './components/input-date-picker';
 import { onDocumentReady, schedule } from './utils/init';
 import Alpine from 'alpinejs';
 import moment from 'moment';
+
+registerInputDatePicker(Alpine);
 
 if (!window.horizon) window.horizon = {};
 window.horizon.http = createHttpHelpers();
@@ -24,6 +26,7 @@ if (!window.moment) window.moment = moment;
 
 window.horizonJobsPage = horizonJobsPage;
 window.horizonJobDetail = horizonJobDetail;
+window.horizonJobRowRetry = horizonJobRowRetry;
 window.horizonServiceDashboard = horizonServiceDashboard;
 window.horizonServiceList = horizonServiceList;
 window.horizonQueueList = horizonQueueList;
@@ -53,7 +56,6 @@ function hydratePage() {
  */
 onDocumentReady(function () {
     mountToaster();
-    registerToastEventListeners();
     applyTheme();
     window.dispatchEvent(new CustomEvent('apply-theme'));
     hydratePage();

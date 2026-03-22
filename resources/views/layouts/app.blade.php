@@ -123,6 +123,5 @@
             </main>
             </div>
         </div>
-        <div id="toaster" aria-live="polite"></div>
     </body>
 </html>

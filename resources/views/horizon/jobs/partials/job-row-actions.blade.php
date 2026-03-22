@@ -10,7 +10,33 @@
         $horizonJobUrl = \rtrim($dashboardBase, '/') . $horizonDashboardPath . '/jobs/' . \urlencode((string) $jobUuidForDashboard);
     }
 @endphp
+@php
+    $showRetry = $showRetry ?? false;
+@endphp
 <div class="flex items-center gap-1">
+    @if($showRetry)
+        <div
+            class="inline-flex"
+            x-data='window.horizonJobRowRetry(@json(["retryUrl" => route("horizon.jobs.retry", ["uuid" => $job->uuid])]))'
+        >
+            <x-button
+                type="button"
+                variant="secondary"
+                class="h-8 min-h-8 p-2 rounded-md relative"
+                aria-label="Retry"
+                title="Retry"
+                x-bind:disabled="retrying"
+                @click="retry()"
+            >
+                <span x-show="!retrying">
+                    <x-heroicon-o-arrow-path class="size-4" />
+                </span>
+                <span x-show="retrying" class="inline-flex items-center" aria-hidden="true">
+                    <x-loader class="size-4" />
+                </span>
+            </x-button>
+        </div>
+    @endif
     <x-button
         variant="secondary"
         class="h-8 min-h-8 p-2 rounded-md"

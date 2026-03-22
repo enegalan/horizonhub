@@ -188,7 +188,7 @@ class HorizonMetricsServiceTest extends TestCase
         ]);
 
         $metrics = new HorizonMetricsService($api);
-        $result = $metrics->getFailureRateOverTime($service->id);
+        $result = $metrics->getFailureRateOverTime([(int) $service->id]);
 
         $endHour = $now->copy()->startOfHour();
         $expectedBucketCount = \min(
@@ -209,7 +209,114 @@ class HorizonMetricsServiceTest extends TestCase
         Carbon::setTestNow();
     }
 
-    public function test_get_avg_runtime_over_time_builds_expected_avg_seconds(): void
+    public function test_get_jobs_volume_last24h_counts_hourly_completed_and_failed(): void
+    {
+        $api = $this->createMock(HorizonApiProxyService::class);
+
+        $now = Carbon::parse('2026-03-21 15:30:00');
+        Carbon::setTestNow($now);
+
+        $service = Service::create([
+            'name' => 'svc-jobs-volume-24h',
+            'api_key' => 'k72345678901234567890123456789012345678901234567890123456789012',
+            'base_url' => 'https://jobs-volume-24h.test',
+            'status' => 'online',
+        ]);
+
+        $sinceBucketStart = $now->copy()->subHours(24)->startOfHour();
+        $activeHour = $sinceBucketStart->copy()->addHour();
+
+        $api->method('getCompletedJobs')->willReturn([
+            'success' => true,
+            'data' => [
+                'jobs' => [
+                    ['completed_at' => $activeHour->copy()->addMinutes(10)->getTimestamp()],
+                    ['completed_at' => $activeHour->copy()->addMinutes(20)->getTimestamp()],
+                ],
+            ],
+        ]);
+        $api->method('getFailedJobs')->willReturn([
+            'success' => true,
+            'data' => [
+                'jobs' => [
+                    ['failed_at' => $activeHour->copy()->addMinutes(30)->getTimestamp()],
+                ],
+            ],
+        ]);
+
+        $metrics = new HorizonMetricsService($api);
+        $result = $metrics->getJobsVolumeLast24h([(int) $service->id]);
+
+        $this->assertCount(25, $result['xAxis']);
+        $this->assertCount(25, $result['completed']);
+        $this->assertCount(25, $result['failed']);
+
+        $this->assertSame(0, $result['completed'][0]);
+        $this->assertSame(0, $result['failed'][0]);
+        $this->assertSame(2, $result['completed'][1]);
+        $this->assertSame(1, $result['failed'][1]);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_get_failure_rate_24h_fetches_multiple_horizon_pages_using_index_cursor(): void
+    {
+        $api = $this->createMock(HorizonApiProxyService::class);
+
+        $now = Carbon::parse('2026-03-20 15:30:00');
+        Carbon::setTestNow($now);
+
+        $service = Service::create([
+            'name' => 'svc-pagination',
+            'api_key' => 'k52345678901234567890123456789012345678901234567890123456789012',
+            'base_url' => 'https://metrics-pagination.test',
+            'status' => 'online',
+        ]);
+
+        $since = $now->copy()->subDay()->startOfDay();
+        $sinceTs = $since->getTimestamp();
+        $completedTs = $sinceTs + 3600;
+
+        $api->method('getCompletedJobs')->willReturnCallback(function ($svc, array $query) use ($service, $completedTs): array {
+            $this->assertInstanceOf(Service::class, $svc);
+            $this->assertSame((int) $service->id, (int) $svc->id);
+            $startingAt = (int) ($query['starting_at'] ?? -1);
+            if ($startingAt === -1) {
+                $jobs = [];
+                for ($i = 0; $i < 50; $i++) {
+                    $jobs[] = [
+                        'completed_at' => $completedTs + $i,
+                        'index' => $i,
+                    ];
+                }
+
+                return ['success' => true, 'data' => ['jobs' => $jobs]];
+            }
+            if ($startingAt === 49) {
+                return ['success' => true, 'data' => ['jobs' => [
+                    ['completed_at' => $completedTs + 100, 'index' => 50],
+                ]]];
+            }
+
+            return ['success' => true, 'data' => ['jobs' => []]];
+        });
+
+        $api->method('getFailedJobs')->willReturn([
+            'success' => true,
+            'data' => ['jobs' => []],
+        ]);
+
+        $metrics = new HorizonMetricsService($api);
+        $result = $metrics->getFailureRate24h([(int) $service->id]);
+
+        $this->assertSame(51, $result['processed']);
+        $this->assertSame(0, $result['failed']);
+        $this->assertSame(0.0, $result['rate']);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_get_job_runtimes_last24h_returns_sorted_points_with_seconds(): void
     {
         $api = $this->createMock(HorizonApiProxyService::class);
 
@@ -223,28 +330,28 @@ class HorizonMetricsServiceTest extends TestCase
             'status' => 'online',
         ]);
 
-        $since = $now->copy()->subDay()->startOfDay();
-        $bucket = $since->copy()->addHours(2);
+        $endNewer = $now->copy()->subHours(1)->getTimestamp();
+        $reservedNewer = $endNewer - 120;
 
-        $completedAt1 = $bucket->copy()->addMinutes(10)->getTimestamp();
-        $reservedAt1 = $completedAt1 - 120;
-        $completedAt2 = $bucket->copy()->addMinutes(20)->getTimestamp();
-        $reservedAt2 = $completedAt2 - 180;
+        $endMid = $now->copy()->subHours(2)->getTimestamp();
+        $reservedMid = $endMid - 180;
 
-        $failedAt = $bucket->copy()->addMinutes(30)->getTimestamp();
-        $reservedAtFailed = $failedAt - 240;
+        $endOlder = $now->copy()->subHours(3)->getTimestamp();
+        $reservedOlder = $endOlder - 240;
 
         $api->method('getCompletedJobs')->willReturn([
             'success' => true,
             'data' => [
                 'jobs' => [
                     [
-                        'reserved_at' => $reservedAt1,
-                        'completed_at' => $completedAt1,
+                        'name' => 'App\\Jobs\\Newer',
+                        'reserved_at' => $reservedNewer,
+                        'completed_at' => $endNewer,
                     ],
                     [
-                        'reserved_at' => $reservedAt2,
-                        'completed_at' => $completedAt2,
+                        'name' => 'App\\Jobs\\Mid',
+                        'reserved_at' => $reservedMid,
+                        'completed_at' => $endMid,
                     ],
                 ],
             ],
@@ -254,30 +361,31 @@ class HorizonMetricsServiceTest extends TestCase
             'data' => [
                 'jobs' => [
                     [
-                        'reserved_at' => $reservedAtFailed,
-                        'failed_at' => $failedAt,
+                        'name' => 'App\\Jobs\\OlderFailed',
+                        'reserved_at' => $reservedOlder,
+                        'failed_at' => $endOlder,
                     ],
                 ],
             ],
         ]);
 
         $metrics = new HorizonMetricsService($api);
-        $result = $metrics->getAvgRuntimeOverTime($service->id);
+        $result = $metrics->getJobRuntimesLast24h([(int) $service->id]);
 
-        $endHour = $now->copy()->startOfHour();
-        $expectedBucketCount = \min(
-            48,
-            ($endHour->getTimestamp() - $since->getTimestamp()) / 3600 + 1
-        );
+        $this->assertCount(3, $result['points']);
 
-        $this->assertCount((int) $expectedBucketCount, $result['xAxis']);
-        $this->assertCount((int) $expectedBucketCount, $result['avgSeconds']);
+        $this->assertSame($endOlder * 1000, $result['points'][0]['endAtMs']);
+        $this->assertSame(240.0, $result['points'][0]['seconds']);
+        $this->assertSame('failed', $result['points'][0]['status']);
+        $this->assertSame('App\\Jobs\\OlderFailed', $result['points'][0]['name']);
 
-        $indexBucket = (int) (($bucket->getTimestamp() - $since->getTimestamp()) / 3600);
+        $this->assertSame($endMid * 1000, $result['points'][1]['endAtMs']);
+        $this->assertSame(180.0, $result['points'][1]['seconds']);
+        $this->assertSame('completed', $result['points'][1]['status']);
 
-        // Sum = 120 + 180 + 240 = 540; Count = 3 => 180.00
-        $this->assertSame(180.0, $result['avgSeconds'][$indexBucket]);
-        $this->assertNull($result['avgSeconds'][$indexBucket + 1]);
+        $this->assertSame($endNewer * 1000, $result['points'][2]['endAtMs']);
+        $this->assertSame(120.0, $result['points'][2]['seconds']);
+        $this->assertSame('completed', $result['points'][2]['status']);
 
         Carbon::setTestNow();
     }
@@ -332,7 +440,7 @@ class HorizonMetricsServiceTest extends TestCase
         ]);
 
         $metrics = new HorizonMetricsService($api);
-        $rows = $metrics->getSupervisorsData($service->id);
+        $rows = $metrics->getSupervisorsData([(int) $service->id]);
 
         $this->assertCount(2, $rows);
 

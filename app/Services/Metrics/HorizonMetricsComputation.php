@@ -25,12 +25,21 @@ abstract class HorizonMetricsComputation
     protected const TOP_N_QUEUES = 12;
 
     /**
-     * Maximum number of API pages to fetch when building 24h metrics (avoids infinite loops).
+     * Horizon lists (completed/failed) return at most this many jobs per HTTP response
+     * (see Laravel Horizon RedisJobRepository::getJobsByType).
+     *
+     * @var int
      */
-    protected const METRICS_24H_MAX_PAGES = 20;
+    protected const HORIZON_JOBS_LIST_CHUNK = 50;
 
+    /**
+     * The Horizon API proxy service.
+     */
     protected HorizonApiProxyService $horizonApi;
 
+    /**
+     * Construct the Horizon metrics computation.
+     */
     public function __construct(HorizonApiProxyService $horizonApi)
     {
         $this->horizonApi = $horizonApi;
@@ -100,8 +109,12 @@ abstract class HorizonMetricsComputation
         $jobs = [];
         $startingAt = -1;
         $page = 0;
+        $maxPages = (int) \config('horizonhub.max_horizon_pages');
+        if ($maxPages < 1) {
+            $maxPages = 1;
+        }
 
-        while ($page < self::METRICS_24H_MAX_PAGES) {
+        while ($page < $maxPages) {
             $response = $pageFetcher([
                 'starting_at' => $startingAt,
                 'limit' => $pageLimit,
@@ -133,10 +146,10 @@ abstract class HorizonMetricsComputation
                 }
             }
 
-            if ($oldestInBatch === null || $oldestInBatch < $sinceTimestamp || \count($batch) < $pageLimit) {
+            if ($oldestInBatch === null || $oldestInBatch < $sinceTimestamp || \count($batch) < self::HORIZON_JOBS_LIST_CHUNK) {
                 break;
             }
-            $startingAt = $oldestInBatch;
+            $startingAt = $this->private__nextMetricsJobsStartingAt($startingAt, $batch);
             $page++;
         }
 
@@ -144,17 +157,40 @@ abstract class HorizonMetricsComputation
     }
 
     /**
+     * Next Horizon jobs list cursor: starting_at is a zero-based index into the Redis-backed list, not a unix timestamp.
+     *
+     * @param  list<mixed>  $batch
+     */
+    protected function private__nextMetricsJobsStartingAt(int $startingAt, array $batch): int
+    {
+        $last = $batch[\array_key_last($batch)];
+        if (\is_array($last) && isset($last['index'])) {
+            return (int) $last['index'];
+        }
+
+        return \max(0, $startingAt + 1) + \count($batch) - 1;
+    }
+
+    /**
      * Get services that can provide Horizon metrics.
      *
+     * @param  list<int>  $serviceScope  Empty = all services with base_url; non-empty = restrict by id.
      * @param  array<int, string>  $selectColumns
      * @return Collection<int, Service>
      */
-    protected function private__getServicesForMetrics(?int $service_id = null, bool $orderByName = false, array $selectColumns = []): Collection
+    protected function private__getServicesForMetrics(array $serviceScope = [], bool $orderByName = false, array $selectColumns = []): Collection
     {
         $servicesQuery = Service::query()->whereNotNull('base_url');
 
-        if ($service_id !== null) {
-            $servicesQuery->where('id', $service_id);
+        if ($serviceScope !== []) {
+            $ids = \array_values(\array_unique(\array_filter(
+                \array_map(static fn ($v): int => (int) $v, $serviceScope),
+                static fn (int $id): bool => $id > 0,
+            )));
+            if ($ids === []) {
+                return new Collection;
+            }
+            $servicesQuery->whereIn('id', $ids);
         }
 
         if ($orderByName) {

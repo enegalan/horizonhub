@@ -9,7 +9,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class RefreshStreamController extends StreamController
 {
     /** @var array<int, string> Allowed query param names when fetching page HTML. */
-    private const ALLOWED_QUERY_KEYS = ['service', 'service_id', 'serviceFilter', 'statusFilter', 'search', 'page'];
+    private const ALLOWED_QUERY_KEYS = ['service', 'queue_services', 'service_id', 'serviceFilter', 'statusFilter', 'search', 'page'];
 
     /**
      * Open the generic Horizon Hub refresh stream (SSE).
@@ -76,19 +76,23 @@ class RefreshStreamController extends StreamController
         if ($raw === null || $raw === '' || ! \is_string($raw)) {
             return '';
         }
+
+        $decoded = \rawurldecode($raw);
         $pairs = [];
-        foreach (\explode('&', $raw) as $segment) {
+        foreach (\explode('&', $decoded) as $segment) {
             if ($segment === '') {
                 continue;
             }
             $eq = \strpos($segment, '=');
-            $key = $eq !== false ? \substr($segment, 0, $eq) : $segment;
-            $key = \trim($key);
-            if ($key === '' || ! \in_array($key, self::ALLOWED_QUERY_KEYS, true)) {
+            $keyEncoded = $eq !== false ? \substr($segment, 0, $eq) : $segment;
+            $key = \rawurldecode(\trim($keyEncoded));
+            $keyBase = \preg_replace('/\[\]$/', '', $key) ?? $key;
+            if ($key === '' || ! \in_array($keyBase, self::ALLOWED_QUERY_KEYS, true)) {
                 continue;
             }
-            $value = $eq !== false ? \substr($segment, $eq + 1) : '';
-            $pairs[] = "$key=$value";
+            $valueRaw = $eq !== false ? \substr($segment, $eq + 1) : '';
+            $value = \rawurldecode($valueRaw);
+            $pairs[] = \rawurlencode($key).'='.\rawurlencode($value);
         }
 
         return \implode('&', $pairs);

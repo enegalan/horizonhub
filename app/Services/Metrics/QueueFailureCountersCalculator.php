@@ -11,12 +11,12 @@ class QueueFailureCountersCalculator extends HorizonMetricsComputation
      *
      * @return array{queues: list<string>, processed: list<int>, failed: list<int>}
      */
-    public function getProcessedFailedByQueue(?int $service_id = null): array
+    public function getProcessedFailedByQueue(array $serviceScope = []): array
     {
         $since = \now()->subDays(self::DAYS_7);
         $sinceTimestamp = $since->getTimestamp();
 
-        $services = $this->private__getServicesForMetrics($service_id);
+        $services = $this->private__getServicesForMetrics($serviceScope);
         if ($services->isEmpty()) {
             return ['queues' => [], 'processed' => [], 'failed' => []];
         }

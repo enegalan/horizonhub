@@ -35,36 +35,18 @@ class MetricsControllerTest extends TestCase
         $serviceId = (int) $service->id;
 
         $metrics->expects($this->once())
-            ->method('getJobsPastMinute')
-            ->willReturnCallback(static function ($svc) use ($serviceId): int {
-                Assert::assertInstanceOf(Service::class, $svc);
-                Assert::assertSame($serviceId, (int) $svc->id);
-
-                return 11;
-            });
-
-        $metrics->expects($this->once())
-            ->method('getJobsPastHour')
-            ->willReturnCallback(static function ($svc) use ($serviceId): int {
-                Assert::assertInstanceOf(Service::class, $svc);
-                Assert::assertSame($serviceId, (int) $svc->id);
-
-                return 22;
-            });
-
-        $metrics->expects($this->once())
-            ->method('getFailedPastSevenDays')
-            ->willReturnCallback(static function ($svc) use ($serviceId): int {
-                Assert::assertInstanceOf(Service::class, $svc);
-                Assert::assertSame($serviceId, (int) $svc->id);
-
-                return 33;
-            });
+            ->method('getThroughputTotalsForServiceIds')
+            ->with([$serviceId])
+            ->willReturn([
+                'jobsPastMinute' => 11,
+                'jobsPastHour' => 22,
+                'failedPastSevenDays' => 33,
+            ]);
 
         $metrics->expects($this->once())
             ->method('getFailureRate24h')
-            ->willReturnCallback(static function ($serviceIdArg) use ($serviceId): array {
-                Assert::assertSame($serviceId, (int) $serviceIdArg);
+            ->willReturnCallback(static function (array $scope) use ($serviceId): array {
+                Assert::assertSame([$serviceId], $scope);
 
                 return [
                     'rate' => 1.2,
@@ -87,32 +69,44 @@ class MetricsControllerTest extends TestCase
         $this->assertSame(3, $data['failureRate24h']['failed']);
     }
 
-    public function test_data_avg_runtime_returns_payload_and_delegates(): void
+    public function test_data_job_runtimes_last24h_returns_payload_and_delegates(): void
     {
         $service = Service::create([
-            'name' => 'svc-metrics-controller-avg-runtime',
+            'name' => 'svc-metrics-controller-job-runtimes',
             'api_key' => 'k22345678901234567890123456789012345678901234567890123456789012',
-            'base_url' => 'https://metrics-controller-avg-runtime.test',
+            'base_url' => 'https://metrics-controller-job-runtimes.test',
             'status' => 'online',
         ]);
 
         $metrics = $this->createMock(HorizonMetricsService::class);
 
-        $metrics->expects($this->once())
-            ->method('getAvgRuntimeOverTime')
-            ->willReturnCallback(static function ($serviceIdArg) use ($service): array {
-                Assert::assertSame((int) $service->id, (int) $serviceIdArg);
+        $payload = [
+            'points' => [
+                [
+                    'endAtMs' => 1_720_000_000_000,
+                    'seconds' => 12.5,
+                    'name' => 'App\\Jobs\\Example',
+                    'service' => 'svc-metrics-controller-job-runtimes',
+                    'status' => 'completed',
+                ],
+            ],
+        ];
 
-                return ['xAxis' => ['01/01 00:00'], 'avgSeconds' => [1.23]];
+        $metrics->expects($this->once())
+            ->method('getJobRuntimesLast24h')
+            ->willReturnCallback(static function (array $scope) use ($service, $payload): array {
+                Assert::assertSame([(int) $service->id], $scope);
+
+                return $payload;
             });
 
         $controller = new MetricsController($metrics);
-        $request = $this->createServiceRequest('/horizon/metrics/data/avg-runtime?service_id='.$service->id);
+        $request = $this->createServiceRequest('/horizon/metrics/data/job-runtimes-last-24h?service_id='.$service->id);
 
-        $response = $controller->dataAvgRuntime($request);
+        $response = $controller->dataJobRuntimesLast24h($request);
         $data = $response->getData(true);
 
-        $this->assertSame(['xAxis' => ['01/01 00:00'], 'avgSeconds' => [1.23]], $data);
+        $this->assertSame($payload, $data);
     }
 
     public function test_data_failure_rate_over_time_returns_payload_and_delegates(): void
@@ -128,8 +122,8 @@ class MetricsControllerTest extends TestCase
 
         $metrics->expects($this->once())
             ->method('getFailureRateOverTime')
-            ->willReturnCallback(static function ($serviceIdArg) use ($service): array {
-                Assert::assertSame((int) $service->id, (int) $serviceIdArg);
+            ->willReturnCallback(static function (array $scope) use ($service): array {
+                Assert::assertSame([(int) $service->id], $scope);
 
                 return ['xAxis' => ['01/01 00:00'], 'rate' => [12.3]];
             });
@@ -141,6 +135,41 @@ class MetricsControllerTest extends TestCase
         $data = $response->getData(true);
 
         $this->assertSame(['xAxis' => ['01/01 00:00'], 'rate' => [12.3]], $data);
+    }
+
+    public function test_data_jobs_volume_last24h_returns_payload_and_delegates(): void
+    {
+        $service = Service::create([
+            'name' => 'svc-metrics-controller-jobs-volume',
+            'api_key' => 'k62345678901234567890123456789012345678901234567890123456789012',
+            'base_url' => 'https://metrics-controller-jobs-volume.test',
+            'status' => 'online',
+        ]);
+
+        $metrics = $this->createMock(HorizonMetricsService::class);
+
+        $metrics->expects($this->once())
+            ->method('getJobsVolumeLast24h')
+            ->willReturnCallback(static function (array $scope) use ($service): array {
+                Assert::assertSame([(int) $service->id], $scope);
+
+                return [
+                    'xAxis' => ['20/03 15:00'],
+                    'completed' => [1],
+                    'failed' => [0],
+                ];
+            });
+
+        $controller = new MetricsController($metrics);
+        $request = $this->createServiceRequest('/horizon/metrics/data/jobs-volume-last-24h?service_id='.$service->id);
+
+        $response = $controller->dataJobsVolumeLast24h($request);
+        $data = $response->getData(true);
+
+        $this->assertSame(
+            ['xAxis' => ['20/03 15:00'], 'completed' => [1], 'failed' => [0]],
+            $data
+        );
     }
 
     public function test_data_supervisors_returns_payload_and_delegates(): void
@@ -156,8 +185,8 @@ class MetricsControllerTest extends TestCase
 
         $metrics->expects($this->once())
             ->method('getSupervisorsData')
-            ->willReturnCallback(static function ($serviceIdArg) use ($service): array {
-                Assert::assertSame((int) $service->id, (int) $serviceIdArg);
+            ->willReturnCallback(static function (array $scope) use ($service): array {
+                Assert::assertSame([(int) $service->id], $scope);
 
                 return [
                     [
@@ -195,8 +224,8 @@ class MetricsControllerTest extends TestCase
 
         $metrics->expects($this->once())
             ->method('getWorkloadData')
-            ->willReturnCallback(static function ($serviceIdArg) use ($service): array {
-                Assert::assertSame((int) $service->id, (int) $serviceIdArg);
+            ->willReturnCallback(static function (array $scope) use ($service): array {
+                Assert::assertSame([(int) $service->id], $scope);
 
                 return [
                     [
@@ -233,23 +262,17 @@ class MetricsControllerTest extends TestCase
         $metrics = $this->createMock(HorizonMetricsService::class);
 
         $metrics->expects($this->once())
-            ->method('getJobsPastMinute')
-            ->with(null)
-            ->willReturn(11);
-
-        $metrics->expects($this->once())
-            ->method('getJobsPastHour')
-            ->with(null)
-            ->willReturn(22);
-
-        $metrics->expects($this->once())
-            ->method('getFailedPastSevenDays')
-            ->with(null)
-            ->willReturn(33);
+            ->method('getThroughputTotalsForServiceIds')
+            ->with([])
+            ->willReturn([
+                'jobsPastMinute' => 11,
+                'jobsPastHour' => 22,
+                'failedPastSevenDays' => 33,
+            ]);
 
         $metrics->expects($this->once())
             ->method('getFailureRate24h')
-            ->with(null)
+            ->with([])
             ->willReturn([
                 'rate' => 1.2,
                 'processed' => 10,

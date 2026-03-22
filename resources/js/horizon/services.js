@@ -57,6 +57,9 @@ export function horizonServiceDashboard() {
             currentRoot.replaceWith(newRoot);
             formatDateTimeElements(newRoot);
             formatQueueWaitElements(newRoot);
+            if (typeof window !== 'undefined' && window.Alpine && typeof window.Alpine.initTree === 'function') {
+                window.Alpine.initTree(newRoot);
+            }
             if (typeof window !== 'undefined' && window.horizonInitResizableTables) {
                 window.horizonInitResizableTables();
             }

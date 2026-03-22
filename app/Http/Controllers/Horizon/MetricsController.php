@@ -30,17 +30,18 @@ class MetricsController extends Controller
     public function index(ServiceRequest $request): View
     {
         $services = Service::orderBy('name')->get(['id', 'name']);
-        $serviceIdForMetrics = $request->getServiceId();
-        $serviceFilter = $serviceIdForMetrics !== null ? (string) $serviceIdForMetrics : '';
-        $serviceModel = $request->getService();
-        $jobsPastMinute = $this->metrics->getJobsPastMinute($serviceModel);
-        $jobsPastHour = $this->metrics->getJobsPastHour($serviceModel);
-        $failedPastSevenDays = $this->metrics->getFailedPastSevenDays($serviceModel);
-        $failureRate24h = $this->metrics->getFailureRate24h($serviceIdForMetrics);
-        $avgRuntimeOverTime = $this->metrics->getAvgRuntimeOverTime($serviceIdForMetrics);
-        $failureRateOverTime = $this->metrics->getFailureRateOverTime($serviceIdForMetrics);
-        $workloadRows = $this->metrics->getWorkloadData($serviceIdForMetrics);
-        $supervisorsRows = $this->metrics->getSupervisorsData($serviceIdForMetrics);
+        $serviceIds = $request->getServiceIds();
+        $scope = $request->getServiceIds();
+        $throughput = $this->metrics->getThroughputTotalsForServiceIds($serviceIds);
+        $jobsPastMinute = $throughput['jobsPastMinute'];
+        $jobsPastHour = $throughput['jobsPastHour'];
+        $failedPastSevenDays = $throughput['failedPastSevenDays'];
+        $failureRate24h = $this->metrics->getFailureRate24h($scope);
+        $jobRuntimesLast24h = $this->metrics->getJobRuntimesLast24h($scope);
+        $failureRateOverTime = $this->metrics->getFailureRateOverTime($scope);
+        $jobsVolumeLast24h = $this->metrics->getJobsVolumeLast24h($scope);
+        $workloadRows = $this->metrics->getWorkloadData($scope);
+        $supervisorsRows = $this->metrics->getSupervisorsData($scope);
 
         $totalQueues = \is_array($workloadRows) ? \count($workloadRows) : 0;
         $totalJobs = 0;
@@ -74,15 +75,16 @@ class MetricsController extends Controller
             'jobsPastHour' => $jobsPastHour,
             'failedPastSevenDays' => $failedPastSevenDays,
             'failureRate24h' => $failureRate24h,
-            'avgRuntimeOverTime' => $avgRuntimeOverTime,
+            'jobRuntimesLast24h' => $jobRuntimesLast24h,
             'failureRateOverTime' => $failureRateOverTime,
+            'jobsVolumeLast24h' => $jobsVolumeLast24h,
             'workloadRows' => $workloadRows,
             'supervisorsRows' => $supervisorsRows,
             'workloadSummary' => $workloadSummary,
             'supervisorsSummary' => $supervisorsSummary,
             'header' => 'Horizon Hub – Metrics',
             'services' => $services,
-            'serviceFilter' => $serviceFilter,
+            'serviceIds' => $serviceIds,
         ]);
     }
 
@@ -91,25 +93,26 @@ class MetricsController extends Controller
      */
     public function dataSummary(ServiceRequest $request): JsonResponse
     {
-        $serviceId = $request->getServiceId();
-        $service = $request->getService();
+        $serviceIds = $request->getServiceIds();
+        $scope = $request->getServiceIds();
+        $throughput = $this->metrics->getThroughputTotalsForServiceIds($serviceIds);
 
         return \response()->json([
-            'jobsPastMinute' => $this->metrics->getJobsPastMinute($service),
-            'jobsPastHour' => $this->metrics->getJobsPastHour($service),
-            'failedPastSevenDays' => $this->metrics->getFailedPastSevenDays($service),
-            'failureRate24h' => $this->metrics->getFailureRate24h($serviceId),
+            'jobsPastMinute' => $throughput['jobsPastMinute'],
+            'jobsPastHour' => $throughput['jobsPastHour'],
+            'failedPastSevenDays' => $throughput['failedPastSevenDays'],
+            'failureRate24h' => $this->metrics->getFailureRate24h($scope),
         ]);
     }
 
     /**
-     * Get the average runtime data for the metrics dashboard.
+     * Get per-job runtime data for the metrics dashboard (rolling last 24 hours).
      */
-    public function dataAvgRuntime(ServiceRequest $request): JsonResponse
+    public function dataJobRuntimesLast24h(ServiceRequest $request): JsonResponse
     {
-        $serviceId = $request->getServiceId();
+        $scope = $request->getServiceIds();
 
-        return \response()->json($this->metrics->getAvgRuntimeOverTime($serviceId));
+        return \response()->json($this->metrics->getJobRuntimesLast24h($scope));
     }
 
     /**
@@ -117,9 +120,19 @@ class MetricsController extends Controller
      */
     public function dataFailureRateOverTime(ServiceRequest $request): JsonResponse
     {
-        $serviceId = $request->getServiceId();
+        $scope = $request->getServiceIds();
 
-        return \response()->json($this->metrics->getFailureRateOverTime($serviceId));
+        return \response()->json($this->metrics->getFailureRateOverTime($scope));
+    }
+
+    /**
+     * Get hourly job counts over the rolling last 24 hours for the metrics dashboard.
+     */
+    public function dataJobsVolumeLast24h(ServiceRequest $request): JsonResponse
+    {
+        $scope = $request->getServiceIds();
+
+        return \response()->json($this->metrics->getJobsVolumeLast24h($scope));
     }
 
     /**
@@ -127,10 +140,10 @@ class MetricsController extends Controller
      */
     public function dataSupervisors(ServiceRequest $request): JsonResponse
     {
-        $serviceId = $request->getServiceId();
+        $scope = $request->getServiceIds();
 
         return \response()->json([
-            'supervisors' => $this->metrics->getSupervisorsData($serviceId),
+            'supervisors' => $this->metrics->getSupervisorsData($scope),
         ]);
     }
 
@@ -139,10 +152,10 @@ class MetricsController extends Controller
      */
     public function dataWorkload(ServiceRequest $request): JsonResponse
     {
-        $serviceId = $request->getServiceId();
+        $scope = $request->getServiceIds();
 
         return \response()->json([
-            'workload' => $this->metrics->getWorkloadData($serviceId),
+            'workload' => $this->metrics->getWorkloadData($scope),
         ]);
     }
 }
