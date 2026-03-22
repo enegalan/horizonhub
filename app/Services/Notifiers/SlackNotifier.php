@@ -5,7 +5,7 @@ namespace App\Services\Notifiers;
 use App\Contracts\SlackAlertNotifier;
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\HorizonApiProxyService;
+use App\Services\Horizon\HorizonApiProxyService;
 use Illuminate\Support\Facades\Http;
 
 class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier

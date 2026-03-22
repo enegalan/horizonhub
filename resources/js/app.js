@@ -5,15 +5,14 @@ import { horizonServiceDashboard, horizonServiceList } from './horizon/services'
 import { horizonQueueList } from './horizon/queues';
 import { horizonAlertsList, horizonAlertDetail } from './horizon/alerts';
 import { horizonMetricsPage } from './horizon/metrics';
-import { initRefreshStream } from './lib/sse-hot-reload';
+import { initRefreshStream } from './lib/sse';
 import { createHttpHelpers } from './lib/http';
-import { formatQueueWaitElements, observeQueueWaitElements } from './lib/queue-wait-format';
-import { formatDateTimeElements } from './lib/datetime-format';
+import { formatDateTimeElements, formatQueueWaitElements, observeQueueWaitElements } from './lib/datetime-format';
 import { mountToaster } from './components/toaster';
 import { hydrateMetricsChartsFromDom, hydrateAlertDetailChartsFromDom } from './charts/metrics-charts';
 import { applyTheme } from './components/theme';
 import { registerInputDatePicker } from './components/input-date-picker';
-import { onDocumentReady, schedule } from './utils/init';
+import { onDocumentReady, schedule } from './lib/init';
 import Alpine from 'alpinejs';
 import moment from 'moment';
 

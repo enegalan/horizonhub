@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Support\Horizon;
+namespace App\Support;
 
 use Carbon\Carbon;
 
-final class RetryModalDatetimeBoundaries
+final class DatetimeBoundaryParser
 {
     /**
-     * Lower bound: date-only strings use start of day; datetimes use parsed instant.
+     * Lower bound: date-only strings (Y-m-d) use start of day; datetimes use the parsed instant.
      */
     public static function parseLower(?string $value): ?Carbon
     {
@@ -28,7 +28,7 @@ final class RetryModalDatetimeBoundaries
     }
 
     /**
-     * Upper bound: date-only strings use end of day; datetimes use parsed instant.
+     * Upper bound: date-only strings (Y-m-d) use end of day; datetimes use the parsed instant.
      */
     public static function parseUpper(?string $value): ?Carbon
     {

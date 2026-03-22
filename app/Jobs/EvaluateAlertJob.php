@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Alert;
-use App\Services\AlertEngine;
+use App\Services\Alerts\AlertEngine;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;

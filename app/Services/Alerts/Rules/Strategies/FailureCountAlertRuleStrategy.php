@@ -6,7 +6,7 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\AlertRuleEvaluationSupport;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
-use App\Services\HorizonApiProxyService;
+use App\Services\Horizon\HorizonApiProxyService;
 
 final class FailureCountAlertRuleStrategy implements AlertRuleStrategyInterface
 {

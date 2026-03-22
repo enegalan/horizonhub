@@ -6,7 +6,7 @@ use App\Contracts\EmailAlertNotifier;
 use App\Contracts\SlackAlertNotifier;
 use App\Services\Notifiers\EmailNotifier;
 use App\Services\Notifiers\SlackNotifier;
-use App\Support\Horizon\ConfigHelper;
+use App\Support\ConfigHelper;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;

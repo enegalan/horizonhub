@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Horizon;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
-use App\Services\HorizonMetricsService;
+use App\Services\Horizon\HorizonMetricsService;
 use App\Support\Horizon\QueueNameNormalizer;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;

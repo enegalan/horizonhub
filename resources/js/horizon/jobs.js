@@ -1,7 +1,8 @@
 import { formatDateTimeElements } from '../lib/datetime-format';
+import { onHorizonHubRefresh, replaceTableTbodyFromDoc } from '../lib/dom';
 
 /**
- * Split retry modal range field into API params (separator: " to ").
+ * Split retry modal range field into API params.
  * @param {string} rangeValue
  * @returns {{ dateFrom: string, dateTo: string }}
  */
@@ -90,10 +91,12 @@ export function horizonJobsPage(config) {
          */
         init() {
             var self = this;
-            window.addEventListener('horizonhub-refresh', function (e) {
-                if (self.retryModalMounted) return;
-                if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
-                self.refreshJobsTable(e.detail && e.detail.document);
+            onHorizonHubRefresh(function (doc) {
+                self.refreshJobsTable(doc);
+            }, {
+                shouldSkip: function () {
+                    return self.retryModalMounted;
+                },
             });
         },
         /**
@@ -239,17 +242,14 @@ export function horizonJobsPage(config) {
         refreshJobsTable(preloadedDoc) {
             if (typeof window === 'undefined' || typeof document === 'undefined') return;
             if (!preloadedDoc) return;
-            var newTable = preloadedDoc.querySelector('[data-resizable-table^="horizon-job-list"]');
-            var currentTable = document.querySelector('[data-resizable-table^="horizon-job-list"]');
-            if (!newTable || !currentTable) return;
-            var newTbody = newTable.querySelector('tbody');
-            var currentTbody = currentTable.querySelector('tbody');
-            if (newTbody && currentTbody) {
-                currentTbody.replaceWith(newTbody);
-                formatDateTimeElements(currentTable);
-                if (typeof window !== 'undefined' && window.Alpine && typeof window.Alpine.initTree === 'function') {
-                    window.Alpine.initTree(newTbody);
-                }
+            var table = replaceTableTbodyFromDoc(preloadedDoc, {
+                tableSelector: '[data-resizable-table^="horizon-job-list"]',
+            });
+            if (!table) return;
+            formatDateTimeElements(table);
+            var newTbody = table.querySelector('tbody');
+            if (newTbody && typeof window !== 'undefined' && window.Alpine && typeof window.Alpine.initTree === 'function') {
+                window.Alpine.initTree(newTbody);
             }
         },
     };
@@ -301,10 +301,12 @@ export function horizonJobDetail(config) {
          */
         init() {
             var self = this;
-            window.addEventListener('horizonhub-refresh', function (e) {
-                if (self.retrying) return;
-                if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
-                self.refreshJobDetail(e.detail && e.detail.document);
+            onHorizonHubRefresh(function (doc) {
+                self.refreshJobDetail(doc);
+            }, {
+                shouldSkip: function () {
+                    return self.retrying;
+                },
             });
         },
         /**

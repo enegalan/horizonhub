@@ -2,6 +2,8 @@
 
 namespace App\Support\Horizon;
 
+use App\Support\ConfigHelper;
+
 class QueueNameNormalizer
 {
     /**

@@ -25,6 +25,31 @@ function defaultApiErrorHandler(error) {
 }
 
 /**
+ * Fetch the current page as HTML and parse into a document.
+ * Internally used by SSE refresh stream.
+ * @returns {Promise<Document|null>}
+ */
+export function fetchCurrentPageAsDocument() {
+    var url = typeof window !== 'undefined' ? window.location.href : '';
+    if (!url) {
+        return Promise.resolve(null);
+    }
+    return fetch(url, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin',
+    }).then(function (response) {
+        if (!response.ok) return null;
+        return response.text();
+    }).then(function (html) {
+        if (!html) return null;
+        var parser = new DOMParser();
+        return parser.parseFromString(html, 'text/html');
+    }).catch(function () {
+        return null;
+    });
+}
+
+/**
  * Create HTTP helpers.
  * @returns {{ get: function, post: function, delete: function }}
  */

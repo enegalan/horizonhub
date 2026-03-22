@@ -3,8 +3,8 @@
 namespace App\Services\Metrics;
 
 use App\Models\Service;
-use App\Services\HorizonApiProxyService;
-use App\Support\Horizon\ConfigHelper;
+use App\Services\Horizon\HorizonApiProxyService;
+use App\Support\ConfigHelper;
 use App\Support\Horizon\QueueNameNormalizer;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;

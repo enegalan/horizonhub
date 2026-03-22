@@ -4,7 +4,7 @@ namespace App\Services\Alerts\Rules;
 
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\HorizonApiProxyService;
+use App\Services\Horizon\HorizonApiProxyService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 

@@ -1,5 +1,5 @@
-import { formatDateTimeElements } from '../lib/datetime-format';
-import { formatQueueWaitElements } from "../lib/queue-wait-format";
+import { formatDateTimeElements, formatQueueWaitElements } from '../lib/datetime-format';
+import { onHorizonHubRefresh, replaceTableTbodyFromDoc } from '../lib/dom';
 
 /**
  * Horizon service dashboard.
@@ -15,10 +15,8 @@ export function horizonServiceDashboard() {
             var self = this;
             if (typeof window === 'undefined') return;
 
-            window.addEventListener('horizonhub-refresh', function (e) {
-                if (typeof document === 'undefined') return;
-                if (document.visibilityState !== 'visible') return;
-                self.refreshServiceDashboard(e.detail && e.detail.document);
+            onHorizonHubRefresh(function (doc) {
+                self.refreshServiceDashboard(doc);
             });
         },
         /**
@@ -81,10 +79,8 @@ export function horizonServiceList() {
             var self = this;
             if (typeof window === 'undefined') return;
 
-            window.addEventListener('horizonhub-refresh', function (e) {
-                if (typeof document === 'undefined') return;
-                if (document.visibilityState !== 'visible') return;
-                self.refreshServiceList(e.detail && e.detail.document);
+            onHorizonHubRefresh(function (doc) {
+                self.refreshServiceList(doc);
             });
         },
         /**
@@ -95,17 +91,13 @@ export function horizonServiceList() {
         refreshServiceList(preloadedDoc) {
             if (typeof window === 'undefined' || typeof document === 'undefined') return;
             if (!preloadedDoc) return;
-            var newTable = preloadedDoc.querySelector('[data-resizable-table="horizon-service-list"]');
-            var currentTable = document.querySelector('[data-resizable-table="horizon-service-list"]');
-            if (!newTable || !currentTable) return;
-            var newTbody = newTable.querySelector('tbody');
-            var currentTbody = currentTable.querySelector('tbody');
-            if (newTbody && currentTbody) {
-                currentTbody.replaceWith(newTbody);
-                formatDateTimeElements(currentTable);
-                if (typeof window !== 'undefined' && window.horizonInitResizableTables) {
-                    window.horizonInitResizableTables();
-                }
+            var table = replaceTableTbodyFromDoc(preloadedDoc, {
+                tableSelector: '[data-resizable-table="horizon-service-list"]',
+            });
+            if (!table) return;
+            formatDateTimeElements(table);
+            if (typeof window !== 'undefined' && window.horizonInitResizableTables) {
+                window.horizonInitResizableTables();
             }
         },
     };

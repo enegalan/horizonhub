@@ -5,7 +5,7 @@ namespace App\Services\Alerts\Rules\Strategies;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
-use App\Services\HorizonApiProxyService;
+use App\Services\Horizon\HorizonApiProxyService;
 
 final class HorizonOfflineAlertRuleStrategy implements AlertRuleStrategyInterface
 {

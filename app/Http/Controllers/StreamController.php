@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Support\Horizon\ConfigHelper;
+use App\Support\ConfigHelper;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 abstract class StreamController extends Controller

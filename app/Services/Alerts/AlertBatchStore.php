@@ -3,7 +3,7 @@
 namespace App\Services\Alerts;
 
 use App\Models\Alert;
-use App\Support\Horizon\ConfigHelper;
+use App\Support\ConfigHelper;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 

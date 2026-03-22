@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Services\AlertEngine;
+use App\Services\Alerts\AlertEngine;
 use Illuminate\Console\Command;
 
 class EvaluateAlertsCommand extends Command

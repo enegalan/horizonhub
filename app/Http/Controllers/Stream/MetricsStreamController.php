@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Stream;
 
 use App\Http\Controllers\StreamController;
 use App\Http\Requests\Horizon\ServiceRequest;
-use App\Services\HorizonMetricsService;
+use App\Services\Horizon\HorizonMetricsService;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MetricsStreamController extends StreamController

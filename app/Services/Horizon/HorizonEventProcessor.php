@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Horizon;
 
 use App\Events\HorizonEventReceived;
 use App\Models\Service;
+use App\Services\Alerts\AlertEngine;
 use App\Support\Horizon\QueueNameNormalizer;
 use Carbon\Carbon;
 

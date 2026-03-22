@@ -1,5 +1,5 @@
-import { getCssHsl } from '../utils/styles';
-import { parseJsonFromElement } from '../utils/parse';
+import { getCssHsl } from '../lib/dom';
+import { parseJsonFromElement } from '../lib/parse';
 
 /**
  * Get the chart colors.

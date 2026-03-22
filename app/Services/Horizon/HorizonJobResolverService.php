@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Horizon;
 
 use App\Models\Service;
-use App\Support\Horizon\ConfigHelper;
+use App\Support\ConfigHelper;
 use Illuminate\Contracts\Cache\Repository as CacheContract;
 use Illuminate\Support\Collection;
 

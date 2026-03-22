@@ -1,12 +1,10 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Alerts;
 
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\Service;
-use App\Services\Alerts\AlertBatchStore;
-use App\Services\Alerts\AlertNotificationDispatcher;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 

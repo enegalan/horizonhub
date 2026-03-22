@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Horizon;
 
 use App\Models\Service;
-use App\Support\Horizon\ConfigHelper;
+use App\Support\ConfigHelper;
 use GuzzleHttp\Cookie\CookieJar;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;

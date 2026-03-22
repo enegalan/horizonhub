@@ -1,5 +1,5 @@
-import { onDocumentReady } from '../utils/init';
-import { parseJson } from '../utils/parse';
+import { onDocumentReady } from '../lib/init';
+import { parseJson } from '../lib/parse';
 
 (function () {
     /**

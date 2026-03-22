@@ -3,8 +3,8 @@
 namespace Tests\Unit;
 
 use App\Models\Service;
-use App\Services\HorizonApiProxyService;
-use App\Services\HorizonJobListService;
+use App\Services\Horizon\HorizonApiProxyService;
+use App\Services\Horizon\HorizonJobListService;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Horizon;
 
 use App\Models\Service;
 use App\Services\Metrics\FailureMetricsCalculator;

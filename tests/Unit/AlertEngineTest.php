@@ -4,10 +4,10 @@ namespace Tests\Unit;
 
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\AlertEngine;
-use App\Services\AlertRuleEvaluator;
 use App\Services\Alerts\AlertBatchStore;
+use App\Services\Alerts\AlertEngine;
 use App\Services\Alerts\AlertNotificationDispatcher;
+use App\Services\Alerts\AlertRuleEvaluator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

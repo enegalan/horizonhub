@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Service;
-use App\Support\Horizon\ConfigHelper;
+use App\Support\ConfigHelper;
 use Illuminate\Console\Command;
 
 class MarkStaleServicesOfflineCommand extends Command

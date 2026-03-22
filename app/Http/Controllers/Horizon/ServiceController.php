@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Horizon;
 
 use App\Http\Controllers\Controller;
 use App\Models\Service;
-use App\Services\HorizonApiProxyService;
-use App\Services\HorizonJobListService;
-use App\Services\HorizonMetricsService;
-use App\Support\Horizon\ConfigHelper;
+use App\Services\Horizon\HorizonApiProxyService;
+use App\Services\Horizon\HorizonJobListService;
+use App\Services\Horizon\HorizonMetricsService;
+use App\Support\ConfigHelper;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

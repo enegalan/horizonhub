@@ -1,4 +1,5 @@
 import { formatDateTimeElements } from '../lib/datetime-format';
+import { onHorizonHubRefresh, replaceTableTbodyFromDoc } from '../lib/dom';
 import { initAlertDetailCharts } from '../charts/metrics-charts';
 
 /**
@@ -19,10 +20,8 @@ export function horizonAlertsList() {
 
             window.__horizonAlertsListEvaluationInstance = self;
 
-            window.addEventListener('horizonhub-refresh', function (e) {
-                if (typeof document === 'undefined') return;
-                if (document.visibilityState !== 'visible') return;
-                self.refreshAlertsList(e.detail && e.detail.document);
+            onHorizonHubRefresh(function (doc) {
+                self.refreshAlertsList(doc);
             });
 
             // Event delegation for evaluation buttons (table rows may be replaced on refresh).
@@ -271,19 +270,15 @@ export function horizonAlertsList() {
         refreshAlertsList(preloadedDoc) {
             if (typeof window === 'undefined' || typeof document === 'undefined') return;
             if (!preloadedDoc) return;
-            var newTable = preloadedDoc.querySelector('[data-resizable-table="horizon-alerts-list"]');
-            var currentTable = document.querySelector('[data-resizable-table="horizon-alerts-list"]');
-            if (!newTable || !currentTable) return;
-            var newTbody = newTable.querySelector('tbody');
-            var currentTbody = currentTable.querySelector('tbody');
-            if (newTbody && currentTbody) {
-                currentTbody.replaceWith(newTbody);
-                if (typeof window !== 'undefined' && window.horizonInitResizableTables) {
-                    window.horizonInitResizableTables();
-                }
-                if (typeof window !== 'undefined') {
-                    formatDateTimeElements(currentTable);
-                }
+            var table = replaceTableTbodyFromDoc(preloadedDoc, {
+                tableSelector: '[data-resizable-table="horizon-alerts-list"]',
+            });
+            if (!table) return;
+            if (typeof window !== 'undefined' && window.horizonInitResizableTables) {
+                window.horizonInitResizableTables();
+            }
+            if (typeof window !== 'undefined') {
+                formatDateTimeElements(table);
             }
         },
     };
@@ -332,10 +327,8 @@ export function horizonAlertDetail(config) {
                 self.openDeliveryLogModal(self.normalizeDeliveryLog(config.initialDeliveryLog));
             }
 
-            window.addEventListener('horizonhub-refresh', function (e) {
-                if (typeof document === 'undefined') return;
-                if (document.visibilityState !== 'visible') return;
-                self.refreshAlertDetail(e.detail && e.detail.document);
+            onHorizonHubRefresh(function (doc) {
+                self.refreshAlertDetail(doc);
             });
         },
         openDeliveryLogModal(logData) {

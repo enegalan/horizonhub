@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Horizon;
 
 use App\Models\Service;
-use App\Support\Horizon\ConfigHelper;
+use App\Support\ConfigHelper;
+use App\Support\DatetimeBoundaryParser;
 use App\Support\Horizon\JobRuntimeHelper;
-use App\Support\Horizon\RetryModalDatetimeBoundaries;
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -98,8 +98,8 @@ class HorizonJobListService
 
         $dateFromStr = \is_string($dateFrom) ? $dateFrom : null;
         $dateToStr = \is_string($dateTo) ? $dateTo : null;
-        $dateFromCarbon = RetryModalDatetimeBoundaries::parseLower($dateFromStr);
-        $dateToCarbon = RetryModalDatetimeBoundaries::parseUpper($dateToStr);
+        $dateFromCarbon = DatetimeBoundaryParser::parseLower($dateFromStr);
+        $dateToCarbon = DatetimeBoundaryParser::parseUpper($dateToStr);
 
         foreach ($services as $service) {
             $rawJobs = $this->private__fetchAllJobsForService(

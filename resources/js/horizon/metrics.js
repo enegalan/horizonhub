@@ -1,5 +1,6 @@
 import { processMetricsChartQueue } from "../charts/metrics-charts";
-import { formatQueueWaitElements } from "../lib/queue-wait-format";
+import { formatQueueWaitElements } from "../lib/datetime-format";
+import { createReconnectingEventSourceSession, isHotReloadEnabled } from "../lib/sse";
 
 /**
  * Base URL for service detail pages (no trailing slash), set from metrics page config.
@@ -401,34 +402,6 @@ function applyMetricsPayload(payload) {
 }
 
 /**
- * Check if the hot reload is enabled.
- * @returns {boolean}
- */
-function isHotReloadEnabled() {
-    if (typeof window === 'undefined') return false;
-    if (window.Alpine && window.Alpine.store && window.Alpine.store('hotReload')) {
-        return !!window.Alpine.store('hotReload').enabled;
-    }
-    return localStorage.getItem('horizonhub_hotreload') !== 'false';
-}
-
-/**
- * Metrics stream backoff initial milliseconds.
- * @type {number}
- */
-var METRICS_STREAM_BACKOFF_INITIAL_MS = 1000;
-/**
- * Metrics stream backoff maximum milliseconds.
- * @type {number}
- */
-var METRICS_STREAM_BACKOFF_MAX_MS = 30000;
-/**
- * Metrics stream backoff multiplier.
- * @type {number}
- */
-var METRICS_STREAM_BACKOFF_MULTIPLIER = 2;
-
-/**
  * Start the metrics stream.
  * @param {string} streamUrl
  * @param {function(): string[]} getServiceIds
@@ -437,105 +410,53 @@ var METRICS_STREAM_BACKOFF_MULTIPLIER = 2;
  * @returns {object}
  */
 function startMetricsStream(streamUrl, getServiceIds, onPayload, initialServiceIds) {
-    var eventSource = null;
-    var reconnectTimeout = null;
-    var backoffMs = METRICS_STREAM_BACKOFF_INITIAL_MS;
     var isFirstConnect = true;
     var connectionToken = 0;
     var replaced = false;
 
     /**
-     * Close the stream.
-     * @returns {void}
+     * @returns {string}
      */
-    function closeStream() {
-        if (reconnectTimeout) {
-            clearTimeout(reconnectTimeout);
-            reconnectTimeout = null;
-        }
-        if (eventSource) {
-            eventSource.close();
-            eventSource = null;
-        }
-    }
-
-    /**
-     * Connect to the stream.
-     * @returns {void}
-     */
-    function connect() {
-        if (replaced || !streamUrl || !isHotReloadEnabled()) return;
-        closeStream();
-        connectionToken += 1;
-        var thisToken = connectionToken;
+    function getMetricsStreamUrl() {
         var ids = isFirstConnect && initialServiceIds && initialServiceIds.length
             ? initialServiceIds.map(String)
             : (typeof getServiceIds === 'function' ? getServiceIds() : []);
         if (isFirstConnect) isFirstConnect = false;
-        var url = appendServiceIdsToUrl(streamUrl, ids);
-        eventSource = new EventSource(url);
-
-        eventSource.addEventListener('metrics', function (e) {
-            if (thisToken !== connectionToken) return;
-            backoffMs = METRICS_STREAM_BACKOFF_INITIAL_MS;
-            if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
-            try {
-                var data = JSON.parse(e.data);
-                if (typeof onPayload !== 'function') return;
-                if (typeof requestAnimationFrame !== 'undefined') {
-                    requestAnimationFrame(function () { if (thisToken !== connectionToken) return; onPayload(data); });
-                } else {
-                    onPayload(data);
-                }
-            } catch (err) {}
-        });
-
-        eventSource.onerror = function () {
-            closeStream();
-            reconnectTimeout = setTimeout(function () {
-                connect();
-                if (backoffMs < METRICS_STREAM_BACKOFF_MAX_MS) backoffMs *= METRICS_STREAM_BACKOFF_MULTIPLIER;
-            }, backoffMs);
-        };
-
-        eventSource.onopen = function () {
-            backoffMs = METRICS_STREAM_BACKOFF_INITIAL_MS;
-        };
+        return appendServiceIdsToUrl(streamUrl, ids);
     }
 
-    window.addEventListener('horizonhub-hotreload-changed', function (e) {
-        if (e.detail && e.detail.enabled === true) {
-            connect();
-        } else {
-            closeStream();
-        }
+    var session = createReconnectingEventSourceSession({
+        getUrl: getMetricsStreamUrl,
+        shouldConnect: function () {
+            return !replaced && !!streamUrl && isHotReloadEnabled();
+        },
+        onBeforeEachConnect: function () {
+            connectionToken += 1;
+            return connectionToken;
+        },
+        registerEventHandlers: function (es, api) {
+            var thisToken = api.thisConnectToken;
+            es.addEventListener('metrics', function (e) {
+                if (thisToken !== connectionToken) return;
+                api.resetBackoff();
+                if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
+                try {
+                    var data = JSON.parse(e.data);
+                    if (typeof onPayload !== 'function') return;
+                    if (typeof requestAnimationFrame !== 'undefined') {
+                        requestAnimationFrame(function () {
+                            if (thisToken !== connectionToken) return;
+                            onPayload(data);
+                        });
+                    } else {
+                        onPayload(data);
+                    }
+                } catch (err) {}
+            });
+        },
     });
 
-    var visibilityReconnectTimeout = null;
-    function scheduleReconnectOnVisible() {
-        if (visibilityReconnectTimeout) return;
-        visibilityReconnectTimeout = setTimeout(function () {
-            visibilityReconnectTimeout = null;
-            if (typeof document !== 'undefined' && document.visibilityState === 'visible' && isHotReloadEnabled()) {
-                connect();
-            }
-        }, 200);
-    }
-    if (typeof document !== 'undefined') {
-        document.addEventListener('visibilitychange', function () {
-            if (document.visibilityState === 'hidden') {
-                closeStream();
-                if (visibilityReconnectTimeout) {
-                    clearTimeout(visibilityReconnectTimeout);
-                    visibilityReconnectTimeout = null;
-                }
-            } else if (document.visibilityState === 'visible') {
-                scheduleReconnectOnVisible();
-            }
-        });
-    }
-
-    if (isHotReloadEnabled()) connect();
+    if (isHotReloadEnabled()) session.connect();
 
     return {
         /**
@@ -543,8 +464,8 @@ function startMetricsStream(streamUrl, getServiceIds, onPayload, initialServiceI
          * @returns {void}
          */
         reconnect: function () {
-            closeStream();
-            if (isHotReloadEnabled()) connect();
+            session.closeStream();
+            if (isHotReloadEnabled()) session.connect();
         },
         /**
          * Close the metrics stream (e.g. when replaced by a new instance). Prevents further reconnects.
@@ -552,7 +473,7 @@ function startMetricsStream(streamUrl, getServiceIds, onPayload, initialServiceI
          */
         close: function () {
             replaced = true;
-            closeStream();
+            session.closeStream();
         },
     };
 }

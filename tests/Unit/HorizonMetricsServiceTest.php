@@ -3,8 +3,8 @@
 namespace Tests\Unit;
 
 use App\Models\Service;
-use App\Services\HorizonApiProxyService;
-use App\Services\HorizonMetricsService;
+use App\Services\Horizon\HorizonApiProxyService;
+use App\Services\Horizon\HorizonMetricsService;
 use App\Support\Horizon\QueueNameNormalizer;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;

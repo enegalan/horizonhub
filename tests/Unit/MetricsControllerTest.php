@@ -5,7 +5,7 @@ namespace Tests\Unit;
 use App\Http\Controllers\Horizon\MetricsController;
 use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
-use App\Services\HorizonMetricsService;
+use App\Services\Horizon\HorizonMetricsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Assert;
 use Tests\TestCase;

@@ -4,8 +4,8 @@ namespace Tests\Unit;
 
 use App\Events\HorizonEventReceived;
 use App\Models\Service;
-use App\Services\AlertEngine;
-use App\Services\HorizonEventProcessor;
+use App\Services\Alerts\AlertEngine;
+use App\Services\Horizon\HorizonEventProcessor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
