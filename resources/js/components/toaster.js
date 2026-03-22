@@ -1,71 +1,81 @@
-var TOAST_DISMISS_MS = 4500;
-var TOAST_EXIT_MS = 220;
+import { Notyf } from 'notyf';
+import 'notyf/notyf.min.css';
+
+var TOAST_DURATION_MS = 4500;
 
 /**
- * @param {string} variant
- * @param {string} message
- * @returns {void}
+ * @param {unknown} message
+ * @returns {string}
  */
-function showHubToast(variant, message) {
-    var container = document.getElementById('toaster');
-    if (!container || !container.classList.contains('hub-toaster')) {
-        return;
-    }
-    var text = typeof message === 'string' && message ? message : 'Done.';
-    var item = document.createElement('div');
-    item.className = 'hub-toast hub-toast--' + variant;
-    item.setAttribute('role', 'status');
-    item.textContent = text;
-    container.appendChild(item);
-    requestAnimationFrame(function () {
-        item.classList.add('hub-toast--visible');
-    });
-    window.setTimeout(function () {
-        item.classList.remove('hub-toast--visible');
-        window.setTimeout(function () {
-            if (item.parentNode) {
-                item.parentNode.removeChild(item);
-            }
-        }, TOAST_EXIT_MS);
-    }, TOAST_DISMISS_MS);
+function resolveToastMessage(message) {
+    return typeof message === 'string' && message ? message : 'Done.';
 }
 
 /**
- * Mount the toaster and expose toast on window.
+ * Mount Notyf and expose toast on window.
  * @returns {void}
  */
 export function mountToaster() {
-    var el = document.getElementById('toaster');
-    if (!el) {
-        el = document.createElement('div');
-        el.id = 'toaster';
-        el.setAttribute('aria-live', 'polite');
-        if (document.body) {
-            document.body.appendChild(el);
-        } else {
-            document.addEventListener('DOMContentLoaded', mountToaster);
-            return;
-        }
-    }
-    if (el._toasterMounted) {
+    if (typeof document === 'undefined') {
         return;
     }
+    if (window._hubNotyfMounted) {
+        return;
+    }
+    window._hubNotyfMounted = true;
 
-    el._toasterMounted = true;
-    el.classList.add('hub-toaster');
+    var notyf = new Notyf({
+        duration: TOAST_DURATION_MS,
+        ripple: false,
+        position: {
+            x: 'right',
+            y: 'bottom',
+        },
+        dismissible: false,
+        types: [
+            {
+                type: 'success',
+                className: 'hub-notyf hub-notyf--success',
+                background: '',
+                backgroundColor: '',
+                icon: false,
+            },
+            {
+                type: 'error',
+                className: 'hub-notyf hub-notyf--error',
+                background: '',
+                backgroundColor: '',
+                icon: false,
+            },
+            {
+                type: 'info',
+                className: 'hub-notyf hub-notyf--info',
+                background: '',
+                backgroundColor: '',
+                icon: false,
+            },
+            {
+                type: 'warning',
+                className: 'hub-notyf hub-notyf--warning',
+                background: '',
+                backgroundColor: '',
+                icon: false,
+            },
+        ],
+    });
 
     window.toast = {
         success: function (m) {
-            showHubToast('success', m);
+            notyf.open({ type: 'success', message: resolveToastMessage(m) });
         },
         error: function (m) {
-            showHubToast('error', m);
+            notyf.open({ type: 'error', message: resolveToastMessage(m) });
         },
         info: function (m) {
-            showHubToast('info', m);
+            notyf.open({ type: 'info', message: resolveToastMessage(m) });
         },
         warning: function (m) {
-            showHubToast('warning', m);
+            notyf.open({ type: 'warning', message: resolveToastMessage(m) });
         },
     };
 }
