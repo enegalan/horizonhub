@@ -11,7 +11,6 @@ import { formatQueueWaitElements, observeQueueWaitElements } from './lib/queue-w
 import { formatDateTimeElements } from './lib/datetime-format';
 import { mountToaster } from './components/toaster';
 import { hydrateMetricsChartsFromDom, hydrateAlertDetailChartsFromDom } from './charts/metrics-charts';
-import { registerToastEventListeners } from './components/toast-events';
 import { applyTheme } from './components/theme';
 import { registerInputDatePicker } from './components/input-date-picker';
 import { onDocumentReady, schedule } from './utils/init';
@@ -57,7 +56,6 @@ function hydratePage() {
  */
 onDocumentReady(function () {
     mountToaster();
-    registerToastEventListeners();
     applyTheme();
     window.dispatchEvent(new CustomEvent('apply-theme'));
     hydratePage();
