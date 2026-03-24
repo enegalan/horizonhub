@@ -1,14 +1,12 @@
 @php
     $serviceForDashboard = $pageService ?? ($job->service ?? null);
-    $dashboardBase = $serviceForDashboard
-        ? ($serviceForDashboard->public_url ?: $serviceForDashboard->base_url)
-        : null;
     $jobUuidForDashboard = $job->uuid ?? null;
-    $horizonDashboardPath = \rtrim(\config('horizonhub.horizon_paths.dashboard'), '/');
-    $horizonJobUrl = null;
-    if ($dashboardBase && $jobUuidForDashboard) {
-        $horizonJobUrl = \rtrim($dashboardBase, '/') . $horizonDashboardPath . '/jobs/' . \urlencode((string) $jobUuidForDashboard);
-    }
+    $jobStatusForDashboard = (string) ($job->status ?? '');
+    $horizonJobUrl = \App\Support\Horizon\JobDashboardUrlBuilder::build(
+        $serviceForDashboard,
+        $jobUuidForDashboard,
+        $jobStatusForDashboard
+    );
 @endphp
 @php
     $showRetry = $showRetry ?? false;

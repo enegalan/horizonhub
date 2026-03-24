@@ -1,0 +1,37 @@
+<?php
+
+namespace App\Support\Horizon;
+
+use App\Models\Service;
+use App\Support\ConfigHelper;
+
+class JobDashboardUrlBuilder
+{
+    /**
+     * Build the Horizon dashboard URL for a job.
+     */
+    public static function build(?Service $service, ?string $jobUuid, ?string $jobStatus): ?string
+    {
+        if ($service === null || $jobUuid === null || $jobUuid === '') {
+            return null;
+        }
+
+        $dashboardBase = $service->public_url ?: $service->base_url;
+        if ($dashboardBase === null || $dashboardBase === '') {
+            return null;
+        }
+
+        $dashboardPath = \rtrim((string) ConfigHelper::get('horizonhub.horizon_paths.dashboard'), '/');
+        $status = (string) $jobStatus;
+        $encodedUuid = \urlencode($jobUuid);
+
+        $jobPath = match ($status) {
+            'processing', 'pending' => "/jobs/pending/$encodedUuid",
+            'processed', 'completed' => "/jobs/completed/$encodedUuid",
+            'failed' => "/jobs/failed/$encodedUuid",
+            default => "/jobs/$encodedUuid",
+        };
+
+        return \rtrim($dashboardBase, '/').$dashboardPath.$jobPath;
+    }
+}

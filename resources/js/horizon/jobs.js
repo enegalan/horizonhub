@@ -1,5 +1,5 @@
 import { formatDateTimeElements } from '../lib/datetime-format';
-import { onHorizonHubRefresh, replaceTableTbodyFromDoc } from '../lib/dom';
+import { onHorizonHubRefresh } from '../lib/dom';
 
 /**
  * Split retry modal range field into API params.
@@ -242,14 +242,16 @@ export function horizonJobsPage(config) {
         refreshJobsTable(preloadedDoc) {
             if (typeof window === 'undefined' || typeof document === 'undefined') return;
             if (!preloadedDoc) return;
-            var table = replaceTableTbodyFromDoc(preloadedDoc, {
-                tableSelector: '[data-resizable-table^="horizon-job-list"]',
-            });
-            if (!table) return;
-            formatDateTimeElements(table);
-            var newTbody = table.querySelector('tbody');
-            if (newTbody && typeof window !== 'undefined' && window.Alpine && typeof window.Alpine.initTree === 'function') {
-                window.Alpine.initTree(newTbody);
+            var newRoot = preloadedDoc.querySelector('[data-horizon-jobs-stack-root="1"]');
+            var currentRoot = document.querySelector('[data-horizon-jobs-stack-root="1"]');
+            if (!newRoot || !currentRoot) return;
+            currentRoot.replaceWith(newRoot);
+            formatDateTimeElements(newRoot);
+            if (typeof window !== 'undefined' && window.Alpine && typeof window.Alpine.initTree === 'function') {
+                window.Alpine.initTree(newRoot);
+            }
+            if (typeof window !== 'undefined' && window.horizonInitResizableTables) {
+                window.horizonInitResizableTables();
             }
         },
     };

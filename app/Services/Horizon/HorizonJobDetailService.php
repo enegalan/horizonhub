@@ -15,9 +15,11 @@ class HorizonJobDetailService
      */
     public function buildShowViewData(Service $service, array $jobData, string $routeUuid): array
     {
+        $payload = isset($jobData['payload']) && \is_array($jobData['payload']) ? $jobData['payload'] : [];
+
         $attemptsRaw = $jobData['attempts'] ?? null;
-        if ($attemptsRaw === null && isset($jobData['payload']) && \is_array($jobData['payload'])) {
-            $attemptsRaw = $jobData['payload']['attempts'] ?? null;
+        if ($attemptsRaw === null) {
+            $attemptsRaw = $payload['attempts'] ?? null;
         }
 
         $retries = null;
@@ -50,9 +52,20 @@ class HorizonJobDetailService
             $exception = (string) $jobData['exception'];
         }
 
-        $queuedAt = $jobData['pushedAt'] ?? null;
-        $processedAt = $jobData['completed_at'] ?? null;
-        $failedAt = $jobData['failed_at'] ?? null;
+        $rawStatus = (string) ($jobData['status'] ?? 'failed');
+        $status = $rawStatus === 'completed' ? 'processed' : $rawStatus;
+
+        $queuedAtRaw = $payload['pushedAt'] ?? $jobData['pushedAt'] ?? null;
+        $processedAtRaw = $jobData['completed_at'] ?? null;
+        $failedAtRaw = $jobData['failed_at'] ?? null;
+        if ($failedAtRaw === false) {
+            $failedAtRaw = null;
+        }
+
+        $queuedAt = JobRuntimeHelper::parseJobTimestamp($queuedAtRaw);
+        $processedAt = JobRuntimeHelper::parseJobTimestamp($processedAtRaw);
+        $failedAt = JobRuntimeHelper::parseJobTimestamp($failedAtRaw);
+        JobRuntimeHelper::normalizeStatusDates($status, $processedAt, $failedAt);
         $runtimeSeconds = isset($jobData['runtime']) && \is_numeric($jobData['runtime'])
             ? (float) $jobData['runtime']
             : null;
@@ -60,9 +73,6 @@ class HorizonJobDetailService
         $runtime = JobRuntimeHelper::getFormattedRuntime(
             JobRuntimeHelper::getRuntimeSeconds($runtimeSeconds, $queuedAt, $processedAt, $failedAt)
         );
-
-        $rawStatus = (string) ($jobData['status'] ?? 'failed');
-        $status = $rawStatus === 'completed' ? 'processed' : $rawStatus;
 
         $jobView = (object) [
             'uuid' => $jobData['uuid'] ?? $routeUuid,

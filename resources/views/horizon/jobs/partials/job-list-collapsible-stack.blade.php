@@ -6,6 +6,7 @@
 @endphp
 <div
     class="space-y-6 pt-4"
+    data-horizon-jobs-stack-root="1"
     x-data="{
         sectionOpen: { processing: true, processed: true, failed: true },
         init() {

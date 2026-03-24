@@ -349,9 +349,9 @@ class HorizonJobListService
         $completedAt = $job['completed_at'] ?? null;
         $failedAtRaw = $job['failed_at'] ?? null;
 
-        $queuedAt = $this->private__parseJobTimestamp($pushedAt);
-        $processedAt = $this->private__parseJobTimestamp($completedAt);
-        $failedAt = $this->private__parseJobTimestamp($failedAtRaw);
+        $queuedAt = JobRuntimeHelper::parseJobTimestamp($pushedAt);
+        $processedAt = JobRuntimeHelper::parseJobTimestamp($completedAt);
+        $failedAt = JobRuntimeHelper::parseJobTimestamp($failedAtRaw);
         JobRuntimeHelper::normalizeStatusDates($status, $processedAt, $failedAt);
 
         $attemptsRaw = $job['attempts'] ?? $payload['attempts'] ?? null;
@@ -489,24 +489,5 @@ class HorizonJobListService
         $paginator->setPageName($pageName);
 
         return $paginator;
-    }
-
-    /**
-     * Parse a job timestamp.
-     *
-     * @param  mixed  $value
-     */
-    private function private__parseJobTimestamp($value): ?Carbon
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-        if (\is_numeric($value)) {
-            $seconds = (float) $value;
-
-            return Carbon::createFromTimestampMs((int) \round($seconds * 1000));
-        }
-
-        return Carbon::parse($value);
     }
 }

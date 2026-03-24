@@ -7,6 +7,38 @@ use Carbon\Carbon;
 class JobRuntimeHelper
 {
     /**
+     * Parse a Horizon timestamp value into Carbon.
+     *
+     * @param  mixed  $value
+     */
+    public static function parseJobTimestamp($value): ?Carbon
+    {
+        if ($value === null || $value === '' || $value === false) {
+            return null;
+        }
+
+        if ($value instanceof Carbon) {
+            return $value;
+        }
+
+        if (\is_numeric($value)) {
+            $seconds = (float) $value;
+
+            return Carbon::createFromTimestampMs((int) \round($seconds * 1000));
+        }
+
+        if (\is_string($value)) {
+            try {
+                return Carbon::parse($value);
+            } catch (\Throwable $e) {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Compute the runtime in seconds for a job, using either a precomputed
      * runtime value or the difference between queued_at and processed/failed_at.
      *
