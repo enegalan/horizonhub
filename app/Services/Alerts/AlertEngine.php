@@ -259,12 +259,6 @@ class AlertEngine
      */
     private function private__shouldEvaluate(Alert $alert, string $eventType): bool
     {
-        if ($alert->rule_type === Alert::RULE_JOB_SPECIFIC_FAILURE && $eventType !== 'JobFailed') {
-            return false;
-        }
-        if ($alert->rule_type === Alert::RULE_JOB_TYPE_FAILURE && $eventType !== 'JobFailed') {
-            return false;
-        }
         if ($alert->rule_type === Alert::RULE_FAILURE_COUNT && $eventType !== 'JobFailed') {
             return false;
         }

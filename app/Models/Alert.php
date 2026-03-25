@@ -15,10 +15,6 @@ class Alert extends Model
      */
     private static ?array $cachedServiceNamesById = null;
 
-    public const RULE_JOB_SPECIFIC_FAILURE = 'job_specific_failure';
-
-    public const RULE_JOB_TYPE_FAILURE = 'job_type_failure';
-
     public const RULE_FAILURE_COUNT = 'failure_count';
 
     public const RULE_AVG_EXECUTION_TIME = 'avg_execution_time';

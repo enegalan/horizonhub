@@ -140,7 +140,7 @@
                     </div>
                     <div
                         class="space-y-2"
-                        x-show="['job_specific_failure','job_type_failure','failure_count','avg_execution_time','queue_blocked'].includes(ruleType)"
+                        x-show="['failure_count','avg_execution_time','queue_blocked'].includes(ruleType)"
                         x-cloak
                     >
                         <x-input-label>Queue (optional)</x-input-label>
@@ -180,7 +180,7 @@
                     </div>
                     <div
                         class="space-y-2"
-                        x-show="['job_specific_failure','job_type_failure','failure_count','avg_execution_time'].includes(ruleType)"
+                        x-show="['failure_count','avg_execution_time'].includes(ruleType)"
                         x-cloak
                     >
                         <x-input-label>Job (optional)</x-input-label>
@@ -218,7 +218,7 @@
                         </div>
                         @error('job_patterns') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
-                    <div class="space-y-2" x-show="['job_type_failure','job_specific_failure'].includes(ruleType)" x-cloak>
+                    <div class="space-y-2" x-show="['failure_count','avg_execution_time'].includes(ruleType)" x-cloak>
                         <x-input-label for="job_type">Job type (optional single substring)</x-input-label>
                         <x-text-input
                             type="text"
@@ -228,11 +228,11 @@
                             placeholder="App\Jobs\ProcessOrder"
                             class="w-full font-mono text-sm"
                         />
-                        <p class="text-xs text-muted-foreground" x-show="ruleType === 'job_type_failure'">Required unless you added at least one job pattern above.</p>
+                        <p class="text-xs text-muted-foreground">Merged with job patterns above when saved (same substring rules).</p>
                         @error('job_type') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
 
-                    <template x-if="['failure_count','avg_execution_time','queue_blocked','worker_offline','supervisor_offline','horizon_offline','job_type_failure','job_specific_failure'].includes(ruleType)">
+                    <template x-if="['failure_count','avg_execution_time','queue_blocked','worker_offline','supervisor_offline','horizon_offline'].includes(ruleType)">
                         <div class="space-y-3 pt-2 border-t border-border">
                             <p class="text-xs font-medium text-muted-foreground">Threshold</p>
                             <template x-if="ruleType === 'failure_count'">
@@ -299,60 +299,6 @@
                                         value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->threshold['minutes'] ?? 15) }}"
                                     />
                                     @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
-                                </div>
-                            </template>
-                            <template x-if="ruleType === 'job_type_failure'">
-                                <div class="flex gap-4 flex-wrap">
-                                    <div class="space-y-2">
-                                        <x-input-label>Window (minutes)</x-input-label>
-                                        <x-text-input
-                                            type="number"
-                                            name="thresholdMinutes"
-                                            min="1"
-                                            class="w-24"
-                                            value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->threshold['minutes'] ?? 15) }}"
-                                        />
-                                        @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
-                                    </div>
-                                    <div class="space-y-2">
-                                        <x-input-label>Min failures in window</x-input-label>
-                                        <x-text-input
-                                            type="number"
-                                            name="thresholdCount"
-                                            min="1"
-                                            class="w-24"
-                                            value="{{ old('thresholdCount') !== null ? old('thresholdCount') : ($alert->threshold['count'] ?? 1) }}"
-                                        />
-                                        @error('thresholdCount') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
-                                    </div>
-                                </div>
-                            </template>
-                            <template x-if="ruleType === 'job_specific_failure'">
-                                <div class="flex gap-4 flex-wrap">
-                                    <div class="space-y-2">
-                                        <x-input-label>Min failures in window</x-input-label>
-                                        <x-text-input
-                                            type="number"
-                                            name="thresholdCount"
-                                            min="1"
-                                            class="w-24"
-                                            value="{{ old('thresholdCount') !== null ? old('thresholdCount') : ($alert->threshold['count'] ?? 1) }}"
-                                        />
-                                        <p class="text-xs text-muted-foreground">Use &gt; 1 to alert only after N matching failures.</p>
-                                        @error('thresholdCount') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
-                                    </div>
-                                    <div class="space-y-2">
-                                        <x-input-label>Window (minutes)</x-input-label>
-                                        <x-text-input
-                                            type="number"
-                                            name="thresholdMinutes"
-                                            min="1"
-                                            class="w-24"
-                                            value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->threshold['minutes'] ?? 15) }}"
-                                        />
-                                        <p class="text-xs text-muted-foreground">Required when min failures &gt; 1.</p>
-                                        @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
-                                    </div>
                                 </div>
                             </template>
                         </div>
