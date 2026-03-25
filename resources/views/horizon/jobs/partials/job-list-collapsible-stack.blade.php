@@ -5,7 +5,7 @@
     /** @var string $resizablePrefix */
 @endphp
 <div
-    class="space-y-6 pt-4"
+    class="rounded-bl-[var(--radius)] overflow-hidden"
     data-horizon-jobs-stack-root="1"
     x-data="{
         sectionOpen: { processing: true, processed: true, failed: true },
