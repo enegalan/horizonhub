@@ -6,6 +6,8 @@
         $action = $isEdit ? route('horizon.alerts.update', $alert) : route('horizon.alerts.store');
         /** @var array<int,int> $selectedProviderIds */
         $selectedProviderIds = $selectedProviderIds ?? [];
+        /** @var array<int,int> $selectedServiceIds */
+        $selectedServiceIds = $selectedServiceIds ?? [];
         $thresholdForm = $alert->threshold ?? [];
         $oldJobPatterns = old('job_patterns');
         if (\is_array($oldJobPatterns)) {
@@ -100,14 +102,27 @@
                         @error('name') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
                     <div class="space-y-2">
-                        <x-input-label for="service_id">Service</x-input-label>
-                        <x-select id="service_id" name="service_id" class="w-full">
-                            <option value="">All services</option>
+                        <x-input-label>Services</x-input-label>
+                        <p class="text-xs text-muted-foreground">Select one or more services. Leave all unchecked to apply to all services.</p>
+                        @php
+                            $oldServiceIds = old('service_ids', $selectedServiceIds);
+                            $oldServiceIds = \is_array($oldServiceIds) ? \array_map('intval', $oldServiceIds) : [];
+                        @endphp
+                        <div class="space-y-2">
                             @foreach($services as $s)
-                                <option value="{{ $s->id }}" @selected((string) old('service_id', $alert->service_id) === (string) $s->id)>{{ $s->name }}</option>
+                                <div class="flex items-center gap-2 rounded-md border border-border px-3 py-2 hover:bg-muted/50">
+                                    <x-checkbox
+                                        id="service-{{ $s->id }}"
+                                        name="service_ids[]"
+                                        value="{{ $s->id }}"
+                                        :checked="in_array((int) $s->id, $oldServiceIds, true)"
+                                    />
+                                    <x-input-label for="service-{{ $s->id }}" class="text-sm font-normal cursor-pointer">{{ $s->name }}</x-input-label>
+                                </div>
                             @endforeach
-                        </x-select>
-                        @error('service_id') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                        </div>
+                        @error('service_ids') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                        @error('service_ids.*') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
                     <div class="space-y-2">
                         <x-input-label for="rule_type">Rule type</x-input-label>

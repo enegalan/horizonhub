@@ -49,7 +49,7 @@ class AlertController extends Controller
      */
     public function index(): View
     {
-        $alerts = Alert::with('service')
+        $alerts = Alert::query()
             ->withCount('alertLogs')
             ->withMax('alertLogs', 'sent_at')
             ->orderByDesc('created_at')
@@ -153,7 +153,7 @@ class AlertController extends Controller
             'threshold' => $alert->threshold,
             'queue' => $alert->queue,
             'job_type' => $alert->job_type,
-            'service_id' => $alert->service_id,
+            'service_ids' => $alert->scopedServiceIds(),
         ];
 
         return \view('horizon.alerts.show', [

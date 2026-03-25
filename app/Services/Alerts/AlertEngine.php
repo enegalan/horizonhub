@@ -72,12 +72,13 @@ class AlertEngine
     {
         /** @var Collection<int, Alert> $alerts */
         $alerts = Alert::where('enabled', true)
-            ->where(function ($q) use ($serviceId) {
-                $q->whereNull('service_id')->orWhere('service_id', $serviceId);
-            })->with('notificationProviders')
+            ->with('notificationProviders')
             ->get();
 
         foreach ($alerts as $alert) {
+            if (! $alert->appliesToServiceId($serviceId)) {
+                continue;
+            }
             if (! $this->private__shouldEvaluate($alert, $eventType)) {
                 continue;
             }
@@ -103,7 +104,10 @@ class AlertEngine
 
         foreach ($alerts as $alert) {
             try {
-                $serviceIds = $alert->service_id ? [$alert->service_id] : $services->pluck('id')->all();
+                $serviceIds = $alert->scopedServiceIds();
+                if ($serviceIds === []) {
+                    $serviceIds = $services->pluck('id')->all();
+                }
                 if (empty($serviceIds)) {
                     Log::warning('Horizon Hub: no services to evaluate alert (add at least one service)', ['alert_id' => $alert->id]);
 
@@ -169,7 +173,10 @@ class AlertEngine
 
         try {
             /** @var array<int, int> $serviceIds */
-            $serviceIds = $alert->service_id ? [(int) $alert->service_id] : Service::all()->pluck('id')->all();
+            $serviceIds = $alert->scopedServiceIds();
+            if ($serviceIds === []) {
+                $serviceIds = Service::all()->pluck('id')->all();
+            }
             if (empty($serviceIds)) {
                 $errorMessage ??= 'No services to evaluate alert (add at least one service).';
 

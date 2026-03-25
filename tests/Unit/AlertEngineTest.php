@@ -36,7 +36,7 @@ class AlertEngineTest extends TestCase
 
         Alert::query()->create([
             'name' => 'queue blocked',
-            'service_id' => null,
+            'service_ids' => [],
             'rule_type' => Alert::RULE_QUEUE_BLOCKED,
             'threshold' => null,
             'queue' => null,
@@ -71,7 +71,7 @@ class AlertEngineTest extends TestCase
 
         Alert::query()->create([
             'name' => 'failure count',
-            'service_id' => null,
+            'service_ids' => [],
             'rule_type' => Alert::RULE_FAILURE_COUNT,
             'threshold' => null,
             'queue' => null,
@@ -81,5 +81,53 @@ class AlertEngineTest extends TestCase
 
         $engine = new AlertEngine($evaluator, $batch, $dispatcher);
         $engine->evaluateAfterEvent((int) $service->id, 'JobFailed', 'job-uuid');
+    }
+
+    public function test_evaluate_after_event_honors_multiple_selected_services(): void
+    {
+        $evaluator = $this->createMock(AlertRuleEvaluator::class);
+        $evaluator->expects($this->once())
+            ->method('evaluateWithTriggeringJobs')
+            ->with(
+                $this->isInstanceOf(Alert::class),
+                $this->callback(static fn (int $sid): bool => $sid > 0),
+                'job-uuid'
+            )
+            ->willReturn(['triggered' => false, 'job_uuids' => []]);
+
+        $batch = $this->createMock(AlertBatchStore::class);
+        $batch->method('getPending')->willReturn([]);
+        $batch->method('shouldSendNow')->willReturn(false);
+
+        $dispatcher = $this->createMock(AlertNotificationDispatcher::class);
+        $dispatcher->expects($this->never())->method('dispatch');
+
+        $serviceOne = Service::create([
+            'name' => 'alert-svc-3',
+            'api_key' => 'a72345678901234567890123456789012345678901234567890123456789012',
+            'base_url' => 'https://alerts-3.test',
+            'status' => 'online',
+        ]);
+        $serviceTwo = Service::create([
+            'name' => 'alert-svc-4',
+            'api_key' => 'a82345678901234567890123456789012345678901234567890123456789012',
+            'base_url' => 'https://alerts-4.test',
+            'status' => 'online',
+        ]);
+
+        Alert::query()->create([
+            'name' => 'scoped services alert',
+            'service_ids' => [(int) $serviceTwo->id],
+            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'threshold' => null,
+            'queue' => null,
+            'job_type' => null,
+            'enabled' => true,
+        ]);
+
+        $engine = new AlertEngine($evaluator, $batch, $dispatcher);
+
+        $engine->evaluateAfterEvent((int) $serviceOne->id, 'JobFailed', 'job-uuid');
+        $engine->evaluateAfterEvent((int) $serviceTwo->id, 'JobFailed', 'job-uuid');
     }
 }
