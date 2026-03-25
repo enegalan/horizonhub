@@ -6,6 +6,8 @@
         $action = $isEdit ? route('horizon.alerts.update', $alert) : route('horizon.alerts.store');
         /** @var array<int,int> $selectedProviderIds */
         $selectedProviderIds = $selectedProviderIds ?? [];
+        /** @var array<int,int> $selectedServiceIds */
+        $selectedServiceIds = $selectedServiceIds ?? [];
         $thresholdForm = $alert->threshold ?? [];
         $oldJobPatterns = old('job_patterns');
         if (\is_array($oldJobPatterns)) {
@@ -100,14 +102,27 @@
                         @error('name') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
                     <div class="space-y-2">
-                        <x-input-label for="service_id">Service</x-input-label>
-                        <x-select id="service_id" name="service_id" class="w-full">
-                            <option value="">All services</option>
+                        <x-input-label>Services</x-input-label>
+                        <p class="text-xs text-muted-foreground">Select one or more services. Leave all unchecked to apply to all services.</p>
+                        @php
+                            $oldServiceIds = old('service_ids', $selectedServiceIds);
+                            $oldServiceIds = \is_array($oldServiceIds) ? \array_map('intval', $oldServiceIds) : [];
+                        @endphp
+                        <div class="space-y-2">
                             @foreach($services as $s)
-                                <option value="{{ $s->id }}" @selected((string) old('service_id', $alert->service_id) === (string) $s->id)>{{ $s->name }}</option>
+                                <div class="flex items-center gap-2 rounded-md border border-border px-3 py-2 hover:bg-muted/50">
+                                    <x-checkbox
+                                        id="service-{{ $s->id }}"
+                                        name="service_ids[]"
+                                        value="{{ $s->id }}"
+                                        :checked="in_array((int) $s->id, $oldServiceIds, true)"
+                                    />
+                                    <x-input-label for="service-{{ $s->id }}" class="text-sm font-normal cursor-pointer">{{ $s->name }}</x-input-label>
+                                </div>
                             @endforeach
-                        </x-select>
-                        @error('service_id') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                        </div>
+                        @error('service_ids') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                        @error('service_ids.*') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
                     <div class="space-y-2">
                         <x-input-label for="rule_type">Rule type</x-input-label>
@@ -125,7 +140,7 @@
                     </div>
                     <div
                         class="space-y-2"
-                        x-show="['job_specific_failure','job_type_failure','failure_count','avg_execution_time','queue_blocked'].includes(ruleType)"
+                        x-show="['failure_count','avg_execution_time','queue_blocked'].includes(ruleType)"
                         x-cloak
                     >
                         <x-input-label>Queue (optional)</x-input-label>
@@ -165,7 +180,7 @@
                     </div>
                     <div
                         class="space-y-2"
-                        x-show="['job_specific_failure','job_type_failure','failure_count','avg_execution_time'].includes(ruleType)"
+                        x-show="['failure_count','avg_execution_time'].includes(ruleType)"
                         x-cloak
                     >
                         <x-input-label>Job (optional)</x-input-label>
@@ -203,7 +218,7 @@
                         </div>
                         @error('job_patterns') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
-                    <div class="space-y-2" x-show="['job_type_failure','job_specific_failure'].includes(ruleType)" x-cloak>
+                    <div class="space-y-2" x-show="['failure_count','avg_execution_time'].includes(ruleType)" x-cloak>
                         <x-input-label for="job_type">Job type (optional single substring)</x-input-label>
                         <x-text-input
                             type="text"
@@ -213,11 +228,11 @@
                             placeholder="App\Jobs\ProcessOrder"
                             class="w-full font-mono text-sm"
                         />
-                        <p class="text-xs text-muted-foreground" x-show="ruleType === 'job_type_failure'">Required unless you added at least one job pattern above.</p>
+                        <p class="text-xs text-muted-foreground">Merged with job patterns above when saved (same substring rules).</p>
                         @error('job_type') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
 
-                    <template x-if="['failure_count','avg_execution_time','queue_blocked','worker_offline','supervisor_offline','horizon_offline','job_type_failure','job_specific_failure'].includes(ruleType)">
+                    <template x-if="['failure_count','avg_execution_time','queue_blocked','worker_offline','supervisor_offline','horizon_offline'].includes(ruleType)">
                         <div class="space-y-3 pt-2 border-t border-border">
                             <p class="text-xs font-medium text-muted-foreground">Threshold</p>
                             <template x-if="ruleType === 'failure_count'">
@@ -284,60 +299,6 @@
                                         value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->threshold['minutes'] ?? 15) }}"
                                     />
                                     @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
-                                </div>
-                            </template>
-                            <template x-if="ruleType === 'job_type_failure'">
-                                <div class="flex gap-4 flex-wrap">
-                                    <div class="space-y-2">
-                                        <x-input-label>Window (minutes)</x-input-label>
-                                        <x-text-input
-                                            type="number"
-                                            name="thresholdMinutes"
-                                            min="1"
-                                            class="w-24"
-                                            value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->threshold['minutes'] ?? 15) }}"
-                                        />
-                                        @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
-                                    </div>
-                                    <div class="space-y-2">
-                                        <x-input-label>Min failures in window</x-input-label>
-                                        <x-text-input
-                                            type="number"
-                                            name="thresholdCount"
-                                            min="1"
-                                            class="w-24"
-                                            value="{{ old('thresholdCount') !== null ? old('thresholdCount') : ($alert->threshold['count'] ?? 1) }}"
-                                        />
-                                        @error('thresholdCount') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
-                                    </div>
-                                </div>
-                            </template>
-                            <template x-if="ruleType === 'job_specific_failure'">
-                                <div class="flex gap-4 flex-wrap">
-                                    <div class="space-y-2">
-                                        <x-input-label>Min failures in window</x-input-label>
-                                        <x-text-input
-                                            type="number"
-                                            name="thresholdCount"
-                                            min="1"
-                                            class="w-24"
-                                            value="{{ old('thresholdCount') !== null ? old('thresholdCount') : ($alert->threshold['count'] ?? 1) }}"
-                                        />
-                                        <p class="text-xs text-muted-foreground">Use &gt; 1 to alert only after N matching failures.</p>
-                                        @error('thresholdCount') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
-                                    </div>
-                                    <div class="space-y-2">
-                                        <x-input-label>Window (minutes)</x-input-label>
-                                        <x-text-input
-                                            type="number"
-                                            name="thresholdMinutes"
-                                            min="1"
-                                            class="w-24"
-                                            value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->threshold['minutes'] ?? 15) }}"
-                                        />
-                                        <p class="text-xs text-muted-foreground">Required when min failures &gt; 1.</p>
-                                        @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
-                                    </div>
                                 </div>
                             </template>
                         </div>

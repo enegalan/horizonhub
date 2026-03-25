@@ -7,8 +7,6 @@ use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
 use App\Services\Alerts\Rules\Strategies\AvgExecutionTimeAlertRuleStrategy;
 use App\Services\Alerts\Rules\Strategies\FailureCountAlertRuleStrategy;
 use App\Services\Alerts\Rules\Strategies\HorizonOfflineAlertRuleStrategy;
-use App\Services\Alerts\Rules\Strategies\JobSpecificFailureAlertRuleStrategy;
-use App\Services\Alerts\Rules\Strategies\JobTypeFailureAlertRuleStrategy;
 use App\Services\Alerts\Rules\Strategies\QueueBlockedAlertRuleStrategy;
 use App\Services\Alerts\Rules\Strategies\SupervisorOfflineAlertRuleStrategy;
 use App\Services\Alerts\Rules\Strategies\WorkerOfflineAlertRuleStrategy;
@@ -32,8 +30,6 @@ final class AlertRuleStrategyRegistry
      */
     public function __construct(
         NullAlertRuleStrategy $nullStrategy,
-        JobSpecificFailureAlertRuleStrategy $jobSpecificFailure,
-        JobTypeFailureAlertRuleStrategy $jobTypeFailure,
         FailureCountAlertRuleStrategy $failureCount,
         AvgExecutionTimeAlertRuleStrategy $avgExecutionTime,
         QueueBlockedAlertRuleStrategy $queueBlocked,
@@ -43,8 +39,6 @@ final class AlertRuleStrategyRegistry
     ) {
         $this->nullStrategy = $nullStrategy;
         $this->strategies = [
-            Alert::RULE_JOB_SPECIFIC_FAILURE => $jobSpecificFailure,
-            Alert::RULE_JOB_TYPE_FAILURE => $jobTypeFailure,
             Alert::RULE_FAILURE_COUNT => $failureCount,
             Alert::RULE_AVG_EXECUTION_TIME => $avgExecutionTime,
             Alert::RULE_QUEUE_BLOCKED => $queueBlocked,

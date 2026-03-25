@@ -64,8 +64,11 @@
                                 <a href="{{ route('horizon.alerts.show', $alert) }}" class="link">{{ $alert->name ?: ('Alert #' . $alert->id) }}</a>
                             </td>
                             <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="service">
-                                @if($alert->service_id && $alert->service)
-                                    <a href="{{ route('horizon.services.show', $alert->service) }}" class="link">{{ $alert->service->name }}</a>
+                                @php
+                                    $serviceLabels = $alert->scopedServiceNames();
+                                @endphp
+                                @if(\count($serviceLabels) > 0)
+                                    {{ \count($serviceLabels) === 1 ? $serviceLabels[0] : \implode(', ', $serviceLabels) }}
                                 @else
                                     All
                                 @endif

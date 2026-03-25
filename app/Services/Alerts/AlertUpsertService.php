@@ -26,14 +26,12 @@ class AlertUpsertService
         $services = Service::orderBy('name')->get();
         $providers = NotificationProvider::orderBy('type')->orderBy('name')->get();
         $ruleTypes = [
-            'job_specific_failure' => 'Job failed (any)',
-            'job_type_failure' => 'Job type failed',
-            'failure_count' => 'Failure count in window',
-            'avg_execution_time' => 'Avg execution time exceeded',
-            'queue_blocked' => 'Queue blocked',
-            'worker_offline' => 'Worker offline',
-            'supervisor_offline' => 'Supervisor offline',
-            'horizon_offline' => 'Horizon offline',
+            Alert::RULE_FAILURE_COUNT => 'Failure count in window',
+            Alert::RULE_AVG_EXECUTION_TIME => 'Avg execution time exceeded',
+            Alert::RULE_QUEUE_BLOCKED => 'Queue blocked',
+            Alert::RULE_WORKER_OFFLINE => 'Worker offline',
+            Alert::RULE_SUPERVISOR_OFFLINE => 'Supervisor offline',
+            Alert::RULE_HORIZON_OFFLINE => 'Horizon offline',
         ];
         $header = $alert->exists ? 'Edit alert' : 'New alert';
 
@@ -43,6 +41,7 @@ class AlertUpsertService
             'providers' => $providers,
             'ruleTypes' => $ruleTypes,
             'selectedProviderIds' => $alert->exists ? $alert->notificationProviders()->pluck('notification_providers.id')->all() : [],
+            'selectedServiceIds' => $alert->exists ? $alert->scopedServiceIds() : [],
             'header' => "Horizon Hub – $header",
         ];
     }
@@ -55,9 +54,18 @@ class AlertUpsertService
      */
     public function validateAlert(Request $request): array
     {
+        $ruleTypes = [
+            Alert::RULE_FAILURE_COUNT,
+            Alert::RULE_AVG_EXECUTION_TIME,
+            Alert::RULE_QUEUE_BLOCKED,
+            Alert::RULE_WORKER_OFFLINE,
+            Alert::RULE_SUPERVISOR_OFFLINE,
+            Alert::RULE_HORIZON_OFFLINE,
+        ];
         $baseRules = [
-            'rule_type' => 'required|in:job_specific_failure,job_type_failure,failure_count,avg_execution_time,queue_blocked,worker_offline,supervisor_offline,horizon_offline',
-            'service_id' => 'nullable|exists:services,id',
+            'rule_type' => 'required|in:'.implode(',', array_keys($ruleTypes)),
+            'service_ids' => 'nullable|array',
+            'service_ids.*' => 'integer|exists:services,id',
             'queue' => 'nullable|string|max:255',
             'job_type' => 'nullable|string|max:255',
             'job_patterns' => 'nullable|array|max:'.self::ALERT_PATTERN_LINES_MAX,
@@ -74,37 +82,26 @@ class AlertUpsertService
             'name' => 'nullable|string|max:255',
         ];
 
-        $ruleType = (string) $request->input('rule_type', 'failure_count');
+        $ruleType = (string) $request->input('rule_type', Alert::RULE_FAILURE_COUNT);
 
-        if ($ruleType === 'job_type_failure') {
-            $baseRules['thresholdMinutes'] = 'required|integer|min:1';
-            $baseRules['thresholdCount'] = 'nullable|integer|min:1';
-        }
-        if (\in_array($ruleType, ['failure_count', 'avg_execution_time', 'queue_blocked', 'worker_offline', 'supervisor_offline', 'horizon_offline'], true)) {
+        if (\in_array($ruleType, [Alert::RULE_FAILURE_COUNT, Alert::RULE_AVG_EXECUTION_TIME, Alert::RULE_QUEUE_BLOCKED, Alert::RULE_WORKER_OFFLINE, Alert::RULE_SUPERVISOR_OFFLINE, Alert::RULE_HORIZON_OFFLINE], true)) {
             $baseRules['thresholdMinutes'] = 'required|integer|min:1';
         }
-        if ($ruleType === 'failure_count') {
+        if ($ruleType === Alert::RULE_FAILURE_COUNT) {
             $baseRules['thresholdCount'] = 'required|integer|min:1';
         }
-        if ($ruleType === 'avg_execution_time') {
+        if ($ruleType === Alert::RULE_AVG_EXECUTION_TIME) {
             $baseRules['thresholdSeconds'] = 'required|numeric|min:0.1';
-        }
-        if ($ruleType === 'job_specific_failure') {
-            $baseRules['thresholdCount'] = 'nullable|integer|min:1';
-            $baseRules['thresholdMinutes'] = 'nullable|integer|min:1';
         }
 
         $upsert = $this;
         $validator = Validator::make($request->all(), $baseRules);
-        $validator->after(function (\Illuminate\Validation\Validator $v) use ($ruleType, $request, $upsert): void {
+        $validator->after(function (\Illuminate\Validation\Validator $v) use ($request, $upsert): void {
             $jobPatterns = $upsert->sanitizePatternArray($request->input('job_patterns'));
             $queuePatterns = $upsert->sanitizePatternArray($request->input('queue_patterns'));
 
             $jobTypeInput = \trim((string) $request->input('job_type', ''));
             $jobPatternsMerged = $upsert->mergeJobTypeIntoPatterns($jobPatterns, $jobTypeInput !== '' ? $jobTypeInput : null);
-            if ($ruleType === 'job_type_failure' && $jobPatternsMerged === []) {
-                $v->errors()->add('job_type', 'Enter a job type substring or add at least one job pattern.');
-            }
             foreach ($jobPatternsMerged as $p) {
                 if (\strlen($p) > 255) {
                     $v->errors()->add('job_patterns', 'Each job pattern must be at most 255 characters.');
@@ -119,16 +116,6 @@ class AlertUpsertService
                     break;
                 }
             }
-            if ($ruleType === 'job_specific_failure') {
-                $minFails = (int) $request->input('thresholdCount', 1);
-                if ($minFails < 1) {
-                    $minFails = 1;
-                }
-                $winMin = $request->input('thresholdMinutes');
-                if ($minFails > 1 && ($winMin === null || $winMin === '' || (int) $winMin < 1)) {
-                    $v->errors()->add('thresholdMinutes', 'Window minutes is required when minimum failures is greater than 1.');
-                }
-            }
         });
 
         $validated = $validator->validate();
@@ -141,32 +128,18 @@ class AlertUpsertService
         $queuePatterns = $this->sanitizePatternArray($request->input('queue_patterns'));
 
         $threshold = [];
-        if (\in_array($ruleType, ['failure_count', 'avg_execution_time', 'queue_blocked', 'worker_offline', 'supervisor_offline', 'horizon_offline'], true)) {
+        if (\in_array($ruleType, [Alert::RULE_FAILURE_COUNT, Alert::RULE_AVG_EXECUTION_TIME, Alert::RULE_QUEUE_BLOCKED, Alert::RULE_WORKER_OFFLINE, Alert::RULE_SUPERVISOR_OFFLINE, Alert::RULE_HORIZON_OFFLINE], true)) {
             $threshold['minutes'] = (int) ($validated['thresholdMinutes'] ?? 0);
         }
-        if ($ruleType === 'job_type_failure') {
-            $threshold['minutes'] = (int) ($validated['thresholdMinutes'] ?? 0);
-            $typeFailCount = (int) ($validated['thresholdCount'] ?? 1);
-            if ($typeFailCount > 1) {
-                $threshold['count'] = $typeFailCount;
-            }
-        }
-        if ($ruleType === 'failure_count') {
+        if ($ruleType === Alert::RULE_FAILURE_COUNT) {
             $threshold['count'] = (int) ($validated['thresholdCount'] ?? 0);
         }
-        if ($ruleType === 'avg_execution_time') {
+        if ($ruleType === Alert::RULE_AVG_EXECUTION_TIME) {
             $threshold['seconds'] = (float) ($validated['thresholdSeconds'] ?? 0.0);
         }
-        if ($ruleType === 'job_specific_failure') {
-            $jsCount = (int) ($validated['thresholdCount'] ?? 1);
-            if ($jsCount > 1) {
-                $threshold['count'] = $jsCount;
-                $threshold['minutes'] = (int) ($validated['thresholdMinutes'] ?? 15);
-            }
-        }
 
-        $patternRuleTypes = ['job_specific_failure', 'job_type_failure', 'failure_count', 'avg_execution_time'];
-        $queuePatternRuleTypes = ['job_specific_failure', 'job_type_failure', 'failure_count', 'avg_execution_time', 'queue_blocked'];
+        $patternRuleTypes = [Alert::RULE_FAILURE_COUNT, Alert::RULE_AVG_EXECUTION_TIME];
+        $queuePatternRuleTypes = [Alert::RULE_FAILURE_COUNT, Alert::RULE_AVG_EXECUTION_TIME, Alert::RULE_QUEUE_BLOCKED];
         if (\in_array($ruleType, $patternRuleTypes, true)) {
             if ($jobPatterns !== []) {
                 $threshold['job_patterns'] = $jobPatterns;
@@ -190,10 +163,12 @@ class AlertUpsertService
         }
 
         $jobTypeColumn = $this->jobTypeColumnFromPatterns($jobPatterns);
+        $serviceIds = \array_values(\array_unique(\array_map('intval', $validated['service_ids'] ?? [])));
+        \sort($serviceIds);
 
         $alertData = [
             'name' => $validated['name'] ?? null,
-            'service_id' => ! empty($validated['service_id']) ? (int) $validated['service_id'] : null,
+            'service_ids' => $serviceIds,
             'rule_type' => $ruleType,
             'threshold' => $threshold,
             'queue' => $queueColumn,
