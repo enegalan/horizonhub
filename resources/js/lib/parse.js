@@ -27,3 +27,26 @@ export function parseJsonFromElement(elementId) {
 
     return parseJson(el.textContent);
 }
+
+/**
+ * Split retry modal "failed at" range field into API params.
+ * @param {string} rangeValue
+ * @returns {{ dateFrom: string, dateTo: string }}
+ */
+export function parseFailedAtRange(rangeValue) {
+    var v = typeof rangeValue === 'string' ? rangeValue.trim() : '';
+    if (!v) {
+        return { dateFrom: '', dateTo: '' };
+    }
+    var parts = v.split(/\s+to\s+/i).map(function (s) {
+        return s.trim();
+    }).filter(Boolean);
+    if (parts.length === 0) {
+        return { dateFrom: '', dateTo: '' };
+    }
+    if (parts.length === 1) {
+        return { dateFrom: parts[0], dateTo: '' };
+    }
+
+    return { dateFrom: parts[0], dateTo: parts[1] };
+}

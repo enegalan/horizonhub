@@ -1,295 +1,93 @@
 import { formatDateTimeElements } from '../lib/datetime-format';
-import { onHorizonHubRefresh, decodeHtmlEntities } from '../lib/dom';
-import hljs from 'highlight.js/lib/core';
-import jsonLanguage from 'highlight.js/lib/languages/json';
-
-hljs.registerLanguage('json', jsonLanguage);
+import { onHorizonHubRefresh } from '../lib/dom';
+import { renderJsonTree } from '../lib/json-tree';
+import { parseFailedAtRange } from '../lib/parse';
 
 /**
- * Parse JSON sources that can arrive escaped/encoded.
- * @param {string} rawSource
- * @returns {unknown}
+ * Swap a live DOM subtree with the same selector from a fetched document.
+ * @param {string} selector
+ * @param {Document} preloadedDoc
+ * @param {{ afterReplace?: function(HTMLElement): void }=} options
+ * @returns {HTMLElement|null}
  */
-function parseJsonSource(rawSource) {
-    var candidate = decodeHtmlEntities(String(rawSource)).trim();
-    var seen = new Set();
-
-    for (;;) {
-        if (seen.has(candidate)) {
-            return candidate;
-        }
-        seen.add(candidate);
-
-        try {
-            var parsed = JSON.parse(candidate);
-
-            if (typeof parsed !== 'string') {
-                return parsed;
-            }
-
-            var nextCandidate = decodeHtmlEntities(parsed).trim();
-            if (!nextCandidate) return '';
-
-            var startsLikeJson =
-                nextCandidate.startsWith('{') ||
-                nextCandidate.startsWith('[') ||
-                nextCandidate.startsWith('"');
-
-            if (!startsLikeJson) {
-                return parsed;
-            }
-
-            candidate = nextCandidate;
-        } catch (error) {
-            return candidate;
-        }
+function replaceHorizonRootFromDoc(selector, preloadedDoc, options) {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return null;
+    if (!preloadedDoc) return null;
+    var newRoot = preloadedDoc.querySelector(selector);
+    var currentRoot = document.querySelector(selector);
+    if (!newRoot || !currentRoot) return null;
+    currentRoot.replaceWith(newRoot);
+    formatDateTimeElements(newRoot);
+    if (typeof window !== 'undefined' && window.Alpine && typeof window.Alpine.initTree === 'function') {
+        window.Alpine.initTree(newRoot);
     }
+    if (options && typeof options.afterReplace === 'function') {
+        options.afterReplace(newRoot);
+    }
+    return newRoot;
 }
 
 /**
- * Highlight JSON inline value.
- * @param {unknown} value
- * @returns {string}
- */
-function highlightJsonValue(value) {
-    var jsonValue;
-    try {
-        jsonValue = JSON.stringify(value);
-    } catch (error) {
-        jsonValue = JSON.stringify(String(value));
-    }
-
-    if (typeof jsonValue !== 'string') {
-        jsonValue = 'null';
-    }
-
-    return hljs.highlight(jsonValue, { language: 'json' }).value;
-}
-
-/**
- * Build a JSON key span.
- * @param {string} key
- * @returns {HTMLElement}
- */
-function buildJsonKey(key) {
-    var keyEl = document.createElement('span');
-    keyEl.className = 'horizon-json-key';
-    keyEl.innerHTML = hljs.highlight(JSON.stringify(key), { language: 'json' }).value;
-
-    return keyEl;
-}
-
-/**
- * Build a primitive JSON value span.
- * @param {unknown} value
- * @returns {HTMLElement}
- */
-function buildJsonPrimitive(value) {
-    var valueEl = document.createElement('span');
-    valueEl.className = 'horizon-json-value';
-    valueEl.innerHTML = highlightJsonValue(value);
-
-    return valueEl;
-}
-
-/**
- * Build a JSON node recursively.
- * @param {string|null} key
- * @param {unknown} value
- * @param {string[]} pathSegments
- * @param {{ isCollapsed: function(string): boolean, setCollapsed: function(string, boolean): void }|null} state
- * @returns {HTMLElement}
- */
-function buildJsonNode(key, value, pathSegments, state) {
-    var wrapper = document.createElement('div');
-    wrapper.className = 'horizon-json-node';
-
-    var isArray = Array.isArray(value);
-    var isObject = value !== null && typeof value === 'object' && !isArray;
-    var isContainer = isArray || isObject;
-
-    var line = document.createElement('div');
-    line.className = 'horizon-json-line';
-    wrapper.appendChild(line);
-
-    var currentPathSegments = Array.isArray(pathSegments) ? pathSegments.slice() : [];
-    if (key !== null) {
-        currentPathSegments.push(String(key));
-    }
-
-    if (key !== null) {
-        line.appendChild(buildJsonKey(key));
-        var colon = document.createElement('span');
-        colon.className = 'horizon-json-colon';
-        colon.textContent = ': ';
-        line.appendChild(colon);
-    }
-
-    if (!isContainer) {
-        line.appendChild(buildJsonPrimitive(value));
-        return wrapper;
-    }
-
-    var children = isArray ? value : Object.entries(value);
-    var openBrace = isArray ? '[' : '{';
-    var closeBrace = isArray ? ']' : '}';
-
-    var pointer = '/' + currentPathSegments.map(function (segment) {
-        return String(segment).replace(/~/g, '~0').replace(/\//g, '~1');
-    }).join('/');
-
-    var toggle = document.createElement('button');
-    toggle.type = 'button';
-    toggle.className = 'horizon-json-toggle';
-    toggle.setAttribute('aria-expanded', 'true');
-    toggle.setAttribute('no-ring', 'true');
-    toggle.textContent = openBrace;
-    line.appendChild(toggle);
-
-    var childrenContainer = document.createElement('div');
-    childrenContainer.className = 'horizon-json-children';
-
-    if (isArray) {
-        children.forEach(function (childValue, index) {
-            childrenContainer.appendChild(buildJsonNode(String(index), childValue, currentPathSegments, state));
-        });
-    } else {
-        children.forEach(function (entry) {
-            childrenContainer.appendChild(buildJsonNode(entry[0], entry[1], currentPathSegments, state));
-        });
-    }
-
-    wrapper.appendChild(childrenContainer);
-
-    var closeLine = document.createElement('div');
-    closeLine.className = 'horizon-json-line horizon-json-close';
-    var closeToggle = document.createElement('button');
-    closeToggle.type = 'button';
-    closeToggle.className = 'horizon-json-toggle';
-    closeToggle.setAttribute('aria-expanded', 'true');
-    closeToggle.setAttribute('no-ring', 'true');
-    closeToggle.textContent = closeBrace;
-    closeLine.appendChild(closeToggle);
-    wrapper.appendChild(closeLine);
-
-    function setExpanded(expanded) {
-        toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-        closeToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-        childrenContainer.classList.toggle('hidden', !expanded);
-        closeLine.classList.toggle('hidden', !expanded);
-        toggle.textContent = expanded ? openBrace : (openBrace + '...' + closeBrace);
-    }
-
-    toggle.addEventListener('click', function () {
-        var expanded = toggle.getAttribute('aria-expanded') === 'true';
-        var nextExpanded = !expanded;
-        setExpanded(nextExpanded);
-        if (state) state.setCollapsed(pointer, !nextExpanded);
-    });
-    closeToggle.addEventListener('click', function () {
-        var expanded = closeToggle.getAttribute('aria-expanded') === 'true';
-        var nextExpanded = !expanded;
-        setExpanded(nextExpanded);
-        if (state) state.setCollapsed(pointer, !nextExpanded);
-    });
-
-    if (state && state.isCollapsed(pointer)) {
-        setExpanded(false);
-    }
-
-    return wrapper;
-}
-
-/**
- * Create a persisted JSON tree state store.
- * @param {string} storageKey
- * @returns {{ isCollapsed: function(string): boolean, setCollapsed: function(string, boolean): void }|null}
- */
-function createJsonTreeStateStore(storageKey) {
-    if (typeof window === 'undefined') return null;
-    if (!storageKey) return null;
-
-    var cache = new Set();
-    try {
-        var raw = window.localStorage ? window.localStorage.getItem(storageKey) : null;
-        if (raw) {
-            var parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-                parsed.forEach(function (p) {
-                    if (typeof p === 'string' && p) cache.add(p);
-                });
-            }
-        }
-    } catch (e) {
-    }
-
-    function persist() {
-        try {
-            if (!window.localStorage) return;
-            window.localStorage.setItem(storageKey, JSON.stringify(Array.from(cache)));
-        } catch (e) {
-        }
-    }
-
-    return {
-        isCollapsed: function (pointer) {
-            return cache.has(pointer);
-        },
-        setCollapsed: function (pointer, collapsed) {
-            if (!pointer) return;
-            if (collapsed) cache.add(pointer);
-            else cache.delete(pointer);
-            persist();
-        },
-    };
-}
-
-/**
- * Render JSON tree inside a target element.
- * @param {HTMLElement} target
- * @param {{ storageKey?: string }=} options
+ * POST retry URL, toast, and dispatch refresh (single job flows).
+ * @param {string} retryUrl
+ * @param {{ retrying: boolean }} component
+ * @param {string} toastMessage
  * @returns {void}
  */
-function renderJsonTree(target, options) {
-    if (!target || !target.getAttribute) return;
-
-    var source = target.getAttribute('data-json-source');
-    var parsed = null;
-    if (typeof source === 'string' && source !== '') {
-        parsed = parseJsonSource(source);
-    }
-
-    var state = null;
-    if (options && typeof options.storageKey === 'string' && options.storageKey) {
-        state = createJsonTreeStateStore(options.storageKey);
-    }
-
-    target.innerHTML = '';
-    target.classList.add('horizon-json-tree');
-    target.appendChild(buildJsonNode(null, parsed, [], state));
+function postSingleJobRetry(retryUrl, component, toastMessage) {
+    if (!window.horizon || !window.horizon.http) return;
+    component.retrying = true;
+    var shouldRefresh = false;
+    window.horizon.http.post(retryUrl, {}).then(function () {
+        if (window.toast && window.toast.success) {
+            window.toast.success(toastMessage);
+        }
+        shouldRefresh = true;
+    }).catch(function () {
+    }).finally(function () {
+        component.retrying = false;
+        if (shouldRefresh && typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('horizonhub-refresh'));
+        }
+    });
 }
 
 /**
- * Split retry modal range field into API params.
- * @param {string} rangeValue
- * @returns {{ dateFrom: string, dateTo: string }}
+ * Resolve the job detail root. `Element#querySelector` does not match the element itself,
+ * so when `root` is already the detail div (e.g. after SSE replace), we must return it.
+ * @param {Document|HTMLElement|null} root
+ * @returns {HTMLElement|null}
  */
-function parseFailedAtRange(rangeValue) {
-    var v = typeof rangeValue === 'string' ? rangeValue.trim() : '';
-    if (!v) {
-        return { dateFrom: '', dateTo: '' };
+function resolveHorizonJobDetailRoot(root) {
+    if (!root) return null;
+    if (root.nodeType === 1 && root.getAttribute && root.getAttribute('data-horizon-job-detail-root') === '1') {
+        return root;
     }
-    var parts = v.split(/\s+to\s+/i).map(function (s) {
-        return s.trim();
-    }).filter(Boolean);
-    if (parts.length === 0) {
-        return { dateFrom: '', dateTo: '' };
+    if (root.querySelector) {
+        return root.querySelector('[data-horizon-job-detail-root="1"]');
     }
-    if (parts.length === 1) {
-        return { dateFrom: parts[0], dateTo: '' };
-    }
+    return null;
+}
 
-    return { dateFrom: parts[0], dateTo: parts[1] };
+/**
+ * Render JSON trees on the job detail page (localStorage keys require job UUID).
+ * @param {Document|HTMLElement} root
+ * @returns {void}
+ */
+export function enhanceHorizonJobDetailJsonTrees(root) {
+    if (!root || !root.querySelectorAll) return;
+    var rootEl = resolveHorizonJobDetailRoot(root);
+    if (!rootEl) return;
+    var jobUuid = String(rootEl.getAttribute('data-horizon-job-uuid') || '').trim();
+    var jsonTargets = rootEl.querySelectorAll('[data-json-tree]');
+    jsonTargets.forEach(function (target) {
+        var treeName = target.getAttribute('data-json-tree');
+        var storageKey = null;
+        if (jobUuid && treeName) {
+            storageKey = 'horizonhub:job-detail:' + jobUuid + ':json-tree:' + treeName;
+        }
+        renderJsonTree(target, { storageKey: storageKey });
+    });
 }
 
 /**
@@ -508,19 +306,13 @@ export function horizonJobsPage(config) {
          * @returns {void}
          */
         refreshJobsTable(preloadedDoc) {
-            if (typeof window === 'undefined' || typeof document === 'undefined') return;
-            if (!preloadedDoc) return;
-            var newRoot = preloadedDoc.querySelector('[data-horizon-jobs-stack-root="1"]');
-            var currentRoot = document.querySelector('[data-horizon-jobs-stack-root="1"]');
-            if (!newRoot || !currentRoot) return;
-            currentRoot.replaceWith(newRoot);
-            formatDateTimeElements(newRoot);
-            if (typeof window !== 'undefined' && window.Alpine && typeof window.Alpine.initTree === 'function') {
-                window.Alpine.initTree(newRoot);
-            }
-            if (typeof window !== 'undefined' && window.horizonInitResizableTables) {
-                window.horizonInitResizableTables();
-            }
+            replaceHorizonRootFromDoc('[data-horizon-jobs-stack-root="1"]', preloadedDoc, {
+                afterReplace: function () {
+                    if (typeof window !== 'undefined' && window.horizonInitResizableTables) {
+                        window.horizonInitResizableTables();
+                    }
+                },
+            });
         },
     };
 }
@@ -539,22 +331,7 @@ export function horizonJobRowRetry(config) {
          * @returns {void}
          */
         retry() {
-            if (!window.horizon || !window.horizon.http) return;
-            this.retrying = true;
-            var self = this;
-            var shouldRefresh = false;
-            window.horizon.http.post(config.retryUrl, {}).then(function () {
-                if (window.toast && window.toast.success) {
-                    window.toast.success('Retry requested.');
-                }
-                shouldRefresh = true;
-            }).catch(function () {
-            }).finally(function () {
-                self.retrying = false;
-                if (shouldRefresh && typeof window !== 'undefined') {
-                    window.dispatchEvent(new Event('horizonhub-refresh'));
-                }
-            });
+            postSingleJobRetry(config.retryUrl, this, 'Retry requested.');
         },
     };
 }
@@ -637,22 +414,8 @@ export function horizonJobDetail(config) {
          * @returns {void}
          */
         retry() {
-            if (!config.canRetry || !window.horizon || !window.horizon.http) return;
-            this.retrying = true;
-            var self = this;
-            var shouldRefresh = false;
-            window.horizon.http.post(config.retryUrl, {}).then(function () {
-                if (window.toast && window.toast.success) {
-                    window.toast.success('Retry requested.');
-                }
-                shouldRefresh = true;
-            }).catch(function () {
-            }).finally(function () {
-                self.retrying = false;
-                if (shouldRefresh && typeof window !== 'undefined') {
-                    window.dispatchEvent(new Event('horizonhub-refresh'));
-                }
-            });
+            if (!config.canRetry) return;
+            postSingleJobRetry(config.retryUrl, this, 'Retry requested.');
         },
         /**
          * Toggle exception lines.
@@ -668,18 +431,7 @@ export function horizonJobDetail(config) {
          * @returns {void}
          */
         enhanceJobDetail(root) {
-            if (!root || !root.querySelectorAll) return;
-            var rootEl = root.querySelector ? root.querySelector('[data-horizon-job-detail-root="1"]') : null;
-            var jobUuid = rootEl && rootEl.getAttribute ? String(rootEl.getAttribute('data-horizon-job-uuid') || '').trim() : '';
-            var jsonTargets = root.querySelectorAll('[data-json-tree][data-json-source]');
-            jsonTargets.forEach(function (target) {
-                var treeName = target.getAttribute('data-json-tree');
-                var storageKey = null;
-                if (jobUuid && treeName) {
-                    storageKey = 'horizonhub:job-detail:' + jobUuid + ':json-tree:' + treeName;
-                }
-                renderJsonTree(target, { storageKey: storageKey });
-            });
+            enhanceHorizonJobDetailJsonTrees(root);
         },
         /**
          * Refresh the job detail.
@@ -687,17 +439,12 @@ export function horizonJobDetail(config) {
          * @returns {void}
          */
         refreshJobDetail(preloadedDoc) {
-            if (typeof window === 'undefined' || typeof document === 'undefined') return;
-            if (!preloadedDoc) return;
-            var newRoot = preloadedDoc.querySelector('[data-horizon-job-detail-root="1"]');
-            var currentRoot = document.querySelector('[data-horizon-job-detail-root="1"]');
-            if (!newRoot || !currentRoot) return;
-            currentRoot.replaceWith(newRoot);
-            formatDateTimeElements(newRoot);
-            this.enhanceJobDetail(newRoot);
-            if (typeof window !== 'undefined' && window.Alpine && typeof window.Alpine.initTree === 'function') {
-                window.Alpine.initTree(newRoot);
-            }
+            var self = this;
+            replaceHorizonRootFromDoc('[data-horizon-job-detail-root="1"]', preloadedDoc, {
+                afterReplace: function (newRoot) {
+                    self.enhanceJobDetail(newRoot);
+                },
+            });
         },
     };
 }
