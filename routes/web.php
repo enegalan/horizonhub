@@ -29,7 +29,7 @@ Route::prefix('horizon')->name('horizon.')->middleware(['throttle:60,1'])->group
     // Jobs routes...
     Route::get('/jobs/failed', [JobActionController::class, 'failedList'])->name('jobs.failed');
     Route::post('/jobs/retry-batch', [JobActionController::class, 'retryBatch'])->name('jobs.retry-batch');
-    Route::post('/jobs/{uuid}/retry', [JobActionController::class, 'retry'])->name('jobs.retry');
+    Route::post('/jobs/retry', [JobActionController::class, 'retry'])->name('jobs.retry');
     Route::get('/jobs/{job}', [JobController::class, 'show'])->name('jobs.show');
 
     // Queues

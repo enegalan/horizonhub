@@ -15,7 +15,7 @@
     @if($showRetry)
         <div
             class="inline-flex"
-            x-data='window.horizonJobRowRetry(@json(["retryUrl" => route("horizon.jobs.retry", ["uuid" => $job->uuid])]))'
+            x-data='window.horizonJobRowRetry(@json(["retryUrl" => route("horizon.jobs.retry", ["uuid" => $job->uuid, 'service_id' => $job->service->id])]))'
         >
             <x-button
                 type="button"
@@ -40,7 +40,7 @@
         class="h-8 min-h-8 p-2 rounded-md"
         aria-label="View"
         title="View"
-        onclick="window.location.href='{{ route('horizon.jobs.show', ['job' => $job->uuid]) }}'"
+        onclick="window.location.href='{{ route('horizon.jobs.show', ['job' => $job->uuid, 'service_id' => $job->service->id]) }}'"
     >
         <x-heroicon-o-eye class="size-4" />
     </x-button>

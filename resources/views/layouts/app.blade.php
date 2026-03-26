@@ -36,16 +36,9 @@
         <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <script>
-            window.horizonHubHotReloadInterval = {{ (int) \config('horizonhub.hot_reload_interval') }};
             window.horizonHubStreamMode = {{ Js::from($horizonStreamMode) }};
             window.horizonHubStreamUrl = {{ Js::from(url()->route('horizon.refresh.stream')) }};
             window.horizonHubMetricsStreamUrl = {{ Js::from(url()->route('horizon.metrics.stream')) }};
-            document.addEventListener('alpine:init', () => {
-                Alpine.store('hotReload', {
-                    enabled: localStorage.getItem('horizonhub_hotreload') !== 'false',
-                    interval: Math.max(1, window.horizonHubHotReloadInterval || 5)
-                });
-            });
         </script>
     </head>
     <body class="font-sans antialiased min-h-screen"

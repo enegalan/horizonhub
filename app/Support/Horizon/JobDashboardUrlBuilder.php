@@ -26,10 +26,10 @@ class JobDashboardUrlBuilder
         $encodedUuid = \urlencode($jobUuid);
 
         $jobPath = match ($status) {
-            'processing', 'pending' => "/jobs/pending/$encodedUuid",
+            'processing', 'pending', 'reserved' => "/jobs/pending/$encodedUuid",
             'processed', 'completed' => "/jobs/completed/$encodedUuid",
-            'failed' => "/jobs/failed/$encodedUuid",
-            default => "/jobs/$encodedUuid",
+            'failed' => "/failed/$encodedUuid",
+            default => "/jobs/pending/$encodedUuid",
         };
 
         return \rtrim($dashboardBase, '/').$dashboardPath.$jobPath;

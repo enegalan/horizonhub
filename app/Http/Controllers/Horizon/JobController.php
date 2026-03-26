@@ -94,9 +94,14 @@ class JobController extends Controller
     /**
      * Show a single job detail.
      */
-    public function show(string $job): View
+    public function show(Request $request, string $job): View
     {
-        $resolved = $this->jobResolver->getJobAndService($job);
+        $serviceId = (int) $request->query('service_id');
+        if ($serviceId < 1) {
+            $serviceId = null;
+        }
+
+        $resolved = $this->jobResolver->getJobAndService($job, $serviceId);
 
         if ($resolved === null) {
             \abort(404);

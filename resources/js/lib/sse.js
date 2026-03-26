@@ -6,15 +6,10 @@ import { fetchCurrentPageAsDocument } from './http';
  * @returns {boolean}
  */
 export function isHotReloadEnabled() {
-    if (typeof window === 'undefined') return false;
-    if (window.Alpine && window.Alpine.store && window.Alpine.store('hotReload')) {
-        return !!window.Alpine.store('hotReload').enabled;
-    }
     return localStorage.getItem('horizonhub_hotreload') !== 'false';
 }
 
 /**
- * Shared backoff settings for reconnecting EventSource sessions.
  * @type {number}
  */
 export var SSE_BACKOFF_INITIAL_MS = 1000;
@@ -26,7 +21,9 @@ export var SSE_BACKOFF_MAX_MS = 30000;
  * @type {number}
  */
 export var SSE_BACKOFF_MULTIPLIER = 2;
-
+/**
+ * @type {number}
+ */
 var VISIBILITY_RECONNECT_DELAY_MS = 200;
 
 /**

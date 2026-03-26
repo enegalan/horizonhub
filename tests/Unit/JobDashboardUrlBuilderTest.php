@@ -34,7 +34,7 @@ class JobDashboardUrlBuilderTest extends TestCase
 
         $url = JobDashboardUrlBuilder::build($service, 'abc-123', 'failed');
 
-        $this->assertSame('http://public.test/horizon/jobs/failed/abc-123', $url);
+        $this->assertSame('http://public.test/horizon/failed/abc-123', $url);
     }
 
     #[Test]

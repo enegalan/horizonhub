@@ -73,7 +73,7 @@
             @forelse($paginator as $job)
                 <tr class="transition-colors hover:bg-muted/30">
                     <td class="px-4 py-2.5 text-sm text-primary cursor-pointer truncate max-w-[180px]" data-column-id="uuid">
-                        <a class="link" href="{{ route('horizon.jobs.show', ['job' => $job->uuid]) }}">
+                        <a class="link" href="{{ route('horizon.jobs.show', ['job' => $job->uuid, 'service_id' => $job->service->id]) }}">
                             {{ $job->uuid }}
                         </a>
                     </td>
