@@ -34,7 +34,7 @@
     ];
 @endphp
 <details
-    class="group border-border border-l-4 transition-colors duration-200 {{ $baseBorderClasses[$kind] }}"
+    class="group border-border border-l-4 transition-colors duration-200 py-2 {{ $baseBorderClasses[$kind] }}"
     :open="sectionOpen.{{ $sectionKey }}"
     :class="{ '{{ $openAccentClasses[$kind] }}': sectionOpen.{{ $sectionKey }} }"
     @toggle="onToggle('{{ $sectionKey }}', $event)"
