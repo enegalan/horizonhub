@@ -1,5 +1,207 @@
 import { formatDateTimeElements } from '../lib/datetime-format';
 import { onHorizonHubRefresh } from '../lib/dom';
+import hljs from 'highlight.js/lib/core';
+import jsonLanguage from 'highlight.js/lib/languages/json';
+
+hljs.registerLanguage('json', jsonLanguage);
+
+/**
+ * Decode HTML entities from a string.
+ * @param {string} value
+ * @returns {string}
+ */
+function decodeHtmlEntities(value) {
+    if (typeof document === 'undefined') return value;
+    var textarea = document.createElement('textarea');
+    textarea.innerHTML = value;
+
+    return textarea.value;
+}
+
+/**
+ * Parse JSON sources that can arrive escaped/encoded.
+ * @param {string} rawSource
+ * @returns {unknown}
+ */
+function parseJsonSource(rawSource) {
+    var candidate = decodeHtmlEntities(String(rawSource)).trim();
+    var depth = 0;
+
+    while (depth < 4) {
+        depth++;
+        try {
+            var parsed = JSON.parse(candidate);
+            if (typeof parsed === 'string') {
+                var nextCandidate = decodeHtmlEntities(parsed).trim();
+                if (!nextCandidate) return '';
+                var startsLikeJson = nextCandidate.startsWith('{') || nextCandidate.startsWith('[') || nextCandidate.startsWith('"');
+                if (!startsLikeJson) return parsed;
+                candidate = nextCandidate;
+                continue;
+            }
+
+            return parsed;
+        } catch (error) {
+            return candidate;
+        }
+    }
+
+    return candidate;
+}
+
+/**
+ * Highlight JSON inline value.
+ * @param {unknown} value
+ * @returns {string}
+ */
+function highlightJsonValue(value) {
+    var jsonValue;
+    try {
+        jsonValue = JSON.stringify(value);
+    } catch (error) {
+        jsonValue = JSON.stringify(String(value));
+    }
+
+    if (typeof jsonValue !== 'string') {
+        jsonValue = 'null';
+    }
+
+    return hljs.highlight(jsonValue, { language: 'json' }).value;
+}
+
+/**
+ * Build a JSON key span.
+ * @param {string} key
+ * @returns {HTMLElement}
+ */
+function buildJsonKey(key) {
+    var keyEl = document.createElement('span');
+    keyEl.className = 'horizon-json-key';
+    keyEl.innerHTML = hljs.highlight(JSON.stringify(key), { language: 'json' }).value;
+
+    return keyEl;
+}
+
+/**
+ * Build a primitive JSON value span.
+ * @param {unknown} value
+ * @returns {HTMLElement}
+ */
+function buildJsonPrimitive(value) {
+    var valueEl = document.createElement('span');
+    valueEl.className = 'horizon-json-value';
+    valueEl.innerHTML = highlightJsonValue(value);
+
+    return valueEl;
+}
+
+/**
+ * Build a JSON node recursively.
+ * @param {string|null} key
+ * @param {unknown} value
+ * @returns {HTMLElement}
+ */
+function buildJsonNode(key, value) {
+    var wrapper = document.createElement('div');
+    wrapper.className = 'horizon-json-node';
+
+    var isArray = Array.isArray(value);
+    var isObject = value !== null && typeof value === 'object' && !isArray;
+    var isContainer = isArray || isObject;
+
+    var line = document.createElement('div');
+    line.className = 'horizon-json-line';
+    wrapper.appendChild(line);
+
+    if (key !== null) {
+        line.appendChild(buildJsonKey(key));
+        var colon = document.createElement('span');
+        colon.className = 'horizon-json-colon';
+        colon.textContent = ': ';
+        line.appendChild(colon);
+    }
+
+    if (!isContainer) {
+        line.appendChild(buildJsonPrimitive(value));
+        return wrapper;
+    }
+
+    var children = isArray ? value : Object.entries(value);
+    var openBrace = isArray ? '[' : '{';
+    var closeBrace = isArray ? ']' : '}';
+
+    var toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'horizon-json-toggle';
+    toggle.setAttribute('aria-expanded', 'true');
+    toggle.setAttribute('no-ring', 'true');
+    toggle.textContent = openBrace;
+    line.appendChild(toggle);
+
+    var childrenContainer = document.createElement('div');
+    childrenContainer.className = 'horizon-json-children';
+
+    if (isArray) {
+        children.forEach(function (childValue, index) {
+            childrenContainer.appendChild(buildJsonNode(String(index), childValue));
+        });
+    } else {
+        children.forEach(function (entry) {
+            childrenContainer.appendChild(buildJsonNode(entry[0], entry[1]));
+        });
+    }
+
+    wrapper.appendChild(childrenContainer);
+
+    var closeLine = document.createElement('div');
+    closeLine.className = 'horizon-json-line horizon-json-close';
+    var closeToggle = document.createElement('button');
+    closeToggle.type = 'button';
+    closeToggle.className = 'horizon-json-toggle';
+    closeToggle.setAttribute('aria-expanded', 'true');
+    closeToggle.setAttribute('no-ring', 'true');
+    closeToggle.textContent = closeBrace;
+    closeLine.appendChild(closeToggle);
+    wrapper.appendChild(closeLine);
+
+    function setExpanded(expanded) {
+        toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        closeToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        childrenContainer.classList.toggle('hidden', !expanded);
+        closeLine.classList.toggle('hidden', !expanded);
+        toggle.textContent = expanded ? openBrace : (openBrace + '...' + closeBrace);
+    }
+
+    toggle.addEventListener('click', function () {
+        var expanded = toggle.getAttribute('aria-expanded') === 'true';
+        setExpanded(!expanded);
+    });
+    closeToggle.addEventListener('click', function () {
+        var expanded = closeToggle.getAttribute('aria-expanded') === 'true';
+        setExpanded(!expanded);
+    });
+
+    return wrapper;
+}
+
+/**
+ * Render JSON tree inside a target element.
+ * @param {HTMLElement} target
+ * @returns {void}
+ */
+function renderJsonTree(target) {
+    if (!target || !target.getAttribute) return;
+
+    var source = target.getAttribute('data-json-source');
+    var parsed = null;
+    if (typeof source === 'string' && source !== '') {
+        parsed = parseJsonSource(source);
+    }
+
+    target.innerHTML = '';
+    target.classList.add('horizon-json-tree');
+    target.appendChild(buildJsonNode(null, parsed));
+}
 
 /**
  * Split retry modal range field into API params.
@@ -267,6 +469,18 @@ export function horizonJobRowRetry(config) {
     return {
         retrying: false,
         /**
+         * Request additional refreshes after retry.
+         * @returns {void}
+         */
+        schedulePostRetryRefreshes() {
+            if (typeof window === 'undefined') return;
+            [1500, 4000, 8000, 15000].forEach(function (delayMs) {
+                window.setTimeout(function () {
+                    window.dispatchEvent(new Event('horizonhub-refresh'));
+                }, delayMs);
+            });
+        },
+        /**
          * Retry the job.
          * @returns {void}
          */
@@ -274,16 +488,19 @@ export function horizonJobRowRetry(config) {
             if (!window.horizon || !window.horizon.http) return;
             this.retrying = true;
             var self = this;
+            var shouldRefresh = false;
             window.horizon.http.post(config.retryUrl, {}).then(function () {
                 if (window.toast && window.toast.success) {
                     window.toast.success('Retry requested.');
                 }
-                if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new Event('horizonhub-refresh'));
-                }
+                shouldRefresh = true;
             }).catch(function () {
             }).finally(function () {
                 self.retrying = false;
+                if (shouldRefresh && typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('horizonhub-refresh'));
+                    self.schedulePostRetryRefreshes();
+                }
             });
         },
     };
@@ -297,12 +514,26 @@ export function horizonJobRowRetry(config) {
 export function horizonJobDetail(config) {
     return {
         retrying: false,
+        showAllExceptionLines: false,
+        /**
+         * Request additional refreshes after retry.
+         * @returns {void}
+         */
+        schedulePostRetryRefreshes() {
+            if (typeof window === 'undefined') return;
+            [1500, 4000, 8000, 15000].forEach(function (delayMs) {
+                window.setTimeout(function () {
+                    window.dispatchEvent(new Event('horizonhub-refresh'));
+                }, delayMs);
+            });
+        },
         /**
          * Initialize the job detail.
          * @returns {void}
          */
         init() {
             var self = this;
+            this.enhanceJobDetail(document);
             onHorizonHubRefresh(function (doc) {
                 self.refreshJobDetail(doc);
             }, {
@@ -319,16 +550,38 @@ export function horizonJobDetail(config) {
             if (!config.canRetry || !window.horizon || !window.horizon.http) return;
             this.retrying = true;
             var self = this;
+            var shouldRefresh = false;
             window.horizon.http.post(config.retryUrl, {}).then(function () {
                 if (window.toast && window.toast.success) {
                     window.toast.success('Retry requested.');
                 }
-                if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new Event('horizonhub-refresh'));
-                }
+                shouldRefresh = true;
             }).catch(function () {
             }).finally(function () {
                 self.retrying = false;
+                if (shouldRefresh && typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('horizonhub-refresh'));
+                    self.schedulePostRetryRefreshes();
+                }
+            });
+        },
+        /**
+         * Toggle exception lines.
+         * @returns {void}
+         */
+        toggleExceptionLines() {
+            this.showAllExceptionLines = !this.showAllExceptionLines;
+        },
+        /**
+         * Enhance detail blocks.
+         * @param {Document|HTMLElement} root
+         * @returns {void}
+         */
+        enhanceJobDetail(root) {
+            if (!root || !root.querySelectorAll) return;
+            var jsonTargets = root.querySelectorAll('[data-json-tree][data-json-source]');
+            jsonTargets.forEach(function (target) {
+                renderJsonTree(target);
             });
         },
         /**
@@ -344,6 +597,10 @@ export function horizonJobDetail(config) {
             if (!newRoot || !currentRoot) return;
             currentRoot.replaceWith(newRoot);
             formatDateTimeElements(newRoot);
+            this.enhanceJobDetail(newRoot);
+            if (typeof window !== 'undefined' && window.Alpine && typeof window.Alpine.initTree === 'function') {
+                window.Alpine.initTree(newRoot);
+            }
         },
     };
 }

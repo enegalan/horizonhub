@@ -1,6 +1,28 @@
 @extends('layouts.app')
 
 @section('content')
+    @php
+        // TODO: Check this better
+        $decodedException = $exception !== null && $exception !== ''
+            ? html_entity_decode($exception, ENT_QUOTES | ENT_HTML401, 'UTF-8')
+            : null;
+        $exceptionLines = $decodedException !== null
+            ? (\preg_split("/\r\n|\n|\r/", $decodedException) ?: [])
+            : [];
+        $retryHistory = isset($horizonJob['retriedBy']) && \is_array($horizonJob['retriedBy']) ? $horizonJob['retriedBy'] : [];
+        $jobPayloadJson = json_encode($job->payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if (!\is_string($jobPayloadJson)) {
+            $jobPayloadJson = 'null';
+        }
+        $jobContextJson = json_encode($horizonJob['context'] ?? null, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if (!\is_string($jobContextJson)) {
+            $jobContextJson = 'null';
+        }
+        $jobCommandDataJson = json_encode($horizonJob['commandData'] ?? null, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if (!\is_string($jobCommandDataJson)) {
+            $jobCommandDataJson = 'null';
+        }
+    @endphp
     <div
         x-data="window.horizonJobDetail({
             retryUrl: '{{ route('horizon.jobs.retry', ['uuid' => $job->uuid, 'service_id' => $job->service->id]) }}',
@@ -80,17 +102,17 @@
             </div>
             <div>
                 <dt class="label-muted">Queued at</dt>
-                <dd class="mt-0.5 text-foreground" data-datetime="{{ $job->queued_at ? \Carbon\Carbon::parse($job->queued_at)->toIso8601String() : '' }}">{{ $job->queued_at ? '…' : '–' }}</dd>
+                <dd class="mt-0.5 text-foreground" data-datetime="{{ $job->queued_at ? \Carbon\Carbon::parse($job->queued_at)->toIso8601String() : '' }}">-</dd>
             </div>
             @if($job->status !== 'failed')
                 <div>
                     <dt class="label-muted">Processed at</dt>
-                    <dd class="mt-0.5 text-foreground" data-datetime="{{ $job->processed_at ? \Carbon\Carbon::parse($job->processed_at)->toIso8601String() : '' }}">{{ $job->processed_at ? '…' : '–' }}</dd>
+                    <dd class="mt-0.5 text-foreground" data-datetime="{{ $job->processed_at ? \Carbon\Carbon::parse($job->processed_at)->toIso8601String() : '' }}">-</dd>
                 </div>
             @endif
             <div>
                 <dt class="label-muted">Failed at</dt>
-                <dd class="mt-0.5 text-foreground" data-datetime="{{ $job->failed_at ? \Carbon\Carbon::parse($job->failed_at)->toIso8601String() : '' }}">{{ $job->failed_at ? '…' : '–' }}</dd>
+                <dd class="mt-0.5 text-foreground" data-datetime="{{ $job->failed_at ? \Carbon\Carbon::parse($job->failed_at)->toIso8601String() : '' }}">-</dd>
             </div>
             <div class="sm:col-span-2">
                 <dt class="label-muted">Tags</dt>
@@ -106,18 +128,103 @@
                 </dd>
             </div>
         </dl>
-        @if($exception !== null && $exception !== '')
+        @if($decodedException !== null)
             <div>
                 <dt class="label-muted mb-1">Error</dt>
-                <pre class="mt-1 max-h-60 overflow-auto rounded-md border border-red-500/30 bg-red-500/5 p-3 text-xs text-foreground whitespace-pre-wrap break-words">{!! e(html_entity_decode($exception ?? '', ENT_QUOTES | ENT_HTML401, 'UTF-8')) !!}</pre>
+                <div class="mt-1 rounded-md border border-red-500/30 bg-red-500/5 p-3 text-sm text-foreground break-words">
+                    @foreach($exceptionLines as $lineIndex => $line)
+                        <p
+                            @class([
+                                'py-1 leading-5 whitespace-pre-wrap break-words border-red-500/20',
+                                'border-b' => $lineIndex !== \count($exceptionLines) - 1,
+                            ])
+                            x-show="showAllExceptionLines || {{ $lineIndex < 5 ? 'true' : 'false' }}"
+                            @if($lineIndex >= 5) x-cloak @endif
+                        >{{ $line }}</p>
+                    @endforeach
+                    @if(\count($exceptionLines) > 5)
+                        <button
+                            type="button"
+                            class="mt-2 text-xs font-medium link"
+                            @click="toggleExceptionLines()"
+                            x-text="showAllExceptionLines ? 'Show less' : 'Show all'"
+                            no-ring
+                        ></button>
+                    @endif
+                </div>
             </div>
         @endif
-        @if($job->payload)
+        @if($job->status === 'failed')
             <div>
-                <dt class="label-muted mb-1">Payload</dt>
-                <pre class="mt-1 max-h-52 overflow-auto rounded-md border border-border bg-muted/30 p-3 text-xs text-foreground">{{ json_encode($job->payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
+                <dt class="label-muted mb-1">Exception context</dt>
+                <div class="mt-1 rounded-md border border-border bg-muted/30 p-3 text-xs text-foreground break-words">
+                    <div
+                        data-json-tree="context"
+                        data-json-source="{{ e($jobContextJson) }}"
+                    ></div>
+                </div>
             </div>
         @endif
+        @if($job->status === 'failed' && !empty($retryHistory))
+            <div>
+                <dt class="label-muted mb-1">Retries history</dt>
+                <x-data-table :wrap="false" table-class="text-sm">
+                    <x-slot:head>
+                        <tr class="border-b border-border">
+                            <th class="px-3 py-2 text-left font-medium text-foreground">UUID</th>
+                            <th class="px-3 py-2 text-left font-medium text-foreground">Status</th>
+                            <th class="px-3 py-2 text-left font-medium text-foreground">Retried at</th>
+                        </tr>
+                    </x-slot:head>
+                    @foreach($retryHistory as $retryJob)
+                        @php
+                            $retriedAtIso = null;
+                            if (isset($retryJob['retried_at']) && \is_numeric($retryJob['retried_at'])) {
+                                $retriedAtIso = \Carbon\Carbon::createFromTimestamp((int) $retryJob['retried_at'])->toIso8601String();
+                            }
+                            $retryStatus = isset($retryJob['status']) && \is_string($retryJob['status']) && $retryJob['status'] !== ''
+                                ? $retryJob['status']
+                                : null;
+                        @endphp
+                        <tr class="border-b border-border/60 last:border-b-0">
+                            <td class="px-3 py-2 font-mono text-xs text-muted-foreground">{{ $retryJob['id'] ?? '–' }}</td>
+                            <td class="px-3 py-2 text-foreground">
+                                @if($retryStatus === 'failed')
+                                    <span class="badge-danger">{{ $retryStatus }}</span>
+                                @elseif($retryStatus === 'processed' || $retryStatus === 'completed')
+                                    <span class="badge-success">{{ $retryStatus }}</span>
+                                @elseif($retryStatus === 'processing')
+                                    <span class="badge-warning">{{ $retryStatus }}</span>
+                                @elseif($retryStatus !== null)
+                                    <span class="badge-muted">{{ $retryStatus }}</span>
+                                @else
+                                    –
+                                @endif
+                            </td>
+                            <td class="px-3 py-2 text-muted-foreground" data-datetime="{{ $retriedAtIso ?? '' }}">-</td>
+                        </tr>
+                    @endforeach
+                </x-data-table>
+            </div>
+        @endif
+        <div>
+            <dt class="label-muted mb-1">Data</dt>
+            <div class="mt-1 rounded-md border border-border bg-muted/30 p-3 text-xs text-foreground break-words">
+                <div
+                    data-json-tree="data"
+                    data-json-source="{{ e($jobCommandDataJson) }}"
+                ></div>
+            </div>
+        </div>
+        <div>
+            <dt class="label-muted mb-1">Payload</dt>
+            <div class="mt-1 rounded-md border border-border bg-muted/30 p-3 text-xs text-foreground break-words">
+                <div
+                    data-json-tree="payload"
+                    data-json-source="{{ e($jobPayloadJson) }}"
+                ></div>
+            </div>
+        </div>
         <div class="flex flex-wrap gap-2 pt-1">
             @if($job->service && $job->service->base_url && $job->status === 'failed')
                 <x-button
