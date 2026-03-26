@@ -535,18 +535,6 @@ export function horizonJobRowRetry(config) {
     return {
         retrying: false,
         /**
-         * Request additional refreshes after retry.
-         * @returns {void}
-         */
-        schedulePostRetryRefreshes() {
-            if (typeof window === 'undefined') return;
-            [1500, 4000, 8000, 15000].forEach(function (delayMs) {
-                window.setTimeout(function () {
-                    window.dispatchEvent(new Event('horizonhub-refresh'));
-                }, delayMs);
-            });
-        },
-        /**
          * Retry the job.
          * @returns {void}
          */
@@ -565,7 +553,6 @@ export function horizonJobRowRetry(config) {
                 self.retrying = false;
                 if (shouldRefresh && typeof window !== 'undefined') {
                     window.dispatchEvent(new Event('horizonhub-refresh'));
-                    self.schedulePostRetryRefreshes();
                 }
             });
         },
@@ -630,18 +617,6 @@ export function horizonJobDetail(config) {
             }
         },
         /**
-         * Request additional refreshes after retry.
-         * @returns {void}
-         */
-        schedulePostRetryRefreshes() {
-            if (typeof window === 'undefined') return;
-            [1500, 4000, 8000, 15000].forEach(function (delayMs) {
-                window.setTimeout(function () {
-                    window.dispatchEvent(new Event('horizonhub-refresh'));
-                }, delayMs);
-            });
-        },
-        /**
          * Initialize the job detail.
          * @returns {void}
          */
@@ -676,7 +651,6 @@ export function horizonJobDetail(config) {
                 self.retrying = false;
                 if (shouldRefresh && typeof window !== 'undefined') {
                     window.dispatchEvent(new Event('horizonhub-refresh'));
-                    self.schedulePostRetryRefreshes();
                 }
             });
         },
