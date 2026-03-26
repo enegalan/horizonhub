@@ -4,6 +4,7 @@
 
 @layer base {
     :root {
+        --primary-solid: #7846ec;
         --primary-40: #7746ec40;
         --background: 60 9% 96%;
         --foreground: 30 9% 10%;
@@ -169,6 +170,42 @@
     }
     .link {
         @apply text-primary font-medium underline-offset-4 hover:underline;
+    }
+    .horizon-json-tree {
+        @apply leading-5;
+    }
+    .horizon-json-children {
+        @apply border-l border-border/40;
+    }
+    .horizon-json-children > .horizon-json-node {
+        @apply pl-3;
+    }
+    .horizon-json-toggle {
+        @apply rounded-sm px-0.5 font-mono;
+    }
+    .horizon-json-toggle:hover {
+        color: var(--primary-solid);
+    }
+    .horizon-json-key {
+        @apply text-muted-foreground;
+    }
+    .horizon-json-tree .horizon-json-value .hljs-string {
+        color: rgb(21 128 61);
+    }
+    .horizon-json-tree .hljs-number {
+        color: rgb(29 78 216);
+    }
+    .horizon-json-tree .hljs-literal {
+        color: rgb(147 51 234);
+    }
+    .dark .horizon-json-tree .hljs-string {
+        color: rgb(74 222 128);
+    }
+    .dark .horizon-json-tree .hljs-number {
+        color: rgb(96 165 250);
+    }
+    .dark .horizon-json-tree .hljs-literal {
+        color: rgb(196 181 253);
     }
     .empty-state {
         @apply flex flex-col items-center justify-center w-full px-4 py-12 text-center;

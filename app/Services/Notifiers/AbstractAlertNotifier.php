@@ -158,6 +158,6 @@ abstract class AbstractAlertNotifier implements AlertNotifier
             $truncated = \substr($truncated, 0, $lastNewLine);
         }
 
-        return \rtrim($truncated)."\n\n…";
+        return \rtrim($truncated)."\n\n...";
     }
 }
