@@ -1,22 +1,9 @@
 import { formatDateTimeElements } from '../lib/datetime-format';
-import { onHorizonHubRefresh } from '../lib/dom';
+import { onHorizonHubRefresh, decodeHtmlEntities } from '../lib/dom';
 import hljs from 'highlight.js/lib/core';
 import jsonLanguage from 'highlight.js/lib/languages/json';
 
 hljs.registerLanguage('json', jsonLanguage);
-
-/**
- * Decode HTML entities from a string.
- * @param {string} value
- * @returns {string}
- */
-function decodeHtmlEntities(value) {
-    if (typeof document === 'undefined') return value;
-    var textarea = document.createElement('textarea');
-    textarea.innerHTML = value;
-
-    return textarea.value;
-}
 
 /**
  * Parse JSON sources that can arrive escaped/encoded.
@@ -25,28 +12,38 @@ function decodeHtmlEntities(value) {
  */
 function parseJsonSource(rawSource) {
     var candidate = decodeHtmlEntities(String(rawSource)).trim();
-    var depth = 0;
+    var seen = new Set();
 
-    while (depth < 4) {
-        depth++;
+    for (;;) {
+        if (seen.has(candidate)) {
+            return candidate;
+        }
+        seen.add(candidate);
+
         try {
             var parsed = JSON.parse(candidate);
-            if (typeof parsed === 'string') {
-                var nextCandidate = decodeHtmlEntities(parsed).trim();
-                if (!nextCandidate) return '';
-                var startsLikeJson = nextCandidate.startsWith('{') || nextCandidate.startsWith('[') || nextCandidate.startsWith('"');
-                if (!startsLikeJson) return parsed;
-                candidate = nextCandidate;
-                continue;
+
+            if (typeof parsed !== 'string') {
+                return parsed;
             }
 
-            return parsed;
+            var nextCandidate = decodeHtmlEntities(parsed).trim();
+            if (!nextCandidate) return '';
+
+            var startsLikeJson =
+                nextCandidate.startsWith('{') ||
+                nextCandidate.startsWith('[') ||
+                nextCandidate.startsWith('"');
+
+            if (!startsLikeJson) {
+                return parsed;
+            }
+
+            candidate = nextCandidate;
         } catch (error) {
             return candidate;
         }
     }
-
-    return candidate;
 }
 
 /**
@@ -99,9 +96,11 @@ function buildJsonPrimitive(value) {
  * Build a JSON node recursively.
  * @param {string|null} key
  * @param {unknown} value
+ * @param {string[]} pathSegments
+ * @param {{ isCollapsed: function(string): boolean, setCollapsed: function(string, boolean): void }|null} state
  * @returns {HTMLElement}
  */
-function buildJsonNode(key, value) {
+function buildJsonNode(key, value, pathSegments, state) {
     var wrapper = document.createElement('div');
     wrapper.className = 'horizon-json-node';
 
@@ -112,6 +111,11 @@ function buildJsonNode(key, value) {
     var line = document.createElement('div');
     line.className = 'horizon-json-line';
     wrapper.appendChild(line);
+
+    var currentPathSegments = Array.isArray(pathSegments) ? pathSegments.slice() : [];
+    if (key !== null) {
+        currentPathSegments.push(String(key));
+    }
 
     if (key !== null) {
         line.appendChild(buildJsonKey(key));
@@ -130,6 +134,10 @@ function buildJsonNode(key, value) {
     var openBrace = isArray ? '[' : '{';
     var closeBrace = isArray ? ']' : '}';
 
+    var pointer = '/' + currentPathSegments.map(function (segment) {
+        return String(segment).replace(/~/g, '~0').replace(/\//g, '~1');
+    }).join('/');
+
     var toggle = document.createElement('button');
     toggle.type = 'button';
     toggle.className = 'horizon-json-toggle';
@@ -143,11 +151,11 @@ function buildJsonNode(key, value) {
 
     if (isArray) {
         children.forEach(function (childValue, index) {
-            childrenContainer.appendChild(buildJsonNode(String(index), childValue));
+            childrenContainer.appendChild(buildJsonNode(String(index), childValue, currentPathSegments, state));
         });
     } else {
         children.forEach(function (entry) {
-            childrenContainer.appendChild(buildJsonNode(entry[0], entry[1]));
+            childrenContainer.appendChild(buildJsonNode(entry[0], entry[1], currentPathSegments, state));
         });
     }
 
@@ -174,22 +182,75 @@ function buildJsonNode(key, value) {
 
     toggle.addEventListener('click', function () {
         var expanded = toggle.getAttribute('aria-expanded') === 'true';
-        setExpanded(!expanded);
+        var nextExpanded = !expanded;
+        setExpanded(nextExpanded);
+        if (state) state.setCollapsed(pointer, !nextExpanded);
     });
     closeToggle.addEventListener('click', function () {
         var expanded = closeToggle.getAttribute('aria-expanded') === 'true';
-        setExpanded(!expanded);
+        var nextExpanded = !expanded;
+        setExpanded(nextExpanded);
+        if (state) state.setCollapsed(pointer, !nextExpanded);
     });
+
+    if (state && state.isCollapsed(pointer)) {
+        setExpanded(false);
+    }
 
     return wrapper;
 }
 
 /**
+ * Create a persisted JSON tree state store.
+ * @param {string} storageKey
+ * @returns {{ isCollapsed: function(string): boolean, setCollapsed: function(string, boolean): void }|null}
+ */
+function createJsonTreeStateStore(storageKey) {
+    if (typeof window === 'undefined') return null;
+    if (!storageKey) return null;
+
+    var cache = new Set();
+    try {
+        var raw = window.localStorage ? window.localStorage.getItem(storageKey) : null;
+        if (raw) {
+            var parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                parsed.forEach(function (p) {
+                    if (typeof p === 'string' && p) cache.add(p);
+                });
+            }
+        }
+    } catch (e) {
+    }
+
+    function persist() {
+        try {
+            if (!window.localStorage) return;
+            window.localStorage.setItem(storageKey, JSON.stringify(Array.from(cache)));
+        } catch (e) {
+        }
+    }
+
+    return {
+        isCollapsed: function (pointer) {
+            return cache.has(pointer);
+        },
+        setCollapsed: function (pointer, collapsed) {
+            if (!pointer) return;
+            if (collapsed) cache.add(pointer);
+            else cache.delete(pointer);
+            persist();
+        },
+    };
+}
+
+/**
  * Render JSON tree inside a target element.
  * @param {HTMLElement} target
+ * @param {{ storageKey?: string }=} options
  * @returns {void}
  */
-function renderJsonTree(target) {
+function renderJsonTree(target, options) {
     if (!target || !target.getAttribute) return;
 
     var source = target.getAttribute('data-json-source');
@@ -198,9 +259,14 @@ function renderJsonTree(target) {
         parsed = parseJsonSource(source);
     }
 
+    var state = null;
+    if (options && typeof options.storageKey === 'string' && options.storageKey) {
+        state = createJsonTreeStateStore(options.storageKey);
+    }
+
     target.innerHTML = '';
     target.classList.add('horizon-json-tree');
-    target.appendChild(buildJsonNode(null, parsed));
+    target.appendChild(buildJsonNode(null, parsed, [], state));
 }
 
 /**
@@ -516,6 +582,54 @@ export function horizonJobDetail(config) {
         retrying: false,
         showAllExceptionLines: false,
         /**
+         * Get the job UUID from the current detail root element.
+         * @returns {string}
+         */
+        getJobUuid() {
+            if (typeof document === 'undefined') return '';
+            var root = document.querySelector('[data-horizon-job-detail-root="1"]');
+            if (!root || !root.getAttribute) return '';
+            return String(root.getAttribute('data-horizon-job-uuid') || '').trim();
+        },
+        /**
+         * Build the localStorage key for exception toggle state.
+         * @returns {string|null}
+         */
+        getExceptionStorageKey() {
+            if (typeof window === 'undefined') return null;
+            var jobUuid = this.getJobUuid();
+            if (!jobUuid) return null;
+            return 'horizonhub:job-detail:' + jobUuid + ':exceptions:show-all';
+        },
+        /**
+         * Restore persisted UI state (exceptions toggle).
+         * @returns {void}
+         */
+        restorePersistedUiState() {
+            if (typeof window === 'undefined' || !window.localStorage) return;
+            var key = this.getExceptionStorageKey();
+            if (!key) return;
+            try {
+                var raw = window.localStorage.getItem(key);
+                if (raw === null) return;
+                this.showAllExceptionLines = raw === '1' || raw === 'true';
+            } catch (e) {
+            }
+        },
+        /**
+         * Persist UI state (exceptions toggle).
+         * @returns {void}
+         */
+        persistUiState() {
+            if (typeof window === 'undefined' || !window.localStorage) return;
+            var key = this.getExceptionStorageKey();
+            if (!key) return;
+            try {
+                window.localStorage.setItem(key, this.showAllExceptionLines ? '1' : '0');
+            } catch (e) {
+            }
+        },
+        /**
          * Request additional refreshes after retry.
          * @returns {void}
          */
@@ -533,6 +647,7 @@ export function horizonJobDetail(config) {
          */
         init() {
             var self = this;
+            this.restorePersistedUiState();
             this.enhanceJobDetail(document);
             onHorizonHubRefresh(function (doc) {
                 self.refreshJobDetail(doc);
@@ -571,6 +686,7 @@ export function horizonJobDetail(config) {
          */
         toggleExceptionLines() {
             this.showAllExceptionLines = !this.showAllExceptionLines;
+            this.persistUiState();
         },
         /**
          * Enhance detail blocks.
@@ -579,9 +695,16 @@ export function horizonJobDetail(config) {
          */
         enhanceJobDetail(root) {
             if (!root || !root.querySelectorAll) return;
+            var rootEl = root.querySelector ? root.querySelector('[data-horizon-job-detail-root="1"]') : null;
+            var jobUuid = rootEl && rootEl.getAttribute ? String(rootEl.getAttribute('data-horizon-job-uuid') || '').trim() : '';
             var jsonTargets = root.querySelectorAll('[data-json-tree][data-json-source]');
             jsonTargets.forEach(function (target) {
-                renderJsonTree(target);
+                var treeName = target.getAttribute('data-json-tree');
+                var storageKey = null;
+                if (jobUuid && treeName) {
+                    storageKey = 'horizonhub:job-detail:' + jobUuid + ':json-tree:' + treeName;
+                }
+                renderJsonTree(target, { storageKey: storageKey });
             });
         },
         /**

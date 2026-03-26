@@ -1,28 +1,6 @@
 @extends('layouts.app')
 
 @section('content')
-    @php
-        // TODO: Check this better
-        $decodedException = $exception !== null && $exception !== ''
-            ? html_entity_decode($exception, ENT_QUOTES | ENT_HTML401, 'UTF-8')
-            : null;
-        $exceptionLines = $decodedException !== null
-            ? (\preg_split("/\r\n|\n|\r/", $decodedException) ?: [])
-            : [];
-        $retryHistory = isset($horizonJob['retriedBy']) && \is_array($horizonJob['retriedBy']) ? $horizonJob['retriedBy'] : [];
-        $jobPayloadJson = json_encode($job->payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        if (!\is_string($jobPayloadJson)) {
-            $jobPayloadJson = 'null';
-        }
-        $jobContextJson = json_encode($horizonJob['context'] ?? null, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        if (!\is_string($jobContextJson)) {
-            $jobContextJson = 'null';
-        }
-        $jobCommandDataJson = json_encode($horizonJob['commandData'] ?? null, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        if (!\is_string($jobCommandDataJson)) {
-            $jobCommandDataJson = 'null';
-        }
-    @endphp
     <div
         x-data="window.horizonJobDetail({
             retryUrl: '{{ route('horizon.jobs.retry', ['uuid' => $job->uuid, 'service_id' => $job->service->id]) }}',
@@ -30,6 +8,7 @@
         })"
         x-init="typeof init === 'function' ? init() : null"
         data-horizon-job-detail-root="1"
+        data-horizon-job-uuid="{{ $job->uuid ? e($job->uuid) : '' }}"
     >
         <p class="mb-3 text-xs text-muted-foreground">
             <a href="{{ route('horizon.index') }}" class="link">Jobs</a>
@@ -128,21 +107,21 @@
                 </dd>
             </div>
         </dl>
-        @if($decodedException !== null)
+        @if(count($exception) > 0)
             <div>
                 <dt class="label-muted mb-1">Error</dt>
                 <div class="mt-1 rounded-md border border-red-500/30 bg-red-500/5 p-3 text-sm text-foreground break-words">
-                    @foreach($exceptionLines as $lineIndex => $line)
+                    @foreach($exception as $lineIndex => $line)
                         <p
                             @class([
                                 'py-1 leading-5 whitespace-pre-wrap break-words border-red-500/20',
-                                'border-b' => $lineIndex !== \count($exceptionLines) - 1,
+                                'border-b' => $lineIndex !== \count($exception) - 1,
                             ])
                             x-show="showAllExceptionLines || {{ $lineIndex < 5 ? 'true' : 'false' }}"
                             @if($lineIndex >= 5) x-cloak @endif
                         >{{ $line }}</p>
                     @endforeach
-                    @if(\count($exceptionLines) > 5)
+                    @if(\count($exception) > 5)
                         <button
                             type="button"
                             class="mt-2 text-xs font-medium link"
@@ -160,20 +139,24 @@
                 <div class="mt-1 rounded-md border border-border bg-muted/30 p-3 text-xs text-foreground break-words">
                     <div
                         data-json-tree="context"
-                        data-json-source="{{ e($jobContextJson) }}"
+                        data-json-source="{{ e($context) }}"
                     ></div>
                 </div>
             </div>
         @endif
-        @if($job->status === 'failed' && !empty($retryHistory))
+        @if($job->status === 'failed' && count($retryHistory) > 0)
             <div>
                 <dt class="label-muted mb-1">Retries history</dt>
-                <x-data-table :wrap="false" table-class="text-sm">
+                <x-data-table
+                    resizable-key="horizon-job-retry-history"
+                    column-ids="uuid,status,retried_at"
+                    body-key="horizon-job-retry-history"
+                >
                     <x-slot:head>
-                        <tr class="border-b border-border">
-                            <th class="px-3 py-2 text-left font-medium text-foreground">UUID</th>
-                            <th class="px-3 py-2 text-left font-medium text-foreground">Status</th>
-                            <th class="px-3 py-2 text-left font-medium text-foreground">Retried at</th>
+                        <tr class="border-b border-border bg-muted/50">
+                            <th class="table-header px-4 py-2.5" data-column-id="uuid">UUID</th>
+                            <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="status">Status</th>
+                            <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="retried_at">Retried at</th>
                         </tr>
                     </x-slot:head>
                     @foreach($retryHistory as $retryJob)
@@ -186,9 +169,15 @@
                                 ? $retryJob['status']
                                 : null;
                         @endphp
-                        <tr class="border-b border-border/60 last:border-b-0">
-                            <td class="px-3 py-2 font-mono text-xs text-muted-foreground">{{ $retryJob['id'] ?? '–' }}</td>
-                            <td class="px-3 py-2 text-foreground">
+                        <tr class="transition-colors hover:bg-muted/30">
+                            <td class="px-4 py-2.5 text-sm text-primary truncate max-w-[180px]" data-column-id="uuid">
+                                @if(isset($retryJob['id']) && \is_string($retryJob['id']) && $retryJob['id'] !== '' && $job->service)
+                                    <a class="link" href="{{ route('horizon.jobs.show', ['job' => $retryJob['id'], 'service_id' => $job->service->id]) }}">{{ $retryJob['id'] }}</a>
+                                @else
+                                    {{ $retryJob['id'] ?? '–' }}
+                                @endif
+                            </td>
+                            <td class="px-4 py-2.5 text-sm text-foreground" data-column-id="status">
                                 @if($retryStatus === 'failed')
                                     <span class="badge-danger">{{ $retryStatus }}</span>
                                 @elseif($retryStatus === 'processed' || $retryStatus === 'completed')
@@ -201,7 +190,7 @@
                                     –
                                 @endif
                             </td>
-                            <td class="px-3 py-2 text-muted-foreground" data-datetime="{{ $retriedAtIso ?? '' }}">-</td>
+                            <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="retried_at" data-datetime="{{ $retriedAtIso ?? '' }}">-</td>
                         </tr>
                     @endforeach
                 </x-data-table>
@@ -212,7 +201,7 @@
             <div class="mt-1 rounded-md border border-border bg-muted/30 p-3 text-xs text-foreground break-words">
                 <div
                     data-json-tree="data"
-                    data-json-source="{{ e($jobCommandDataJson) }}"
+                    data-json-source="{{ e($commandData ?? 'null') }}"
                 ></div>
             </div>
         </div>
@@ -221,7 +210,7 @@
             <div class="mt-1 rounded-md border border-border bg-muted/30 p-3 text-xs text-foreground break-words">
                 <div
                     data-json-tree="payload"
-                    data-json-source="{{ e($jobPayloadJson) }}"
+                    data-json-source="{{ e($payload ?? 'null') }}"
                 ></div>
             </div>
         </div>
