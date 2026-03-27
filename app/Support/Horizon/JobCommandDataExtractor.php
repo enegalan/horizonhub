@@ -36,9 +36,6 @@ class JobCommandDataExtractor
 
     /**
      * Normalize unserialized data to scalar/array values.
-     *
-     * @param  mixed  $value
-     * @return mixed
      */
     private static function normalize(mixed $value): mixed
     {
@@ -74,9 +71,6 @@ class JobCommandDataExtractor
 
     /**
      * Convert private/protected serialized property names to plain keys.
-     *
-     * @param  string|int  $key
-     * @return string|int
      */
     private static function cleanPropertyKey(string|int $key): string|int
     {

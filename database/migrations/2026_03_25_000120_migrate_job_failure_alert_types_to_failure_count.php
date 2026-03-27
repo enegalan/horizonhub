@@ -14,7 +14,7 @@ return new class extends Migration
             ->whereIn('rule_type', ['job_specific_failure', 'job_type_failure'])
             ->orderBy('id')
             ->chunkById(100, function ($alerts): void {
-                /** @var \App\Models\Alert $alert */
+                /** @var Alert $alert */
                 foreach ($alerts as $alert) {
                     $threshold = $alert->threshold;
                     if (! \is_array($threshold)) {

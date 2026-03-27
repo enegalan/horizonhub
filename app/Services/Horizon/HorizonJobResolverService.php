@@ -7,7 +7,6 @@ use Illuminate\Contracts\Cache\Repository as CacheContract;
 
 class HorizonJobResolverService
 {
-
     /**
      * The Horizon API proxy service.
      */
