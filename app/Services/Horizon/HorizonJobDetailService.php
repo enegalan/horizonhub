@@ -90,12 +90,8 @@ class HorizonJobDetailService
         }
 
         $context = null;
-        if (isset($jobData['context'])) {
-            if (\is_array($jobData['context'])) {
-                $context = $jobData['context'];
-            } elseif (\is_string($jobData['context'])) {
-                $context = $jobData['context'];
-            }
+        if (isset($jobData['context']) && (\is_array($jobData['context']) || \is_string($jobData['context']))) {
+            $context = $jobData['context'];
         }
         $commandData = JobCommandDataExtractor::extract($payload);
 
@@ -105,9 +101,6 @@ class HorizonJobDetailService
         $queuedAtRaw = $payload['pushedAt'] ?? $jobData['pushedAt'] ?? null;
         $processedAtRaw = $jobData['completed_at'] ?? null;
         $failedAtRaw = $jobData['failed_at'] ?? null;
-        if ($failedAtRaw === false) {
-            $failedAtRaw = null;
-        }
 
         $queuedAt = JobRuntimeHelper::parseJobTimestamp($queuedAtRaw);
         $processedAt = JobRuntimeHelper::parseJobTimestamp($processedAtRaw);
