@@ -246,7 +246,7 @@ td[data-column-id="actions"] > div {
     }
 
     .notyf__toast.hub-notyf .notyf__wrapper {
-        @apply px-1 py-0.5;
+        @apply px-1;
         padding-top: 0.625rem;
         padding-bottom: 0.625rem;
     }
@@ -257,7 +257,6 @@ td[data-column-id="actions"] > div {
 
     .notyf__toast.hub-notyf--success {
         @apply border-emerald-200 bg-emerald-50;
-        background-color: rgb(236 253 245) !important;
     }
 
     .notyf__toast.hub-notyf--success .notyf__message {
@@ -275,7 +274,6 @@ td[data-column-id="actions"] > div {
 
     .notyf__toast.hub-notyf--error {
         @apply border-red-200 bg-red-50;
-        background-color: rgb(254 242 242) !important;
     }
 
     .notyf__toast.hub-notyf--error .notyf__message {
@@ -293,7 +291,6 @@ td[data-column-id="actions"] > div {
 
     .notyf__toast.hub-notyf--info {
         @apply border-sky-200 bg-sky-50;
-        background-color: rgb(240 249 255) !important;
     }
 
     .notyf__toast.hub-notyf--info .notyf__message {
@@ -311,7 +308,6 @@ td[data-column-id="actions"] > div {
 
     .notyf__toast.hub-notyf--warning {
         @apply border-amber-200 bg-amber-50;
-        background-color: rgb(255 251 235) !important;
     }
 
     .notyf__toast.hub-notyf--warning .notyf__message {
@@ -358,6 +354,7 @@ td[data-column-id="actions"] > div {
         @apply shadow-lg;
     }
 }
+
 .air-datepicker i.air-datepicker--pointer:after {
     background: hsl(var(--popover)) !important;
     border-top-color: hsl(var(--border)) !important;
@@ -367,6 +364,7 @@ td[data-column-id="actions"] > div {
 .air-datepicker div.air-datepicker-cell.-selected-:not(.-other-month-) {
     color: hsl(var(--primary-foreground)) !important;
 }
+
 div.-selected-.air-datepicker-cell.-day-.-other-month- {
     color: var(--adp-color) !important;
 }
