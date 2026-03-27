@@ -27,7 +27,7 @@
 
         @foreach ($slider as $page)
             @if ($page === '...')
-                <span class="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm text-muted-foreground">…</span>
+                <span class="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm text-muted-foreground">...</span>
             @elseif ($page == $current)
                 <span class="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm font-medium bg-primary text-primary-foreground" aria-current="page">{{ $page }}</span>
             @else

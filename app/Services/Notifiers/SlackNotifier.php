@@ -114,7 +114,7 @@ class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier
             }
         }
         if ($count > self::MAX_EVENTS_IN_SLACK) {
-            $lines[] = '📎 … and *'.($count - self::MAX_EVENTS_IN_SLACK).'* more';
+            $lines[] = '📎 ... and *'.($count - self::MAX_EVENTS_IN_SLACK).'* more';
         }
         $text = \implode("\n", $lines);
 

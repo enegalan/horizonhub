@@ -99,7 +99,7 @@
                                     data-column-id="last_seen"
                                     data-datetime="{{ $service->last_seen_at?->toIso8601String() }}"
                                 >
-                                    {{ $service->last_seen_at ? '…' : '–' }}
+                                    -
                                 </td>
                                 <td class="px-4 py-2.5" data-column-id="actions">
                                     <div class="flex items-center gap-2">

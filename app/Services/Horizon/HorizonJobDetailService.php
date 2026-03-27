@@ -3,6 +3,7 @@
 namespace App\Services\Horizon;
 
 use App\Models\Service;
+use App\Support\Horizon\JobCommandDataExtractor;
 use App\Support\Horizon\JobRuntimeHelper;
 
 class HorizonJobDetailService
@@ -11,7 +12,21 @@ class HorizonJobDetailService
      * Build the show view data.
      *
      * @param  array<string, mixed>  $jobData
-     * @return array{job: object, exception: string|null, horizonJob: array<string, mixed>}
+     * @return array{
+     *     job: object,
+     *     exception: string|null,
+     *     horizonJob: array{
+     *         attempts: int|null,
+     *         connection: string|null,
+     *         retries: int|null,
+     *         tags: array<int, string>,
+     *         uuid: string,
+     *         exception: string|null,
+     *         retriedBy: array<int, array{id: string, status: string|null, retried_at: int|null}>,
+     *         context: array<string, mixed>|string|null,
+     *         commandData: array<string, mixed>|null
+     *     }
+     * }
      */
     public function buildShowViewData(Service $service, array $jobData, string $routeUuid): array
     {
@@ -20,14 +35,6 @@ class HorizonJobDetailService
         $attemptsRaw = $jobData['attempts'] ?? null;
         if ($attemptsRaw === null) {
             $attemptsRaw = $payload['attempts'] ?? null;
-        }
-
-        $retries = null;
-        if (isset($jobData['retried_by']) && \is_array($jobData['retried_by'])) {
-            $retries = \count($jobData['retried_by']);
-            if ($attemptsRaw === null) {
-                $attemptsRaw = $retries + 1;
-            }
         }
 
         $attempts = null;
@@ -52,15 +59,48 @@ class HorizonJobDetailService
             $exception = (string) $jobData['exception'];
         }
 
+        $retriedBy = [];
+        if (isset($jobData['retried_by']) && \is_array($jobData['retried_by'])) {
+            foreach ($jobData['retried_by'] as $retriedJob) {
+                if (! \is_array($retriedJob) || ! isset($retriedJob['id']) || ! \is_string($retriedJob['id']) || $retriedJob['id'] === '') {
+                    continue;
+                }
+
+                $retriedStatus = null;
+                if (isset($retriedJob['status']) && \is_string($retriedJob['status']) && $retriedJob['status'] !== '') {
+                    $retriedStatus = $retriedJob['status'];
+                }
+
+                $retriedAt = null;
+                if (isset($retriedJob['retried_at']) && \is_numeric($retriedJob['retried_at'])) {
+                    $retriedAt = (int) $retriedJob['retried_at'];
+                }
+
+                $retriedBy[] = [
+                    'id' => $retriedJob['id'],
+                    'status' => $retriedStatus,
+                    'retried_at' => $retriedAt,
+                ];
+            }
+        }
+        $retries = $retriedBy !== [] ? \count($retriedBy) : null;
+        if ($attemptsRaw === null && $retries !== null) {
+            $attemptsRaw = $retries + 1;
+            $attempts = $attemptsRaw;
+        }
+
+        $context = null;
+        if (isset($jobData['context']) && (\is_array($jobData['context']) || \is_string($jobData['context']))) {
+            $context = $jobData['context'];
+        }
+        $commandData = JobCommandDataExtractor::extract($payload);
+
         $rawStatus = (string) ($jobData['status'] ?? 'failed');
         $status = $rawStatus === 'completed' ? 'processed' : $rawStatus;
 
         $queuedAtRaw = $payload['pushedAt'] ?? $jobData['pushedAt'] ?? null;
         $processedAtRaw = $jobData['completed_at'] ?? null;
         $failedAtRaw = $jobData['failed_at'] ?? null;
-        if ($failedAtRaw === false) {
-            $failedAtRaw = null;
-        }
 
         $queuedAt = JobRuntimeHelper::parseJobTimestamp($queuedAtRaw);
         $processedAt = JobRuntimeHelper::parseJobTimestamp($processedAtRaw);
@@ -95,6 +135,9 @@ class HorizonJobDetailService
             'tags' => $tags,
             'uuid' => $jobView->uuid,
             'exception' => $exception,
+            'retriedBy' => $retriedBy,
+            'context' => $context,
+            'commandData' => $commandData,
         ];
 
         return [

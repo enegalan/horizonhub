@@ -1,27 +1,93 @@
 import { formatDateTimeElements } from '../lib/datetime-format';
 import { onHorizonHubRefresh } from '../lib/dom';
+import { renderJsonTree } from '../lib/json-tree';
+import { parseFailedAtRange } from '../lib/parse';
 
 /**
- * Split retry modal range field into API params.
- * @param {string} rangeValue
- * @returns {{ dateFrom: string, dateTo: string }}
+ * Swap a live DOM subtree with the same selector from a fetched document.
+ * @param {string} selector
+ * @param {Document} preloadedDoc
+ * @param {{ afterReplace?: function(HTMLElement): void }=} options
+ * @returns {HTMLElement|null}
  */
-function parseFailedAtRange(rangeValue) {
-    var v = typeof rangeValue === 'string' ? rangeValue.trim() : '';
-    if (!v) {
-        return { dateFrom: '', dateTo: '' };
+function replaceHorizonRootFromDoc(selector, preloadedDoc, options) {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return null;
+    if (!preloadedDoc) return null;
+    var newRoot = preloadedDoc.querySelector(selector);
+    var currentRoot = document.querySelector(selector);
+    if (!newRoot || !currentRoot) return null;
+    currentRoot.replaceWith(newRoot);
+    formatDateTimeElements(newRoot);
+    if (typeof window !== 'undefined' && window.Alpine && typeof window.Alpine.initTree === 'function') {
+        window.Alpine.initTree(newRoot);
     }
-    var parts = v.split(/\s+to\s+/i).map(function (s) {
-        return s.trim();
-    }).filter(Boolean);
-    if (parts.length === 0) {
-        return { dateFrom: '', dateTo: '' };
+    if (options && typeof options.afterReplace === 'function') {
+        options.afterReplace(newRoot);
     }
-    if (parts.length === 1) {
-        return { dateFrom: parts[0], dateTo: '' };
-    }
+    return newRoot;
+}
 
-    return { dateFrom: parts[0], dateTo: parts[1] };
+/**
+ * POST retry URL, toast, and dispatch refresh (single job flows).
+ * @param {string} retryUrl
+ * @param {{ retrying: boolean }} component
+ * @param {string} toastMessage
+ * @returns {void}
+ */
+function postSingleJobRetry(retryUrl, component, toastMessage) {
+    if (!window.horizon || !window.horizon.http) return;
+    component.retrying = true;
+    var shouldRefresh = false;
+    window.horizon.http.post(retryUrl, {}).then(function () {
+        if (window.toast && window.toast.success) {
+            window.toast.success(toastMessage);
+        }
+        shouldRefresh = true;
+    }).catch(function () {
+    }).finally(function () {
+        component.retrying = false;
+        if (shouldRefresh && typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('horizonhub-refresh'));
+        }
+    });
+}
+
+/**
+ * Resolve the job detail root. `Element#querySelector` does not match the element itself,
+ * so when `root` is already the detail div (e.g. after SSE replace), we must return it.
+ * @param {Document|HTMLElement|null} root
+ * @returns {HTMLElement|null}
+ */
+function resolveHorizonJobDetailRoot(root) {
+    if (!root) return null;
+    if (root.nodeType === 1 && root.getAttribute && root.getAttribute('data-horizon-job-detail-root') === '1') {
+        return root;
+    }
+    if (root.querySelector) {
+        return root.querySelector('[data-horizon-job-detail-root="1"]');
+    }
+    return null;
+}
+
+/**
+ * Render JSON trees on the job detail page (localStorage keys require job UUID).
+ * @param {Document|HTMLElement} root
+ * @returns {void}
+ */
+export function enhanceHorizonJobDetailJsonTrees(root) {
+    if (!root || !root.querySelectorAll) return;
+    var rootEl = resolveHorizonJobDetailRoot(root);
+    if (!rootEl) return;
+    var jobUuid = String(rootEl.getAttribute('data-horizon-job-uuid') || '').trim();
+    var jsonTargets = rootEl.querySelectorAll('[data-json-tree]');
+    jsonTargets.forEach(function (target) {
+        var treeName = target.getAttribute('data-json-tree');
+        var storageKey = null;
+        if (jobUuid && treeName) {
+            storageKey = 'horizonhub:job-detail:' + jobUuid + ':json-tree:' + treeName;
+        }
+        renderJsonTree(target, { storageKey: storageKey });
+    });
 }
 
 /**
@@ -240,19 +306,13 @@ export function horizonJobsPage(config) {
          * @returns {void}
          */
         refreshJobsTable(preloadedDoc) {
-            if (typeof window === 'undefined' || typeof document === 'undefined') return;
-            if (!preloadedDoc) return;
-            var newRoot = preloadedDoc.querySelector('[data-horizon-jobs-stack-root="1"]');
-            var currentRoot = document.querySelector('[data-horizon-jobs-stack-root="1"]');
-            if (!newRoot || !currentRoot) return;
-            currentRoot.replaceWith(newRoot);
-            formatDateTimeElements(newRoot);
-            if (typeof window !== 'undefined' && window.Alpine && typeof window.Alpine.initTree === 'function') {
-                window.Alpine.initTree(newRoot);
-            }
-            if (typeof window !== 'undefined' && window.horizonInitResizableTables) {
-                window.horizonInitResizableTables();
-            }
+            replaceHorizonRootFromDoc('[data-horizon-jobs-stack-root="1"]', preloadedDoc, {
+                afterReplace: function () {
+                    if (typeof window !== 'undefined' && window.horizonInitResizableTables) {
+                        window.horizonInitResizableTables();
+                    }
+                },
+            });
         },
     };
 }
@@ -271,20 +331,7 @@ export function horizonJobRowRetry(config) {
          * @returns {void}
          */
         retry() {
-            if (!window.horizon || !window.horizon.http) return;
-            this.retrying = true;
-            var self = this;
-            window.horizon.http.post(config.retryUrl, {}).then(function () {
-                if (window.toast && window.toast.success) {
-                    window.toast.success('Retry requested.');
-                }
-                if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new Event('horizonhub-refresh'));
-                }
-            }).catch(function () {
-            }).finally(function () {
-                self.retrying = false;
-            });
+            postSingleJobRetry(config.retryUrl, this, 'Retry requested.');
         },
     };
 }
@@ -297,12 +344,63 @@ export function horizonJobRowRetry(config) {
 export function horizonJobDetail(config) {
     return {
         retrying: false,
+        showAllExceptionLines: false,
+        /**
+         * Get the job UUID from the current detail root element.
+         * @returns {string}
+         */
+        getJobUuid() {
+            if (typeof document === 'undefined') return '';
+            var root = document.querySelector('[data-horizon-job-detail-root="1"]');
+            if (!root || !root.getAttribute) return '';
+            return String(root.getAttribute('data-horizon-job-uuid') || '').trim();
+        },
+        /**
+         * Build the localStorage key for exception toggle state.
+         * @returns {string|null}
+         */
+        getExceptionStorageKey() {
+            if (typeof window === 'undefined') return null;
+            var jobUuid = this.getJobUuid();
+            if (!jobUuid) return null;
+            return 'horizonhub:job-detail:' + jobUuid + ':exceptions:show-all';
+        },
+        /**
+         * Restore persisted UI state (exceptions toggle).
+         * @returns {void}
+         */
+        restorePersistedUiState() {
+            if (typeof window === 'undefined' || !window.localStorage) return;
+            var key = this.getExceptionStorageKey();
+            if (!key) return;
+            try {
+                var raw = window.localStorage.getItem(key);
+                if (raw === null) return;
+                this.showAllExceptionLines = raw === '1' || raw === 'true';
+            } catch (e) {
+            }
+        },
+        /**
+         * Persist UI state (exceptions toggle).
+         * @returns {void}
+         */
+        persistUiState() {
+            if (typeof window === 'undefined' || !window.localStorage) return;
+            var key = this.getExceptionStorageKey();
+            if (!key) return;
+            try {
+                window.localStorage.setItem(key, this.showAllExceptionLines ? '1' : '0');
+            } catch (e) {
+            }
+        },
         /**
          * Initialize the job detail.
          * @returns {void}
          */
         init() {
             var self = this;
+            this.restorePersistedUiState();
+            this.enhanceJobDetail(document);
             onHorizonHubRefresh(function (doc) {
                 self.refreshJobDetail(doc);
             }, {
@@ -316,20 +414,24 @@ export function horizonJobDetail(config) {
          * @returns {void}
          */
         retry() {
-            if (!config.canRetry || !window.horizon || !window.horizon.http) return;
-            this.retrying = true;
-            var self = this;
-            window.horizon.http.post(config.retryUrl, {}).then(function () {
-                if (window.toast && window.toast.success) {
-                    window.toast.success('Retry requested.');
-                }
-                if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new Event('horizonhub-refresh'));
-                }
-            }).catch(function () {
-            }).finally(function () {
-                self.retrying = false;
-            });
+            if (!config.canRetry) return;
+            postSingleJobRetry(config.retryUrl, this, 'Retry requested.');
+        },
+        /**
+         * Toggle exception lines.
+         * @returns {void}
+         */
+        toggleExceptionLines() {
+            this.showAllExceptionLines = !this.showAllExceptionLines;
+            this.persistUiState();
+        },
+        /**
+         * Enhance detail blocks.
+         * @param {Document|HTMLElement} root
+         * @returns {void}
+         */
+        enhanceJobDetail(root) {
+            enhanceHorizonJobDetailJsonTrees(root);
         },
         /**
          * Refresh the job detail.
@@ -337,13 +439,12 @@ export function horizonJobDetail(config) {
          * @returns {void}
          */
         refreshJobDetail(preloadedDoc) {
-            if (typeof window === 'undefined' || typeof document === 'undefined') return;
-            if (!preloadedDoc) return;
-            var newRoot = preloadedDoc.querySelector('[data-horizon-job-detail-root="1"]');
-            var currentRoot = document.querySelector('[data-horizon-job-detail-root="1"]');
-            if (!newRoot || !currentRoot) return;
-            currentRoot.replaceWith(newRoot);
-            formatDateTimeElements(newRoot);
+            var self = this;
+            replaceHorizonRootFromDoc('[data-horizon-job-detail-root="1"]', preloadedDoc, {
+                afterReplace: function (newRoot) {
+                    self.enhanceJobDetail(newRoot);
+                },
+            });
         },
     };
 }
