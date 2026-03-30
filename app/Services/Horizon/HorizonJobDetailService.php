@@ -99,10 +99,12 @@ class HorizonJobDetailService
         $status = $rawStatus === 'completed' ? 'processed' : $rawStatus;
 
         $queuedAtRaw = $payload['pushedAt'] ?? $jobData['pushedAt'] ?? null;
+        $reservedAtRaw = $jobData['reserved_at'] ?? $jobData['reservedAt'] ?? $payload['reserved_at'] ?? $payload['reservedAt'] ?? null;
         $processedAtRaw = $jobData['completed_at'] ?? null;
         $failedAtRaw = $jobData['failed_at'] ?? null;
 
         $queuedAt = JobRuntimeHelper::parseJobTimestamp($queuedAtRaw);
+        $reservedAt = JobRuntimeHelper::parseJobTimestamp($reservedAtRaw);
         $processedAt = JobRuntimeHelper::parseJobTimestamp($processedAtRaw);
         $failedAt = JobRuntimeHelper::parseJobTimestamp($failedAtRaw);
         JobRuntimeHelper::normalizeStatusDates($status, $processedAt, $failedAt);
@@ -111,7 +113,7 @@ class HorizonJobDetailService
             : null;
 
         $runtime = JobRuntimeHelper::getFormattedRuntime(
-            JobRuntimeHelper::getRuntimeSeconds($runtimeSeconds, $queuedAt, $processedAt, $failedAt)
+            JobRuntimeHelper::getRuntimeSeconds($runtimeSeconds, $reservedAt, $processedAt, $failedAt)
         );
 
         $jobView = (object) [

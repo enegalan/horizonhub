@@ -126,4 +126,52 @@ class HorizonJobListServiceTest extends TestCase
         $this->assertSame(1, $paginators['processing']->total());
         $this->assertSame('bbb', $paginators['processing']->items()[0]->uuid);
     }
+
+    #[Test]
+    public function it_uses_reserved_at_for_failed_runtime_fallback(): void
+    {
+        $service = new Service;
+        $service->forceFill([
+            'id' => 1,
+            'name' => 'Svc',
+            'base_url' => 'http://example.test',
+        ]);
+
+        $api = $this->mock(HorizonApiProxyService::class);
+        $api->shouldReceive('getPendingJobs')->andReturn(['success' => true, 'data' => ['jobs' => []]]);
+        $api->shouldReceive('getCompletedJobs')->andReturn(['success' => true, 'data' => ['jobs' => []]]);
+        $api->shouldReceive('getFailedJobs')->andReturn([
+            'success' => true,
+            'data' => [
+                'jobs' => [
+                    [
+                        'id' => 'failed-1',
+                        'queue' => 'q1',
+                        'name' => 'FailingJob',
+                        'payload' => [
+                            'pushedAt' => '1711111111.000',
+                        ],
+                        'reserved_at' => '1711111111.100',
+                        'failed_at' => '1711111111.140',
+                        'index' => 0,
+                    ],
+                ],
+            ],
+        ]);
+
+        $list = new HorizonJobListService($api);
+        $paginators = $list->buildAggregatedStatusPaginators(
+            \collect([$service]),
+            '',
+            1,
+            1,
+            1,
+            20,
+            'http://localhost/horizon',
+            [],
+        );
+
+        $this->assertSame(1, $paginators['failed']->total());
+        $this->assertSame('0.04 s', $paginators['failed']->items()[0]->runtime);
+    }
 }

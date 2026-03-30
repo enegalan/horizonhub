@@ -40,15 +40,15 @@ class JobRuntimeHelper
 
     /**
      * Compute the runtime in seconds for a job, using either a precomputed
-     * runtime value or the difference between queued_at and processed/failed_at.
+     * runtime value or the difference between reserved_at and processed/failed_at.
      *
-     * @param  Carbon|string|null  $queuedAt
+     * @param  Carbon|string|null  $reservedAt
      * @param  Carbon|string|null  $processedAt
      * @param  Carbon|string|null  $failedAt
      */
     public static function getRuntimeSeconds(
         ?float $runtimeSeconds,
-        $queuedAt,
+        $reservedAt,
         $processedAt,
         $failedAt
     ): ?float {
@@ -56,7 +56,7 @@ class JobRuntimeHelper
             return $runtimeSeconds;
         }
 
-        $start = self::private__normalizeToCarbon($queuedAt);
+        $start = self::private__normalizeToCarbon($reservedAt);
         $end = self::private__normalizeToCarbon($processedAt) ?? self::private__normalizeToCarbon($failedAt);
 
         if ($start === null || $end === null) {

@@ -145,4 +145,54 @@ class HorizonJobDetailServiceTest extends TestCase
             'retries' => 3,
         ], $result['horizonJob']['commandData']);
     }
+
+    #[Test]
+    public function it_does_not_compute_failed_runtime_from_pushed_to_failed_when_reserved_at_is_missing(): void
+    {
+        $service = new Service;
+        $service->forceFill([
+            'name' => 'Orders API',
+            'base_url' => 'http://example.test',
+        ]);
+
+        $jobData = [
+            'uuid' => 'job-failed-runtime-missing',
+            'name' => 'App\\Jobs\\FailingJob',
+            'queue' => 'default',
+            'status' => 'failed',
+            'payload' => [
+                'pushedAt' => '1711111111.123',
+            ],
+            'failed_at' => '2026-03-24T10:10:00+00:00',
+        ];
+
+        $serviceUnderTest = new HorizonJobDetailService;
+        $result = $serviceUnderTest->buildShowViewData($service, $jobData, 'job-failed-runtime-missing');
+
+        $this->assertNull($result['job']->runtime);
+    }
+
+    #[Test]
+    public function it_computes_runtime_from_reserved_to_failed_when_runtime_is_missing(): void
+    {
+        $service = new Service;
+        $service->forceFill([
+            'name' => 'Orders API',
+            'base_url' => 'http://example.test',
+        ]);
+
+        $jobData = [
+            'uuid' => 'job-failed-runtime-derived',
+            'name' => 'App\\Jobs\\FailingJob',
+            'queue' => 'default',
+            'status' => 'failed',
+            'reserved_at' => '1711111111.100',
+            'failed_at' => '1711111111.140',
+        ];
+
+        $serviceUnderTest = new HorizonJobDetailService;
+        $result = $serviceUnderTest->buildShowViewData($service, $jobData, 'job-failed-runtime-derived');
+
+        $this->assertSame('0.04 s', $result['job']->runtime);
+    }
 }
