@@ -110,21 +110,20 @@
         @if(count($exception) > 0)
             <div>
                 <dt class="label-muted mb-1">Error</dt>
-                <div class="mt-1 rounded-md border border-red-500/30 bg-red-500/5 p-3 text-sm text-foreground break-words">
+                <div class="flex flex-col items-start mt-1 rounded-md border border-red-500/30 bg-red-500/5 text-sm text-foreground break-words">
                     @foreach($exception as $lineIndex => $line)
-                        <p
+                        <code
                             @class([
-                                'py-1 leading-5 whitespace-pre-wrap break-words border-red-500/20',
-                                'border-b' => $lineIndex !== \count($exception) - 1,
+                                'w-full py-1 px-3 leading-10 border-b whitespace-pre-wrap break-words border-red-500/20'
                             ])
                             x-show="showAllExceptionLines || {{ $lineIndex < 5 ? 'true' : 'false' }}"
                             @if($lineIndex >= 5) x-cloak @endif
-                        >{{ $line }}</p>
+                        >{{ $line }}</code>
                     @endforeach
                     @if(\count($exception) > 5)
                         <button
                             type="button"
-                            class="mt-2 text-xs font-medium link"
+                            class="mx-4 my-4 font-medium text-primary-solid"
                             @click="toggleExceptionLines()"
                             x-text="showAllExceptionLines ? 'Show less' : 'Show all'"
                             no-ring
@@ -136,7 +135,7 @@
         @if($job->status === 'failed')
             <div>
                 <dt class="label-muted mb-1">Exception context</dt>
-                <div class="mt-1 rounded-md border border-border bg-muted/30 p-3 text-xs text-foreground break-words">
+                <div class="mt-1 rounded-md border border-border bg-muted/30 p-3 text-foreground break-words">
                     <div
                         data-json-tree="context"
                         data-json-source="{{ e($context) }}"
@@ -198,7 +197,7 @@
         @endif
         <div>
             <dt class="label-muted mb-1">Data</dt>
-            <div class="mt-1 rounded-md border border-border bg-muted/30 p-3 text-xs text-foreground break-words">
+            <div class="mt-1 rounded-md border border-border bg-muted/30 p-3 text-xs font-mono text-foreground break-words">
                 <div
                     data-json-tree="data"
                     data-json-source="{{ e($commandData ?? 'null') }}"
@@ -207,7 +206,7 @@
         </div>
         <div>
             <dt class="label-muted mb-1">Payload</dt>
-            <div class="mt-1 rounded-md border border-border bg-muted/30 p-3 text-xs text-foreground break-words">
+            <div class="mt-1 rounded-md border border-border bg-muted/30 p-3 text-xs font-mono text-foreground break-words">
                 <div
                     data-json-tree="payload"
                     data-json-source="{{ e($payload ?? 'null') }}"

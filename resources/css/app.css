@@ -183,6 +183,7 @@
     .horizon-json-toggle {
         @apply rounded-sm px-0.5 font-mono;
     }
+    .text-primary-solid,
     .horizon-json-toggle:hover {
         color: var(--primary-solid);
     }

@@ -28,44 +28,119 @@ function getJsonTreeSource(target) {
 }
 
 /**
+ * Check whether a string can represent JSON input.
+ * @param {string} value
+ * @returns {boolean}
+ */
+function startsLikeJson(value) {
+    return value.startsWith('{') || value.startsWith('[') || value.startsWith('"');
+}
+
+/**
+ * Parse and unwrap JSON candidates iteratively.
+ * @param {string} initialCandidate
+ * @param {(parsed: unknown, currentCandidate: string) => unknown} onParsedValue
+ * @param {(currentCandidate: string) => unknown} onCycle
+ * @param {(currentCandidate: string) => unknown} onParseError
+ * @returns {unknown}
+ */
+function parseJsonCandidateLoop(initialCandidate, onParsedValue, onCycle, onParseError) {
+    var candidate = initialCandidate;
+    var seen = new Set();
+
+    for (;;) {
+        if (seen.has(candidate)) {
+            return onCycle(candidate);
+        }
+        seen.add(candidate);
+
+        try {
+            var parsed = JSON.parse(candidate);
+            var next = onParsedValue(parsed, candidate);
+            if (typeof next === 'string') {
+                candidate = next;
+                continue;
+            }
+            return next;
+        } catch (error) {
+            return onParseError(candidate);
+        }
+    }
+}
+
+/**
  * Parse JSON sources that can arrive escaped/encoded.
  * @param {string} rawSource
  * @returns {unknown}
  */
 function parseJsonSource(rawSource) {
     var candidate = decodeHtmlEntities(String(rawSource)).trim();
-    var seen = new Set();
 
-    for (;;) {
-        if (seen.has(candidate)) {
-            return candidate;
+    return parseJsonCandidateLoop(candidate, function (parsed) {
+        if (typeof parsed !== 'string') {
+            return parsed;
         }
-        seen.add(candidate);
 
-        try {
-            var parsed = JSON.parse(candidate);
-
-            if (typeof parsed !== 'string') {
-                return parsed;
-            }
-
-            var nextCandidate = decodeHtmlEntities(parsed).trim();
-            if (!nextCandidate) return '';
-
-            var startsLikeJson =
-                nextCandidate.startsWith('{') ||
-                nextCandidate.startsWith('[') ||
-                nextCandidate.startsWith('"');
-
-            if (!startsLikeJson) {
-                return parsed;
-            }
-
-            candidate = nextCandidate;
-        } catch (error) {
-            return candidate;
+        var nextCandidate = decodeHtmlEntities(parsed).trim();
+        if (!nextCandidate) {
+            return '';
         }
+
+        if (!startsLikeJson(nextCandidate)) {
+            return parsed;
+        }
+
+        return nextCandidate;
+    }, function (currentCandidate) {
+        return currentCandidate;
+    }, function (currentCandidate) {
+        return currentCandidate;
+    });
+}
+
+/**
+ * Parse embedded JSON strings when they represent containers.
+ * @param {unknown} value
+ * @returns {unknown}
+ */
+function parseEmbeddedJsonContainer(value) {
+    if (typeof value !== 'string') {
+        return value;
     }
+
+    var candidate = decodeHtmlEntities(value).trim();
+    if (!candidate) {
+        return value;
+    }
+
+    if (!startsLikeJson(candidate)) {
+        return value;
+    }
+
+    return parseJsonCandidateLoop(candidate, function (parsed) {
+        if (parsed !== null && typeof parsed === 'object') {
+            return parsed;
+        }
+
+        if (typeof parsed !== 'string') {
+            return value;
+        }
+
+        var nextCandidate = decodeHtmlEntities(parsed).trim();
+        if (!nextCandidate) {
+            return value;
+        }
+
+        if (!startsLikeJson(nextCandidate)) {
+            return value;
+        }
+
+        return nextCandidate;
+    }, function () {
+        return value;
+    }, function () {
+        return value;
+    });
 }
 
 /**
@@ -89,6 +164,22 @@ function highlightJsonValue(value) {
 }
 
 /**
+ * Normalize string values for readable tree output.
+ * @param {string} value
+ * @returns {string}
+ */
+function normalizeStringValueForDisplay(value) {
+    var normalized = String(value).replace(/\r\n|\r/g, '\n');
+    if (normalized.indexOf('\n') === -1) {
+        return normalized;
+    }
+
+    return normalized
+        .replace(/\n+/g, ' ')
+        .replace(/\t+/g, ' ');
+}
+
+/**
  * Build a JSON key span.
  * @param {string} key
  * @returns {HTMLElement}
@@ -108,9 +199,12 @@ function buildJsonKey(key) {
  */
 function buildJsonPrimitive(value) {
     var valueEl = document.createElement('span');
+    if (typeof value === 'string') {
+        value = normalizeStringValueForDisplay(value);
+    }
+    value = highlightJsonValue(value);
+    valueEl.innerHTML = value;
     valueEl.className = 'horizon-json-value';
-    valueEl.innerHTML = highlightJsonValue(value);
-
     return valueEl;
 }
 
@@ -120,15 +214,18 @@ function buildJsonPrimitive(value) {
  * @param {unknown} value
  * @param {string[]} pathSegments
  * @param {{ isCollapsed: function(string): boolean, setCollapsed: function(string, boolean): void }|null} state
+ * @param {boolean=} isLast
  * @returns {HTMLElement}
  */
-function buildJsonNode(key, value, pathSegments, state) {
+function buildJsonNode(key, value, pathSegments, state, isLast) {
     var wrapper = document.createElement('div');
     wrapper.className = 'horizon-json-node';
 
-    var isArray = Array.isArray(value);
-    var isObject = value !== null && typeof value === 'object' && !isArray;
+    var resolvedValue = parseEmbeddedJsonContainer(value);
+    var isArray = Array.isArray(resolvedValue);
+    var isObject = resolvedValue !== null && typeof resolvedValue === 'object' && !isArray;
     var isContainer = isArray || isObject;
+    var hasTrailingComma = isLast !== true;
 
     var line = document.createElement('div');
     line.className = 'horizon-json-line';
@@ -148,11 +245,16 @@ function buildJsonNode(key, value, pathSegments, state) {
     }
 
     if (!isContainer) {
-        line.appendChild(buildJsonPrimitive(value));
+        line.appendChild(buildJsonPrimitive(resolvedValue));
+        if (hasTrailingComma) {
+            var primitiveComma = document.createElement('span');
+            primitiveComma.textContent = ',';
+            line.appendChild(primitiveComma);
+        }
         return wrapper;
     }
 
-    var children = isArray ? value : Object.entries(value);
+    var children = isArray ? resolvedValue : Object.entries(resolvedValue);
     var openBrace = isArray ? '[' : '{';
     var closeBrace = isArray ? ']' : '}';
 
@@ -173,11 +275,11 @@ function buildJsonNode(key, value, pathSegments, state) {
 
     if (isArray) {
         children.forEach(function (childValue, index) {
-            childrenContainer.appendChild(buildJsonNode(String(index), childValue, currentPathSegments, state));
+            childrenContainer.appendChild(buildJsonNode(String(index), childValue, currentPathSegments, state, index === children.length - 1));
         });
     } else {
-        children.forEach(function (entry) {
-            childrenContainer.appendChild(buildJsonNode(entry[0], entry[1], currentPathSegments, state));
+        children.forEach(function (entry, index) {
+            childrenContainer.appendChild(buildJsonNode(entry[0], entry[1], currentPathSegments, state, index === children.length - 1));
         });
     }
 
@@ -192,6 +294,11 @@ function buildJsonNode(key, value, pathSegments, state) {
     closeToggle.setAttribute('no-ring', 'true');
     closeToggle.textContent = closeBrace;
     closeLine.appendChild(closeToggle);
+    if (hasTrailingComma) {
+        var closeComma = document.createElement('span');
+        closeComma.textContent = ',';
+        closeLine.appendChild(closeComma);
+    }
     wrapper.appendChild(closeLine);
 
     function setExpanded(expanded) {
@@ -199,7 +306,8 @@ function buildJsonNode(key, value, pathSegments, state) {
         closeToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
         childrenContainer.classList.toggle('hidden', !expanded);
         closeLine.classList.toggle('hidden', !expanded);
-        toggle.textContent = expanded ? openBrace : (openBrace + '...' + closeBrace);
+        var collapsedText = openBrace + '...' + closeBrace + (hasTrailingComma ? ',' : '');
+        toggle.textContent = expanded ? openBrace : collapsedText;
     }
 
     toggle.addEventListener('click', function () {
@@ -288,5 +396,5 @@ export function renderJsonTree(target, options) {
 
     target.innerHTML = '';
     target.classList.add('horizon-json-tree');
-    target.appendChild(buildJsonNode(null, parsed, [], state));
+    target.appendChild(buildJsonNode(null, parsed, [], state, true));
 }
