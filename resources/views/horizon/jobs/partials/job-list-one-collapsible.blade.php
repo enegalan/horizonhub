@@ -45,7 +45,7 @@
         <span class="{{ $badgeClasses[$kind] }}">{{ $paginator->total() }}</span>
     </summary>
     <div class="pt-2">
-        <x-data-table
+        <x-table
             resizable-key="{{ $resizableKey }}"
             column-ids="{{ $columnIds }}"
             body-key="{{ $bodyKey }}"
@@ -122,8 +122,8 @@
                     </td>
                 </tr>
             @endforelse
-        </x-data-table>
-        @if($paginator->hasPages())
+        </x-table>
+        @if($paginator->total() > 0)
             <div class="px-4 py-2 mt-2">
                 <x-pagination :paginator="$paginator" />
             </div>

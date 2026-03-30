@@ -53,6 +53,47 @@ function postSingleJobRetry(retryUrl, component, toastMessage) {
 }
 
 /**
+ * Page number window for pagination nav (matches resources/views/components/pagination.blade.php).
+ * @param {number} current
+ * @param {number} last
+ * @param {number} onEachSide
+ * @returns {(number|string)[]}
+ */
+function buildRetryPaginationSlider(current, last, onEachSide) {
+    var w = onEachSide;
+    var slider = [];
+    var i;
+    if (last <= (w * 2 + 3)) {
+        for (i = 1; i <= last; i++) {
+            slider.push(i);
+        }
+    } else if (current <= w + 2) {
+        var end = Math.min(w * 2 + 2, last);
+        for (i = 1; i <= end; i++) {
+            slider.push(i);
+        }
+        slider.push('...');
+        slider.push(last);
+    } else if (current >= last - w - 1) {
+        slider.push(1);
+        slider.push('...');
+        var start = Math.max(1, last - w * 2 - 1);
+        for (i = start; i <= last; i++) {
+            slider.push(i);
+        }
+    } else {
+        slider.push(1);
+        slider.push('...');
+        for (i = current - w; i <= current + w; i++) {
+            slider.push(i);
+        }
+        slider.push('...');
+        slider.push(last);
+    }
+    return slider;
+}
+
+/**
  * Resolve the job detail root. `Element#querySelector` does not match the element itself,
  * so when `root` is already the detail div (e.g. after SSE replace), we must return it.
  * @param {Document|HTMLElement|null} root
@@ -143,11 +184,16 @@ export function horizonJobsPage(config) {
          */
         retryPerPage: config.jobsPerPage,
         /**
+         * Incremented when the retry modal opens; remounts service multiselect.
+         * @type {number}
+         */
+        retryModalSession: 0,
+        /**
          * Retry filters.
          * @type {object}
          */
         retryFilters: {
-            service_id: '',
+            service_ids: [],
             search: '',
             failed_at_range: '',
         },
@@ -170,12 +216,30 @@ export function horizonJobsPage(config) {
          * @returns {void}
          */
         openRetryModal() {
+            this.retryModalSession = (this.retryModalSession || 0) + 1;
+            this.retryFilters.service_ids = [];
+            this.retryFilters.search = '';
+            this.retryFilters.failed_at_range = '';
             this.retryModalMounted = true;
             this.showRetryModal = false;
             requestAnimationFrame(() => {
                 this.showRetryModal = true;
+                window.requestAnimationFrame(function () {
+                    var table = document.querySelector('table[data-resizable-table="horizon-retry-modal-failed-jobs"]');
+                    if (table && typeof window.horizonSyncResizableTableLayout === 'function') {
+                        window.horizonSyncResizableTableLayout(table);
+                    }
+                });
             });
             this.selectedFailedIds = [];
+            this.retryPage = 1;
+            this.loadFailedJobs();
+        },
+        /**
+         * Apply retry-modal filters (resets to page 1) and reload failed jobs.
+         * @returns {void}
+         */
+        applyRetryModalFilters() {
             this.retryPage = 1;
             this.loadFailedJobs();
         },
@@ -202,7 +266,14 @@ export function horizonJobsPage(config) {
                 return;
             }
             var params = new URLSearchParams();
-            if (this.retryFilters.service_id) params.append('service_id', this.retryFilters.service_id);
+            var serviceIds = this.retryFilters.service_ids;
+            if (Array.isArray(serviceIds)) {
+                serviceIds.forEach(function (id) {
+                    if (id !== null && id !== '' && id !== undefined) {
+                        params.append('service_ids[]', String(id));
+                    }
+                });
+            }
             if (this.retryFilters.search) params.append('search', this.retryFilters.search);
             var rangeParts = parseFailedAtRange(this.retryFilters.failed_at_range);
             if (rangeParts.dateFrom) params.append('date_from', rangeParts.dateFrom);
@@ -222,6 +293,12 @@ export function horizonJobsPage(config) {
                     this.retryTotal = this.failedJobs.length;
                 }
                 // Do not clear selectedFailedIds on pagination so selection is kept across pages.
+                window.requestAnimationFrame(function () {
+                    var table = document.querySelector('table[data-resizable-table="horizon-retry-modal-failed-jobs"]');
+                    if (table && typeof window.horizonSyncResizableTableLayout === 'function') {
+                        window.horizonSyncResizableTableLayout(table);
+                    }
+                });
             }).catch(function (error) {
                 console.error('[horizonJobsPage] failedList request error', error);
             });
@@ -257,9 +334,34 @@ export function horizonJobsPage(config) {
          * @returns {void}
          */
         setRetryPage(page) {
-            if (!page || page < 1 || page > this.retryLastPage) return;
-            this.retryPage = page;
+            var p = typeof page === 'number' ? page : Number(page);
+            if (!p || p < 1 || p > this.retryLastPage) return;
+            this.retryPage = p;
             this.loadFailedJobs();
+        },
+        /**
+         * Slider items for the retry modal pagination nav (same logic as x-pagination).
+         * @returns {(number|string)[]}
+         */
+        retryPaginationPages() {
+            return buildRetryPaginationSlider(this.retryPage, this.retryLastPage, 2);
+        },
+        /**
+         * Same copy as x-pagination summary (items on current page vs total).
+         * @returns {string}
+         */
+        retryPaginationSummaryLine() {
+            var tot = this.retryTotal;
+            var count = this.failedJobs.length;
+            if (tot === 0) {
+                return 'Showing 0 items';
+            }
+            if (count === 0) {
+                return 'Showing ' + tot + ' items';
+            }
+            var fi = (this.retryPage - 1) * this.retryPerPage + 1;
+            var li = fi + count - 1;
+            return 'Showing ' + fi + '\u2013' + li + ' of ' + tot;
         },
         /**
          * Previous retry page.

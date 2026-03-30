@@ -27,7 +27,7 @@
                     <p class="text-xs text-muted-foreground">{{ $queueCount }} queue(s), {{ number_format($totalJobs) }} total jobs</p>
                 @endif
             </div>
-            <x-data-table
+            <x-table
                 resizable-key="horizon-queue-list"
                 column-ids="service,queue,job_count"
                 body-key="horizon-queue-list"
@@ -66,7 +66,7 @@
                         </td>
                     </tr>
                 @endforelse
-            </x-data-table>
+            </x-table>
         </div>
     </div>
 @endsection

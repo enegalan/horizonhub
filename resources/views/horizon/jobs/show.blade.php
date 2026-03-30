@@ -188,7 +188,7 @@
         @if($job->status === 'failed' && count($retryHistory) > 0)
             <div>
                 <dt class="label-muted mb-1">Retries history</dt>
-                <x-data-table
+                <x-table
                     resizable-key="horizon-job-retry-history"
                     column-ids="uuid,status,retried_at"
                     body-key="horizon-job-retry-history"
@@ -234,7 +234,7 @@
                             <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="retried_at" data-datetime="{{ $retriedAtIso ?? '' }}">-</td>
                         </tr>
                     @endforeach
-                </x-data-table>
+                </x-table>
             </div>
         @endif
         <div>

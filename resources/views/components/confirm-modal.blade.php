@@ -11,6 +11,7 @@ $sizes = [
     'md' => 'max-w-md',
     'lg' => 'max-w-lg',
     'xl' => 'max-w-2xl',
+    'xxl' => 'max-w-[min(70rem,calc(100vw-2rem))]',
 ];
 
 $defaultSize = 'md';
@@ -20,6 +21,7 @@ $size ??= $defaultSize;
 $sizeClass = $sizes[$size] ?? $sizes[$defaultSize];
 
 $dialogTitle = $title;
+$wideDialog = \in_array((string) $size, ['xl', 'xxl'], true);
 @endphp
 
 <div
@@ -44,7 +46,7 @@ $dialogTitle = $title;
 
     <div class="relative z-10 flex min-h-full items-center justify-center py-4" @click.self="$dispatch('close-modal')">
         <div
-            class="card w-full {{ $sizeClass }} p-4 bg-card {{ $size === 'xl' ? 'max-h-[90vh] flex flex-col overflow-hidden' : '' }}"
+            class="card w-full {{ $sizeClass }} p-4 bg-card {{ $wideDialog ? 'max-h-[90vh] flex flex-col overflow-hidden' : '' }}"
         >
         @if(isset($header))
             {{ $header }}
@@ -53,7 +55,7 @@ $dialogTitle = $title;
         @endif
 
         @if(trim((string) $slot) !== '')
-            <div class="{{ $size === 'xl' ? 'min-h-0 flex-1 overflow-hidden mb-4' : 'mb-4' }}">
+            <div class="{{ $wideDialog ? 'min-h-0 flex-1 overflow-hidden mb-4' : 'mb-4' }}">
                 {{ $slot }}
             </div>
         @elseif($message)

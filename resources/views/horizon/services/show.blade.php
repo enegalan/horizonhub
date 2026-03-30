@@ -198,7 +198,7 @@
                     <p class="text-xs text-muted-foreground">{{ $workloadQueues->count() }} queue(s)</p>
                 @endif
             </div>
-            <x-data-table
+            <x-table
                 resizable-key="horizon-service-queues"
                 column-ids="queue,jobs,processes,wait"
                 body-key="horizon-service-queues"
@@ -241,7 +241,7 @@
                                 </td>
                             </tr>
                         @endforelse
-            </x-data-table>
+            </x-table>
         </div>
 
         @if(isset($supervisorGroups) && $supervisorGroups->isNotEmpty())
@@ -251,7 +251,7 @@
                         <h3 class="text-section-title text-foreground">{{ $groupName }}</h3>
                         <p class="text-xs text-muted-foreground">{{ $groupSupervisors->count() }} supervisor(s)</p>
                     </div>
-                    <x-data-table
+                    <x-table
                         resizable-key="horizon-service-supervisors-{{ \Illuminate\Support\Str::slug($groupName) }}"
                         column-ids="supervisor,connection,queues,processes,balancing"
                         body-key="horizon-service-supervisors-{{ \Illuminate\Support\Str::slug($groupName) }}"
@@ -284,7 +284,7 @@
                                         </td>
                                     </tr>
                                 @endforeach
-                    </x-data-table>
+                    </x-table>
                 </div>
             @endforeach
         @endif

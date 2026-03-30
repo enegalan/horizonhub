@@ -159,7 +159,7 @@
                         </div>
                     </form>
                 </div>
-                <x-data-table
+                <x-table
                     resizable-key="horizon-alert-detail-logs"
                     column-ids="sent_at,service,events,status,actions"
                 >
@@ -241,7 +241,7 @@
                                     </td>
                                 </tr>
                             @endforelse
-                </x-data-table>
+                </x-table>
                 <div class="border-t border-border px-4 py-2">
                     <x-pagination :paginator="$logs" />
                 </div>

@@ -111,7 +111,7 @@
                     <h3 class="text-section-title text-foreground">Current workload</h3>
                     <p id="metrics-workload-summary" class="text-xs text-muted-foreground">{{ $workloadSummary ?? '' }}</p>
                 </div>
-                <x-data-table
+                <x-table
                     resizable-key="horizon-metrics-queues"
                     column-ids="service,queue,jobs,processes,wait"
                     body-key="horizon-metrics-queues"
@@ -165,7 +165,7 @@
                                     </td>
                                 </tr>
                             @endforeach
-                </x-data-table>
+                </x-table>
             </div>
 
             <div class="card">
@@ -173,7 +173,7 @@
                     <h3 class="text-section-title text-foreground">Supervisors</h3>
                     <p id="metrics-supervisors-summary" class="text-xs text-muted-foreground">{{ $supervisorsSummary ?? '' }}</p>
                 </div>
-                <x-data-table
+                <x-table
                     resizable-key="horizon-metrics-supervisors"
                     column-ids="service,supervisor,jobs,processes,status"
                     body-key="horizon-metrics-supervisors"
@@ -227,7 +227,7 @@
                                     </td>
                                 </tr>
                             @endforeach
-                </x-data-table>
+                </x-table>
             </div>
         </div>
     </div>

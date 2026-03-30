@@ -79,6 +79,8 @@ class JobActionController extends Controller
     {
         $validated = $request->validate([
             'service_id' => 'nullable|integer|exists:services,id',
+            'service_ids' => 'nullable|array',
+            'service_ids.*' => 'integer|exists:services,id',
             'search' => 'nullable|string|max:255',
             'date_from' => ['nullable', 'string', 'max:32', new RetryModalDateFilter],
             'date_to' => ['nullable', 'string', 'max:32', new RetryModalDateFilter],
@@ -102,11 +104,16 @@ class JobActionController extends Controller
             ],
         ];
 
-        $serviceIdFilter = $validated['service_id'] ?? null;
+        $serviceIds = [];
+        if (! empty($validated['service_ids']) && \is_array($validated['service_ids'])) {
+            $serviceIds = \array_values(\array_unique(\array_map('intval', $validated['service_ids'])));
+        } elseif (isset($validated['service_id']) && $validated['service_id'] !== null && $validated['service_id'] !== '') {
+            $serviceIds = [(int) $validated['service_id']];
+        }
 
         $servicesQuery = Service::query()->whereNotNull('base_url');
-        if ($serviceIdFilter !== null && $serviceIdFilter !== '') {
-            $servicesQuery->where('id', (int) $serviceIdFilter);
+        if (\count($serviceIds) > 0) {
+            $servicesQuery->whereIn('id', $serviceIds);
         }
 
         /** @var Collection<int, Service> $services */

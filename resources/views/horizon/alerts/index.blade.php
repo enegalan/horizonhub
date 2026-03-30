@@ -42,7 +42,7 @@
     </div>
 
     <div class="card">
-        <x-data-table
+        <x-table
             resizable-key="horizon-alerts-list"
             column-ids="name,service,rule_type,queue,job_type,enabled,last_triggered,actions"
         >
@@ -175,6 +175,6 @@
                             </td>
                         </tr>
                     @endforelse
-        </x-data-table>
+        </x-table>
     </div>
 @endsection

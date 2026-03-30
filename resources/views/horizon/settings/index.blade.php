@@ -109,7 +109,7 @@
                 </div>
 
                 <div class="card">
-                    <x-data-table
+                    <x-table
                         resizable-key="horizon-settings-providers"
                         column-ids="name,type,config,actions"
                     >
@@ -184,7 +184,7 @@
                                         </td>
                                     </tr>
                                 @endforelse
-                    </x-data-table>
+                    </x-table>
                 </div>
             </div>
         </div>

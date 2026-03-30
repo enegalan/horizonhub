@@ -337,6 +337,45 @@ import { parseJson } from '../lib/parse';
     }
 
     /**
+     * Re-apply stored column order and widths (e.g. after tbody is replaced by Alpine).
+     * Does not attach duplicate resize/reorder listeners.
+     * @param {HTMLElement} table
+     * @returns {void}
+     */
+    function syncLayoutFromStorage(table) {
+        var storageKey = table.getAttribute('data-resizable-table');
+        if (!storageKey) return;
+
+        var columnIds = getColumnIds(table);
+        if (columnIds.length === 0) return;
+
+        var state = loadState(storageKey, columnIds);
+        applyState(table, state);
+    }
+
+    /**
+     * Ensure a table has resizable/reorderable columns, or refresh layout from storage.
+     * @param {HTMLElement|string} tableOrSelector
+     * @returns {void}
+     */
+    function ensureOrSyncTable(tableOrSelector) {
+        var table = typeof tableOrSelector === 'string'
+            ? document.querySelector(tableOrSelector)
+            : tableOrSelector;
+        if (!table) return;
+
+        if (table.hasAttribute(INITTED_ATTR)) {
+            syncLayoutFromStorage(table);
+        } else {
+            initTable(table);
+        }
+    }
+
+    if (!window.horizonSyncResizableTableLayout) {
+        window.horizonSyncResizableTableLayout = ensureOrSyncTable;
+    }
+
+    /**
      * Initialize the resizable tables.
      * @returns {void}
      */
