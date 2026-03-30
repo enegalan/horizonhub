@@ -180,6 +180,9 @@
     .horizon-json-children > .horizon-json-node {
         @apply pl-3;
     }
+    .horizon-json-line {
+        @apply flex
+    }
     .horizon-json-toggle {
         @apply rounded-sm px-0.5 font-mono;
     }
@@ -187,8 +190,12 @@
     .horizon-json-toggle:hover {
         color: var(--primary-solid);
     }
-    .horizon-json-key {
+    .horizon-json-key,
+    .horizon-json-colon {
         @apply text-muted-foreground;
+    }
+    .horizon-json-value {
+        @apply ml-4
     }
     .horizon-json-tree .horizon-json-value .hljs-string {
         color: rgb(21 128 61);
