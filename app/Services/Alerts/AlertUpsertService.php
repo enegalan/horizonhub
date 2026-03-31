@@ -63,7 +63,7 @@ class AlertUpsertService
             Alert::RULE_HORIZON_OFFLINE,
         ];
         $baseRules = [
-            'rule_type' => 'required|in:'.implode(',', array_keys($ruleTypes)),
+            'rule_type' => 'required|in:'.implode(',', $ruleTypes),
             'service_ids' => 'nullable|array',
             'service_ids.*' => 'integer|exists:services,id',
             'queue' => 'nullable|string|max:255',
