@@ -11,7 +11,6 @@ return new class extends Migration
         Schema::create('alert_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('alert_id')->constrained()->cascadeOnDelete();
-            $table->unsignedBigInteger('job_id')->nullable();
             $table->foreignId('service_id')->constrained()->cascadeOnDelete();
             $table->string('status', 50)->index();
             $table->timestamp('sent_at');

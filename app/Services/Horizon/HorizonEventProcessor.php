@@ -8,6 +8,7 @@ use App\Services\Alerts\AlertEngine;
 use App\Support\Horizon\QueueNameNormalizer;
 use Carbon\Carbon;
 
+// TO-EVALUATE: Only used by Tests
 class HorizonEventProcessor
 {
     /**
@@ -39,7 +40,7 @@ class HorizonEventProcessor
             return;
         }
 
-        $jobUuid = $this->private__resolveJobUuid($event);
+        $jobUuid = $event['job_uuid'] ?? null;
 
         $queueRaw = isset($event['queue']) ? (string) $event['queue'] : '';
         $queue = QueueNameNormalizer::normalize($queueRaw);
@@ -95,19 +96,4 @@ class HorizonEventProcessor
         ])->saveQuietly();
     }
 
-    /**
-     * Resolve the job UUID from the event.
-     *
-     * @param  array<string, mixed>  $event
-     */
-    private function private__resolveJobUuid(array $event): string
-    {
-        foreach (['job_uuid', 'job_id', 'id'] as $key) {
-            if (isset($event[$key]) && (string) $event[$key] !== '') {
-                return (string) $event[$key];
-            }
-        }
-
-        return '';
-    }
 }

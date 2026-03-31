@@ -48,18 +48,10 @@ final class HorizonOfflineAlertRuleStrategy implements AlertRuleStrategyInterfac
             return false;
         }
 
-        if ((string) $service->status === 'offline') {
-            if (! $service->last_seen_at) {
-                return true;
-            }
-
-            return $service->last_seen_at->copy()->addMinutes($minutes)->isPast();
-        }
-
         $response = $this->horizonApi->getStats($service);
         $data = $response['data'] ?? null;
         if (! ($response['success'] ?? false) || ! \is_array($data)) {
-            return false;
+            return true;
         }
 
         $status = \strtolower((string) ($data['status'] ?? ''));
@@ -67,15 +59,6 @@ final class HorizonOfflineAlertRuleStrategy implements AlertRuleStrategyInterfac
             return false;
         }
 
-        if (! \in_array($status, ['inactive', 'offline', 'paused'], true)) {
-            return false;
-        }
-
-        $referenceTime = $service->last_seen_at;
-        if (! $referenceTime) {
-            return true;
-        }
-
-        return $referenceTime->copy()->addMinutes($minutes)->isPast();
+        return true;
     }
 }
