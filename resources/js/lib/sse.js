@@ -162,24 +162,6 @@ export function createReconnectingEventSourceSession(opt) {
 }
 
 /**
- * Get the stream mode.
- * @returns {string}
- */
-function getStreamMode() {
-    if (typeof window === 'undefined') return 'refresh';
-    var mode = window.horizonHubStreamMode;
-    return typeof mode === 'string' && mode ? mode : 'refresh';
-}
-
-/**
- * Check if the refresh stream should be used.
- * @returns {boolean}
- */
-function shouldUseRefreshStream() {
-    return getStreamMode() === 'refresh';
-}
-
-/**
  * Number of retries for refreshing the stream.
  * @type {number}
  */
@@ -205,7 +187,6 @@ function startRefreshStream() {
         return;
     }
     _refreshStreamRetries = 0;
-    if (!shouldUseRefreshStream()) return;
     if (!isHotReloadEnabled()) return;
 
     /**
@@ -249,7 +230,7 @@ function startRefreshStream() {
     var session = createReconnectingEventSourceSession({
         getUrl: getStreamUrlWithPath,
         shouldConnect: function () {
-            return isHotReloadEnabled() && shouldUseRefreshStream();
+            return isHotReloadEnabled();
         },
         registerEventHandlers: function (es, api) {
             es.addEventListener('refresh', function (e) {
@@ -270,6 +251,12 @@ function startRefreshStream() {
         window.__horizonHubRefreshStreamClose();
     }
     window.__horizonHubRefreshStreamClose = session.closeStream;
+    window.__horizonHubRefreshStreamReconnect = function () {
+        session.closeStream();
+        if (isHotReloadEnabled()) {
+            session.connect();
+        }
+    };
 }
 
 /**

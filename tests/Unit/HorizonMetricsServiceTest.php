@@ -456,4 +456,35 @@ class HorizonMetricsServiceTest extends TestCase
         $this->assertSame(7, $rows[1]['jobs']);
         $this->assertNull($rows[1]['processes']);
     }
+
+    public function test_get_wait_by_queue_chart_data_picks_top_queues_by_max_wait(): void
+    {
+        $api = $this->createMock(HorizonApiProxyService::class);
+        $metrics = new HorizonMetricsService($api);
+
+        $workload = [
+            ['queue' => 'low', 'wait' => 1.0],
+            ['queue' => 'high', 'wait' => 9.0],
+            ['queue' => 'high', 'wait' => 3.0],
+            ['queue' => 'mid', 'wait' => 5.0],
+            ['queue' => 'no-wait'],
+        ];
+
+        $result = $metrics->getWaitByQueueChartData($workload);
+
+        $this->assertNotNull($result);
+        $this->assertSame(['high', 'mid', 'low'], $result['queues']);
+        $this->assertSame([9.0, 5.0, 1.0], $result['wait']);
+    }
+
+    public function test_get_wait_by_queue_chart_data_returns_null_when_no_wait_values(): void
+    {
+        $api = $this->createMock(HorizonApiProxyService::class);
+        $metrics = new HorizonMetricsService($api);
+
+        $this->assertNull($metrics->getWaitByQueueChartData([
+            ['queue' => 'a'],
+            ['queue' => 'b', 'wait' => null],
+        ]));
+    }
 }

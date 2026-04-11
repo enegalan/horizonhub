@@ -7,7 +7,6 @@ use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
 use App\Services\Horizon\HorizonMetricsService;
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\JsonResponse;
 
 class MetricsController extends Controller
 {
@@ -70,6 +69,8 @@ class MetricsController extends Controller
         }
         $supervisorsSummary = "$totalSupervisors supervisor(s), $onlineSupervisors online";
 
+        $waitByQueue = $this->metrics->getWaitByQueueChartData(\is_array($workloadRows) ? $workloadRows : []);
+
         return \view('horizon.metrics.index', [
             'jobsPastMinute' => $jobsPastMinute,
             'jobsPastHour' => $jobsPastHour,
@@ -85,77 +86,7 @@ class MetricsController extends Controller
             'header' => 'Horizon Hub – Metrics',
             'services' => $services,
             'serviceIds' => $serviceIds,
-        ]);
-    }
-
-    /**
-     * Get the summary data for the metrics dashboard.
-     */
-    public function dataSummary(ServiceRequest $request): JsonResponse
-    {
-        $serviceIds = $request->getServiceIds();
-        $scope = $request->getServiceIds();
-        $throughput = $this->metrics->getThroughputTotalsForServiceIds($serviceIds);
-
-        return \response()->json([
-            'jobsPastMinute' => $throughput['jobsPastMinute'],
-            'jobsPastHour' => $throughput['jobsPastHour'],
-            'failedPastSevenDays' => $throughput['failedPastSevenDays'],
-            'failureRate24h' => $this->metrics->getFailureRate24h($scope),
-        ]);
-    }
-
-    /**
-     * Get per-job runtime data for the metrics dashboard (rolling last 24 hours).
-     */
-    public function dataJobRuntimesLast24h(ServiceRequest $request): JsonResponse
-    {
-        $scope = $request->getServiceIds();
-
-        return \response()->json($this->metrics->getJobRuntimesLast24h($scope));
-    }
-
-    /**
-     * Get the failure rate over time data for the metrics dashboard.
-     */
-    public function dataFailureRateOverTime(ServiceRequest $request): JsonResponse
-    {
-        $scope = $request->getServiceIds();
-
-        return \response()->json($this->metrics->getFailureRateOverTime($scope));
-    }
-
-    /**
-     * Get hourly job counts over the rolling last 24 hours for the metrics dashboard.
-     */
-    public function dataJobsVolumeLast24h(ServiceRequest $request): JsonResponse
-    {
-        $scope = $request->getServiceIds();
-
-        return \response()->json($this->metrics->getJobsVolumeLast24h($scope));
-    }
-
-    /**
-     * Get the supervisors data for the metrics dashboard.
-     */
-    public function dataSupervisors(ServiceRequest $request): JsonResponse
-    {
-        $scope = $request->getServiceIds();
-
-        return \response()->json([
-            'supervisors' => $this->metrics->getSupervisorsData($scope),
-        ]);
-    }
-
-    /**
-     * Get the current workload data for the metrics dashboard.
-     */
-    public function dataWorkload(ServiceRequest $request): JsonResponse
-    {
-        $scope = $request->getServiceIds();
-
-        return \response()->json([
-            'workload' => $this->metrics->getWorkloadData($scope),
+            'waitByQueue' => $waitByQueue,
         ]);
     }
 }

@@ -45,10 +45,6 @@ class NotificationProvider extends Model
      */
     public function getWebhookUrl(): string
     {
-        if ($this->type !== self::TYPE_SLACK) {
-            return '';
-        }
-
         return (string) ($this->config['webhook_url'] ?? '');
     }
 

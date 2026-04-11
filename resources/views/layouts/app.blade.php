@@ -12,7 +12,6 @@
         @theme-changed.window="theme = $event.detail; if (theme) { localStorage.setItem('horizonhub_theme', theme); window.__horizonhub_theme = theme }"
         @apply-theme.window="theme = (window.__horizonhub_theme || (function(){ var t = localStorage.getItem('horizonhub_theme'); if (t === 'light' || t === 'dark' || t === 'system') return t; })()); window.__horizonhub_theme = theme"
         @toggle-dark.window="theme = theme === 'dark' ? 'light' : 'dark'; localStorage.setItem('horizonhub_theme', theme); window.__horizonhub_theme = theme">
-    @php($horizonStreamMode = $horizonStreamMode ?? 'refresh')
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -36,9 +35,7 @@
         <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <script>
-            window.horizonHubStreamMode = {{ Js::from($horizonStreamMode) }};
             window.horizonHubStreamUrl = {{ Js::from(url()->route('horizon.refresh.stream')) }};
-            window.horizonHubMetricsStreamUrl = {{ Js::from(url()->route('horizon.metrics.stream')) }};
         </script>
     </head>
     <body class="font-sans antialiased min-h-screen"

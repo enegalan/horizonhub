@@ -30,19 +30,19 @@ final class HorizonOfflineAlertRuleStrategy implements AlertRuleStrategyInterfac
     public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array
     {
         return [
-            'triggered' => $this->private__evaluateHorizonOffline($alert, $serviceId),
+            'triggered' => $this->private__evaluateHorizonOffline($serviceId),
             'job_uuids' => [],
         ];
     }
 
     /**
      * Evaluate the horizon offline.
+     * 
+     * @param int $serviceId
+     * @return bool
      */
-    private function private__evaluateHorizonOffline(Alert $alert, int $serviceId): bool
+    private function private__evaluateHorizonOffline(int $serviceId): bool
     {
-        $threshold = $alert->threshold ?? [];
-        $minutes = (int) ($threshold['minutes'] ?? 5);
-
         $service = Service::find($serviceId);
         if (! $service || ! $service->base_url) {
             return false;

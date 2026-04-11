@@ -8,22 +8,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class RefreshStreamController extends StreamController
 {
-    /** @var array<int, string> Allowed query param names when fetching page HTML. */
-    private const ALLOWED_QUERY_KEYS = [
-        'log',
-        'page',
-        'page_failed',
-        'page_processed',
-        'page_processing',
-        'per_page',
-        'queue_services',
-        'search',
-        'serviceFilter',
-        'service_id',
-        'status',
-        'tab',
-    ];
-
     /**
      * Open the generic Horizon Hub refresh stream (SSE).
      *
@@ -81,7 +65,7 @@ class RefreshStreamController extends StreamController
     }
 
     /**
-     * Resolve and validate query string for page fetch (whitelist keys). Returns raw query string or empty.
+     * Parse the "query" param and return a normalized query string for the internal page fetch.
      */
     private function private__resolveQuery(Request $request): string
     {
@@ -99,8 +83,7 @@ class RefreshStreamController extends StreamController
             $eq = \strpos($segment, '=');
             $keyEncoded = $eq !== false ? \substr($segment, 0, $eq) : $segment;
             $key = \rawurldecode(\trim($keyEncoded));
-            $keyBase = \preg_replace('/\[\]$/', '', $key) ?? $key;
-            if ($key === '' || ! \in_array($keyBase, self::ALLOWED_QUERY_KEYS, true)) {
+            if ($key === '') {
                 continue;
             }
             $valueRaw = $eq !== false ? \substr($segment, $eq + 1) : '';

@@ -112,7 +112,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Seconds to wait between emitting consecutive Server-Sent Events on the
-    | refresh and metrics streams (sleep inside the long-lived SSE response).
+    | refresh stream (sleep inside the long-lived SSE response).
     | This is not a full browser reload interval.
     |
     */
@@ -190,8 +190,12 @@ return [
     |
     */
     'alerts' => [
+        'default_count' => (int) env('HORIZON_HUB_ALERT_DEFAULT_COUNT', 5),
+        'default_seconds' => (int) env('HORIZON_HUB_ALERT_DEFAULT_SECONDS', 60),
+        'default_minutes' => (int) env('HORIZON_HUB_ALERT_DEFAULT_MINUTES', 15),
         'pending_ttl_minutes' => (int) env('HORIZON_HUB_ALERT_PENDING_TTL_MINUTES', 60),
         'delivery_log_max_distinct_jobs' => (int) env('HORIZON_HUB_ALERT_DELIVERY_LOG_MAX_DISTINCT_JOBS', 20),
     ],
 
+    'failed_job_exception_preview_lines' => (int) env('HORIZON_HUB_FAILED_JOB_EXCEPTION_PREVIEW_LINES', 5),
 ];

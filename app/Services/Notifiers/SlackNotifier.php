@@ -6,6 +6,7 @@ use App\Contracts\SlackAlertNotifier;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
+use App\Support\ConfigHelper;
 use Illuminate\Support\Facades\Http;
 
 class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier
@@ -55,8 +56,8 @@ class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier
 
         if ($alert->rule_type === 'failure_count') {
             $threshold = $alert->threshold ?? [];
-            $thresholdCount = (int) (isset($threshold['count']) ? $threshold['count'] : 5);
-            $thresholdMinutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : 15);
+            $thresholdCount = (int) (isset($threshold['count']) ? $threshold['count'] : ConfigHelper::get('horizonhub.alerts.default_count'));
+            $thresholdMinutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : ConfigHelper::get('horizonhub.alerts.default_minutes'));
             $queueName = $alert->queue ?? null;
 
             $condition = \sprintf(
@@ -66,7 +67,7 @@ class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier
             );
 
             if ($queueName !== null && $queueName !== '') {
-                $condition .= ' (_queue:_ '.$queueName.')';
+                $condition .= " (_queue:_ $queueName)";
             }
 
             $lines[] = $condition;
@@ -90,33 +91,33 @@ class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier
                 $exception = $event['exception'] ?? null;
 
                 if ($jobClass !== null) {
-                    $line = '❌ *Job:* '.$jobClass;
+                    $line = "❌ *Job:* $jobClass";
                 } elseif ($jobUuid !== null) {
-                    $line = '❌ *Job UUID:* '.$jobUuid;
+                    $line = "❌ *Job UUID:* $jobUuid";
                 } else {
                     $line = '❌ *Job:* unknown';
                 }
 
                 if ($queue !== null) {
-                    $line .= ' (_queue:_ '.$queue.')';
+                    $line .= " (_queue:_ $queue)";
                 }
 
                 if ($triggeredAt !== '') {
-                    $line .= ' _at_ '.$triggeredAt;
+                    $line .= " _at_ $triggeredAt";
                 }
 
                 $lines[] = $line;
 
                 if ($failedAt !== null) {
-                    $lines[] = '   🕐 *failed_at:* '.$failedAt;
+                    $lines[] = "   🕐 *failed_at:* $failedAt";
                 }
 
                 if ($attempts !== null) {
-                    $lines[] = '   🔄 *attempts:* '.$attempts;
+                    $lines[] = "   🔄 *attempts:* $attempts";
                 }
 
                 if ($exception !== null && $exception !== '') {
-                    $lines[] = '   ⚠️ *exception:* '.$exception;
+                    $lines[] = "   ⚠️ *exception:* $exception";
                 }
             }
             if ($count > self::MAX_EVENTS_IN_SLACK) {

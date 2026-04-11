@@ -1,6 +1,16 @@
 import { formatDateTimeElements } from '../lib/datetime-format';
 import { onHorizonHubRefresh, replaceTableTbodyFromDoc } from '../lib/dom';
-import { initAlertDetailCharts } from '../charts/metrics-charts';
+import { getChartColors, applyChartOptions } from '../charts/metrics-charts';
+
+/**
+ * Alert detail charts.
+ * @type {object}
+ */
+var ALERT_DETAIL_CHARTS = [
+    { key: 'chart24h', id: 'alert-detail-chart-24h' },
+    { key: 'chart7d', id: 'alert-detail-chart-7d' },
+    { key: 'chart30d', id: 'alert-detail-chart-30d' }
+];
 
 /**
  * Horizon alerts list.
@@ -327,6 +337,9 @@ export function horizonAlertDetail(config) {
                 self.openDeliveryLogModal(self.normalizeDeliveryLog(config.initialDeliveryLog));
             }
 
+            // Initial hydration to initially show alert detail charts
+            hydrateAlertDetailChartsFromDom();
+
             onHorizonHubRefresh(function (doc) {
                 self.refreshAlertDetail(doc);
             });
@@ -414,4 +427,50 @@ export function horizonAlertDetail(config) {
             }
         },
     };
+}
+
+/**
+ * Hydrate the alert detail charts from the DOM.
+ * @returns {void}
+ */
+function hydrateAlertDetailChartsFromDom() {
+    if (typeof window.echarts === 'undefined') return;
+    var data = parseJsonFromElement('alert-detail-chart-data');
+    if (!data) return;
+    initAlertDetailCharts(data);
+}
+
+/**
+ * Initialize the alert detail charts.
+ * @param {object} data
+ * @returns {void}
+ */
+function initAlertDetailCharts(data) {
+    if (typeof window.echarts === 'undefined' || !data) return;
+
+    var c = getChartColors();
+
+    function makeBarOption(xAxis, sent, failed) {
+        return {
+            animation: false,
+            color: [c.processed, c.failed],
+            tooltip: { trigger: 'axis' },
+            legend: { data: ['Sent', 'Failed'], bottom: 0, textStyle: { color: c.axis, fontSize: 10 } },
+            grid: { left: 48, right: 24, top: 16, bottom: 36 },
+            xAxis: { type: 'category', data: xAxis, axisLine: { lineStyle: { color: c.axis } }, axisLabel: { color: c.axis, fontSize: 10 } },
+            yAxis: { type: 'value', name: 'Sends', axisLine: { show: false }, splitLine: { lineStyle: { color: c.axis, opacity: 0.3 } }, axisLabel: { color: c.axis, fontSize: 10 } },
+            series: [
+                { type: 'bar', name: 'Sent', data: sent, barMaxWidth: 20 },
+                { type: 'bar', name: 'Failed', data: failed, barMaxWidth: 20 }
+            ]
+        };
+    }
+
+    for (var i = 0; i < ALERT_DETAIL_CHARTS.length; i++) {
+        var { key, id } = ALERT_DETAIL_CHARTS[i];
+        var chartData = data[key];
+        if (!chartData) continue;
+        var el = document.getElementById(id);
+        if (el) applyChartOptions(el, makeBarOption(chartData.xAxis, chartData.sent, chartData.failed));
+    }
 }

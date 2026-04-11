@@ -203,4 +203,43 @@ class HorizonMetricsService
     {
         return $this->jobsThroughputMetrics->getJobsPastHourByService();
     }
+
+    /**
+     * Build wait-by-queue bar chart data from workload rows (top 12 queues by max wait).
+     *
+     * @param  array<int, array<string, mixed>>  $workloadRows
+     * @return array{queues: list<string>, wait: list<float>}|null
+     */
+    public function getWaitByQueueChartData(array $workloadRows): ?array
+    {
+        $waits = [];
+        foreach ($workloadRows as $row) {
+            if (! \is_array($row)) {
+                continue;
+            }
+            $queue = $row['queue'] ?? null;
+            if (! \is_string($queue) || $queue === '') {
+                continue;
+            }
+            if (! \array_key_exists('wait', $row) || $row['wait'] === null) {
+                continue;
+            }
+            $w = (float) $row['wait'];
+            if (! \is_finite($w)) {
+                continue;
+            }
+            if (! isset($waits[$queue]) || $w > $waits[$queue]) {
+                $waits[$queue] = $w;
+            }
+        }
+        if ($waits === []) {
+            return null;
+        }
+        \arsort($waits, \SORT_NUMERIC);
+        $top = \array_slice($waits, 0, 12, true);
+        $queues = \array_keys($top);
+        $wait = \array_values($top);
+
+        return ['queues' => $queues, 'wait' => $wait];
+    }
 }

@@ -9,7 +9,6 @@ import { initRefreshStream } from './lib/sse';
 import { createHttpHelpers } from './lib/http';
 import { formatDateTimeElements, formatQueueWaitElements, observeQueueWaitElements } from './lib/datetime-format';
 import { mountToaster } from './components/toaster';
-import { hydrateMetricsChartsFromDom, hydrateAlertDetailChartsFromDom } from './charts/metrics-charts';
 import { applyTheme } from './components/theme';
 import { registerInputDatePicker } from './components/input-date-picker';
 import { onDocumentReady, schedule } from './lib/init';
@@ -37,27 +36,17 @@ window.Alpine = Alpine;
 Alpine.start();
 
 /**
- * Hydrate the page.
- * @returns {void}
- */
-function hydratePage() {
-    schedule(function () {
-        hydrateMetricsChartsFromDom();
-        hydrateAlertDetailChartsFromDom();
-        formatDateTimeElements();
-        formatQueueWaitElements();
-    });
-}
-
-/**
  * Initialize the app.
  * @returns {void}
  */
 onDocumentReady(function () {
     mountToaster();
     applyTheme();
-    window.dispatchEvent(new CustomEvent('apply-theme'));
-    hydratePage();
+    // Initial hydration to initially show metrics charts and format elements
+    schedule(function () {
+        formatDateTimeElements();
+        formatQueueWaitElements();
+    });
     observeQueueWaitElements();
     initRefreshStream();
 });

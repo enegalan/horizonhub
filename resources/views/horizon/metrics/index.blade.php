@@ -1,25 +1,19 @@
-@php($horizonStreamMode = 'metrics')
-@php($metricsBaseUrls = [
-    'summary' => route('horizon.metrics.data.summary'),
-    'jobRuntimesLast24h' => route('horizon.metrics.data.job-runtimes-last-24h'),
-    'failureRate' => route('horizon.metrics.data.failure-rate-over-time'),
-    'jobsVolumeLast24h' => route('horizon.metrics.data.jobs-volume-last-24h'),
-    'supervisors' => route('horizon.metrics.data.supervisors'),
-    'workload' => route('horizon.metrics.data.workload'),
-])
 @php($metricsChartData = [
     'jobsVolumeLast24h' => $jobsVolumeLast24h ?? ['xAxis' => [], 'completed' => [], 'failed' => []],
     'jobRuntimesLast24h' => $jobRuntimesLast24h ?? ['points' => []],
     'failureRateOverTime' => $failureRateOverTime ?? ['xAxis' => [], 'rate' => []],
+    'waitByQueue' => $waitByQueue ?? null,
 ])
 @php($hasRuntimeChart = \is_array($jobRuntimesLast24h ?? null))
 @php($hasFailureRateChart = \is_array($failureRateOverTime ?? null))
 @php($hasJobsVolumeChart = \is_array($jobsVolumeLast24h ?? null))
+@php($hasServiceChart = \is_array($waitByQueue ?? null) && \count($waitByQueue['queues'] ?? []) > 0)
 @extends('layouts.app')
 
 @section('content')
     <div
-        x-data="window.horizonMetricsPage ? window.horizonMetricsPage({ baseUrls: {{ Js::from($metricsBaseUrls) }}, initialServiceIds: {{ Js::from(array_map('strval', $serviceIds ?? [])) }}, serviceShowBaseUrl: {{ Js::from(rtrim(url('/horizon/services'), '/')) }} }) : {}"
+        data-horizon-metrics-root="1"
+        x-data="window.horizonMetricsPage ? window.horizonMetricsPage() : {}"
         x-init="typeof init === 'function' ? init() : null"
     >
         <script type="application/json" id="metrics-chart-data">@json($metricsChartData)</script>
@@ -103,6 +97,16 @@
                         <x-loader class="size-8 text-muted-foreground" />
                     </div>
                     <div id="runtime-chart" class="h-56"></div>
+                </div>
+            </div>
+
+            <div class="card p-4">
+                <h3 class="text-section-title text-foreground mb-2">Queue wait by queue (max wait, top 12)</h3>
+                <div class="relative h-56">
+                    <div id="metrics-loader-service-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ $hasServiceChart ? 'display:none;' : '' }}">
+                        <x-loader class="size-8 text-muted-foreground" />
+                    </div>
+                    <div id="service-distribution-chart" class="h-56"></div>
                 </div>
             </div>
 

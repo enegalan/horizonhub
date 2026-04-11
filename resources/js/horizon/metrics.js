@@ -1,79 +1,9 @@
-import { processMetricsChartQueue } from "../charts/metrics-charts";
-import { formatQueueWaitElements } from "../lib/datetime-format";
-import { createReconnectingEventSourceSession, isHotReloadEnabled } from "../lib/sse";
+import { applyChartOptions } from "../charts/metrics-charts";
+import { getCssHsl, onHorizonHubRefresh } from "../lib/dom";
+import { parseJsonFromElement } from "../lib/parse";
+import { isHotReloadEnabled } from "../lib/sse";
+import { getChartColors } from "../charts/metrics-charts";
 
-/**
- * Base URL for service detail pages (no trailing slash), set from metrics page config.
- * @type {string}
- */
-var metricsServiceShowBaseUrl = "";
-
-/**
- * Fill a workload/supervisors table cell with the service name (linked when possible).
- * @param {HTMLTableCellElement} td
- * @param {{ service?: string, service_id?: number }} row
- * @returns {void}
- */
-function fillMetricsServiceNameCell(td, row) {
-    td.className = "px-4 py-2.5 text-sm text-muted-foreground break-all";
-    td.setAttribute("data-column-id", "service");
-    var name = row.service || "";
-    var base = metricsServiceShowBaseUrl.replace(/\/$/, "");
-    var id = row.service_id;
-    if (base && id !== null && id !== undefined && String(id) !== "" && Number(id) > 0) {
-        var a = document.createElement("a");
-        a.className = "link";
-        a.href = base + "/" + encodeURIComponent(String(id));
-        a.textContent = name;
-        td.appendChild(a);
-    } else {
-        td.textContent = name;
-    }
-}
-
-/**
- * All loader IDs.
- * @type {string[]}
- */
-var ALL_LOADER_IDS = [
-    'metrics-loader-jobs-minute',
-    'metrics-loader-jobs-hour',
-    'metrics-loader-failed-seven',
-    'metrics-loader-failure-rate',
-    'metrics-loader-jobs-volume-chart',
-    'metrics-loader-failure-rate-chart',
-    'metrics-loader-runtime-chart',
-    'metrics-loader-service-chart',
-];
-
-/**
- * Loader IDs for KPI summary cards only (not chart canvases).
- * @type {string[]}
- */
-var SUMMARY_KPI_LOADER_IDS = [
-    'metrics-loader-jobs-minute',
-    'metrics-loader-jobs-hour',
-    'metrics-loader-failed-seven',
-];
-
-/**
- * Append service_id[] query params for metrics API URLs.
- * @param {string} base
- * @param {string[]} serviceIds
- * @returns {string}
- */
-function appendServiceIdsToUrl(base, serviceIds) {
-    if (!base) return base;
-    var ids = Array.isArray(serviceIds) ? serviceIds.filter(function (x) { return x !== null && x !== undefined && String(x) !== ''; }) : [];
-    if (ids.length === 0) return base;
-    var sep = base.indexOf('?') === -1 ? '?' : '&';
-    var out = base;
-    for (var i = 0; i < ids.length; i++) {
-        out += sep + 'service_id[]=' + encodeURIComponent(String(ids[i]));
-        sep = '&';
-    }
-    return out;
-}
 
 /**
  * Remove service_id / service_id[] from a URL object search params.
@@ -83,7 +13,7 @@ function appendServiceIdsToUrl(base, serviceIds) {
 function deleteServiceIdSearchParams(url) {
     var toRemove = [];
     url.searchParams.forEach(function (_, k) {
-        if (k === 'service_id' || k === 'service_id[]') {
+        if (k === "service_id" || k === "service_id[]") {
             toRemove.push(k);
         }
     });
@@ -93,452 +23,319 @@ function deleteServiceIdSearchParams(url) {
 }
 
 /**
- * Hide the loader.
- * @param {string} id
+ * Replace the metrics dashboard root from a server-rendered document (refresh SSE).
+ * @param {Document} preloadedDoc
  * @returns {void}
  */
-function hideLoader(id) {
-    var el = document.getElementById(id);
-    if (el) el.style.display = 'none';
-}
+function refreshMetricsPageFromDocument(preloadedDoc) {
+    if (!preloadedDoc) return;
 
-/**
- * Show the loader.
- * @param {string} id
- * @returns {void}
- */
-function showLoader(id) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    if (id === 'metrics-loader-jobs-volume-chart' || id === 'metrics-loader-failure-rate-chart' || id === 'metrics-loader-runtime-chart') {
-        el.style.display = 'flex';
+    var currentRoot = document.querySelector('[data-horizon-metrics-root="1"]');
+    if (!currentRoot) return;
+
+    // Avoid updating when the user is interacting with the page
+    if (document.activeElement && currentRoot.contains(document.activeElement)) {
+        var tag = document.activeElement.tagName;
+        if (tag === "SELECT" || tag === "INPUT" || tag === "TEXTAREA") {
+            return;
+        }
+        var role = document.activeElement.getAttribute && document.activeElement.getAttribute("role");
+        if (role === "listbox" || role === "combobox" || role === "option") {
+            return;
+        }
+        if (document.activeElement.getAttribute && document.activeElement.getAttribute("aria-expanded") === "true") {
+            return;
+        }
+        if (document.activeElement.closest && (document.activeElement.closest('[role="listbox"]') || document.activeElement.closest('[role="combobox"]'))) {
+            return;
+        }
+    }
+
+    var newRoot = preloadedDoc.querySelector('[data-horizon-metrics-root="1"]');
+    if (!newRoot) return;
+
+    currentRoot.replaceWith(newRoot);
+
+    if (window.horizonInitResizableTables) {
+        window.horizonInitResizableTables();
+    }
+    if (typeof requestAnimationFrame !== "undefined") {
+        requestAnimationFrame(function () {
+            hydrateMetricsChartsFromDom();
+        });
     } else {
-        el.style.display = '';
+        hydrateMetricsChartsFromDom();
     }
 }
 
 /**
- * Format the number.
- * @param {number} n
- * @returns {string}
+ * Hydrate the metrics charts from the DOM.
+ * @returns {void}
  */
-function formatNum(n) {
-    return typeof n === 'number' ? n.toLocaleString() : '—';
+function hydrateMetricsChartsFromDom() {
+    if (typeof window.echarts === 'undefined') return;
+    var data = parseJsonFromElement('metrics-chart-data');
+    if (!data) return;
+    initMetricsCharts(data);
 }
 
 /**
- * Render the chart.
+ * Initialize the metrics charts.
  * @param {object} data
  * @returns {void}
  */
-function renderChart(data) {
-    if (!data) return;
-    window.__metricsChartQueue = window.__metricsChartQueue || [];
-    window.__metricsChartQueue.push(data);
-    processMetricsChartQueue();
-}
+function initMetricsCharts(data) {
+    var c = getChartColors();
 
-/**
- * Set the summary placeholders.
- * @returns {void}
- */
-function setSummaryPlaceholders() {
-    var v = document.getElementById('metrics-value-jobs-minute');
-    if (v) v.textContent = '—';
-    v = document.getElementById('metrics-value-jobs-hour');
-    if (v) v.textContent = '—';
-    v = document.getElementById('metrics-value-failed-seven');
-    if (v) v.textContent = '—';
-    v = document.getElementById('metrics-value-failure-rate');
-    if (v) v.textContent = '—';
-}
-
-/**
- * Clear the workload table.
- * @returns {void}
- */
-function clearWorkloadTable() {
-    var body = document.getElementById('metrics-workload-body');
-    var empty = document.getElementById('metrics-workload-empty');
-    var summary = document.getElementById('metrics-workload-summary');
-    if (!body) return;
-    while (body.firstChild) {
-        body.removeChild(body.firstChild);
-    }
-    if (empty) {
-        body.appendChild(empty);
-        empty.style.display = '';
-    }
-    if (summary) {
-        summary.textContent = '';
-    }
-}
-
-/**
- * Clear the supervisors table.
- * @returns {void}
- */
-function clearSupervisorsTable() {
-    var body = document.getElementById('metrics-supervisors-body');
-    var empty = document.getElementById('metrics-supervisors-empty');
-    var summary = document.getElementById('metrics-supervisors-summary');
-    if (!body) return;
-    while (body.firstChild) {
-        body.removeChild(body.firstChild);
-    }
-    if (empty) {
-        body.appendChild(empty);
-        empty.style.display = '';
-    }
-    if (summary) {
-        summary.textContent = '';
-    }
-}
-
-/**
- * Render the workload rows.
- * @param {object[]} rows
- * @returns {void}
- */
-function renderWorkloadRows(rows) {
-    var body = document.getElementById('metrics-workload-body');
-    var empty = document.getElementById('metrics-workload-empty');
-    var summary = document.getElementById('metrics-workload-summary');
-    if (!body) return;
-
-    while (body.firstChild) {
-        body.removeChild(body.firstChild);
-    }
-    if (empty) body.appendChild(empty);
-
-    if (!rows || !rows.length) {
-        if (empty) empty.style.display = '';
-        if (summary) summary.textContent = '';
-        return;
+    var jobsVolumeEl = document.getElementById('jobs-volume-last-24h-chart');
+    if (jobsVolumeEl && data.jobsVolumeLast24h && data.jobsVolumeLast24h.xAxis && data.jobsVolumeLast24h.xAxis.length) {
+        applyChartOptions(jobsVolumeEl, {
+            animation: false,
+            color: [c.processed, c.failed],
+            tooltip: { trigger: 'axis' },
+            legend: {
+                data: ['Completed', 'Failed'],
+                bottom: 0,
+                textStyle: { color: c.axis, fontSize: 10 }
+            },
+            grid: { left: 48, right: 24, top: 16, bottom: 36 },
+            xAxis: {
+                type: 'category',
+                data: data.jobsVolumeLast24h.xAxis,
+                axisLine: { lineStyle: { color: c.axis } },
+                axisLabel: { color: c.axis, fontSize: 10 }
+            },
+            yAxis: {
+                type: 'value',
+                name: 'Jobs',
+                minInterval: 1,
+                axisLine: { show: false },
+                splitLine: { lineStyle: { color: c.axis, opacity: 0.3 } },
+                axisLabel: { color: c.axis, fontSize: 10 }
+            },
+            series: [
+                {
+                    type: 'line',
+                    name: 'Completed',
+                    data: data.jobsVolumeLast24h.completed,
+                    smooth: false,
+                    showSymbol: false,
+                    lineStyle: { width: 2 }
+                },
+                {
+                    type: 'line',
+                    name: 'Failed',
+                    data: data.jobsVolumeLast24h.failed,
+                    smooth: false,
+                    showSymbol: false,
+                    lineStyle: { width: 2 }
+                }
+            ]
+        });
     }
 
-    if (empty) empty.style.display = 'none';
+    var processedFailedEl = document.getElementById('processed-failed-chart');
+    if (processedFailedEl && data.jobsPastHourByService && data.jobsPastHourByService.services && data.jobsPastHourByService.services.length) {
+        applyChartOptions(processedFailedEl, {
+            animation: false,
+            color: [c.processed],
+            tooltip: {
+                trigger: 'axis',
+                formatter: function (params) {
+                    if (!params || !params.length) return '';
+                    var p = params[0];
+                    return p.name + ': ' + p.value + ' job(s)';
+                }
+            },
+            legend: {
+                data: ['Jobs past hour'],
+                bottom: 0,
+                textStyle: { color: c.axis, fontSize: 10 }
+            },
+            grid: { left: 48, right: 24, top: 16, bottom: 36 },
+            xAxis: {
+                type: 'category',
+                data: data.jobsPastHourByService.services,
+                axisLine: { lineStyle: { color: c.axis } },
+                axisLabel: { color: c.axis, fontSize: 10, rotate: 30 }
+            },
+            yAxis: {
+                type: 'value',
+                name: 'Jobs',
+                axisLine: { show: false },
+                splitLine: { lineStyle: { color: c.axis, opacity: 0.3 } },
+                axisLabel: { color: c.axis, fontSize: 10 }
+            },
+            series: [
+                {
+                    type: 'line',
+                    name: 'Jobs past hour',
+                    data: data.jobsPastHourByService.jobsPastHour,
+                    smooth: true,
+                    symbol: 'circle',
+                    symbolSize: 4
+                }
+            ]
+        });
+    }
 
-    var totalQueues = rows.length;
-    var totalJobs = 0;
+    var failureRateEl = document.getElementById('failure-rate-chart');
+    if (failureRateEl && data.failureRateOverTime) {
+        applyChartOptions(failureRateEl, {
+            animation: false,
+            color: [c.failed],
+            tooltip: { trigger: 'axis', formatter: '{b}: {c}%' },
+            grid: { left: 48, right: 24, top: 16, bottom: 32 },
+            xAxis: { type: 'category', data: data.failureRateOverTime.xAxis, axisLine: { lineStyle: { color: c.axis } }, axisLabel: { color: c.axis, fontSize: 10 } },
+            yAxis: { type: 'value', name: '%', min: 0, axisLine: { show: false }, splitLine: { lineStyle: { color: c.axis, opacity: 0.3 } }, axisLabel: { color: c.axis, fontSize: 10 } },
+            series: [{ type: 'line', name: 'Failure rate', data: data.failureRateOverTime.rate, smooth: true, symbol: 'circle', symbolSize: 4 }]
+        });
+    }
 
-    rows.forEach(function (row) {
-        totalJobs += row.jobs || 0;
-        var tr = document.createElement('tr');
-        tr.className = 'transition-colors hover:bg-muted/30';
-
-        var tdService = document.createElement('td');
-        fillMetricsServiceNameCell(tdService, row);
-        tr.appendChild(tdService);
-
-        var tdQueue = document.createElement('td');
-        tdQueue.className = 'px-4 py-2.5 font-mono text-xs text-muted-foreground break-all';
-        tdQueue.setAttribute('data-column-id', 'queue');
-        tdQueue.textContent = row.queue || '';
-        tr.appendChild(tdQueue);
-
-        var tdJobs = document.createElement('td');
-        tdJobs.className = 'px-4 py-2.5 text-sm text-muted-foreground';
-        tdJobs.setAttribute('data-column-id', 'jobs');
-        tdJobs.textContent = formatNum(row.jobs || 0);
-        tr.appendChild(tdJobs);
-
-        var tdProcesses = document.createElement('td');
-        tdProcesses.className = 'px-4 py-2.5 text-sm text-muted-foreground';
-        tdProcesses.setAttribute('data-column-id', 'processes');
-        tdProcesses.textContent = row.processes !== null && row.processes !== undefined ? formatNum(row.processes) : '–';
-        tr.appendChild(tdProcesses);
-
-        var tdWait = document.createElement('td');
-        tdWait.className = 'px-4 py-2.5 text-sm text-muted-foreground';
-        tdWait.setAttribute('data-column-id', 'wait');
-        if (row.wait !== null && row.wait !== undefined) {
-            var span = document.createElement('span');
-            span.setAttribute('data-wait-seconds', String(row.wait));
-            span.textContent = row.wait.toFixed(2) + ' s';
-            tdWait.appendChild(span);
+    var runtimeEl = document.getElementById('runtime-chart');
+    if (runtimeEl && data.jobRuntimesLast24h) {
+        var rawPoints = data.jobRuntimesLast24h.points || [];
+        if (!rawPoints.length) {
+            var existingRuntime = window.echarts.getInstanceByDom(runtimeEl);
+            if (existingRuntime) {
+                existingRuntime.dispose();
+            }
         } else {
-            tdWait.textContent = '–';
-        }
-        tr.appendChild(tdWait);
-
-        body.appendChild(tr);
-    });
-
-    if (summary) summary.textContent = totalQueues + ' queue(s), ' + formatNum(totalJobs) + ' job(s) total';
-    formatQueueWaitElements(body);
-}
-
-/**
- * Render the supervisors rows.
- * @param {object[]} rows
- * @returns {void}
- */
-function renderSupervisorsRows(rows) {
-    var body = document.getElementById('metrics-supervisors-body');
-    var empty = document.getElementById('metrics-supervisors-empty');
-    var summary = document.getElementById('metrics-supervisors-summary');
-    if (!body) return;
-
-    while (body.firstChild) {
-        body.removeChild(body.firstChild);
-    }
-    if (empty) body.appendChild(empty);
-
-    if (!rows || !rows.length) {
-        if (empty) empty.style.display = '';
-        if (summary) summary.textContent = '';
-        return;
-    }
-
-    if (empty) empty.style.display = 'none';
-
-    var total = rows.length;
-    var online = 0;
-
-    rows.forEach(function (row) {
-        if (row.status === 'online') online++;
-
-        var tr = document.createElement('tr');
-        tr.className = 'transition-colors hover:bg-muted/30';
-
-        var tdService = document.createElement('td');
-        fillMetricsServiceNameCell(tdService, row);
-        tr.appendChild(tdService);
-
-        var tdName = document.createElement('td');
-        tdName.className = 'px-4 py-2.5 font-mono text-xs text-muted-foreground break-all';
-        tdName.setAttribute('data-column-id', 'supervisor');
-        tdName.textContent = row.name || '';
-        tr.appendChild(tdName);
-
-        var tdJobs = document.createElement('td');
-        tdJobs.className = 'px-4 py-2.5 text-sm text-muted-foreground text-right';
-        tdJobs.setAttribute('data-column-id', 'jobs');
-        tdJobs.textContent = typeof row.jobs === 'number' ? formatNum(row.jobs) : '–';
-        tr.appendChild(tdJobs);
-
-        var tdProcesses = document.createElement('td');
-        tdProcesses.className = 'px-4 py-2.5 text-sm text-muted-foreground text-right';
-        tdProcesses.setAttribute('data-column-id', 'processes');
-        tdProcesses.textContent = typeof row.processes === 'number' ? formatNum(row.processes) : '–';
-        tr.appendChild(tdProcesses);
-
-        var tdStatus = document.createElement('td');
-        tdStatus.className = 'px-4 py-2.5 text-xs';
-        tdStatus.setAttribute('data-column-id', 'status');
-        var badge = document.createElement('span');
-        badge.className = row.status === 'online' ? 'badge-success' : 'badge-warning';
-        badge.textContent = row.status === 'online' ? 'Online' : 'Stale';
-        tdStatus.appendChild(badge);
-        tr.appendChild(tdStatus);
-
-        body.appendChild(tr);
-    });
-
-    if (summary) summary.textContent = total + ' supervisor(s), ' + online + ' online';
-    if (window.formatDateTimeElements) window.formatDateTimeElements(body);
-}
-
-/**
- * Apply the metrics payload.
- * @param {object} payload
- * @returns {void}
- */
-function applyMetricsPayload(payload) {
-    if (!payload || payload.error) return;
-
-    var s = payload.summary;
-    if (s) {
-        SUMMARY_KPI_LOADER_IDS.forEach(hideLoader);
-        hideLoader('metrics-loader-failure-rate');
-        var v = document.getElementById('metrics-value-jobs-minute');
-        if (v) v.textContent = formatNum(s.jobsPastMinute);
-        v = document.getElementById('metrics-value-jobs-hour');
-        if (v) v.textContent = formatNum(s.jobsPastHour);
-        v = document.getElementById('metrics-value-failed-seven');
-        if (v) v.textContent = formatNum(s.failedPastSevenDays);
-        v = document.getElementById('metrics-value-failure-rate');
-        if (v && s.failureRate24h) {
-            var r = s.failureRate24h;
-            v.innerHTML = r.rate + '% <span class="text-xs font-normal text-muted-foreground">(' + r.failed + ' failed / ' + r.processed + ' processed)</span>';
+            function mapJobRuntimeLineVertex(p) {
+                return {
+                    value: [p.endAtMs, p.seconds],
+                    labelName: p.name || '',
+                    labelService: p.service || ''
+                };
+            }
+            function sortJobRuntimeVerticesByTime(vertices) {
+                return vertices.slice().sort(function (a, b) {
+                    return a.value[0] - b.value[0];
+                });
+            }
+            var completedPts = sortJobRuntimeVerticesByTime(
+                rawPoints.filter(function (p) { return p.status === 'completed'; }).map(mapJobRuntimeLineVertex)
+            );
+            var failedPts = sortJobRuntimeVerticesByTime(
+                rawPoints.filter(function (p) { return p.status === 'failed'; }).map(mapJobRuntimeLineVertex)
+            );
+            var series = [];
+            if (completedPts.length) {
+                series.push({
+                    type: 'line',
+                    name: 'Completed',
+                    data: completedPts,
+                    smooth: false,
+                    showSymbol: false,
+                    lineStyle: { width: 2, color: c.processed },
+                    itemStyle: { color: c.processed }
+                });
+            }
+            if (failedPts.length) {
+                series.push({
+                    type: 'line',
+                    name: 'Failed',
+                    data: failedPts,
+                    smooth: false,
+                    showSymbol: false,
+                    lineStyle: { width: 2, color: c.failed },
+                    itemStyle: { color: c.failed }
+                });
+            }
+            if (series.length) {
+                applyChartOptions(runtimeEl, {
+                    animation: false,
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: {
+                            type: 'line',
+                            lineStyle: { color: c.axis, opacity: 0.45 }
+                        },
+                        formatter: function (params) {
+                            if (!params || !params.length) return '';
+                            var blocks = [];
+                            for (var i = 0; i < params.length; i++) {
+                                var param = params[i];
+                                var v = param.value;
+                                if (!v || v.length < 2) continue;
+                                var date = new Date(v[0]);
+                                var timeStr = date.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+                                var jobName = param.data && param.data.labelName ? param.data.labelName : '—';
+                                var svc = param.data && param.data.labelService ? param.data.labelService : '';
+                                var lines = [
+                                    param.marker + param.seriesName,
+                                    jobName,
+                                    v[1] + ' s',
+                                    timeStr
+                                ];
+                                if (svc) {
+                                    lines.splice(2, 0, svc);
+                                }
+                                blocks.push(lines.join('<br/>'));
+                            }
+                            return blocks.length ? blocks.join('<br/><br/>') : '';
+                        }
+                    },
+                    legend: {
+                        data: series.map(function (s) { return s.name; }),
+                        bottom: 0,
+                        textStyle: { color: c.axis, fontSize: 10 }
+                    },
+                    grid: { left: 48, right: 24, top: 16, bottom: 36 },
+                    xAxis: {
+                        type: 'time',
+                        axisLine: { lineStyle: { color: c.axis } },
+                        axisLabel: { color: c.axis, fontSize: 10 },
+                        splitLine: { show: false }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: 's',
+                        min: 0,
+                        scale: true,
+                        axisLine: { show: false },
+                        splitLine: { lineStyle: { color: c.axis, opacity: 0.3 } },
+                        axisLabel: { color: c.axis, fontSize: 10 }
+                    },
+                    series: series
+                });
+            }
         }
     }
-    if (payload.jobRuntimesLast24h) {
-        hideLoader('metrics-loader-runtime-chart');
-        renderChart({ jobRuntimesLast24h: payload.jobRuntimesLast24h });
-    }
-    if (payload.failureRateOverTime) {
-        hideLoader('metrics-loader-failure-rate-chart');
-        renderChart({ failureRateOverTime: payload.failureRateOverTime });
-    }
-    if (payload.jobsVolumeLast24h) {
-        hideLoader('metrics-loader-jobs-volume-chart');
-        renderChart({ jobsVolumeLast24h: payload.jobsVolumeLast24h });
-    }
-    var rows = payload.workload;
-    if (Array.isArray(rows)) {
-        renderWorkloadRows(rows);
-        hideLoader('metrics-loader-service-chart');
-        var waits = {};
-        rows.forEach(function (row) {
-            if (!row || typeof row.queue !== 'string') return;
-            if (row.wait === null || row.wait === undefined) return;
-            var q = row.queue;
-            var w = Number(row.wait);
-            if (!isFinite(w)) return;
-            if (waits[q] === undefined || w > waits[q]) waits[q] = w;
+
+    var serviceEl = document.getElementById('service-distribution-chart');
+    if (serviceEl && data.waitByQueue && data.waitByQueue.queues && data.waitByQueue.queues.length) {
+        applyChartOptions(serviceEl, {
+            animation: false,
+            color: [c.line],
+            tooltip: {
+                trigger: 'axis',
+                formatter: function (params) {
+                    if (!params || !params.length) return '';
+                    var p = params[0];
+                    return p.name + ': ' + p.value.toFixed(2) + ' s';
+                }
+            },
+            legend: { data: [], bottom: 0, textStyle: { color: c.axis, fontSize: 10 } },
+            grid: { left: 120, right: 48, top: 16, bottom: 36 },
+            xAxis: {
+                type: 'value',
+                name: 'Seconds',
+                axisLine: { show: false },
+                splitLine: { lineStyle: { color: c.axis, opacity: 0.3 } },
+                axisLabel: { color: c.axis, fontSize: 10 }
+            },
+            yAxis: {
+                type: 'category',
+                data: data.waitByQueue.queues,
+                axisLine: { lineStyle: { color: c.axis } },
+                axisLabel: { color: c.axis, fontSize: 10 }
+            },
+            series: [
+                { type: 'bar', name: 'Wait', data: data.waitByQueue.wait, barMaxWidth: 16 }
+            ]
         });
-        var names = Object.keys(waits);
-        if (names.length > 0) {
-            names.sort(function (a, b) { return waits[b] - waits[a]; });
-            names = names.slice(0, 12);
-            renderChart({ waitByQueue: { queues: names, wait: names.map(function (name) { return waits[name]; }) } });
-        }
     }
-    if (Array.isArray(payload.supervisors)) {
-        renderSupervisorsRows(payload.supervisors);
-    }
-}
-
-/**
- * Start the metrics stream.
- * @param {string} streamUrl
- * @param {function(): string[]} getServiceIds
- * @param {function} onPayload
- * @param {string[]|null} initialServiceIds Ids for first connection (avoids DOM timing issues).
- * @returns {object}
- */
-function startMetricsStream(streamUrl, getServiceIds, onPayload, initialServiceIds) {
-    var isFirstConnect = true;
-    var connectionToken = 0;
-    var replaced = false;
-
-    /**
-     * @returns {string}
-     */
-    function getMetricsStreamUrl() {
-        var ids = isFirstConnect && initialServiceIds && initialServiceIds.length
-            ? initialServiceIds.map(String)
-            : (typeof getServiceIds === 'function' ? getServiceIds() : []);
-        if (isFirstConnect) isFirstConnect = false;
-        return appendServiceIdsToUrl(streamUrl, ids);
-    }
-
-    var session = createReconnectingEventSourceSession({
-        getUrl: getMetricsStreamUrl,
-        shouldConnect: function () {
-            return !replaced && !!streamUrl && isHotReloadEnabled();
-        },
-        onBeforeEachConnect: function () {
-            connectionToken += 1;
-            return connectionToken;
-        },
-        registerEventHandlers: function (es, api) {
-            var thisToken = api.thisConnectToken;
-            es.addEventListener('metrics', function (e) {
-                if (thisToken !== connectionToken) return;
-                api.resetBackoff();
-                if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
-                try {
-                    var data = JSON.parse(e.data);
-                    if (typeof onPayload !== 'function') return;
-                    if (typeof requestAnimationFrame !== 'undefined') {
-                        requestAnimationFrame(function () {
-                            if (thisToken !== connectionToken) return;
-                            onPayload(data);
-                        });
-                    } else {
-                        onPayload(data);
-                    }
-                } catch (err) {}
-            });
-        },
-    });
-
-    if (isHotReloadEnabled()) session.connect();
-
-    return {
-        /**
-         * Reconnect the metrics stream.
-         * @returns {void}
-         */
-        reconnect: function () {
-            session.closeStream();
-            if (isHotReloadEnabled()) session.connect();
-        },
-        /**
-         * Close the metrics stream (e.g. when replaced by a new instance). Prevents further reconnects.
-         * @returns {void}
-         */
-        close: function () {
-            replaced = true;
-            session.closeStream();
-        },
-    };
-}
-
-/**
- * Load all metrics.
- * @param {object} baseUrls
- * @param {string[]} serviceIds
- * @returns {void}
- */
-function loadAllMetrics(baseUrls, serviceIds) {
-    ALL_LOADER_IDS.forEach(showLoader);
-    setSummaryPlaceholders();
-    clearWorkloadTable();
-    clearSupervisorsTable();
-
-    var urls = {
-        summary: appendServiceIdsToUrl(baseUrls.summary, serviceIds),
-        jobRuntimesLast24h: appendServiceIdsToUrl(baseUrls.jobRuntimesLast24h, serviceIds),
-        failureRate: appendServiceIdsToUrl(baseUrls.failureRate, serviceIds),
-        jobsVolumeLast24h: appendServiceIdsToUrl(baseUrls.jobsVolumeLast24h, serviceIds),
-        supervisors: appendServiceIdsToUrl(baseUrls.supervisors, serviceIds),
-        workload: appendServiceIdsToUrl(baseUrls.workload, serviceIds),
-    };
-
-    /**
-     * Fetch the JSON from the URL.
-     * @param {string} url
-     * @returns {Promise<object|null>}
-     */
-    async function fetchJson(url) {
-        try {
-            var res = await fetch(url);
-            return res.ok ? res.json() : null;
-        } catch (_) {
-            return null;
-        }
-    }
-
-    Promise.all([
-        fetchJson(urls.summary),
-        fetchJson(urls.jobRuntimesLast24h),
-        fetchJson(urls.failureRate),
-        fetchJson(urls.jobsVolumeLast24h),
-        fetchJson(urls.workload),
-        fetchJson(urls.supervisors),
-    ]).then(function (results) {
-        var summary = results[0] && !results[0].error ? results[0] : null;
-        var jobRuntimesLast24h = results[1] && !results[1].error ? results[1] : null;
-        var failureRate = results[2] && !results[2].error ? results[2] : null;
-        var jobsVolumeLast24h = results[3] && !results[3].error ? results[3] : null;
-        var workloadData = results[4];
-        var supervisorsData = results[5];
-        applyMetricsPayload({
-            summary: summary,
-            jobRuntimesLast24h: jobRuntimesLast24h,
-            failureRateOverTime: failureRate,
-            jobsVolumeLast24h: jobsVolumeLast24h,
-            workload: workloadData && workloadData.workload ? workloadData.workload : [],
-            supervisors: supervisorsData && supervisorsData.supervisors ? supervisorsData.supervisors : [],
-        });
-        ALL_LOADER_IDS.forEach(hideLoader);
-    }).catch(function () {
-        ALL_LOADER_IDS.forEach(hideLoader);
-    });
 }
 
 /**
@@ -558,67 +355,43 @@ function getMetricsServiceIdsFromDom(filterEl) {
 }
 
 /**
- * Alpine component for the metrics page. Same pattern as horizonQueueList / horizonServiceDashboard.
- * @param {{ baseUrls: object, initialServiceIds?: string[] }} config
+ * Alpine component for the metrics page.
  * @returns {object}
  */
-export function horizonMetricsPage(config) {
-    var baseUrls = config && config.baseUrls ? config.baseUrls : {};
-    var initialServiceIdsFromServer = config && Array.isArray(config.initialServiceIds)
-        ? config.initialServiceIds.map(String).filter(Boolean)
-        : [];
-    var streamApi = null;
-
+export function horizonMetricsPage() {
     return {
         /**
          * Initialize the metrics page.
          * @returns {void}
          */
         init: function () {
-            if (typeof window === 'undefined' || typeof document === 'undefined') return;
+            if (typeof window === "undefined" || typeof document === "undefined") return;
 
-            metricsServiceShowBaseUrl = config && config.serviceShowBaseUrl ? String(config.serviceShowBaseUrl) : '';
+            // Initial hydration to initially show metrics charts and format elements
+            hydrateMetricsChartsFromDom();
+            if (!window.__horizonHubMetricsRefreshListenerAttached) {
+                window.__horizonHubMetricsRefreshListenerAttached = true;
+                onHorizonHubRefresh(function (doc) {
+                    refreshMetricsPageFromDocument(doc);
+                });
+            }
 
-            var filterEl = document.getElementById('metrics-service-filter');
+            var filterEl = document.getElementById("metrics-service-filter");
             if (filterEl) {
-                filterEl.addEventListener('change', function (e) {
+                filterEl.addEventListener("change", function (e) {
                     var ids = (e.detail && Array.isArray(e.detail.values))
                         ? e.detail.values.map(String).filter(Boolean).sort()
                         : getMetricsServiceIdsFromDom(filterEl);
                     var url = new URL(window.location.href);
                     deleteServiceIdSearchParams(url);
                     ids.forEach(function (id) {
-                        url.searchParams.append('service_id[]', id);
+                        url.searchParams.append("service_id[]", id);
                     });
-                    window.history.replaceState({}, '', url.toString());
-                    ALL_LOADER_IDS.forEach(showLoader);
-                    setSummaryPlaceholders();
-                    clearWorkloadTable();
-                    clearSupervisorsTable();
-                    if (streamApi && typeof streamApi.reconnect === 'function') {
-                        streamApi.reconnect();
-                    } else if (baseUrls && typeof baseUrls === 'object' && Object.keys(baseUrls).length > 0) {
-                        loadAllMetrics(baseUrls, ids);
+                    window.history.replaceState({}, "", url.toString());
+                    if (isHotReloadEnabled() && typeof window.__horizonHubRefreshStreamReconnect === "function") {
+                        window.__horizonHubRefreshStreamReconnect();
                     }
                 });
-            }
-
-            var initialServiceIds = initialServiceIdsFromServer.length
-                ? initialServiceIdsFromServer.slice()
-                : getMetricsServiceIdsFromDom(filterEl);
-            if (typeof window.horizonHubMetricsStreamUrl === 'string' && window.horizonHubMetricsStreamUrl) {
-                if (typeof window.__horizonHubMetricsStreamClose === 'function') {
-                    window.__horizonHubMetricsStreamClose();
-                }
-                streamApi = startMetricsStream(
-                    window.horizonHubMetricsStreamUrl,
-                    function () { return getMetricsServiceIdsFromDom(filterEl); },
-                    applyMetricsPayload,
-                    initialServiceIds.length ? initialServiceIds : null
-                );
-                window.__horizonHubMetricsStreamClose = streamApi.close;
-            } else {
-                loadAllMetrics(baseUrls, initialServiceIds);
             }
         },
     };
