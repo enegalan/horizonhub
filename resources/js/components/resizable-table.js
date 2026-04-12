@@ -376,6 +376,42 @@ import { parseJson } from '../lib/parse';
     }
 
     /**
+     * Re-apply resizable column state for tables touched by a stream target subtree.
+     * @param {Element} syncRoot
+     * @returns {void}
+     */
+    function syncResizableTablesUnderRoot(syncRoot) {
+        if (!syncRoot || typeof syncRoot.querySelectorAll !== 'function') {
+            return;
+        }
+        if (typeof window.horizonSyncResizableTableLayout !== 'function') {
+            return;
+        }
+        var tables = [];
+        function addTable(table) {
+            if (!table || tables.indexOf(table) !== -1) {
+                return;
+            }
+            tables.push(table);
+        }
+        if (syncRoot.matches && syncRoot.matches('table[data-resizable-table]')) {
+            addTable(syncRoot);
+        }
+        var parentTable = syncRoot.closest && syncRoot.closest('table[data-resizable-table]');
+        if (parentTable) {
+            addTable(parentTable);
+        }
+        syncRoot.querySelectorAll('table[data-resizable-table]').forEach(addTable);
+        tables.forEach(function (table) {
+            window.horizonSyncResizableTableLayout(table);
+        });
+    }
+
+    if (!window.horizonSyncResizableTablesUnderRoot) {
+        window.horizonSyncResizableTablesUnderRoot = syncResizableTablesUnderRoot;
+    }
+
+    /**
      * Initialize the resizable tables.
      * @returns {void}
      */

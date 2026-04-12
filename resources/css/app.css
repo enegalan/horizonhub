@@ -384,3 +384,7 @@ div.-selected-.air-datepicker-cell.-day-.-other-month- {
 html[data-turbo-visit-direction="forward"]::view-transition-old(sidebar):only-child {
     animation: slide-to-right 0.5s ease-out;
 }
+
+[data-datetime] {
+    text-wrap-mode: nowrap;
+}

@@ -47,8 +47,8 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('target="metrics-value-jobs-hour"', $result);
         $this->assertStringContainsString('target="metrics-value-failed-seven"', $result);
         $this->assertStringContainsString('target="metrics-chart-data"', $result);
-        $this->assertStringContainsString('target="metrics-workload-body"', $result);
-        $this->assertStringContainsString('target="metrics-supervisors-body"', $result);
+        $this->assertStringContainsString('target="metrics-workload-body" method="morph"', $result);
+        $this->assertStringContainsString('target="metrics-supervisors-body" method="morph"', $result);
         $this->assertStringContainsString('action="update"', $result);
         $this->assertStringContainsString('action="replace"', $result);
     }
@@ -70,7 +70,7 @@ class TurboStreamSseTest extends TestCase
         $result = $reflection->invoke($controller, '');
 
         $this->assertNotNull($result);
-        $this->assertStringContainsString('target="turbo-tbody-horizon-queue-list"', $result);
+        $this->assertStringContainsString('target="turbo-tbody-horizon-queue-list" method="morph"', $result);
         $this->assertStringContainsString('action="update"', $result);
     }
 
@@ -84,7 +84,28 @@ class TurboStreamSseTest extends TestCase
         $result = $reflection->invoke($controller);
 
         $this->assertNotNull($result);
-        $this->assertStringContainsString('target="turbo-tbody-horizon-alerts-list"', $result);
+        $this->assertStringContainsString('target="turbo-tbody-horizon-alerts-list" method="morph"', $result);
+        $this->assertStringContainsString('action="update"', $result);
+    }
+
+    public function test_build_services_streams_returns_tbody_morph_update(): void
+    {
+        Service::create([
+            'name' => 'test-svc-stream',
+            'base_url' => null,
+            'api_key' => 'key456',
+            'status' => 'online',
+        ]);
+
+        $controller = $this->app->make(HorizonStreamsController::class);
+
+        $reflection = new \ReflectionMethod($controller, 'private__buildServicesStreams');
+        $reflection->setAccessible(true);
+
+        $result = $reflection->invoke($controller);
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('target="turbo-tbody-horizon-service-list" method="morph"', $result);
         $this->assertStringContainsString('action="update"', $result);
     }
 
@@ -109,7 +130,7 @@ class TurboStreamSseTest extends TestCase
         $result = $reflection->invoke($controller, '');
 
         $this->assertNotNull($result);
-        $this->assertStringContainsString('target="horizon-jobs-stack"', $result);
+        $this->assertStringContainsString('target="horizon-jobs-stack" method="morph"', $result);
         $this->assertStringContainsString('action="replace"', $result);
     }
 

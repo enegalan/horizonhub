@@ -108,12 +108,12 @@ class HorizonStreamsController extends StreamController
         $workloadHtml = \view('horizon.metrics.partials.workload-tbody', [
             'workloadRows' => $d['workloadRows'],
         ])->render();
-        $streams[] = $this->private__turboStreamTag('update', 'metrics-workload-body', $workloadHtml);
+        $streams[] = $this->private__turboStreamTag('update', 'metrics-workload-body', $workloadHtml, 'morph');
 
         $supervisorsHtml = \view('horizon.metrics.partials.supervisors-tbody', [
             'supervisorsRows' => $d['supervisorsRows'],
         ])->render();
-        $streams[] = $this->private__turboStreamTag('update', 'metrics-supervisors-body', $supervisorsHtml);
+        $streams[] = $this->private__turboStreamTag('update', 'metrics-supervisors-body', $supervisorsHtml, 'morph');
 
         return \implode("\n", $streams);
     }
@@ -129,7 +129,7 @@ class HorizonStreamsController extends StreamController
 
         $html = \view('horizon.queues.partials.queue-tbody', ['queues' => $queues])->render();
 
-        return $this->private__turboStreamTag('update', 'turbo-tbody-horizon-queue-list', $html);
+        return $this->private__turboStreamTag('update', 'turbo-tbody-horizon-queue-list', $html, 'morph');
     }
 
     // ------------------------------------------------------------------
@@ -143,7 +143,7 @@ class HorizonStreamsController extends StreamController
 
         $html = \view('horizon.services.partials.service-tbody', ['services' => $services])->render();
 
-        return $this->private__turboStreamTag('update', 'turbo-tbody-horizon-service-list', $html);
+        return $this->private__turboStreamTag('update', 'turbo-tbody-horizon-service-list', $html, 'morph');
     }
 
     // ------------------------------------------------------------------
@@ -160,7 +160,7 @@ class HorizonStreamsController extends StreamController
 
         $html = \view('horizon.alerts.partials.alert-tbody', ['alerts' => $alerts])->render();
 
-        return $this->private__turboStreamTag('update', 'turbo-tbody-horizon-alerts-list', $html);
+        return $this->private__turboStreamTag('update', 'turbo-tbody-horizon-alerts-list', $html, 'morph');
     }
 
     // ------------------------------------------------------------------
@@ -187,7 +187,7 @@ class HorizonStreamsController extends StreamController
             'resizablePrefix' => 'horizon-job-list',
         ])->render();
 
-        return $this->private__turboStreamTag('replace', 'horizon-jobs-stack', $html);
+        return $this->private__turboStreamTag('replace', 'horizon-jobs-stack', $html, 'morph');
     }
 
     // ------------------------------------------------------------------
@@ -305,12 +305,14 @@ class HorizonStreamsController extends StreamController
             'update',
             'service-show-workload-body',
             \view('horizon.services.partials.show-workload-tbody', ['workloadQueues' => $d['workloadQueues']])->render(),
+            'morph',
         );
 
         $streams[] = $this->private__turboStreamTag(
             'update',
             'service-show-supervisor-groups',
             \view('horizon.services.partials.show-supervisor-groups', $d)->render(),
+            'morph',
         );
 
         $jobsHtml = \view('horizon.jobs.partials.job-list-collapsible-stack', [
@@ -323,7 +325,7 @@ class HorizonStreamsController extends StreamController
             'resizablePrefix' => 'horizon-service-dashboard-jobs',
         ])->render();
 
-        $streams[] = $this->private__turboStreamTag('replace', 'horizon-jobs-stack', $jobsHtml);
+        $streams[] = $this->private__turboStreamTag('replace', 'horizon-jobs-stack', $jobsHtml, 'morph');
 
         return \implode("\n", $streams);
     }
@@ -332,9 +334,14 @@ class HorizonStreamsController extends StreamController
     //  Helpers
     // ------------------------------------------------------------------
 
-    private function private__turboStreamTag(string $action, string $target, string $content): string
+    private function private__turboStreamTag(string $action, string $target, string $content, ?string $streamMethod = null): string
     {
-        return '<turbo-stream action="'.e($action).'" target="'.e($target).'"><template>'.$content.'</template></turbo-stream>';
+        $open = '<turbo-stream action="'.e($action).'" target="'.e($target).'"';
+        if ($streamMethod !== null && $streamMethod !== '') {
+            $open .= ' method="'.e($streamMethod).'"';
+        }
+
+        return $open.'><template>'.$content.'</template></turbo-stream>';
     }
 
     /**

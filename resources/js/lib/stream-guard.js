@@ -102,6 +102,23 @@ function isRedundantReplace(targetEl, templateEl) {
 }
 
 /**
+ * DOM node addressed by a turbo-stream's `target` attribute.
+ * @param {Element} streamElement
+ * @returns {Element|null}
+ */
+export function getTurboStreamTargetElement(streamElement) {
+    if (!streamElement || !streamElement.getAttribute) {
+        return null;
+    }
+    var targetAttr = String(streamElement.getAttribute('target') || '').trim();
+    if (!targetAttr) {
+        return null;
+    }
+
+    return resolveStreamTargetElement(targetAttr);
+}
+
+/**
  * True when applying this turbo-stream would be redundant (DOM already matches).
  * Only `update` and `replace` are evaluated; other actions return false.
  * @param {Element} streamElement
@@ -115,15 +132,11 @@ export function isStreamUpdateRedundant(streamElement) {
     if (action !== 'update' && action !== 'replace') {
         return false;
     }
-    var targetAttr = String(streamElement.getAttribute('target') || '').trim();
-    if (!targetAttr) {
-        return false;
-    }
     var templateEl = streamElement.querySelector('template');
     if (!templateEl || templateEl.tagName !== 'TEMPLATE') {
         return false;
     }
-    var targetEl = resolveStreamTargetElement(targetAttr);
+    var targetEl = getTurboStreamTargetElement(streamElement);
     if (!targetEl) {
         return false;
     }

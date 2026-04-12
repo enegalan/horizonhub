@@ -8,7 +8,7 @@ import { initTurboStream } from './lib/sse';
 import { createHttpHelpers } from './lib/http';
 import { formatDateTimeElements, formatQueueWaitElements } from './lib/datetime-format';
 import { onDocumentReady, schedule } from './lib/init';
-import { isStreamUpdateRedundant } from './lib/stream-guard';
+import { getTurboStreamTargetElement, isStreamUpdateRedundant } from './lib/stream-guard';
 import { mountToaster } from './components/toaster';
 import { applyTheme } from './components/theme';
 import { registerInputDatePicker } from './components/input-date-picker';
@@ -55,10 +55,14 @@ document.addEventListener('turbo:before-stream-render', function (e) {
             return;
         }
         original(streamElement);
+        var syncRoot = getTurboStreamTargetElement(streamElement);
         schedule(function () {
-            formatDateTimeElements();
-            formatQueueWaitElements();
-            if (typeof window.horizonInitResizableTables === 'function') {
+            var formatRoot = syncRoot || document;
+            formatDateTimeElements(formatRoot);
+            formatQueueWaitElements(formatRoot);
+            if (syncRoot && typeof window.horizonSyncResizableTablesUnderRoot === 'function') {
+                window.horizonSyncResizableTablesUnderRoot(syncRoot);
+            } else if (typeof window.horizonInitResizableTables === 'function') {
                 window.horizonInitResizableTables();
             }
             initJsonTrees();

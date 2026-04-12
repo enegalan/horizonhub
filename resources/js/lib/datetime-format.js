@@ -32,6 +32,9 @@ export function formatDateTimeElements(root) {
             var minute = pad(d.getMinutes());
             var second = pad(d.getSeconds());
             var formatted = year + '-' + month + '-' + day + ' ' + hour + ':' + minute + ':' + second;
+            if (el.textContent.trim() === formatted) {
+                return;
+            }
             el.textContent = formatted;
         } catch (e) {}
     });
@@ -62,6 +65,9 @@ export function formatQueueWaitElements(root) {
         if (!text) return;
 
         text = text.replace(/^(.)/g, function ($1) { return $1.toUpperCase(); });
+        if (el.textContent.trim() === text) {
+            return;
+        }
         el.textContent = text;
     });
 }
