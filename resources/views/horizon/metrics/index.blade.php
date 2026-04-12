@@ -1,13 +1,3 @@
-@php($metricsChartData = [
-    'jobsVolumeLast24h' => $jobsVolumeLast24h ?? ['xAxis' => [], 'completed' => [], 'failed' => []],
-    'jobRuntimesLast24h' => $jobRuntimesLast24h ?? ['points' => []],
-    'failureRateOverTime' => $failureRateOverTime ?? ['xAxis' => [], 'rate' => []],
-    'waitByQueue' => $waitByQueue ?? null,
-])
-@php($hasRuntimeChart = \is_array($jobRuntimesLast24h ?? null))
-@php($hasFailureRateChart = \is_array($failureRateOverTime ?? null))
-@php($hasJobsVolumeChart = \is_array($jobsVolumeLast24h ?? null))
-@php($hasServiceChart = \is_array($waitByQueue ?? null) && \count($waitByQueue['queues'] ?? []) > 0)
 @extends('layouts.app')
 
 @section('content')

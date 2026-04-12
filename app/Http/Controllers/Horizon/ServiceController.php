@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\ServiceShowPageDataService;
+use App\Services\Horizon\ServiceStatsAttachmentService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,44 +16,13 @@ class ServiceController extends Controller
     /**
      * Display the list of services and registration form.
      */
-    public function index(HorizonApiProxyService $horizonApi): View
+    public function index(HorizonApiProxyService $horizonApi, ServiceStatsAttachmentService $serviceStats): View
     {
         $services = Service::query()
             ->orderBy('name')
             ->get();
 
-        $failedJobCounts = [];
-        $recentJobCounts = [];
-        $horizonStatuses = [];
-
-        /** @var Service $service */
-        foreach ($services as $service) {
-            if (! $service->base_url) {
-                $failedJobCounts[$service->id] = 0;
-                $recentJobCounts[$service->id] = 0;
-
-                continue;
-            }
-
-            $response = $horizonApi->getStats($service);
-            $data = $response['data'] ?? null;
-
-            if (($response['success'] ?? false) && \is_array($data)) {
-                $failedJobCounts[$service->id] = isset($data['failedJobs']) ? (int) $data['failedJobs'] : 0;
-                $recentJobCounts[$service->id] = isset($data['recentJobs']) ? (int) $data['recentJobs'] : 0;
-                $horizonStatuses[$service->id] = isset($data['status']) && (string) $data['status'] !== '' ? (string) $data['status'] : null;
-            } else {
-                $failedJobCounts[$service->id] = 0;
-                $recentJobCounts[$service->id] = 0;
-                $horizonStatuses[$service->id] = null;
-            }
-        }
-
-        foreach ($services as $service) {
-            $service->horizon_failed_jobs_count = (int) ($failedJobCounts[$service->id] ?? 0);
-            $service->horizon_jobs_count = (int) ($recentJobCounts[$service->id] ?? 0);
-            $service->horizon_status = $horizonStatuses[$service->id] ?? null;
-        }
+        $serviceStats->attachHorizonStats($services, $horizonApi);
 
         return \view('horizon.services.index', [
             'services' => $services,

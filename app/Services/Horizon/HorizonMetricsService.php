@@ -9,6 +9,8 @@ use App\Services\Metrics\JobsVolumeLast24hCalculator;
 use App\Services\Metrics\QueueFailureCountersCalculator;
 use App\Services\Metrics\RuntimeMetricsCalculator;
 use App\Services\Metrics\WorkloadMetricsCalculator;
+use App\Support\Horizon\QueueNameNormalizer;
+use Illuminate\Support\Collection;
 
 class HorizonMetricsService
 {
@@ -142,6 +144,52 @@ class HorizonMetricsService
     public function getWorkloadData(array $serviceScope = []): array
     {
         return $this->workloadMetrics->getWorkloadData($serviceScope);
+    }
+
+    /**
+     * Workload rows as queue list rows for the queues UI and SSE partials.
+     *
+     * @param  list<int>  $serviceFilterIds
+     * @return Collection<int, object{service_id: int, queue: string, job_count: int, service: Service|null}>
+     */
+    public function buildQueuesCollectionForServiceFilter(array $serviceFilterIds): Collection
+    {
+        $workloadRows = $this->getWorkloadData($serviceFilterIds);
+
+        if ($serviceFilterIds !== []) {
+            $allowedServiceIds = \array_fill_keys($serviceFilterIds, true);
+            $workloadRows = \array_values(\array_filter(
+                $workloadRows,
+                static function (array $row) use ($allowedServiceIds): bool {
+                    return isset($allowedServiceIds[(int) ($row['service_id'] ?? 0)]);
+                }
+            ));
+        }
+
+        $serviceIds = \array_values(\array_unique(\array_map(
+            static fn (array $row): int => (int) $row['service_id'],
+            $workloadRows
+        )));
+
+        $servicesById = $serviceIds === []
+            ? \collect()
+            : Service::whereIn('id', $serviceIds)->get()->keyBy('id');
+
+        return \collect($workloadRows)
+            ->map(function (array $row) use ($servicesById) {
+                $queueRaw = $row['queue'] ?? '';
+                $normalizedQueue = QueueNameNormalizer::normalize($queueRaw);
+                $queueLabel = $normalizedQueue ?? $queueRaw;
+
+                return (object) [
+                    'service_id' => (int) $row['service_id'],
+                    'queue' => $queueLabel,
+                    'job_count' => (int) $row['jobs'],
+                    'service' => $servicesById->get((int) $row['service_id']),
+                ];
+            })
+            ->sortBy(fn ($r) => $r->queue)
+            ->values();
     }
 
     /**

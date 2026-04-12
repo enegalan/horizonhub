@@ -2,11 +2,13 @@
 
 namespace App\Services\Horizon;
 
+use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
 use App\Support\ConfigHelper;
 use App\Support\DatetimeBoundaryParser;
 use App\Support\Horizon\JobRuntimeHelper;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -50,6 +52,56 @@ class HorizonJobListService
             'processing' => $this->private__makePaginator($jobsProcessing, $perPage, $pageProcessing, $path, $query, 'page_processing'),
             'processed' => $this->private__makePaginator($jobsProcessed, $perPage, $pageProcessed, $path, $query, 'page_processed'),
             'failed' => $this->private__makePaginator($jobsFailed, $perPage, $pageFailed, $path, $query, 'page_failed'),
+        ];
+    }
+
+    /**
+     * Aggregated jobs index paginators from the current request query.
+     *
+     * @return array{
+     *     processing: LengthAwarePaginator,
+     *     processed: LengthAwarePaginator,
+     *     failed: LengthAwarePaginator,
+     *     serviceFilterIds: list<int>,
+     *     search: string
+     * }
+     */
+    public function buildAggregatedJobsIndexFromRequest(Request $request): array
+    {
+        $serviceFilterIds = ServiceRequest::existingIdsFromRequest($request, ['serviceFilter']);
+        $search = (string) $request->query('search', '');
+
+        $perPage = (int) ConfigHelper::get('horizonhub.jobs_per_page');
+
+        $servicesQuery = Service::query()->whereNotNull('base_url');
+        if ($serviceFilterIds !== []) {
+            $servicesQuery->whereIn('id', $serviceFilterIds);
+        }
+
+        /** @var Collection<int, Service> $servicesWithApi */
+        $servicesWithApi = $servicesQuery->get();
+
+        $pageProcessing = \max(1, (int) $request->query('page_processing', 1));
+        $pageProcessed = \max(1, (int) $request->query('page_processed', 1));
+        $pageFailed = \max(1, (int) $request->query('page_failed', 1));
+
+        $paginators = $this->buildAggregatedStatusPaginators(
+            $servicesWithApi,
+            $search,
+            $pageProcessing,
+            $pageProcessed,
+            $pageFailed,
+            $perPage,
+            $request->url(),
+            $request->query(),
+        );
+
+        return [
+            'processing' => $paginators['processing'],
+            'processed' => $paginators['processed'],
+            'failed' => $paginators['failed'],
+            'serviceFilterIds' => $serviceFilterIds,
+            'search' => $search,
         ];
     }
 

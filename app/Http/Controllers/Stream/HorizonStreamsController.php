@@ -11,10 +11,8 @@ use App\Services\Horizon\HorizonJobListService;
 use App\Services\Horizon\HorizonMetricsService;
 use App\Services\Horizon\MetricsDashboardDataService;
 use App\Services\Horizon\ServiceShowPageDataService;
-use App\Support\ConfigHelper;
-use App\Support\Horizon\QueueNameNormalizer;
+use App\Services\Horizon\ServiceStatsAttachmentService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HorizonStreamsController extends StreamController
@@ -25,6 +23,7 @@ class HorizonStreamsController extends StreamController
         private HorizonApiProxyService $horizonApi,
         private HorizonJobListService $jobList,
         private ServiceShowPageDataService $serviceShowPageData,
+        private ServiceStatsAttachmentService $serviceStats,
     ) {}
 
     public function metrics(Request $request): StreamedResponse
@@ -115,41 +114,7 @@ class HorizonStreamsController extends StreamController
     private function private__buildQueuesStreams(string $query): ?string
     {
         $serviceFilterIds = $this->private__parseServiceIdsFromQuery($query, 'queue_services');
-        $workloadRows = $this->metrics->getWorkloadData($serviceFilterIds);
-
-        if ($serviceFilterIds !== []) {
-            $allowedServiceIds = \array_fill_keys($serviceFilterIds, true);
-            $workloadRows = \array_values(\array_filter(
-                $workloadRows,
-                static function (array $row) use ($allowedServiceIds): bool {
-                    return isset($allowedServiceIds[(int) ($row['service_id'] ?? 0)]);
-                }
-            ));
-        }
-
-        $serviceIds = \array_values(\array_unique(\array_map(
-            static fn (array $row): int => (int) $row['service_id'],
-            $workloadRows
-        )));
-
-        $servicesById = $serviceIds === []
-            ? \collect()
-            : Service::whereIn('id', $serviceIds)->get()->keyBy('id');
-
-        $queues = \collect($workloadRows)
-            ->map(function (array $row) use ($servicesById) {
-                $queueRaw = $row['queue'] ?? '';
-                $normalizedQueue = QueueNameNormalizer::normalize($queueRaw);
-
-                return (object) [
-                    'service_id' => (int) $row['service_id'],
-                    'queue' => $normalizedQueue ?? $queueRaw,
-                    'job_count' => (int) $row['jobs'],
-                    'service' => $servicesById->get((int) $row['service_id']),
-                ];
-            })
-            ->sortBy(fn ($r) => $r->queue)
-            ->values();
+        $queues = $this->metrics->buildQueuesCollectionForServiceFilter($serviceFilterIds);
 
         $html = \view('horizon.queues.partials.queue-tbody', ['queues' => $queues])->render();
 
@@ -163,29 +128,7 @@ class HorizonStreamsController extends StreamController
     private function private__buildServicesStreams(): ?string
     {
         $services = Service::query()->orderBy('name')->get();
-
-        /** @var Service $service */
-        foreach ($services as $service) {
-            if (! $service->base_url) {
-                $service->horizon_failed_jobs_count = 0;
-                $service->horizon_jobs_count = 0;
-                $service->horizon_status = null;
-
-                continue;
-            }
-
-            $response = $this->horizonApi->getStats($service);
-
-            if (($response['success'] ?? false) && \is_array($response['data'])) {
-                $service->horizon_failed_jobs_count = isset($response['data']['failedJobs']) ? (int) $response['data']['failedJobs'] : 0;
-                $service->horizon_jobs_count = isset($response['data']['recentJobs']) ? (int) $response['data']['recentJobs'] : 0;
-                $service->horizon_status = isset($response['data']['status']) && (string) $response['data']['status'] !== '' ? (string) $response['data']['status'] : null;
-            } else {
-                $service->horizon_failed_jobs_count = 0;
-                $service->horizon_jobs_count = 0;
-                $service->horizon_status = null;
-            }
-        }
+        $this->serviceStats->attachHorizonStats($services, $this->horizonApi);
 
         $html = \view('horizon.services.partials.service-tbody', ['services' => $services])->render();
 
@@ -221,38 +164,12 @@ class HorizonStreamsController extends StreamController
         }
         $pageRequest = Request::create($url, 'GET');
 
-        $serviceFilterIds = ServiceRequest::existingIdsFromRequest($pageRequest, ['serviceFilter']);
-        $search = (string) $pageRequest->query('search', '');
-
-        $perPage = (int) ConfigHelper::get('horizonhub.jobs_per_page');
-
-        $pageProcessing = \max(1, (int) $pageRequest->query('page_processing', 1));
-        $pageProcessed = \max(1, (int) $pageRequest->query('page_processed', 1));
-        $pageFailed = \max(1, (int) $pageRequest->query('page_failed', 1));
-
-        $servicesQuery = Service::query()->whereNotNull('base_url');
-        if ($serviceFilterIds !== []) {
-            $servicesQuery->whereIn('id', $serviceFilterIds);
-        }
-
-        /** @var Collection<int, Service> $servicesWithApi */
-        $servicesWithApi = $servicesQuery->get();
-
-        $paginators = $this->jobList->buildAggregatedStatusPaginators(
-            $servicesWithApi,
-            $search,
-            $pageProcessing,
-            $pageProcessed,
-            $pageFailed,
-            $perPage,
-            $pageRequest->url(),
-            $pageRequest->query(),
-        );
+        $index = $this->jobList->buildAggregatedJobsIndexFromRequest($pageRequest);
 
         $html = \view('horizon.jobs.partials.job-list-collapsible-stack', [
-            'jobsProcessing' => $paginators['processing'],
-            'jobsProcessed' => $paginators['processed'],
-            'jobsFailed' => $paginators['failed'],
+            'jobsProcessing' => $index['processing'],
+            'jobsProcessed' => $index['processed'],
+            'jobsFailed' => $index['failed'],
             'showServiceColumn' => true,
             'pageService' => null,
             'columnIds' => 'uuid,service,queue,job,attempts,queued_at,processed,failed_at,runtime,actions',
