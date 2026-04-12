@@ -77,6 +77,22 @@
                 } else {
                     this.queuePatterns[0] = '';
                 }
+            },
+            toggleCheckboxRow(event) {
+                if (event.target.tagName === 'INPUT' && event.target.type === 'checkbox') {
+                    return;
+                }
+                if (event.target.closest('label')) {
+                    return;
+                }
+                if (event.target.closest('a') || event.target.closest('button')) {
+                    return;
+                }
+                var root = event.currentTarget;
+                var input = root.querySelector('.checkbox-root input');
+                if (input && !input.disabled) {
+                    input.click();
+                }
             }
         }"
     >
@@ -110,14 +126,17 @@
                         @endphp
                         <div class="space-y-2">
                             @foreach($services as $s)
-                                <div class="flex items-center gap-2 rounded-md border border-border px-3 py-2 hover:bg-muted/50">
+                                <div
+                                    class="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 hover:bg-muted/50"
+                                    @click="toggleCheckboxRow($event)"
+                                >
                                     <x-checkbox
                                         id="service-{{ $s->id }}"
                                         name="service_ids[]"
                                         value="{{ $s->id }}"
                                         :checked="in_array((int) $s->id, $oldServiceIds, true)"
                                     />
-                                    <x-input-label for="service-{{ $s->id }}" class="text-sm font-normal cursor-pointer">{{ $s->name }}</x-input-label>
+                                    <x-input-label for="service-{{ $s->id }}" class="cursor-pointer text-sm font-normal">{{ $s->name }}</x-input-label>
                                 </div>
                             @endforeach
                         </div>
@@ -153,7 +172,7 @@
                                         name="queue_patterns[]"
                                         x-model="queuePatterns[index]"
                                         placeholder="default"
-                                        class="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm font-mono text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                        class="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm font-mono text-foreground shadow-sm"
                                     />
                                     <x-button
                                         type="button"
@@ -193,7 +212,7 @@
                                         name="job_patterns[]"
                                         x-model="jobPatterns[index]"
                                         placeholder="App\Jobs\SendEmail"
-                                        class="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm font-mono text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                        class="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm font-mono text-foreground shadow-sm"
                                     />
                                     <x-button
                                         type="button"
@@ -351,7 +370,10 @@
                                 $oldProviderIds = old('provider_ids', $selectedProviderIds);
                             @endphp
                             @foreach($providers as $provider)
-                                <div class="flex items-center gap-2 rounded-md border border-border px-3 py-2 hover:bg-muted/50">
+                                <div
+                                    class="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 hover:bg-muted/50"
+                                    @click="toggleCheckboxRow($event)"
+                                >
                                     <x-checkbox
                                         id="provider-{{ $provider->id }}"
                                         name="provider_ids[]"
