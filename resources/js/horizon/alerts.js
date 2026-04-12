@@ -25,14 +25,12 @@ export function horizonAlertsList() {
          */
         init() {
             var self = this;
-            if (typeof window === 'undefined') return;
 
             window.__horizonAlertsListEvaluationInstance = self;
             // Attach the document click listener only once to avoid duplicate toasts.
             if (!window.__horizonAlertsListEvaluationClickListenerAttached) {
                 window.__horizonAlertsListEvaluationClickListenerAttached = true;
                 window.__horizonAlertsListEvaluationClickListener = function (e) {
-                    if (typeof document === 'undefined') return;
                     var instance = window.__horizonAlertsListEvaluationInstance;
                     if (!instance) return;
 
@@ -298,14 +296,13 @@ export function horizonAlertDetail(config) {
          */
         init() {
             var self = this;
-            if (typeof window === 'undefined') return;
 
             if (config && config.initialDeliveryLog) {
                 self.openDeliveryLogModal(self.normalizeDeliveryLog(config.initialDeliveryLog));
             }
 
             // Initial hydration to initially show alert detail charts
-            hydrateAlertDetailChartsFromDom();
+            initAlertDetailCharts();
         },
         openDeliveryLogModal(logData) {
             if (logData) {
@@ -333,23 +330,13 @@ export function horizonAlertDetail(config) {
 }
 
 /**
- * Hydrate the alert detail charts from the DOM.
+ * Initialize the alert detail charts.
  * @returns {void}
  */
-function hydrateAlertDetailChartsFromDom() {
+function initAlertDetailCharts() {
     if (typeof window.echarts === 'undefined') return;
     var data = parseJsonFromElement('alert-detail-chart-data');
     if (!data) return;
-    initAlertDetailCharts(data);
-}
-
-/**
- * Initialize the alert detail charts.
- * @param {object} data
- * @returns {void}
- */
-function initAlertDetailCharts(data) {
-    if (typeof window.echarts === 'undefined' || !data) return;
 
     var c = getChartColors();
 

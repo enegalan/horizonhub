@@ -61,10 +61,7 @@ export function registerInputDatePicker(Alpine) {
         };
 
         var inputHandler = function () {
-            if (!dp || dp.isDestroyed) {
-                return;
-            }
-            if (el.value.trim() !== '') {
+            if (!dp || dp.isDestroyed || el.value.trim() !== '') {
                 return;
             }
             var dates = dp.selectedDates || [];

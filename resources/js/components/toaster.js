@@ -3,22 +3,13 @@ import 'notyf/notyf.min.css';
 
 var TOAST_DURATION_MS = 4500;
 
-/**
- * @param {unknown} message
- * @returns {string}
- */
-function resolveToastMessage(message) {
-    return typeof message === 'string' && message ? message : 'Done.';
-}
+var DEFAULT_TOAST_MESSAGE = 'Done.';
 
 /**
  * Mount Notyf and expose toast on window.
  * @returns {void}
  */
 export function mountToaster() {
-    if (typeof document === 'undefined') {
-        return;
-    }
     if (window._hubNotyfMounted) {
         return;
     }
@@ -65,17 +56,17 @@ export function mountToaster() {
     });
 
     window.toast = {
-        success: function (m) {
-            notyf.open({ type: 'success', message: resolveToastMessage(m) });
+        success: function (message) {
+            notyf.open({ type: 'success', message: typeof message === 'string' && message ? message : DEFAULT_TOAST_MESSAGE });
         },
-        error: function (m) {
-            notyf.open({ type: 'error', message: resolveToastMessage(m) });
+        error: function (message) {
+            notyf.open({ type: 'error', message: typeof message === 'string' && message ? message : DEFAULT_TOAST_MESSAGE });
         },
-        info: function (m) {
-            notyf.open({ type: 'info', message: resolveToastMessage(m) });
+        info: function (message) {
+            notyf.open({ type: 'info', message: typeof message === 'string' && message ? message : DEFAULT_TOAST_MESSAGE });
         },
-        warning: function (m) {
-            notyf.open({ type: 'warning', message: resolveToastMessage(m) });
+        warning: function (message) {
+            notyf.open({ type: 'warning', message: typeof message === 'string' && message ? message : DEFAULT_TOAST_MESSAGE });
         },
     };
 }

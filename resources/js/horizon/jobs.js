@@ -22,7 +22,7 @@ function postSingleJobRetry(retryUrl, component, toastMessage) {
 }
 
 /**
- * Page number window for pagination nav (matches resources/views/components/pagination.blade.php).
+ * Page number window for pagination nav.
  * @param {number} current
  * @param {number} last
  * @param {number} onEachSide
@@ -63,30 +63,11 @@ function buildRetryPaginationSlider(current, last, onEachSide) {
 }
 
 /**
- * Resolve the job detail root. `Element#querySelector` does not match the element itself,
- * so when `root` is already the detail div (e.g. after SSE replace), we must return it.
- * @param {Document|HTMLElement|null} root
- * @returns {HTMLElement|null}
- */
-function resolveHorizonJobDetailRoot(root) {
-    if (!root) return null;
-    if (root.nodeType === 1 && root.getAttribute && root.getAttribute('data-horizon-job-detail-root') === '1') {
-        return root;
-    }
-    if (root.querySelector) {
-        return root.querySelector('[data-horizon-job-detail-root="1"]');
-    }
-    return null;
-}
-
-/**
- * Render JSON trees on the job detail page (localStorage keys require job UUID).
- * @param {Document|HTMLElement} root
+ * Initialize JSON trees on the job detail page.
  * @returns {void}
  */
-export function enhanceHorizonJobDetailJsonTrees(root) {
-    if (!root || !root.querySelectorAll) return;
-    var rootEl = resolveHorizonJobDetailRoot(root);
+export function initJsonTrees() {
+    var rootEl = document.querySelector('[data-horizon-job-detail-root="1"]');
     if (!rootEl) return;
     var jobUuid = String(rootEl.getAttribute('data-horizon-job-uuid') || '').trim();
     var jsonTargets = rootEl.querySelectorAll('[data-json-tree]');
@@ -94,7 +75,7 @@ export function enhanceHorizonJobDetailJsonTrees(root) {
         var treeName = target.getAttribute('data-json-tree');
         var storageKey = null;
         if (jobUuid && treeName) {
-            storageKey = 'horizonhub:job-detail:' + jobUuid + ':json-tree:' + treeName;
+            storageKey = 'horizonhub:job:' + jobUuid + ':json-tree:' + treeName;
         }
         renderJsonTree(target, { storageKey: storageKey });
     });
@@ -295,14 +276,14 @@ export function horizonJobsPage(config) {
             this.loadFailedJobs();
         },
         /**
-         * Slider items for the retry modal pagination nav (same logic as x-pagination).
+         * Slider items for the retry modal pagination nav.
          * @returns {(number|string)[]}
          */
         retryPaginationPages() {
             return buildRetryPaginationSlider(this.retryPage, this.retryLastPage, 2);
         },
         /**
-         * Same copy as x-pagination summary (items on current page vs total).
+         * Same copy as x-pagination summary.
          * @returns {string}
          */
         retryPaginationSummaryLine() {
@@ -401,22 +382,14 @@ export function horizonJobDetail(config) {
          */
         showAllExceptionLines: false,
         /**
-         * Get the job UUID from the current detail root element.
-         * @returns {string}
-         */
-        getJobUuid() {
-            if (typeof document === 'undefined') return '';
-            var root = document.querySelector('[data-horizon-job-detail-root="1"]');
-            if (!root || !root.getAttribute) return '';
-            return String(root.getAttribute('data-horizon-job-uuid') || '').trim();
-        },
-        /**
          * Build the localStorage key for exception toggle state.
          * @returns {string|null}
          */
         getExceptionStorageKey() {
-            if (typeof window === 'undefined') return null;
-            var jobUuid = this.getJobUuid();
+            var rootEl = document.querySelector('[data-horizon-job-detail-root="1"]');
+
+            var jobUuid = String(rootEl && rootEl.getAttribute('data-horizon-job-uuid') || '').trim();
+
             if (!jobUuid) return null;
             return 'horizonhub:job-detail:' + jobUuid + ':exceptions:show-all';
         },
@@ -454,7 +427,7 @@ export function horizonJobDetail(config) {
          */
         init() {
             this.restorePersistedUiState();
-            this.enhanceJobDetail(document);
+            initJsonTrees();
         },
         /**
          * Retry the job.
@@ -471,14 +444,6 @@ export function horizonJobDetail(config) {
         toggleExceptionLines() {
             this.showAllExceptionLines = !this.showAllExceptionLines;
             this.persistUiState();
-        },
-        /**
-         * Enhance detail blocks.
-         * @param {Document|HTMLElement} root
-         * @returns {void}
-         */
-        enhanceJobDetail(root) {
-            enhanceHorizonJobDetailJsonTrees(root);
         },
     };
 }

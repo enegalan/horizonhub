@@ -7,7 +7,9 @@ use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
+use App\Services\Horizon\HorizonJobDetailService;
 use App\Services\Horizon\HorizonJobListService;
+use App\Services\Horizon\HorizonJobResolverService;
 use App\Services\Horizon\HorizonMetricsService;
 use App\Services\Horizon\MetricsDashboardDataService;
 use App\Services\Horizon\ServiceShowPageDataService;
@@ -22,6 +24,8 @@ class HorizonStreamsController extends StreamController
         private HorizonMetricsService $metrics,
         private HorizonApiProxyService $horizonApi,
         private HorizonJobListService $jobList,
+        private HorizonJobResolverService $jobResolver,
+        private HorizonJobDetailService $jobDetail,
         private ServiceShowPageDataService $serviceShowPageData,
         private ServiceStatsAttachmentService $serviceStats,
     ) {}
@@ -55,6 +59,13 @@ class HorizonStreamsController extends StreamController
         $query = $request->getQueryString() ?? '';
 
         return $this->runStream(fn (): ?string => $this->private__buildJobsIndexStreams($query));
+    }
+
+    public function jobShow(Request $request, string $job): StreamedResponse
+    {
+        $serviceId = (int) $request->query('service_id');
+
+        return $this->runStream(fn (): ?string => $this->private__buildJobShowStreams($job, $serviceId));
     }
 
     public function serviceShow(Request $request, Service $service): StreamedResponse
@@ -177,6 +188,77 @@ class HorizonStreamsController extends StreamController
         ])->render();
 
         return $this->private__turboStreamTag('replace', 'horizon-jobs-stack', $html);
+    }
+
+    // ------------------------------------------------------------------
+    //  Job show
+    // ------------------------------------------------------------------
+
+    private function private__buildJobShowStreams(string $routeJobUuid, int $serviceId): ?string
+    {
+        $resolved = $this->jobResolver->getJobAndService($routeJobUuid, $serviceId);
+        if ($resolved === null) {
+            return null;
+        }
+
+        $viewData = $this->jobDetail->buildShowViewData($resolved['service'], $resolved['job'], $routeJobUuid);
+        $jobView = $viewData['job'];
+
+        $exception = $viewData['exception'] ? html_entity_decode($viewData['exception'], ENT_QUOTES | ENT_HTML401, 'UTF-8') : null;
+        $exceptionTrace = $exception ? (\preg_split("/\r\n|\n|\r/", $exception) ?: []) : [];
+        $retryHistory = isset($viewData['horizonJob']['retriedBy']) && \is_array($viewData['horizonJob']['retriedBy']) ? $viewData['horizonJob']['retriedBy'] : [];
+        $payload = $jobView->payload ? json_encode($jobView->payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
+        $context = $viewData['horizonJob']['context'] ? json_encode($viewData['horizonJob']['context'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
+        $commandData = $viewData['horizonJob']['commandData'] ? json_encode($viewData['horizonJob']['commandData'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
+
+        $vars = [
+            'job' => $jobView,
+            'exception' => $exceptionTrace,
+            'horizonJob' => $viewData['horizonJob'],
+            'retryHistory' => $retryHistory,
+            'payload' => $payload,
+            'context' => $context,
+            'commandData' => $commandData,
+        ];
+
+        $streams = [];
+        $streams[] = $this->private__turboStreamTag(
+            'update',
+            'horizon-job-detail-actions',
+            \view('horizon.jobs.partials.job-show-stream-actions', $vars)->render(),
+        );
+        $streams[] = $this->private__turboStreamTag(
+            'update',
+            'horizon-job-detail-meta',
+            \view('horizon.jobs.partials.job-show-stream-meta', $vars)->render(),
+        );
+        $streams[] = $this->private__turboStreamTag(
+            'update',
+            'horizon-job-detail-exception',
+            \view('horizon.jobs.partials.job-show-stream-exception', $vars)->render(),
+        );
+        $streams[] = $this->private__turboStreamTag(
+            'update',
+            'horizon-job-detail-context',
+            \view('horizon.jobs.partials.job-show-stream-context', $vars)->render(),
+        );
+        $streams[] = $this->private__turboStreamTag(
+            'update',
+            'horizon-job-detail-retry-history',
+            \view('horizon.jobs.partials.job-show-stream-retry-history', $vars)->render(),
+        );
+        $streams[] = $this->private__turboStreamTag(
+            'update',
+            'horizon-job-detail-data',
+            \view('horizon.jobs.partials.job-show-stream-data', $vars)->render(),
+        );
+        $streams[] = $this->private__turboStreamTag(
+            'update',
+            'horizon-job-detail-payload',
+            \view('horizon.jobs.partials.job-show-stream-payload', $vars)->render(),
+        );
+
+        return \implode("\n", $streams);
     }
 
     // ------------------------------------------------------------------

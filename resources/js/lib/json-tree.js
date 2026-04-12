@@ -12,6 +12,12 @@ hljs.registerLanguage('json', jsonLanguage);
 var jsonTreeSourceCache = new WeakMap();
 
 /**
+ * Last JSON source string used to render the tree for a target.
+ * @type {WeakMap<HTMLElement, string>}
+ */
+var jsonTreeLastRenderedSource = new WeakMap();
+
+/**
  * Read JSON source from data-json-source or the last cached value for this element.
  * @param {HTMLElement} target
  * @returns {string}
@@ -394,7 +400,20 @@ export function renderJsonTree(target, options) {
         state = createJsonTreeStateStore(options.storageKey);
     }
 
+    var previousRenderedSource = jsonTreeLastRenderedSource.get(target);
+    var existingRoot = target.firstElementChild;
+    if (
+        previousRenderedSource === source &&
+        existingRoot &&
+        existingRoot.classList.contains('horizon-json-node')
+    ) {
+        target.classList.add('horizon-json-tree already-rendered');
+        return;
+    }
+
+    var jsonTree = buildJsonNode(null, parsed, [], state, true);
     target.innerHTML = '';
     target.classList.add('horizon-json-tree');
-    target.appendChild(buildJsonNode(null, parsed, [], state, true));
+    target.appendChild(jsonTree);
+    jsonTreeLastRenderedSource.set(target, source);
 }

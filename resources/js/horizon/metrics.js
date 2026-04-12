@@ -4,39 +4,27 @@ import { isHotReloadEnabled } from "../lib/sse";
 
 
 /**
- * Remove service_id / service_id[] from a URL object search params.
+ * Refresh the service_id / service_id[] search params in a URL object.
+ * @param {string[]} ids
  * @param {URL} url
  * @returns {void}
  */
-function deleteServiceIdSearchParams(url) {
-    var toRemove = [];
-    url.searchParams.forEach(function (_, k) {
-        if (k === "service_id" || k === "service_id[]") {
-            toRemove.push(k);
-        }
+function refreshServiceIdSearchParams(ids, url) {
+    url.searchParams.delete("service_id");
+    url.searchParams.delete("service_id[]");
+    ids.forEach(function (id) {
+        url.searchParams.append("service_id[]", id);
     });
-    toRemove.forEach(function (k) {
-        url.searchParams.delete(k);
-    });
-}
-
-/**
- * Hydrate the metrics charts from the DOM.
- * @returns {void}
- */
-function hydrateMetricsChartsFromDom() {
-    if (typeof window.echarts === 'undefined') return;
-    var data = parseJsonFromElement('metrics-chart-data');
-    if (!data) return;
-    initMetricsCharts(data);
 }
 
 /**
  * Initialize the metrics charts.
- * @param {object} data
  * @returns {void}
  */
-function initMetricsCharts(data) {
+function initMetricsCharts() {
+    if (typeof window.echarts === 'undefined') return;
+    var data = parseJsonFromElement('metrics-chart-data');
+    if (!data) return;
     var c = getChartColors();
 
     var jobsVolumeEl = document.getElementById('jobs-volume-last-24h-chart');
@@ -210,8 +198,7 @@ function initMetricsCharts(data) {
                                 var param = params[i];
                                 var v = param.value;
                                 if (!v || v.length < 2) continue;
-                                var date = new Date(v[0]);
-                                var timeStr = date.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+                                var timeStr = new Date(v[0]).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
                                 var jobName = param.data && param.data.labelName ? param.data.labelName : '—';
                                 var svc = param.data && param.data.labelService ? param.data.labelService : '';
                                 var lines = [
@@ -320,19 +307,14 @@ export function horizonMetricsPage() {
             if (typeof window === "undefined" || typeof document === "undefined") return;
 
             // Initial hydration to initially show metrics charts and format elements
-            hydrateMetricsChartsFromDom();
+            initMetricsCharts();
 
             var filterEl = document.getElementById("metrics-service-filter");
             if (filterEl) {
                 filterEl.addEventListener("change", function (e) {
-                    var ids = (e.detail && Array.isArray(e.detail.values))
-                        ? e.detail.values.map(String).filter(Boolean).sort()
-                        : getMetricsServiceIdsFromDom(filterEl);
+                    var ids = e.detail.values.map(String).filter(Boolean).sort();
                     var url = new URL(window.location.href);
-                    deleteServiceIdSearchParams(url);
-                    ids.forEach(function (id) {
-                        url.searchParams.append("service_id[]", id);
-                    });
+                    refreshServiceIdSearchParams(ids, url);
                     window.history.replaceState({}, "", url.toString());
                     if (isHotReloadEnabled() && typeof window.__horizonHubRefreshStreamReconnect === "function") {
                         window.__horizonHubRefreshStreamReconnect();

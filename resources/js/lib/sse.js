@@ -41,6 +41,16 @@ var _reconnectTimeout = null;
 /**
  * @type {number}
  */
+var _maxReconnectAttempts = 2;
+
+/**
+ * @type {number}
+ */
+var _reconnectAttempts = 0;
+
+/**
+ * @type {number}
+ */
 var _backoffMs = SSE_BACKOFF_INITIAL_MS;
 
 /**
@@ -94,6 +104,10 @@ function openStream() {
 
     _eventSource.onerror = function () {
         closeStream();
+        _reconnectAttempts++;
+        if (_reconnectAttempts >= _maxReconnectAttempts) {
+            return;
+        }
         _reconnectTimeout = setTimeout(function () {
             openStream();
             if (_backoffMs < SSE_BACKOFF_MAX_MS) _backoffMs *= SSE_BACKOFF_MULTIPLIER;

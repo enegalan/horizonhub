@@ -1,13 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
-    <x-turbo::frame id="queues-content">
     <div>
         <div class="card">
             <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
                 <div class="space-y-2">
                     <x-input-label>Services</x-input-label>
-                    <form method="GET" action="{{ route('horizon.queues.index') }}" data-turbo-frame="queues-content">
+                    <form method="GET" action="{{ route('horizon.queues.index') }}" data-turbo-frame="_top">
                         <x-multiselect
                             name="queue_services"
                             class="w-56"
@@ -42,5 +41,4 @@
             </x-table>
         </div>
     </div>
-    </x-turbo::frame>
 @endsection

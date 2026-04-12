@@ -1,16 +1,17 @@
 import './bootstrap';
 import './components/resizable-table';
 import * as Turbo from '@hotwired/turbo';
-import { horizonJobsPage, horizonJobDetail, horizonJobRowRetry } from './horizon/jobs';
+import { horizonJobsPage, horizonJobDetail, horizonJobRowRetry, initJsonTrees } from './horizon/jobs';
 import { horizonAlertsList, horizonAlertDetail } from './horizon/alerts';
 import { horizonMetricsPage } from './horizon/metrics';
 import { initTurboStream } from './lib/sse';
 import { createHttpHelpers } from './lib/http';
 import { formatDateTimeElements, formatQueueWaitElements } from './lib/datetime-format';
+import { onDocumentReady, schedule } from './lib/init';
+import { isStreamUpdateRedundant } from './lib/stream-guard';
 import { mountToaster } from './components/toaster';
 import { applyTheme } from './components/theme';
 import { registerInputDatePicker } from './components/input-date-picker';
-import { onDocumentReady, schedule } from './lib/init';
 import Alpine from 'alpinejs';
 import moment from 'moment';
 
@@ -50,6 +51,9 @@ onDocumentReady(function () {
 document.addEventListener('turbo:before-stream-render', function (e) {
     var original = e.detail.render;
     e.detail.render = function (streamElement) {
+        if (isStreamUpdateRedundant(streamElement)) {
+            return;
+        }
         original(streamElement);
         schedule(function () {
             formatDateTimeElements();
@@ -57,6 +61,7 @@ document.addEventListener('turbo:before-stream-render', function (e) {
             if (typeof window.horizonInitResizableTables === 'function') {
                 window.horizonInitResizableTables();
             }
+            initJsonTrees();
         });
     };
 });

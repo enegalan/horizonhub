@@ -135,7 +135,7 @@
                     <form method="GET" action="{{ route('horizon.alerts.show', $alert) }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="alert-logs">
                         <div class="space-y-2">
                             <x-input-label for="serviceFilter">Service</x-input-label>
-                            <x-select id="serviceFilter" name="service_id" class="w-44" onchange="this.form.submit()">
+                            <x-select id="serviceFilter" name="service_id" class="w-44" onchange="typeof this.form.requestSubmit === 'function' ? this.form.requestSubmit() : this.form.submit()">
                                 <option value="">All</option>
                                 @foreach($services as $s)
                                     <option value="{{ $s->id }}" @selected(($filters['service_id'] ?? '') !== '' && (int) ($filters['service_id'] ?? 0) === (int) $s->id)>{{ $s->name }} ({{ $s->status }})</option>
@@ -144,7 +144,7 @@
                         </div>
                         <div class="space-y-2">
                             <x-input-label for="statusFilter">Status</x-input-label>
-                            <x-select id="statusFilter" name="status" class="w-36" onchange="this.form.submit()">
+                            <x-select id="statusFilter" name="status" class="w-36" onchange="typeof this.form.requestSubmit === 'function' ? this.form.requestSubmit() : this.form.submit()">
                                 <option value="">All</option>
                                 <option value="sent" @selected(($filters['status'] ?? '') === 'sent')>Sent</option>
                                 <option value="failed" @selected(($filters['status'] ?? '') === 'failed')>Failed</option>
@@ -152,7 +152,7 @@
                         </div>
                         <div class="space-y-2">
                             <x-input-label for="perPage">Per page</x-input-label>
-                            <x-select id="perPage" name="per_page" class="w-24" onchange="this.form.submit()">
+                            <x-select id="perPage" name="per_page" class="w-24" onchange="typeof this.form.requestSubmit === 'function' ? this.form.requestSubmit() : this.form.submit()">
                                 @foreach([10,20,50] as $size)
                                     <option value="{{ $size }}" @selected((int) ($filters['per_page'] ?? \config('horizonhub.jobs_per_page')) === $size)>{{ $size }}</option>
                                 @endforeach

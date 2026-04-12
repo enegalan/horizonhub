@@ -8,20 +8,27 @@
     >
         <script type="application/json" id="metrics-chart-data">@json($metricsChartData)</script>
 
-        <div class="mb-4 flex flex-wrap items-center gap-3">
-            <label for="metrics-service-filter" class="label-muted text-sm">Filter by services</label>
-            <x-multiselect
-                id="metrics-service-filter"
-                name="service_id"
-                class="w-64"
-                :selected="$serviceIds ?? []"
-                placeholder="All services"
-            >
-                @foreach($services as $service)
-                    <option value="{{ $service->id }}">{{ $service->name }}</option>
-                @endforeach
-            </x-multiselect>
-        </div>
+        <form method="GET" action="{{ route('horizon.metrics') }}" class="mb-4 flex flex-wrap items-end gap-3" data-turbo-frame="_top">
+            <div class="space-y-2">
+                <x-input-label for="metrics-service-filter">Filter by services</x-input-label>
+                <div class="flex flex-wrap items-end gap-2">
+                    <x-multiselect
+                        id="metrics-service-filter"
+                        name="service_id"
+                        class="w-64"
+                        :selected="$serviceIds ?? []"
+                        placeholder="All services"
+                    >
+                        @foreach($services as $service)
+                            <option value="{{ $service->id }}">{{ $service->name }}</option>
+                        @endforeach
+                    </x-multiselect>
+                    <x-button type="submit" class="h-9 shrink-0 text-sm">
+                        Filter
+                    </x-button>
+                </div>
+            </div>
+        </form>
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
             <div class="card p-4">

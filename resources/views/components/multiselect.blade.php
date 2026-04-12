@@ -77,7 +77,11 @@
                 this.initialSnapshot = snap;
                 var form = this.$el.closest('form');
                 if (form) {
-                    form.submit();
+                    if (typeof form.requestSubmit === 'function') {
+                        form.requestSubmit();
+                    } else {
+                        form.submit();
+                    }
                 }
             }
         },
