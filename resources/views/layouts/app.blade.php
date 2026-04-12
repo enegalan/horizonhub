@@ -15,6 +15,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="turbo-prefetch" content="false">
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <script>
             (function () {
@@ -31,14 +32,16 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700&display=swap" rel="stylesheet" />
 
+        <meta name="view-transition" content="same-origin" />
+
         <!-- Scripts -->
         <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <script>
-            window.horizonHubStreamUrl = {{ Js::from(url()->route('horizon.refresh.stream')) }};
+            window.horizonHubStreamsBaseUrl = {{ Js::from(url('/horizon/streams')) }};
         </script>
     </head>
-    <body class="font-sans antialiased min-h-screen"
+    <body class="font-sans antialiased min-h-screen" data-app-path="{{ request()->path() }}"
         x-data="{
             sidebarOpen: localStorage.getItem('horizon_sidebar_open') !== 'false'
         }"

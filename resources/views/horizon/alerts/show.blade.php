@@ -6,10 +6,10 @@
             initialDeliveryLog: @js($initialDeliveryLogPayload ?? null),
         }) : {}"
         x-init="typeof init === 'function' ? init() : null"
-        data-horizon-alert-detail-root="1"
+        id="horizon-alert-detail"
     >
         <p class="mb-3 text-xs text-muted-foreground" data-alert-detail-breadcrumb>
-            <a href="{{ route('horizon.alerts.index') }}" class="link">Alerts</a> /
+            <a href="{{ route('horizon.alerts.index') }}" class="link" data-turbo-action="replace">Alerts</a> /
             <span class="text-foreground">{{ $alertName }}</span>
         </p>
 
@@ -129,9 +129,10 @@
         <div data-alert-detail-after-charts>
             <script type="application/json" id="alert-detail-chart-data">@json($chartData)</script>
 
+            <x-turbo::frame id="alert-logs">
             <div class="card mb-4">
                 <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
-                    <form method="GET" action="{{ route('horizon.alerts.show', $alert) }}" class="flex flex-wrap items-end gap-3">
+                    <form method="GET" action="{{ route('horizon.alerts.show', $alert) }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="alert-logs">
                         <div class="space-y-2">
                             <x-input-label for="serviceFilter">Service</x-input-label>
                             <x-select id="serviceFilter" name="service_id" class="w-44" onchange="this.form.submit()">
@@ -177,7 +178,7 @@
                                     <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="sent_at">{{ $log->sent_at->format('Y-m-d H:i:s') }}</td>
                                     <td class="px-4 py-2.5 text-sm text-foreground" data-column-id="service">
                                         @if($log->service)
-                                            <a href="{{ route('horizon.services.show', $log->service) }}" class="link">{{ $log->service->name }}</a>
+                                            <a href="{{ route('horizon.services.show', $log->service) }}" class="link" data-turbo-action="replace">{{ $log->service->name }}</a>
                                         @else
                                             –
                                         @endif
@@ -246,6 +247,7 @@
                     <x-pagination :paginator="$logs" />
                 </div>
             </div>
+            </x-turbo::frame>
 
             <template x-if="deliveryLogModalMounted">
                 <div>

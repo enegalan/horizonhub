@@ -2,13 +2,11 @@
 
 @section('content')
     <div
-        x-data="window.horizonServiceDashboard ? window.horizonServiceDashboard() : {}"
-        x-init="typeof init === 'function' ? init() : null"
-        data-horizon-service-dashboard-root="1"
+        id="horizon-service-dashboard"
     >
         <p class="mb-3 text-xs text-muted-foreground">
-            <a href="{{ route('horizon.index') }}" class="link">Jobs</a> /
-            <a href="{{ route('horizon.services.index') }}" class="link">Services</a> /
+            <a href="{{ route('horizon.index') }}" class="link" data-turbo-action="replace">Jobs</a> /
+            <a href="{{ route('horizon.services.index') }}" class="link" data-turbo-action="replace">Services</a> /
             <span class="text-foreground">{{ $service->name }}</span>
         </p>
 
@@ -84,124 +82,35 @@
             </form>
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-            <div class="card p-4">
-                <h3 class="label-muted">Jobs past minute</h3>
-                <p class="mt-1 text-2xl font-semibold text-foreground">{{ number_format($jobsPastMinute) }}</p>
-            </div>
-            <div class="card p-4">
-                <h3 class="label-muted">Jobs past hour</h3>
-                <p class="mt-1 text-2xl font-semibold text-foreground">{{ number_format($jobsPastHour) }}</p>
-            </div>
-            <div class="card p-4">
-                <h3 class="label-muted">Failed (past 7 days)</h3>
-                <p class="mt-1 text-2xl font-semibold text-foreground">{{ number_format($failedPastSevenDays) }}</p>
-            </div>
-            <div class="card p-4">
-                @php
-                    $hs = \strtolower((string) $horizonStatus);
-                    if ($hs === 'active' || $hs === 'running') {
-                        $horizonStatusColor = 'bg-emerald-500';
-                        $horizonStatusLabel = 'Active';
-                    } elseif ($hs === 'inactive') {
-                        $horizonStatusColor = 'bg-amber-500';
-                        $horizonStatusLabel = 'Inactive';
-                    } else {
-                        $horizonStatusColor = 'bg-slate-400';
-                        $horizonStatusLabel = $horizonStatus !== null && $horizonStatus !== '' ? (string) $horizonStatus : 'Unknown';
-                    }
-                @endphp
-                <h3 class="label-muted">Status</h3>
-                <div class="mt-1 flex items-center gap-2">
-                    <span
-                        class="inline-flex shrink-0 size-2.5 rounded-full {{ $horizonStatusColor }}"
-                        title="Horizon {{ $horizonStatusLabel }}"
-                        aria-label="Horizon {{ $horizonStatusLabel }}"
-                    ></span>
-                    <p class="text-2xl font-semibold text-foreground">
-                        {{ $horizonStatusLabel }}
-                    </p>
-                </div>
-            </div>
+        <div id="service-show-stats-row-1" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+            @include('horizon.services.partials.show-stats-row-1-inner')
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-            <div class="card p-4">
-                <h3 class="label-muted">Total processes</h3>
-                <p class="mt-1 text-2xl font-semibold text-foreground">
-                    {{ $totalProcesses !== null ? number_format($totalProcesses) : '–' }}
-                </p>
-            </div>
-            <div class="card p-4">
-                <h3 class="label-muted">Max wait time (s)</h3>
-                <p class="mt-1 text-2xl font-semibold text-foreground">
-                    {{ $maxWaitTimeSeconds !== null ? number_format($maxWaitTimeSeconds, 2) : '–' }}
-                </p>
-            </div>
-            <div class="card p-4">
-                <h3 class="label-muted">Max runtime</h3>
-                <p class="mt-1 text-2xl font-semibold text-foreground">
-                    {{ $queueWithMaxRuntime !== null ? $queueWithMaxRuntime : '–' }}
-                </p>
-            </div>
-            <div class="card p-4">
-                <h3 class="label-muted">Max throughput</h3>
-                <p class="mt-1 text-2xl font-semibold text-foreground">
-                    {{ $queueWithMaxThroughput !== null ? $queueWithMaxThroughput : '–' }}
-                </p>
-            </div>
+        <div id="service-show-stats-row-2" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+            @include('horizon.services.partials.show-stats-row-2-inner')
         </div>
 
         <div class="card mb-4 p-4">
             <h3 class="text-section-title text-foreground mb-2">Supervisors</h3>
-            @if(isset($supervisors) && $supervisors->isNotEmpty())
-                <div class="space-y-2">
-                    @foreach($supervisors as $supervisor)
-                        @php
-                            $apiStatus = $supervisor->status ?? '';
-                            if (\strtolower($apiStatus) === 'running') {
-                                $statusColor = 'bg-emerald-500';
-                                $statusTitle = 'Online';
-                                $statusBlink = false;
-                            } elseif (\strtolower($apiStatus) === 'inactive' || $apiStatus !== '') {
-                                $statusColor = 'bg-amber-500';
-                                $statusTitle = $apiStatus !== '' ? \ucfirst($apiStatus) : 'Unknown';
-                                $statusBlink = \strtolower($apiStatus) === 'inactive';
-                            } else {
-                                $statusColor = 'bg-slate-400';
-                                $statusTitle = 'Unknown';
-                                $statusBlink = false;
-                            }
-                        @endphp
-                        <div class="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2">
-                            <div class="flex items-center gap-2">
-                                <span class="inline-flex shrink-0 size-2.5 rounded-full {{ $statusColor }} @if($statusBlink) animate-pulse @endif" title="{{ $statusTitle }}" aria-label="{{ $statusTitle }}"></span>
-                                <span class="font-mono text-sm text-foreground">{{ $supervisor->name }}</span>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            @else
-                <p class="text-sm text-muted-foreground">
-                    Supervisor data is not available. Run
-                    <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">php artisan horizon</code>
-                    on the service,
-                    ensure the service is running and reachable, and wait a few seconds for supervisor heartbeats.
-                </p>
-            @endif
+            <div id="service-show-supervisors-panel">
+                @include('horizon.services.partials.show-supervisors-panel-inner')
+            </div>
         </div>
 
         <div class="card mb-4">
             <div class="flex items-center justify-between border-b border-border px-4 py-3">
                 <h3 class="text-section-title text-foreground">Current workload</h3>
-                @if($workloadQueues->count() > 0)
-                    <p class="text-xs text-muted-foreground">{{ $workloadQueues->count() }} queue(s)</p>
-                @endif
+                <p id="service-show-workload-count" class="text-xs text-muted-foreground">
+                    @if($workloadQueues->count() > 0)
+                        {{ $workloadQueues->count() }} queue(s)
+                    @endif
+                </p>
             </div>
             <x-table
                 resizable-key="horizon-service-queues"
                 column-ids="queue,jobs,processes,wait"
                 body-key="horizon-service-queues"
+                body-id="service-show-workload-body"
             >
                 <x-slot:head>
                     <tr class="border-b border-border bg-muted/50">
@@ -211,89 +120,20 @@
                         <th class="table-header px-4 py-2.5" data-column-id="wait">Wait</th>
                     </tr>
                 </x-slot:head>
-                        @forelse($workloadQueues as $row)
-                            <tr class="transition-colors hover:bg-muted/30">
-                                <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground break-all" data-column-id="queue">
-                                    {{ $row->queue }}
-                                </td>
-                                <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="jobs">
-                                    {{ number_format($row->jobs) }}
-                                </td>
-                                <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="processes">
-                                    {{ $row->processes !== null ? number_format($row->processes) : '–' }}
-                                </td>
-                                <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="wait">
-                                    @if($row->wait !== null)
-                                        <span data-wait-seconds="{{ $row->wait }}">{{ number_format($row->wait, 2) }} s</span>
-                                    @else
-                                        –
-                                    @endif
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="4" data-column-id="queue">
-                                    <div class="empty-state">
-                                        <x-heroicon-o-queue-list class="empty-state-icon" />
-                                        <p class="empty-state-title">No queues for this service yet</p>
-                                        <p class="empty-state-description">Queues will appear here once jobs are dispatched to this service.</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforelse
+                @include('horizon.services.partials.show-workload-tbody', ['workloadQueues' => $workloadQueues])
             </x-table>
         </div>
 
-        @if(isset($supervisorGroups) && $supervisorGroups->isNotEmpty())
-            @foreach($supervisorGroups as $groupName => $groupSupervisors)
-                <div class="card mb-4">
-                    <div class="flex items-center justify-between border-b border-border px-4 py-3">
-                        <h3 class="text-section-title text-foreground">{{ $groupName }}</h3>
-                        <p class="text-xs text-muted-foreground">{{ $groupSupervisors->count() }} supervisor(s)</p>
-                    </div>
-                    <x-table
-                        resizable-key="horizon-service-supervisors-{{ \Illuminate\Support\Str::slug($groupName) }}"
-                        column-ids="supervisor,connection,queues,processes,balancing"
-                        body-key="horizon-service-supervisors-{{ \Illuminate\Support\Str::slug($groupName) }}"
-                    >
-                        <x-slot:head>
-                            <tr class="border-b border-border bg-muted/50">
-                                <th class="table-header px-4 py-2.5 min-w-[160px]" data-column-id="supervisor">Supervisor</th>
-                                <th class="table-header px-4 py-2.5 min-w-[120px]" data-column-id="connection">Connection</th>
-                                <th class="table-header px-4 py-2.5 min-w-[160px]" data-column-id="queues">Queues</th>
-                                <th class="table-header px-4 py-2.5 min-w-[80px]" data-column-id="processes">Processes</th>
-                                <th class="table-header px-4 py-2.5 min-w-[120px]" data-column-id="balancing">Balancing</th>
-                            </tr>
-                        </x-slot:head>
-                                @foreach($groupSupervisors as $supervisor)
-                                    <tr class="transition-colors hover:bg-muted/30">
-                                        <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground break-all" data-column-id="supervisor">
-                                            {{ $supervisor->name }}
-                                        </td>
-                                        <td class="px-4 py-2.5 text-sm text-muted-foreground break-all" data-column-id="connection">
-                                            {{ $supervisor->connection !== '' ? $supervisor->connection : '–' }}
-                                        </td>
-                                        <td class="px-4 py-2.5 text-sm text-muted-foreground break-all" data-column-id="queues">
-                                            {{ $supervisor->queues !== '' ? $supervisor->queues : '–' }}
-                                        </td>
-                                        <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="processes">
-                                            {{ $supervisor->processes !== null ? number_format($supervisor->processes) : '–' }}
-                                        </td>
-                                        <td class="px-4 py-2.5 text-sm text-muted-foreground break-all" data-column-id="balancing">
-                                            {{ $supervisor->balancing !== '' ? $supervisor->balancing : '–' }}
-                                        </td>
-                                    </tr>
-                                @endforeach
-                    </x-table>
-                </div>
-            @endforeach
-        @endif
+        <div id="service-show-supervisor-groups">
+            @include('horizon.services.partials.show-supervisor-groups')
+        </div>
 
+        <x-turbo::frame id="service-jobs">
         <div class="card">
             <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
                 <div class="space-y-2">
                     <x-input-label for="service-jobs-search">Search</x-input-label>
-                    <form method="GET" action="{{ route('horizon.services.show', $service) }}" id="service-jobs-search" class="flex gap-2">
+                    <form method="GET" action="{{ route('horizon.services.show', $service) }}" id="service-jobs-search" class="flex gap-2" data-turbo-frame="service-jobs">
                         <x-text-input
                             type="text"
                             name="search"
@@ -315,5 +155,6 @@
                 'resizablePrefix' => 'horizon-service-dashboard-jobs',
             ])
         </div>
+        </x-turbo::frame>
     </div>
 @endsection

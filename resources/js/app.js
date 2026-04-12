@@ -1,19 +1,20 @@
 import './bootstrap';
 import './components/resizable-table';
+import * as Turbo from '@hotwired/turbo';
 import { horizonJobsPage, horizonJobDetail, horizonJobRowRetry } from './horizon/jobs';
-import { horizonServiceDashboard, horizonServiceList } from './horizon/services';
-import { horizonQueueList } from './horizon/queues';
 import { horizonAlertsList, horizonAlertDetail } from './horizon/alerts';
 import { horizonMetricsPage } from './horizon/metrics';
-import { initRefreshStream } from './lib/sse';
+import { initTurboStream } from './lib/sse';
 import { createHttpHelpers } from './lib/http';
-import { formatDateTimeElements, formatQueueWaitElements, observeQueueWaitElements } from './lib/datetime-format';
+import { formatDateTimeElements, formatQueueWaitElements } from './lib/datetime-format';
 import { mountToaster } from './components/toaster';
 import { applyTheme } from './components/theme';
 import { registerInputDatePicker } from './components/input-date-picker';
 import { onDocumentReady, schedule } from './lib/init';
 import Alpine from 'alpinejs';
 import moment from 'moment';
+
+window.Turbo = Turbo;
 
 registerInputDatePicker(Alpine);
 
@@ -25,9 +26,6 @@ if (!window.moment) window.moment = moment;
 window.horizonJobsPage = horizonJobsPage;
 window.horizonJobDetail = horizonJobDetail;
 window.horizonJobRowRetry = horizonJobRowRetry;
-window.horizonServiceDashboard = horizonServiceDashboard;
-window.horizonServiceList = horizonServiceList;
-window.horizonQueueList = horizonQueueList;
 window.horizonAlertsList = horizonAlertsList;
 window.horizonAlertDetail = horizonAlertDetail;
 window.horizonMetricsPage = horizonMetricsPage;
@@ -42,13 +40,25 @@ Alpine.start();
 onDocumentReady(function () {
     mountToaster();
     applyTheme();
-    // Initial hydration to initially show metrics charts and format elements
     schedule(function () {
         formatDateTimeElements();
         formatQueueWaitElements();
     });
-    observeQueueWaitElements();
-    initRefreshStream();
+    initTurboStream();
+});
+
+document.addEventListener('turbo:before-stream-render', function (e) {
+    var original = e.detail.render;
+    e.detail.render = function (streamElement) {
+        original(streamElement);
+        schedule(function () {
+            formatDateTimeElements();
+            formatQueueWaitElements();
+            if (typeof window.horizonInitResizableTables === 'function') {
+                window.horizonInitResizableTables();
+            }
+        });
+    };
 });
 
 window.addEventListener('apply-theme', function () {

@@ -95,5 +95,4 @@ class HorizonEventProcessor
             'status' => 'online',
         ])->saveQuietly();
     }
-
 }

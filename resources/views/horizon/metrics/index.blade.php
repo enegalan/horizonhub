@@ -12,7 +12,7 @@
 
 @section('content')
     <div
-        data-horizon-metrics-root="1"
+        id="horizon-metrics-dashboard"
         x-data="window.horizonMetricsPage ? window.horizonMetricsPage() : {}"
         x-init="typeof init === 'function' ? init() : null"
     >
@@ -73,8 +73,7 @@
                 <div class="flex items-center gap-2 min-h-[2rem]">
                     <span id="metrics-loader-failure-rate" style="display:none;"><x-loader class="size-5 shrink-0 text-muted-foreground" /></span>
                     <p id="metrics-value-failure-rate" class="text-xl font-semibold text-foreground">
-                        @php($r = $failureRate24h ?? ['rate' => 0.0, 'processed' => 0, 'failed' => 0])
-                        {{ $r['rate'] ?? 0 }}% <span class="text-xs font-normal text-muted-foreground">({{ $r['failed'] ?? 0 }} failed / {{ $r['processed'] ?? 0 }} processed)</span>
+                        @include('horizon.metrics.partials.failure-rate-value', ['failureRate24h' => $failureRate24h ?? null])
                     </p>
                 </div>
             </div>
@@ -130,45 +129,7 @@
                             <th class="table-header px-4 py-2.5" data-column-id="wait">Wait</th>
                         </tr>
                     </x-slot:head>
-                            <tr id="metrics-workload-empty" style="{{ (is_array($workloadRows ?? null) && \count($workloadRows) > 0) ? 'display:none;' : '' }}">
-                                <td colspan="5" data-column-id="service">
-                                    <div class="empty-state">
-                                        <x-heroicon-o-queue-list class="empty-state-icon" />
-                                        <p class="empty-state-title">No queues yet</p>
-                                        <p class="empty-state-description">Queues will appear here once jobs are dispatched to your services.</p>
-                                    </div>
-                                </td>
-                            </tr>
-                            @foreach($workloadRows ?? [] as $row)
-                                <tr class="transition-colors hover:bg-muted/30">
-                                    <td class="px-4 py-2.5 text-sm text-muted-foreground break-all" data-column-id="service">
-                                        @if(! empty($row['service_id']))
-                                            <a href="{{ route('horizon.services.show', ['service' => $row['service_id']]) }}" class="link">{{ $row['service'] ?? '' }}</a>
-                                        @else
-                                            {{ $row['service'] ?? '' }}
-                                        @endif
-                                    </td>
-                                    <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground break-all" data-column-id="queue">{{ $row['queue'] ?? '' }}</td>
-                                    <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="jobs">{{ isset($row['jobs']) ? (int) $row['jobs'] : 0 }}</td>
-                                    <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="processes">
-                                        @if(isset($row['processes']) && $row['processes'] !== null)
-                                            {{ (int) $row['processes'] }}
-                                        @else
-                                            –
-                                        @endif
-                                    </td>
-                                    <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="wait">
-                                        @if(isset($row['wait']) && $row['wait'] !== null)
-                                            @php($waitSeconds = (float) $row['wait'])
-                                            <span data-wait-seconds="{{ $waitSeconds }}">
-                                                {{ number_format($waitSeconds, 2, '.', '') }} s
-                                            </span>
-                                        @else
-                                            –
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
+                            @include('horizon.metrics.partials.workload-tbody', ['workloadRows' => $workloadRows ?? []])
                 </x-table>
             </div>
 
@@ -192,45 +153,7 @@
                             <th class="table-header px-4 py-2.5 min-w-[80px]" data-column-id="status">Status</th>
                         </tr>
                     </x-slot:head>
-                            <tr id="metrics-supervisors-empty" style="{{ (is_array($supervisorsRows ?? null) && \count($supervisorsRows) > 0) ? 'display:none;' : '' }}">
-                                <td colspan="5" data-column-id="service">
-                                    <div class="empty-state">
-                                        <x-heroicon-o-queue-list class="empty-state-icon" />
-                                        <p class="empty-state-title">No supervisor data yet</p>
-                                        <p class="empty-state-description">
-                                            Supervisors will appear here once Horizon is running on your services and the Hub agent has synced data.
-                                        </p>
-                                    </div>
-                                </td>
-                            </tr>
-                            @foreach($supervisorsRows ?? [] as $row)
-                                <tr class="transition-colors hover:bg-muted/30">
-                                    <td class="px-4 py-2.5 text-sm text-muted-foreground break-all" data-column-id="service">
-                                        @if(! empty($row['service_id']))
-                                            <a href="{{ route('horizon.services.show', ['service' => $row['service_id']]) }}" class="link">{{ $row['service'] ?? '' }}</a>
-                                        @else
-                                            {{ $row['service'] ?? '' }}
-                                        @endif
-                                    </td>
-                                    <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground break-all" data-column-id="supervisor">{{ $row['name'] ?? '' }}</td>
-                                    <td class="px-4 py-2.5 text-sm text-muted-foreground text-right" data-column-id="jobs">
-                                        {{ isset($row['jobs']) ? (int) $row['jobs'] : 0 }}
-                                    </td>
-                                    <td class="px-4 py-2.5 text-sm text-muted-foreground text-right" data-column-id="processes">
-                                        @if(isset($row['processes']) && $row['processes'] !== null)
-                                            {{ (int) $row['processes'] }}
-                                        @else
-                                            –
-                                        @endif
-                                    </td>
-                                    <td class="px-4 py-2.5 text-xs" data-column-id="status">
-                                        @php($status = $row['status'] ?? 'stale')
-                                        <span class="{{ $status === 'online' ? 'badge-success' : 'badge-warning' }}">
-                                            {{ $status === 'online' ? 'Online' : 'Stale' }}
-                                        </span>
-                                    </td>
-                                </tr>
-                            @endforeach
+                            @include('horizon.metrics.partials.supervisors-tbody', ['supervisorsRows' => $supervisorsRows ?? []])
                 </x-table>
             </div>
         </div>

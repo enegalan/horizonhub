@@ -6,7 +6,7 @@
 @endphp
 <div
     class="rounded-bl-[var(--radius)] overflow-hidden"
-    data-horizon-jobs-stack-root="1"
+    id="horizon-jobs-stack"
     x-data="{
         sectionOpen: { processing: true, processed: true, failed: true },
         init() {

@@ -376,3 +376,11 @@ td[data-column-id="actions"] > div {
 div.-selected-.air-datepicker-cell.-day-.-other-month- {
     color: var(--adp-color) !important;
 }
+
+.turbo-progress-bar {
+    background-color: var(--primary-solid);
+}
+
+html[data-turbo-visit-direction="forward"]::view-transition-old(sidebar):only-child {
+    animation: slide-to-right 0.5s ease-out;
+}

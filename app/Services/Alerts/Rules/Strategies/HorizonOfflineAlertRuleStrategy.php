@@ -37,9 +37,6 @@ final class HorizonOfflineAlertRuleStrategy implements AlertRuleStrategyInterfac
 
     /**
      * Evaluate the horizon offline.
-     * 
-     * @param int $serviceId
-     * @return bool
      */
     private function private__evaluateHorizonOffline(int $serviceId): bool
     {

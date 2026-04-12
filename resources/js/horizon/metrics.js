@@ -1,5 +1,4 @@
 import { applyChartOptions } from "../charts/metrics-charts";
-import { getCssHsl, onHorizonHubRefresh } from "../lib/dom";
 import { parseJsonFromElement } from "../lib/parse";
 import { isHotReloadEnabled } from "../lib/sse";
 import { getChartColors } from "../charts/metrics-charts";
@@ -20,52 +19,6 @@ function deleteServiceIdSearchParams(url) {
     toRemove.forEach(function (k) {
         url.searchParams.delete(k);
     });
-}
-
-/**
- * Replace the metrics dashboard root from a server-rendered document (refresh SSE).
- * @param {Document} preloadedDoc
- * @returns {void}
- */
-function refreshMetricsPageFromDocument(preloadedDoc) {
-    if (!preloadedDoc) return;
-
-    var currentRoot = document.querySelector('[data-horizon-metrics-root="1"]');
-    if (!currentRoot) return;
-
-    // Avoid updating when the user is interacting with the page
-    if (document.activeElement && currentRoot.contains(document.activeElement)) {
-        var tag = document.activeElement.tagName;
-        if (tag === "SELECT" || tag === "INPUT" || tag === "TEXTAREA") {
-            return;
-        }
-        var role = document.activeElement.getAttribute && document.activeElement.getAttribute("role");
-        if (role === "listbox" || role === "combobox" || role === "option") {
-            return;
-        }
-        if (document.activeElement.getAttribute && document.activeElement.getAttribute("aria-expanded") === "true") {
-            return;
-        }
-        if (document.activeElement.closest && (document.activeElement.closest('[role="listbox"]') || document.activeElement.closest('[role="combobox"]'))) {
-            return;
-        }
-    }
-
-    var newRoot = preloadedDoc.querySelector('[data-horizon-metrics-root="1"]');
-    if (!newRoot) return;
-
-    currentRoot.replaceWith(newRoot);
-
-    if (window.horizonInitResizableTables) {
-        window.horizonInitResizableTables();
-    }
-    if (typeof requestAnimationFrame !== "undefined") {
-        requestAnimationFrame(function () {
-            hydrateMetricsChartsFromDom();
-        });
-    } else {
-        hydrateMetricsChartsFromDom();
-    }
 }
 
 /**
@@ -369,12 +322,6 @@ export function horizonMetricsPage() {
 
             // Initial hydration to initially show metrics charts and format elements
             hydrateMetricsChartsFromDom();
-            if (!window.__horizonHubMetricsRefreshListenerAttached) {
-                window.__horizonHubMetricsRefreshListenerAttached = true;
-                onHorizonHubRefresh(function (doc) {
-                    refreshMetricsPageFromDocument(doc);
-                });
-            }
 
             var filterEl = document.getElementById("metrics-service-filter");
             if (filterEl) {

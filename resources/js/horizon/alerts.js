@@ -1,6 +1,5 @@
-import { formatDateTimeElements } from '../lib/datetime-format';
-import { onHorizonHubRefresh, replaceTableTbodyFromDoc } from '../lib/dom';
 import { getChartColors, applyChartOptions } from '../charts/metrics-charts';
+import { parseJsonFromElement } from '../lib/parse';
 
 /**
  * Alert detail charts.
@@ -29,12 +28,6 @@ export function horizonAlertsList() {
             if (typeof window === 'undefined') return;
 
             window.__horizonAlertsListEvaluationInstance = self;
-
-            onHorizonHubRefresh(function (doc) {
-                self.refreshAlertsList(doc);
-            });
-
-            // Event delegation for evaluation buttons (table rows may be replaced on refresh).
             // Attach the document click listener only once to avoid duplicate toasts.
             if (!window.__horizonAlertsListEvaluationClickListenerAttached) {
                 window.__horizonAlertsListEvaluationClickListenerAttached = true;
@@ -93,13 +86,9 @@ export function horizonAlertsList() {
 
         private__handleEvaluateAlertClick(btnEl) {
             var self = this;
-            if (!window.horizon || !window.horizon.http) return;
-            if (!btnEl) return;
-            var alreadyRunning = btnEl.getAttribute && btnEl.getAttribute('data-alert-evaluation-running') === '1';
-            if (alreadyRunning) return;
-            if (btnEl.disabled) return;
-            if (btnEl.getAttribute && btnEl.getAttribute('aria-busy') === 'true') return;
-            if (self.bulkEvaluationInProgress) return;
+            if (!window.horizon || !window.horizon.http || !btnEl) return;
+            var alreadyRunning = btnEl.getAttribute && btnEl.getAttribute('data-alert-evaluation-running') === '1' || self.bulkEvaluationInProgress;
+            if (alreadyRunning || btnEl.disabled || btnEl.getAttribute && btnEl.getAttribute('aria-busy') === 'true') return;
             var url = btnEl.getAttribute('data-alert-evaluate-url');
             var alertId = btnEl.getAttribute('data-alert-id');
             if (!url || !alertId) return;
@@ -110,7 +99,7 @@ export function horizonAlertsList() {
                 var errorMessage = data && data.error_message ? data.error_message : null;
                 var triggered = !!(data && data.triggered);
                 var triggeredServiceId = data && data.triggered_service_id ? data.triggered_service_id : null;
-            var delivered = !!(data && data.delivered);
+                var delivered = !!(data && data.delivered);
 
                 if (errorMessage) {
                     if (window.toast && window.toast.error) {
@@ -120,16 +109,16 @@ export function horizonAlertsList() {
                 }
 
                 if (triggered) {
-                if (delivered && window.toast && window.toast.success) {
-                    window.toast.success('Alert #' + alertId + ' triggered and delivery sent' + (triggeredServiceId ? ' (service ' + triggeredServiceId + ')' : '') + '.');
-                } else if (window.toast && window.toast.info) {
-                    window.toast.info('Alert #' + alertId + ' triggered' + (triggeredServiceId ? ' (service ' + triggeredServiceId + ')' : '') + '; delivery batched.');
+                    if (delivered && window.toast && window.toast.success) {
+                        window.toast.success('Alert #' + alertId + ' triggered and delivery sent' + (triggeredServiceId ? ' (service ' + triggeredServiceId + ')' : '') + '.');
+                    } else if (window.toast && window.toast.info) {
+                        window.toast.info('Alert #' + alertId + ' triggered' + (triggeredServiceId ? ' (service ' + triggeredServiceId + ')' : '') + '; delivery batched.');
                     }
                 } else {
-                if (delivered && window.toast && window.toast.info) {
-                    window.toast.info('Alert #' + alertId + ' delivery flushed.');
-                } else if (window.toast && window.toast.info) {
-                    window.toast.info('Alert #' + alertId + ' did not trigger.');
+                    if (delivered && window.toast && window.toast.info) {
+                        window.toast.info('Alert #' + alertId + ' delivery flushed.');
+                    } else if (window.toast && window.toast.info) {
+                        window.toast.info('Alert #' + alertId + ' did not trigger.');
                     }
                 }
             }).catch(function (err) {
@@ -142,12 +131,9 @@ export function horizonAlertsList() {
 
         private__handleEvaluateAllClick(bulkBtnEl) {
             var self = this;
-            if (!window.horizon || !window.horizon.http) return;
-            if (!bulkBtnEl) return;
-            var alreadyRunning = bulkBtnEl.getAttribute && bulkBtnEl.getAttribute('data-alert-evaluation-running') === '1';
+            if (!window.horizon || !window.horizon.http || !bulkBtnEl) return;
+            var alreadyRunning = bulkBtnEl.getAttribute && bulkBtnEl.getAttribute('data-alert-evaluation-running') === '1' || self.bulkEvaluationInProgress || bulkBtnEl.disabled;
             if (alreadyRunning) return;
-            if (bulkBtnEl.disabled) return;
-            if (self.bulkEvaluationInProgress) return;
             var bulkUrl = bulkBtnEl.getAttribute('data-alert-evaluate-all-url');
             var statusUrlTemplate = bulkBtnEl.getAttribute('data-alert-evaluate-all-status-url');
             if (!bulkUrl || !statusUrlTemplate) return;
@@ -272,25 +258,6 @@ export function horizonAlertsList() {
                 });
             }, intervalMs);
         },
-        /**
-         * Refresh the alerts list.
-         * @param {Document} preloadedDoc
-         * @returns {void}
-         */
-        refreshAlertsList(preloadedDoc) {
-            if (typeof window === 'undefined' || typeof document === 'undefined') return;
-            if (!preloadedDoc) return;
-            var table = replaceTableTbodyFromDoc(preloadedDoc, {
-                tableSelector: '[data-resizable-table="horizon-alerts-list"]',
-            });
-            if (!table) return;
-            if (typeof window !== 'undefined' && window.horizonInitResizableTables) {
-                window.horizonInitResizableTables();
-            }
-            if (typeof window !== 'undefined') {
-                formatDateTimeElements(table);
-            }
-        },
     };
 }
 
@@ -339,10 +306,6 @@ export function horizonAlertDetail(config) {
 
             // Initial hydration to initially show alert detail charts
             hydrateAlertDetailChartsFromDom();
-
-            onHorizonHubRefresh(function (doc) {
-                self.refreshAlertDetail(doc);
-            });
         },
         openDeliveryLogModal(logData) {
             if (logData) {
@@ -365,66 +328,6 @@ export function horizonAlertDetail(config) {
                     this.deliveryLog = null;
                 }
             }, 220);
-        },
-        refreshAlertDetail(preloadedDoc) {
-            if (typeof window === 'undefined' || typeof document === 'undefined') return;
-            if (!preloadedDoc) return;
-
-            var newRoot = preloadedDoc.querySelector('[data-horizon-alert-detail-root="1"]');
-            var currentRoot = document.querySelector('[data-horizon-alert-detail-root="1"]');
-            if (!newRoot || !currentRoot) return;
-
-            var modalOpen = this.deliveryLogModalMounted;
-
-            function replaceSection(selector) {
-                var cur = currentRoot.querySelector(selector);
-                var neu = newRoot.querySelector(selector);
-                if (cur && neu) cur.replaceWith(neu);
-            }
-
-            replaceSection('[data-alert-detail-breadcrumb]');
-            replaceSection('[data-alert-detail-stats]');
-            replaceSection('[data-alert-detail-rule]');
-            if (!modalOpen) {
-                replaceSection('[data-alert-detail-after-charts]');
-            }
-
-            var chartData = null;
-            var scriptEl = document.getElementById('alert-detail-chart-data');
-            if (scriptEl && scriptEl.textContent) {
-                try {
-                    chartData = JSON.parse(scriptEl.textContent.trim());
-                } catch (e) {}
-            }
-
-            if (typeof window !== 'undefined' && window.horizonInitResizableTables) {
-                window.horizonInitResizableTables();
-            }
-
-            formatDateTimeElements(currentRoot);
-
-            var chartIds = ['alert-detail-chart-24h', 'alert-detail-chart-7d', 'alert-detail-chart-30d'];
-            if (chartData && window.echarts) {
-                chartIds.forEach(function (id) {
-                    var el = currentRoot.querySelector('#' + id);
-                    if (el) {
-                        var instance = window.echarts.getInstanceByDom(el);
-                        if (instance) instance.dispose();
-                    }
-                });
-                requestAnimationFrame(function () {
-                    initAlertDetailCharts(chartData);
-                    requestAnimationFrame(function () {
-                        chartIds.forEach(function (id) {
-                            var el = document.getElementById(id);
-                            if (el) {
-                                var inst = window.echarts.getInstanceByDom(el);
-                                if (inst) inst.resize();
-                            }
-                        });
-                    });
-                });
-            }
         },
     };
 }

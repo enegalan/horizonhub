@@ -23,35 +23,46 @@ abstract class StreamController extends Controller
     }
 
     /**
-     * Run a streaming SSE loop for the given event type.
+     * Run a streaming SSE.
      *
-     * @param  callable(): array<string, mixed>  $payloadCallback
+     * The callback must return a Turbo Stream HTML string (one or more
+     * <turbo-stream> elements) or null when there is nothing to push.
+     *
+     * @param  callable(): ?string  $turboStreamCallback
      */
-    protected function runStream(callable $payloadCallback, string $eventType): StreamedResponse
+    protected function runStream(callable $turboStreamCallback): StreamedResponse
     {
         $interval = ConfigHelper::getIntWithMin('horizonhub.hot_reload_interval', 1);
 
-        return \response()->stream(function () use ($interval, $payloadCallback, $eventType): void {
+        return \response()->stream(function () use ($interval, $turboStreamCallback): void {
+            echo ": stream-open\n\n";
+            if (\function_exists('ob_flush')) {
+                @\ob_flush();
+            }
+            if (\function_exists('flush')) {
+                @\flush();
+            }
+
             while (true) {
                 if (\connection_aborted()) {
                     break;
                 }
 
-                $payload = $payloadCallback();
+                $turboHtml = $turboStreamCallback();
 
-                $json = \json_encode($payload);
-                if ($json === false) {
-                    $json = '{}';
-                }
+                if ($turboHtml !== null && $turboHtml !== '') {
+                    $lines = \explode("\n", $turboHtml);
+                    foreach ($lines as $line) {
+                        echo "data: $line\n";
+                    }
+                    echo "\n";
 
-                echo "event: $eventType\n";
-                echo "data: $json\n\n";
-
-                if (\function_exists('ob_flush')) {
-                    @\ob_flush();
-                }
-                if (\function_exists('flush')) {
-                    @\flush();
+                    if (\function_exists('ob_flush')) {
+                        @\ob_flush();
+                    }
+                    if (\function_exists('flush')) {
+                        @\flush();
+                    }
                 }
 
                 if (\connection_aborted()) {

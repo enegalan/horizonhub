@@ -7,13 +7,13 @@
             canRetry: {{ $job->service && $job->service->base_url && $job->status === 'failed' ? 'true' : 'false' }},
         })"
         x-init="typeof init === 'function' ? init() : null"
-        data-horizon-job-detail-root="1"
+        id="horizon-job-detail"
         data-horizon-job-uuid="{{ $job->uuid ? e($job->uuid) : '' }}"
     >
         <p class="mb-3 text-xs text-muted-foreground">
-            <a href="{{ route('horizon.index') }}" class="link">Jobs</a>
+            <a href="{{ route('horizon.index') }}" class="link" data-turbo-action="replace">Jobs</a>
             @if($job->service)
-                / <a href="{{ route('horizon.services.show', $job->service) }}" class="link">{{ $job->service->name }}</a>
+                / <a href="{{ route('horizon.services.show', $job->service) }}" class="link" data-turbo-action="replace">{{ $job->service->name }}</a>
             @endif
             / <span class="text-foreground">{{ $job->name ?? $job->uuid }}</span>
         </p>
@@ -213,7 +213,7 @@
                         <tr class="transition-colors hover:bg-muted/30">
                             <td class="px-4 py-2.5 text-sm text-primary truncate max-w-[180px]" data-column-id="uuid">
                                 @if(isset($retryJob['id']) && \is_string($retryJob['id']) && $retryJob['id'] !== '' && $job->service)
-                                    <a class="link" href="{{ route('horizon.jobs.show', ['job' => $retryJob['id'], 'service_id' => $job->service->id]) }}">{{ $retryJob['id'] }}</a>
+                                    <a class="link" href="{{ route('horizon.jobs.show', ['job' => $retryJob['id'], 'service_id' => $job->service->id]) }}" data-turbo-action="replace">{{ $retryJob['id'] }}</a>
                                 @else
                                     {{ $retryJob['id'] ?? '–' }}
                                 @endif

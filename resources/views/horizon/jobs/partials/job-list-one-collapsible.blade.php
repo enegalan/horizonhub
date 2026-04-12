@@ -73,14 +73,14 @@
             @forelse($paginator as $job)
                 <tr class="transition-colors hover:bg-muted/30">
                     <td class="px-4 py-2.5 text-sm text-primary cursor-pointer truncate max-w-[180px]" data-column-id="uuid">
-                        <a class="link" href="{{ route('horizon.jobs.show', ['job' => $job->uuid, 'service_id' => $job->service->id]) }}">
+                        <a class="link" href="{{ route('horizon.jobs.show', ['job' => $job->uuid, 'service_id' => $job->service->id]) }}" data-turbo-action="replace">
                             {{ $job->uuid }}
                         </a>
                     </td>
                     @if($showServiceColumn)
                         <td class="px-4 py-2.5 text-sm font-medium text-foreground truncate max-w-[180px]" data-column-id="service">
                             @if($job->service)
-                                <a href="{{ route('horizon.services.show', $job->service) }}" class="link">{{ $job->service->name }}</a>
+                                <a href="{{ route('horizon.services.show', $job->service) }}" class="link" data-turbo-action="replace">{{ $job->service->name }}</a>
                             @else
                                 –
                             @endif

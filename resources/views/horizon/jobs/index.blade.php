@@ -8,10 +8,9 @@
             retryBatchUrl: '{{ route('horizon.jobs.retry-batch') }}',
             jobsPerPage: {{ \config('horizonhub.jobs_per_page') }},
         }) : {}"
-        x-init="if (typeof init === 'function') { init(); }"
     >
         <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
-            <form method="GET" action="{{ route('horizon.index') }}" class="flex flex-wrap items-end gap-3">
+            <form method="GET" action="{{ route('horizon.index') }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="_top">
                 <div class="space-y-2">
                     <x-input-label>Services</x-input-label>
                     <x-multiselect

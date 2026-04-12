@@ -1,31 +1,5 @@
-import { formatDateTimeElements } from '../lib/datetime-format';
-import { onHorizonHubRefresh } from '../lib/dom';
 import { renderJsonTree } from '../lib/json-tree';
 import { parseFailedAtRange } from '../lib/parse';
-
-/**
- * Swap a live DOM subtree with the same selector from a fetched document.
- * @param {string} selector
- * @param {Document} preloadedDoc
- * @param {{ afterReplace?: function(HTMLElement): void }=} options
- * @returns {HTMLElement|null}
- */
-function replaceHorizonRootFromDoc(selector, preloadedDoc, options) {
-    if (typeof window === 'undefined' || typeof document === 'undefined') return null;
-    if (!preloadedDoc) return null;
-    var newRoot = preloadedDoc.querySelector(selector);
-    var currentRoot = document.querySelector(selector);
-    if (!newRoot || !currentRoot) return null;
-    currentRoot.replaceWith(newRoot);
-    formatDateTimeElements(newRoot);
-    if (typeof window !== 'undefined' && window.Alpine && typeof window.Alpine.initTree === 'function') {
-        window.Alpine.initTree(newRoot);
-    }
-    if (options && typeof options.afterReplace === 'function') {
-        options.afterReplace(newRoot);
-    }
-    return newRoot;
-}
 
 /**
  * POST retry URL, toast, and dispatch refresh (single job flows).
@@ -37,18 +11,13 @@ function replaceHorizonRootFromDoc(selector, preloadedDoc, options) {
 function postSingleJobRetry(retryUrl, component, toastMessage) {
     if (!window.horizon || !window.horizon.http) return;
     component.retrying = true;
-    var shouldRefresh = false;
     window.horizon.http.post(retryUrl, {}).then(function () {
         if (window.toast && window.toast.success) {
             window.toast.success(toastMessage);
         }
-        shouldRefresh = true;
     }).catch(function () {
     }).finally(function () {
         component.retrying = false;
-        if (shouldRefresh && typeof window !== 'undefined') {
-            window.dispatchEvent(new Event('horizonhub-refresh'));
-        }
     });
 }
 
@@ -138,10 +107,10 @@ export function enhanceHorizonJobDetailJsonTrees(root) {
  */
 export function horizonJobsPage(config) {
     return {
-        /*
-        * Show retry modal.
-        * @type {boolean}
-        */
+        /**
+         * Show retry modal.
+         * @type {boolean}
+         */
         showRetryModal: false,
         /**
          * Keep modal mounted while close animation runs.
@@ -196,20 +165,6 @@ export function horizonJobsPage(config) {
             service_ids: [],
             search: '',
             failed_at_range: '',
-        },
-        /**
-         * Initialize the jobs page.
-         * @returns {void}
-         */
-        init() {
-            var self = this;
-            onHorizonHubRefresh(function (doc) {
-                self.refreshJobsTable(doc);
-            }, {
-                shouldSkip: function () {
-                    return self.retryModalMounted;
-                },
-            });
         },
         /**
          * Open the retry modal.
@@ -402,20 +357,6 @@ export function horizonJobsPage(config) {
                 self.retrying = false;
             });
         },
-        /**
-         * Refresh the jobs table.
-         * @param {Document} preloadedDoc
-         * @returns {void}
-         */
-        refreshJobsTable(preloadedDoc) {
-            replaceHorizonRootFromDoc('[data-horizon-jobs-stack-root="1"]', preloadedDoc, {
-                afterReplace: function () {
-                    if (typeof window !== 'undefined' && window.horizonInitResizableTables) {
-                        window.horizonInitResizableTables();
-                    }
-                },
-            });
-        },
     };
 }
 
@@ -427,6 +368,10 @@ export function horizonJobsPage(config) {
  */
 export function horizonJobRowRetry(config) {
     return {
+        /**
+         * Retrying.
+         * @type {boolean}
+         */
         retrying: false,
         /**
          * Retry the job.
@@ -445,7 +390,15 @@ export function horizonJobRowRetry(config) {
  */
 export function horizonJobDetail(config) {
     return {
+        /**
+         * Retrying.
+         * @type {boolean}
+         */
         retrying: false,
+        /**
+         * Show all exception lines.
+         * @type {boolean}
+         */
         showAllExceptionLines: false,
         /**
          * Get the job UUID from the current detail root element.
@@ -500,16 +453,8 @@ export function horizonJobDetail(config) {
          * @returns {void}
          */
         init() {
-            var self = this;
             this.restorePersistedUiState();
             this.enhanceJobDetail(document);
-            onHorizonHubRefresh(function (doc) {
-                self.refreshJobDetail(doc);
-            }, {
-                shouldSkip: function () {
-                    return self.retrying;
-                },
-            });
         },
         /**
          * Retry the job.
@@ -534,19 +479,6 @@ export function horizonJobDetail(config) {
          */
         enhanceJobDetail(root) {
             enhanceHorizonJobDetailJsonTrees(root);
-        },
-        /**
-         * Refresh the job detail.
-         * @param {Document} preloadedDoc
-         * @returns {void}
-         */
-        refreshJobDetail(preloadedDoc) {
-            var self = this;
-            replaceHorizonRootFromDoc('[data-horizon-job-detail-root="1"]', preloadedDoc, {
-                afterReplace: function (newRoot) {
-                    self.enhanceJobDetail(newRoot);
-                },
-            });
         },
     };
 }

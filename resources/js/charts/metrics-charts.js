@@ -1,5 +1,4 @@
 import { getCssHsl } from '../lib/dom';
-import { parseJsonFromElement } from '../lib/parse';
 
 /**
  * Get the chart colors.
@@ -79,15 +78,4 @@ export function applyChartOptions(el, options) {
         chart.setOption(options);
         chart.resize();
     }
-}
-
-/**
- * Hydrate the alert detail charts from the DOM.
- * @returns {void}
- */
-export function hydrateAlertDetailChartsFromDom() {
-    if (typeof window.echarts === 'undefined') return;
-    var data = parseJsonFromElement('alert-detail-chart-data');
-    if (!data) return;
-    initAlertDetailCharts(data);
 }

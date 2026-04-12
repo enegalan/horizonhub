@@ -342,7 +342,7 @@
                     @if($providers->isEmpty())
                         <p class="text-sm text-amber-600 dark:text-amber-400">
                             No providers yet.
-                            <a href="{{ route('horizon.settings', ['tab' => 'providers']) }}" class="link">Create a provider</a>
+                            <a href="{{ route('horizon.settings', ['tab' => 'providers']) }}" class="link" data-turbo-action="replace">Create a provider</a>
                             in Settings first.
                         </p>
                     @else
