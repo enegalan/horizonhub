@@ -29,6 +29,7 @@
                 column-ids="service,queue,job_count"
                 body-key="horizon-queue-list"
                 body-id="turbo-tbody-horizon-queue-list"
+                stream-patch-children
             >
                 <x-slot:head>
                     <tr class="border-b border-border bg-muted/50">

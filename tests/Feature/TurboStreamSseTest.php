@@ -109,6 +109,23 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('action="update"', $result);
     }
 
+    public function test_services_index_marks_stream_patch_children_on_list_container(): void
+    {
+        Service::create([
+            'name' => 'merge-markup-svc',
+            'base_url' => null,
+            'api_key' => 'key-merge-markup',
+            'status' => 'online',
+        ]);
+
+        $response = $this->get(route('horizon.services.index'));
+
+        $response->assertOk();
+        $html = (string) $response->getContent();
+        $this->assertStringContainsString('data-turbo-stream-patch-children="true"', $html);
+        $this->assertStringContainsString('data-stream-row-id="svc-', $html);
+    }
+
     public function test_parse_service_ids_from_query(): void
     {
         $controller = $this->app->make(HorizonStreamsController::class);

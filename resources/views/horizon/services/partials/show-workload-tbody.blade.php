@@ -1,5 +1,5 @@
 @forelse($workloadQueues as $row)
-    <tr class="transition-colors hover:bg-muted/30">
+    <tr class="transition-colors hover:bg-muted/30" data-stream-row-id="wl-{{ rawurlencode((string) $row->queue) }}">
         <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground break-all" data-column-id="queue">
             {{ $row->queue }}
         </td>

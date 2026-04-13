@@ -84,6 +84,42 @@ import { parseJson } from '../lib/parse';
     }
 
     /**
+     * @param {Element[]} current
+     * @param {Element[]} desired
+     * @returns {boolean}
+     */
+    function matchElementOrder(current, desired) {
+        if (current.length !== desired.length) {
+            return false;
+        }
+        var i;
+        for (i = 0; i < current.length; i++) {
+            if (current[i] !== desired[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Direct th/td children carrying data-column-id (document order).
+     * @param {HTMLTableRowElement} row
+     * @param {string} tag 'TH' | 'TD'
+     * @returns {HTMLElement[]}
+     */
+    function getDirectColumnCells(row, tag) {
+        var want = String(tag || 'TD').toUpperCase();
+        var out = [];
+        for (var c = row.firstElementChild; c; c = c.nextElementSibling) {
+            var tn = c.tagName ? c.tagName.toUpperCase() : '';
+            if (tn === want && c.hasAttribute('data-column-id')) {
+                out.push(c);
+            }
+        }
+        return out;
+    }
+
+    /**
      * Apply the state to the table.
      * @param {HTMLElement} table
      * @param {object} state
@@ -99,32 +135,53 @@ import { parseJson } from '../lib/parse';
             thsById[th.getAttribute('data-column-id')] = th;
         });
 
-        state.order.forEach(colId => {
+        var desiredHeadCells = [];
+        state.order.forEach(function (colId) {
             var th = thsById[colId];
             if (th) {
+                desiredHeadCells.push(th);
+            }
+        });
+        var currentHeadCells = getDirectColumnCells(theadRow, 'TH');
+        if (!matchElementOrder(currentHeadCells, desiredHeadCells)) {
+            desiredHeadCells.forEach(function (th) {
                 theadRow.appendChild(th);
-                var w = state.widths[colId];
-                if (w != null) {
-                    th.style.width = th.style.maxWidth = w + 'px';
-                } else {
-                    th.style.width = th.style.maxWidth = '';
-                }
+            });
+        }
+
+        state.order.forEach(colId => {
+            var th = thsById[colId];
+            if (!th) return;
+            var w = state.widths[colId];
+            if (w != null) {
+                th.style.width = th.style.maxWidth = w + 'px';
+            } else {
+                th.style.width = th.style.maxWidth = '';
             }
         });
 
-        var columnOrder = Array.from(theadRow.querySelectorAll('th[data-column-id]')).map(function (th) {
+        var columnOrder = getDirectColumnCells(theadRow, 'TH').map(function (th) {
             return th.getAttribute('data-column-id');
         });
 
         bodyRows.forEach(tr => {
             var cellsById = {};
-            tr.querySelectorAll('td[data-column-id]').forEach(td => {
+            getDirectColumnCells(tr, 'TD').forEach(td => {
                 cellsById[td.getAttribute('data-column-id')] = td;
             });
-            columnOrder.forEach(colId => {
+            var desiredBodyCells = [];
+            columnOrder.forEach(function (colId) {
                 var td = cellsById[colId];
-                if (td) tr.appendChild(td);
+                if (td) {
+                    desiredBodyCells.push(td);
+                }
             });
+            var currentBodyCells = getDirectColumnCells(tr, 'TD');
+            if (!matchElementOrder(currentBodyCells, desiredBodyCells)) {
+                desiredBodyCells.forEach(function (td) {
+                    tr.appendChild(td);
+                });
+            }
         });
     }
 

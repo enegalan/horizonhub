@@ -7,6 +7,7 @@
     'theadClass' => null,
     'wrap' => true,
     'bodyAttributes' => null,
+    'streamPatchChildren' => false,
 ])
 
 @php
@@ -16,6 +17,9 @@
     }
     if ($bodyKey !== null && $bodyKey !== '') {
         $bodyBag = $bodyBag->merge(['data-table-body' => $bodyKey]);
+    }
+    if ($streamPatchChildren) {
+        $bodyBag = $bodyBag->merge(['data-turbo-stream-patch-children' => 'true']);
     }
     $bodyBag = $bodyBag->class('divide-y divide-border');
     $tableClasses = trim("min-w-full overflow-hidden $tableClass");

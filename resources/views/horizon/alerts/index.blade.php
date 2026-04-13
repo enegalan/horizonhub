@@ -46,6 +46,7 @@
             resizable-key="horizon-alerts-list"
             column-ids="name,service,rule_type,queue,job_type,enabled,last_triggered,actions"
             body-id="turbo-tbody-horizon-alerts-list"
+            stream-patch-children
         >
             <x-slot:head>
                 <tr class="border-b border-border bg-muted/50">
