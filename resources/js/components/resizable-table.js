@@ -530,7 +530,7 @@ import { parseJson } from '../lib/parse';
      * Initialize the resizable tables.
      * @returns {void}
      */
-    onDocumentReady(() => {
+    document.addEventListener('turbo:load', function () {
         setupDelegatedDragOver();
         init();
     });

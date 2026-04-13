@@ -34,6 +34,16 @@ window.horizonMetricsPage = horizonMetricsPage;
 window.Alpine = Alpine;
 Alpine.start();
 
+document.addEventListener('turbo:before-cache', function () {
+    Alpine.destroyTree(document.body);
+});
+
+document.addEventListener('turbo:load', function () {
+    queueMicrotask(function () {
+        Alpine.initTree(document.body);
+    });
+});
+
 /**
  * Initialize the app.
  * @returns {void}
