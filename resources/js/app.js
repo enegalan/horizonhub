@@ -42,6 +42,10 @@ document.addEventListener('turbo:load', function () {
     queueMicrotask(function () {
         Alpine.initTree(document.body);
     });
+    schedule(function () {
+        formatDateTimeElements();
+        formatQueueWaitElements();
+    });
 });
 
 /**
