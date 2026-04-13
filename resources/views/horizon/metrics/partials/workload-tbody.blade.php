@@ -11,7 +11,7 @@
     </td>
 </tr>
 @foreach($workloadRows ?? [] as $row)
-    <tr class="transition-colors hover:bg-muted/30">
+    <tr class="transition-colors hover:bg-muted/30" data-stream-row-id="wl-{{ (int) ($row['service_id'] ?? 0) }}-{{ rawurlencode((string) ($row['queue'] ?? '')) }}">
         <td class="px-4 py-2.5 text-sm text-muted-foreground break-all" data-column-id="service">
             @if(! empty($row['service_id']))
                 <a href="{{ route('horizon.services.show', ['service' => $row['service_id']]) }}" class="link" data-turbo-action="replace">{{ $row['service'] ?? '' }}</a>

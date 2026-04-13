@@ -116,6 +116,7 @@
                     column-ids="service,queue,jobs,processes,wait"
                     body-key="horizon-metrics-queues"
                     body-id="metrics-workload-body"
+                    stream-patch-children
                 >
                     <x-slot:head>
                         <tr class="border-b border-border bg-muted/50">
@@ -140,6 +141,7 @@
                     column-ids="service,supervisor,jobs,processes,status"
                     body-key="horizon-metrics-supervisors"
                     body-id="metrics-supervisors-body"
+                    stream-patch-children
                 >
                     <x-slot:head>
                         <tr class="border-b border-border bg-muted/50">

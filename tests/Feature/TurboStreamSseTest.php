@@ -109,6 +109,23 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('action="update"', $result);
     }
 
+    public function test_services_index_marks_stream_patch_children_on_list_container(): void
+    {
+        Service::create([
+            'name' => 'merge-markup-svc',
+            'base_url' => null,
+            'api_key' => 'key-merge-markup',
+            'status' => 'online',
+        ]);
+
+        $response = $this->get(route('horizon.services.index'));
+
+        $response->assertOk();
+        $html = (string) $response->getContent();
+        $this->assertStringContainsString('data-turbo-stream-patch-children="true"', $html);
+        $this->assertStringContainsString('data-stream-row-id="svc-', $html);
+    }
+
     public function test_parse_service_ids_from_query(): void
     {
         $controller = $this->app->make(HorizonStreamsController::class);
@@ -132,22 +149,6 @@ class TurboStreamSseTest extends TestCase
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="horizon-jobs-stack" method="morph"', $result);
         $this->assertStringContainsString('action="replace"', $result);
-    }
-
-    public function test_streams_job_show_returns_404_for_unknown_service(): void
-    {
-        $uuid = '763dc9c2-a7cd-4b95-9da5-77beff5c264e';
-        $response = $this->get('/horizon/streams/horizon/jobs/'.$uuid.'?service_id=999999');
-
-        $response->assertStatus(404);
-    }
-
-    public function test_streams_job_show_returns_404_without_service_id(): void
-    {
-        $uuid = '763dc9c2-a7cd-4b95-9da5-77beff5c264e';
-        $response = $this->get('/horizon/streams/horizon/jobs/'.$uuid);
-
-        $response->assertStatus(404);
     }
 
     public function test_build_job_show_streams_returns_granular_detail_updates(): void

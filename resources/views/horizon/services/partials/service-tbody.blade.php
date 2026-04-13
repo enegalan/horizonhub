@@ -2,7 +2,7 @@
     /** @var \Illuminate\Database\Eloquent\Collection $services */
 @endphp
 @forelse($services as $service)
-    <tr class="transition-colors hover:bg-muted/30">
+    <tr class="transition-colors hover:bg-muted/30" data-stream-row-id="svc-{{ (int) $service->id }}">
         <td class="px-4 py-2.5 text-sm font-medium" data-column-id="name">
             <a href="{{ route('horizon.services.show', $service) }}" class="link" data-turbo-action="replace">{{ $service->name }}</a>
         </td>
@@ -44,7 +44,7 @@
         >
             -
         </td>
-        <td class="px-4 py-2.5" data-column-id="actions">
+        <td class="px-4 py-2.5" data-column-id="actions" data-stream-preserve-client>
             <div class="flex items-center gap-2">
                 @php
                     $dashboardBase = $service->public_url ?: $service->base_url;

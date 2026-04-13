@@ -43,6 +43,7 @@
                 resizable-key="horizon-service-list"
                 column-ids="name,base_url,status,horizon_status,jobs,failed,last_seen,actions"
                 body-id="turbo-tbody-horizon-service-list"
+                stream-patch-children
             >
                 <x-slot:head>
                     <tr class="border-b border-border bg-muted/50">

@@ -2,7 +2,7 @@
     /** @var \App\Models\Alert $alert */
 @endphp
 @forelse($alerts as $alert)
-    <tr class="transition-colors hover:bg-muted/30">
+    <tr class="transition-colors hover:bg-muted/30" data-stream-row-id="alt-{{ (int) $alert->id }}">
         <td class="px-4 py-2.5 text-sm font-medium" data-column-id="name">
             <a href="{{ route('horizon.alerts.show', $alert) }}" class="link" data-turbo-action="replace">{{ $alert->name ?: ('Alert #' . $alert->id) }}</a>
         </td>
@@ -55,7 +55,7 @@
                 –
             @endif
         </td>
-        <td class="px-4 py-2.5" data-column-id="actions">
+        <td class="px-4 py-2.5" data-column-id="actions" data-stream-preserve-client>
             <div class="flex items-center gap-2">
                 <x-button
                     variant="ghost"

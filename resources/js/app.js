@@ -8,7 +8,7 @@ import { initTurboStream } from './lib/sse';
 import { createHttpHelpers } from './lib/http';
 import { formatDateTimeElements, formatQueueWaitElements } from './lib/datetime-format';
 import { onDocumentReady, schedule } from './lib/init';
-import { getTurboStreamTargetElement, isStreamUpdateRedundant } from './lib/stream-guard';
+import { getTurboStreamTargetElement, renderTurboStreamWithGuards } from './lib/stream-guard';
 import { mountToaster } from './components/toaster';
 import { applyTheme } from './components/theme';
 import { registerInputDatePicker } from './components/input-date-picker';
@@ -34,6 +34,16 @@ window.horizonMetricsPage = horizonMetricsPage;
 window.Alpine = Alpine;
 Alpine.start();
 
+document.addEventListener('turbo:before-cache', function () {
+    Alpine.destroyTree(document.body);
+});
+
+document.addEventListener('turbo:load', function () {
+    queueMicrotask(function () {
+        Alpine.initTree(document.body);
+    });
+});
+
 /**
  * Initialize the app.
  * @returns {void}
@@ -51,10 +61,10 @@ onDocumentReady(function () {
 document.addEventListener('turbo:before-stream-render', function (e) {
     var original = e.detail.render;
     e.detail.render = function (streamElement) {
-        if (isStreamUpdateRedundant(streamElement)) {
+        var outcome = renderTurboStreamWithGuards(streamElement, original);
+        if (outcome === 'skipped') {
             return;
         }
-        original(streamElement);
         var syncRoot = getTurboStreamTargetElement(streamElement);
         schedule(function () {
             var formatRoot = syncRoot || document;

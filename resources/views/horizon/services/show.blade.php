@@ -111,6 +111,7 @@
                 column-ids="queue,jobs,processes,wait"
                 body-key="horizon-service-queues"
                 body-id="service-show-workload-body"
+                stream-patch-children
             >
                 <x-slot:head>
                     <tr class="border-b border-border bg-muted/50">
