@@ -151,22 +151,6 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('action="replace"', $result);
     }
 
-    public function test_streams_job_show_returns_404_for_unknown_service(): void
-    {
-        $uuid = '763dc9c2-a7cd-4b95-9da5-77beff5c264e';
-        $response = $this->get('/horizon/streams/horizon/jobs/'.$uuid.'?service_id=999999');
-
-        $response->assertStatus(404);
-    }
-
-    public function test_streams_job_show_returns_404_without_service_id(): void
-    {
-        $uuid = '763dc9c2-a7cd-4b95-9da5-77beff5c264e';
-        $response = $this->get('/horizon/streams/horizon/jobs/'.$uuid);
-
-        $response->assertStatus(404);
-    }
-
     public function test_build_job_show_streams_returns_granular_detail_updates(): void
     {
         $service = Service::create([

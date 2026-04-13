@@ -84,6 +84,7 @@ import { parseJson } from '../lib/parse';
     }
 
     /**
+     * Match the element order.
      * @param {Element[]} current
      * @param {Element[]} desired
      * @returns {boolean}
@@ -102,13 +103,13 @@ import { parseJson } from '../lib/parse';
     }
 
     /**
-     * Direct th/td children carrying data-column-id (document order).
+     * Direct th/td children carrying data-column-id.
      * @param {HTMLTableRowElement} row
      * @param {string} tag 'TH' | 'TD'
      * @returns {HTMLElement[]}
      */
     function getDirectColumnCells(row, tag) {
-        var want = String(tag || 'TD').toUpperCase();
+        var want = String(tag).toUpperCase();
         var out = [];
         for (var c = row.firstElementChild; c; c = c.nextElementSibling) {
             var tn = c.tagName ? c.tagName.toUpperCase() : '';
@@ -153,11 +154,7 @@ import { parseJson } from '../lib/parse';
             var th = thsById[colId];
             if (!th) return;
             var w = state.widths[colId];
-            if (w != null) {
-                th.style.width = th.style.maxWidth = w + 'px';
-            } else {
-                th.style.width = th.style.maxWidth = '';
-            }
+            th.style.width = th.style.maxWidth = w !== null ? w + 'px' : '';
         });
 
         var columnOrder = getDirectColumnCells(theadRow, 'TH').map(function (th) {

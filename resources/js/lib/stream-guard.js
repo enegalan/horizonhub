@@ -8,6 +8,7 @@
  */
 
 /**
+ * Resolve a stream target element by its attribute value.
  * @param {string} targetAttr
  * @returns {Element|null}
  */
@@ -157,6 +158,7 @@ export function isStreamUpdateRedundant(streamElement) {
 }
 
 /**
+ * Create a parser container for an element.
  * @param {Element} el
  * @returns {Element}
  */
@@ -172,6 +174,7 @@ function createParserContainerForElement(el) {
 }
 
 /**
+ * Get the keyed direct children of a container.
  * @param {Element} container
  * @returns {Element[]}
  */
@@ -188,6 +191,7 @@ function getKeyedDirectChildren(container) {
 }
 
 /**
+ * Get the inner HTML normalized for compare.
  * @param {HTMLTableCellElement} td
  * @returns {string}
  */
@@ -238,6 +242,7 @@ function getDirectTableCellsWithColumnId(tr) {
 }
 
 /**
+ * Find a direct table cell by column ID.
  * @param {HTMLTableRowElement} tr
  * @param {string} columnId
  * @returns {HTMLTableCellElement|null}
@@ -254,14 +259,7 @@ function findDirectTableCellByColumnId(tr, columnId) {
 }
 
 /**
- * @param {Element} el
- * @returns {boolean}
- */
-function isTableRowElement(el) {
-    return Boolean(el && el.tagName && String(el.tagName).toUpperCase() === 'TR');
-}
-
-/**
+ * Merge table row cells.
  * @param {HTMLTableRowElement} existingRow
  * @param {HTMLTableRowElement} incomingRow
  * @returns {void}
@@ -303,6 +301,7 @@ function mergeTableRowCells(existingRow, incomingRow) {
 }
 
 /**
+ * Merge generic keyed child.
  * @param {Element} existing
  * @param {Element} incoming
  * @returns {void}
@@ -325,12 +324,15 @@ function mergeGenericKeyedChild(existing, incoming) {
 }
 
 /**
+ * Merge keyed child.
  * @param {Element} existingChild
  * @param {Element} incomingChild
  * @returns {void}
  */
 function mergeKeyedChild(existingChild, incomingChild) {
-    if (isTableRowElement(existingChild) && isTableRowElement(incomingChild)) {
+    const isExistingTableRow = existingChild && existingChild.tagName && String(existingChild.tagName).toUpperCase() === 'TR';
+    const isIncomingTableRow = incomingChild && incomingChild.tagName && String(incomingChild.tagName).toUpperCase() === 'TR';
+    if (isExistingTableRow && isIncomingTableRow) {
         mergeTableRowCells(existingChild, incomingChild);
         return;
     }
@@ -338,6 +340,7 @@ function mergeKeyedChild(existingChild, incomingChild) {
 }
 
 /**
+ * Find a keyed direct child.
  * @param {Element} container
  * @param {string} rowId
  * @returns {Element|null}
@@ -354,6 +357,7 @@ function findKeyedDirectChild(container, rowId) {
 }
 
 /**
+ * Sync structural child by ID.
  * @param {Element} domChild
  * @param {Element} incChild
  * @returns {void}
@@ -468,6 +472,7 @@ export function tryApplyIncrementalStreamPatch(streamElement) {
 }
 
 /**
+ * Render turbo stream with guards.
  * @param {Element} streamElement
  * @param {function(Element): void} originalRender
  * @returns {'patched'|'skipped'|'rendered'}
