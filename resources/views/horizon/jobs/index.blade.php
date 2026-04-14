@@ -260,7 +260,7 @@
                                     @click="retrySelected()"
                                 >
                                     <span x-show="!retrying" x-text="'Retry selected (' + selectedFailedIds.length + ')'"></span>
-                                    <span x-show="retrying" class="inline-flex items-center gap-1">
+                                    <span x-cloak x-show="retrying" class="inline-flex items-center gap-1">
                                         <x-loader class="size-4" />
                                         Retrying...
                                     </span>

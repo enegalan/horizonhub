@@ -23,9 +23,9 @@
         'failed' => 'border-l-destructive/40 hover:border-l-destructive/60',
     ];
     $openAccentClasses = [
-        'processing' => 'border-l-amber-500/60 bg-amber-500/5',
-        'processed' => 'border-l-emerald-500/60 bg-emerald-500/5',
-        'failed' => 'border-l-destructive/60 bg-destructive/5',
+        'processing' => 'group-open:border-l-amber-500/60 group-open:bg-amber-500/5',
+        'processed' => 'group-open:border-l-emerald-500/60 group-open:bg-emerald-500/5',
+        'failed' => 'group-open:border-l-destructive/60 group-open:bg-destructive/5',
     ];
     $emptyCopy = [
         'processing' => ['title' => 'No processing jobs', 'description' => 'Jobs currently being executed will appear here.'],
@@ -34,12 +34,14 @@
     ];
 @endphp
 <details
-    class="group border-border border-l-4 transition-colors duration-200 py-2 {{ $baseBorderClasses[$kind] }}"
+    data-section-key="{{ $sectionKey }}"
     :open="sectionOpen.{{ $sectionKey }}"
-    :class="{ '{{ $openAccentClasses[$kind] }}': sectionOpen.{{ $sectionKey }} }"
-    @toggle="onToggle('{{ $sectionKey }}', $event)"
+    class="group border-border border-l-4 transition-colors duration-200 py-2 {{ $baseBorderClasses[$kind] }} {{ $openAccentClasses[$kind] }}"
 >
-    <summary class="flex cursor-pointer list-none items-center gap-2 py-2 pl-4 text-section-title text-foreground [&::-webkit-details-marker]:hidden">
+    <summary
+        class="flex cursor-pointer list-none items-center gap-2 py-2 pl-4 text-section-title text-foreground [&::-webkit-details-marker]:hidden"
+        @click="persistSectionFromSummary('{{ $sectionKey }}', $event)"
+    >
         <x-heroicon-o-chevron-down class="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
         <span>{{ $titles[$kind] }}</span>
         <span class="{{ $badgeClasses[$kind] }}">{{ $paginator->total() }}</span>

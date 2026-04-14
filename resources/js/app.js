@@ -65,6 +65,7 @@ onDocumentReady(function () {
 document.addEventListener('turbo:before-stream-render', function (e) {
     var original = e.detail.render;
     e.detail.render = function (streamElement) {
+        if (!streamElement || !streamElement.getAttribute) return;
         var outcome = renderTurboStreamWithGuards(streamElement, original);
         if (outcome === 'skipped') {
             return;

@@ -8,6 +8,54 @@
  */
 
 /**
+ * Preserve open/closed state for jobs stack sections across replace/update streams.
+ * @param {Element} streamElement
+ * @returns {void}
+ */
+function preserveJobsSectionsOpenState(streamElement) {
+    var target = String(streamElement.getAttribute('target') || '').trim();
+    if (target !== 'horizon-jobs-stack') {
+        return;
+    }
+    var action = String(streamElement.getAttribute('action') || '').toLowerCase();
+    if (action !== 'replace' && action !== 'update') {
+        return;
+    }
+
+    var liveStack = document.getElementById('horizon-jobs-stack');
+    var templateEl = streamElement.querySelector('template');
+    if (!liveStack || !templateEl) {
+        return;
+    }
+
+    var liveDetails = liveStack.querySelectorAll('details[data-section-key]');
+    var openBySection = {};
+    liveDetails.forEach(function (el) {
+        var key = String(el.getAttribute('data-section-key') || '').trim();
+        if (!key) {
+            return;
+        }
+        openBySection[key] = !!el.open;
+    });
+
+    var holder = document.createElement('div');
+    holder.innerHTML = templateEl.innerHTML;
+    var incomingDetails = holder.querySelectorAll('details[data-section-key]');
+    incomingDetails.forEach(function (el) {
+        var key = String(el.getAttribute('data-section-key') || '').trim();
+        if (!key || typeof openBySection[key] !== 'boolean') {
+            return;
+        }
+        if (openBySection[key]) {
+            el.setAttribute('open', '');
+        } else {
+            el.removeAttribute('open');
+        }
+    });
+    templateEl.innerHTML = holder.innerHTML;
+}
+
+/**
  * Resolve a stream target element by its attribute value.
  * @param {string} targetAttr
  * @returns {Element|null}
@@ -134,9 +182,6 @@ export function getTurboStreamTargetElement(streamElement) {
  * @returns {boolean}
  */
 export function isStreamUpdateRedundant(streamElement) {
-    if (!streamElement || !streamElement.getAttribute) {
-        return false;
-    }
     var action = String(streamElement.getAttribute('action') || '').toLowerCase();
     if (action !== 'update' && action !== 'replace') {
         return false;
@@ -383,9 +428,6 @@ function syncStructuralChildById(domChild, incChild) {
  * @returns {boolean} true when the default turbo-stream render must be skipped
  */
 export function tryApplyIncrementalStreamPatch(streamElement) {
-    if (!streamElement || !streamElement.getAttribute) {
-        return false;
-    }
     var action = String(streamElement.getAttribute('action') || '').toLowerCase();
     var method = String(streamElement.getAttribute('method') || '').toLowerCase();
     if (action !== 'update' || method !== 'morph') {
@@ -478,6 +520,7 @@ export function tryApplyIncrementalStreamPatch(streamElement) {
  * @returns {'patched'|'skipped'|'rendered'}
  */
 export function renderTurboStreamWithGuards(streamElement, originalRender) {
+    preserveJobsSectionsOpenState(streamElement);
     if (tryApplyIncrementalStreamPatch(streamElement)) {
         return 'patched';
     }

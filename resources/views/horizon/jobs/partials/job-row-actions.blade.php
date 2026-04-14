@@ -29,7 +29,7 @@
                 <span x-show="!retrying">
                     <x-heroicon-o-arrow-path class="size-4" />
                 </span>
-                <span x-show="retrying" class="inline-flex items-center" aria-hidden="true">
+                <span x-cloak x-show="retrying" class="inline-flex items-center" aria-hidden="true">
                     <x-loader class="size-4" />
                 </span>
             </x-button>

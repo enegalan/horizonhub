@@ -12,7 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
         channels: __DIR__.'/../routes/channels.php',
         health: '/up',
         then: function (): void {
-            Route::middleware(['throttle:60,1', 'throttle:horizon-stream'])
+            Route::middleware(['throttle:60,1', 'throttle:horizon-stream', \Illuminate\Routing\Middleware\SubstituteBindings::class])
                 ->prefix('horizon')
                 ->name('horizon.')
                 ->group(base_path('routes/streams.php'));
