@@ -28,11 +28,24 @@ function preserveJobsSectionsOpenState(streamElement) {
         return;
     }
 
-    var liveDetails = liveStack.querySelectorAll('details[data-section-key]');
     var openBySection = {};
+    try {
+        var raw = window.localStorage ? window.localStorage.getItem('horizon_jobs_sections') : null;
+        if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object') {
+                Object.keys(parsed).forEach(function (key) {
+                    openBySection[String(key)] = !!parsed[key];
+                });
+            }
+        }
+    } catch (e) {
+    }
+
+    var liveDetails = liveStack.querySelectorAll('details[data-section-key]');
     liveDetails.forEach(function (el) {
         var key = String(el.getAttribute('data-section-key') || '').trim();
-        if (!key) {
+        if (!key || typeof openBySection[key] === 'boolean') {
             return;
         }
         openBySection[key] = !!el.open;
