@@ -5,6 +5,7 @@ namespace App\Services\Horizon;
 use App\Models\Service;
 use App\Support\Horizon\JobCommandDataExtractor;
 use App\Support\Horizon\JobRuntimeHelper;
+use Carbon\Carbon;
 
 class HorizonJobDetailService
 {
@@ -30,7 +31,14 @@ class HorizonJobDetailService
      */
     public function buildShowViewData(Service $service, array $jobData, string $routeUuid): array
     {
-        $payload = isset($jobData['payload']) && \is_array($jobData['payload']) ? $jobData['payload'] : [];
+        $rawPayload = $jobData['payload'] ?? [];
+        $payload = [];
+        if (\is_array($rawPayload)) {
+            $payload = $rawPayload;
+        } elseif ($rawPayload instanceof \stdClass) {
+            $decoded = \json_decode(\json_encode($rawPayload, \JSON_UNESCAPED_UNICODE), true);
+            $payload = \is_array($decoded) ? $decoded : [];
+        }
 
         $attemptsRaw = $jobData['attempts'] ?? null;
         if ($attemptsRaw === null) {
@@ -108,6 +116,12 @@ class HorizonJobDetailService
         $processedAt = JobRuntimeHelper::parseJobTimestamp($processedAtRaw);
         $failedAt = JobRuntimeHelper::parseJobTimestamp($failedAtRaw);
         JobRuntimeHelper::normalizeStatusDates($status, $processedAt, $failedAt);
+
+        $delay = JobCommandDataExtractor::extractDelaySeconds($payload, $jobData['delay'] ?? null, $commandData);
+        $availableAt = null;
+        if ($delay !== null && $queuedAt instanceof Carbon) {
+            $availableAt = $queuedAt->copy()->addSeconds($delay);
+        }
         $runtimeSeconds = isset($jobData['runtime']) && \is_numeric($jobData['runtime'])
             ? (float) $jobData['runtime']
             : null;
@@ -126,6 +140,8 @@ class HorizonJobDetailService
             'processed_at' => $processedAt,
             'failed_at' => $failedAt,
             'runtime' => $runtime,
+            'delay' => $delay,
+            'available_at' => $availableAt,
             'payload' => $jobData['payload'] ?? null,
             'service' => $service,
         ];

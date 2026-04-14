@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\HorizonJobListService;
+use Carbon\Carbon;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -125,6 +126,70 @@ class HorizonJobListServiceTest extends TestCase
 
         $this->assertSame(1, $paginators['processing']->total());
         $this->assertSame('bbb', $paginators['processing']->items()[0]->uuid);
+    }
+
+    #[Test]
+    public function it_exposes_delay_and_available_at_for_delayed_pending_jobs(): void
+    {
+        $service = new Service;
+        $service->forceFill([
+            'id' => 1,
+            'name' => 'Svc',
+            'base_url' => 'http://example.test',
+        ]);
+
+        $pushedAt = '1711111111.000';
+
+        $api = $this->mock(HorizonApiProxyService::class);
+        $api->shouldReceive('getPendingJobs')->andReturn([
+            'success' => true,
+            'data' => [
+                'jobs' => [
+                    [
+                        'id' => 'delayed-job',
+                        'queue' => 'default',
+                        'name' => 'App\\Jobs\\DelayedJob',
+                        'payload' => ['pushedAt' => $pushedAt, 'delay' => 300],
+                        'index' => 0,
+                    ],
+                    [
+                        'id' => 'immediate-job',
+                        'queue' => 'default',
+                        'name' => 'App\\Jobs\\ImmediateJob',
+                        'payload' => ['pushedAt' => $pushedAt],
+                        'index' => 1,
+                    ],
+                ],
+            ],
+        ]);
+        $api->shouldReceive('getCompletedJobs')->andReturn(['success' => true, 'data' => ['jobs' => []]]);
+        $api->shouldReceive('getFailedJobs')->andReturn(['success' => true, 'data' => ['jobs' => []]]);
+
+        $list = new HorizonJobListService($api);
+        $paginators = $list->buildAggregatedStatusPaginators(
+            \collect([$service]),
+            '',
+            1,
+            1,
+            1,
+            20,
+            'http://localhost/horizon',
+            [],
+        );
+
+        $items = $paginators['processing']->items();
+        $this->assertCount(2, $items);
+
+        $delayed = \collect($items)->first(fn ($j) => $j->uuid === 'delayed-job');
+        $immediate = \collect($items)->first(fn ($j) => $j->uuid === 'immediate-job');
+
+        $this->assertSame(300, $delayed->delay);
+        $this->assertInstanceOf(Carbon::class, $delayed->available_at);
+        $expectedAvailableAt = Carbon::createFromTimestampMs(1711111111000)->addSeconds(300);
+        $this->assertSame($expectedAvailableAt->toIso8601String(), $delayed->available_at->toIso8601String());
+
+        $this->assertNull($immediate->delay);
+        $this->assertNull($immediate->available_at);
     }
 
     #[Test]

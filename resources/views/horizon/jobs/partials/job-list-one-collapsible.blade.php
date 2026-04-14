@@ -62,7 +62,9 @@
                     <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
                     <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="attempts">Attempts</th>
                     <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="queued_at">Queued at</th>
-                    @if($kind === 'processed')
+                    @if($kind === 'processing')
+                        <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="delayed_until">Delayed until</th>
+                    @elseif($kind === 'processed')
                         <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="processed">Processed</th>
                         <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="runtime">Runtime</th>
                     @elseif($kind === 'failed')
@@ -98,7 +100,13 @@
                         {{ $attemptsDisplay }}
                     </td>
                     <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="queued_at" data-datetime="{{ $job->queued_at?->format('c') ?? '' }}">{{ $job->queued_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
-                    @if($kind === 'processed')
+                    @if($kind === 'processing')
+                        <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="delayed_until"
+                            @if($job->available_at)
+                                data-datetime="{{ $job->available_at->format('c') }}"
+                            @endif
+                        >{{ $job->available_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
+                    @elseif($kind === 'processed')
                         <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="processed" data-datetime="{{ $job->processed_at?->format('c') ?? '' }}">{{ $job->processed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
                         <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="runtime">{{ $job->runtime ?? '–' }}</td>
                     @elseif($kind === 'failed')

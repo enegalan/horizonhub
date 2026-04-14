@@ -62,6 +62,12 @@
     <dt class="label-muted">Queued at</dt>
     <dd class="mt-0.5 text-foreground" data-datetime="{{ $job->queued_at ? \Carbon\Carbon::parse($job->queued_at)->toIso8601String() : '' }}">-</dd>
 </div>
+@if($job->available_at)
+    <div>
+        <dt class="label-muted">Delayed until</dt>
+        <dd class="mt-0.5 text-foreground" data-datetime="{{ \Carbon\Carbon::parse($job->available_at)->toIso8601String() }}">-</dd>
+    </div>
+@endif
 @if($job->status !== 'failed')
     <div>
         <dt class="label-muted">Processed at</dt>

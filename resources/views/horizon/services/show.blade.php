@@ -152,7 +152,7 @@
                 'jobsFailed' => $jobsFailed,
                 'showServiceColumn' => false,
                 'pageService' => $service,
-                'columnIds' => 'uuid,queue,job,attempts,queued_at,processed,failed_at,runtime,actions',
+                'columnIds' => 'uuid,queue,job,attempts,queued_at,delayed_until,processed,failed_at,runtime,actions',
                 'resizablePrefix' => 'horizon-service-dashboard-jobs',
             ])
         </div>

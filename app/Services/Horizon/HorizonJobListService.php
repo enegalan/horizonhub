@@ -6,6 +6,7 @@ use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
 use App\Support\ConfigHelper;
 use App\Support\DatetimeBoundaryParser;
+use App\Support\Horizon\JobCommandDataExtractor;
 use App\Support\Horizon\JobRuntimeHelper;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -393,7 +394,10 @@ class HorizonJobListService
         $queue = (string) ($job['queue'] ?? '');
         $name = (string) ($job['name'] ?? '');
         $payload = $job['payload'] ?? [];
-        if (! \is_array($payload)) {
+        if ($payload instanceof \stdClass) {
+            $decoded = \json_decode(\json_encode($payload, \JSON_UNESCAPED_UNICODE), true);
+            $payload = \is_array($decoded) ? $decoded : [];
+        } elseif (! \is_array($payload)) {
             $payload = [];
         }
 
@@ -407,6 +411,12 @@ class HorizonJobListService
         $processedAt = JobRuntimeHelper::parseJobTimestamp($completedAt);
         $failedAt = JobRuntimeHelper::parseJobTimestamp($failedAtRaw);
         JobRuntimeHelper::normalizeStatusDates($status, $processedAt, $failedAt);
+
+        $delay = JobCommandDataExtractor::extractDelaySeconds($payload, $job['delay'] ?? null);
+        $availableAt = null;
+        if ($delay !== null && $queuedAt instanceof Carbon) {
+            $availableAt = $queuedAt->copy()->addSeconds($delay);
+        }
 
         $attemptsRaw = $job['attempts'] ?? $payload['attempts'] ?? null;
         $attempts = $attemptsRaw !== null && $attemptsRaw !== '' ? (int) $attemptsRaw : null;
@@ -435,6 +445,8 @@ class HorizonJobListService
             'processed_at' => $processedAt,
             'failed_at' => $failedAt,
             'runtime' => $runtime,
+            'delay' => $delay,
+            'available_at' => $availableAt,
             'service' => $service,
         ];
     }

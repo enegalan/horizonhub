@@ -52,7 +52,7 @@
             'jobsFailed' => $jobsFailed,
             'showServiceColumn' => true,
             'pageService' => null,
-            'columnIds' => 'uuid,service,queue,job,attempts,queued_at,processed,failed_at,runtime,actions',
+            'columnIds' => 'uuid,service,queue,job,attempts,queued_at,delayed_until,processed,failed_at,runtime,actions',
             'resizablePrefix' => 'horizon-job-list',
         ])
         {{-- Retry jobs modal --}}
@@ -260,7 +260,7 @@
                                     @click="retrySelected()"
                                 >
                                     <span x-show="!retrying" x-text="'Retry selected (' + selectedFailedIds.length + ')'"></span>
-                                    <span x-cloak x-show="retrying" class="inline-flex items-center gap-1">
+                                    <span x-cloak x-show="retrying" style="display: none" class="inline-flex items-center gap-1">
                                         <x-loader class="size-4" />
                                         Retrying...
                                     </span>

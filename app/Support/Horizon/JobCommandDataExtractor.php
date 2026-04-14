@@ -5,6 +5,35 @@ namespace App\Support\Horizon;
 class JobCommandDataExtractor
 {
     /**
+     * Resolve delay in seconds for a queued job payload.
+     *
+     * Laravel's Horizon Redis queue calls {@see Queue::createPayload} without
+     * the delay argument for {@see RedisQueue::later}, so the payload JSON
+     * field "delay" is often null while the serialized "data.command" still carries the job
+     * instance delay.
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  mixed  $horizonMetaDelay  Optional top-level delay from Horizon's job hash (e.g. after release).
+     * @param  array<string, mixed>|null  $commandData  When already computed (e.g. for job detail), avoids a second unserialize.
+     */
+    public static function extractDelaySeconds(array $payload, mixed $horizonMetaDelay = null, ?array $commandData = null): ?int
+    {
+        foreach ([$horizonMetaDelay, $payload['delay'] ?? null] as $candidate) {
+            $normalized = self::normalizeDelaySeconds($candidate);
+            if ($normalized !== null) {
+                return $normalized;
+            }
+        }
+
+        $resolvedCommand = $commandData ?? self::extract($payload);
+        if (! \is_array($resolvedCommand)) {
+            return null;
+        }
+
+        return self::normalizeDelaySeconds($resolvedCommand['delay'] ?? null);
+    }
+
+    /**
      * Extract command data from job payload.
      *
      * @param  array<string, mixed>  $payload
@@ -36,6 +65,9 @@ class JobCommandDataExtractor
 
     /**
      * Normalize unserialized data to scalar/array values.
+     *
+     * @param  mixed  $value
+     * @return mixed
      */
     private static function normalize(mixed $value): mixed
     {
@@ -71,6 +103,9 @@ class JobCommandDataExtractor
 
     /**
      * Convert private/protected serialized property names to plain keys.
+     *
+     * @param  string|int  $key
+     * @return string|int
      */
     private static function cleanPropertyKey(string|int $key): string|int
     {
@@ -87,5 +122,32 @@ class JobCommandDataExtractor
         }
 
         return $key;
+    }
+
+    /**
+     * Normalize a delay value to a positive integer number of seconds, or null.
+     * 
+     * @param  mixed  $delay
+     * @return int|null
+     */
+    private static function normalizeDelaySeconds(mixed $delay): ?int
+    {
+        if ($delay === null || $delay === '' || $delay === false || $delay <= 0) {
+            return null;
+        }
+
+        if (\is_int($delay)) {
+            return $delay;
+        }
+
+        if (\is_float($delay)) {
+            return (int) \round($delay);
+        }
+
+        if (\is_string($delay) && $delay !== '' && \is_numeric($delay)) {
+            return (int) $delay;
+        }
+
+        return $delay;
     }
 }
