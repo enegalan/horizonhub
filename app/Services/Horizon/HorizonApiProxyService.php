@@ -420,7 +420,7 @@ class HorizonApiProxyService
                 ])->saveQuietly();
             }
 
-            return !\is_array($data)
+            return ! \is_array($data)
                 ? ['success' => true]
                 : ['success' => true, 'data' => $data];
         }

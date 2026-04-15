@@ -40,9 +40,10 @@ class ConfigHelper
      * @param  array<string, mixed>  $values
      * @return string
      */
-    public static function getParsedTpl($key, $values) {
+    public static function getParsedTpl($key, $values)
+    {
         $template = (string) self::get($key);
-        
+
         foreach ($values as $placeholder => $value) {
             $template = \str_replace($placeholder, $value, $template);
         }

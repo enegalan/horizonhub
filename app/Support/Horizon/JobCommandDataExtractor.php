@@ -88,5 +88,4 @@ class JobCommandDataExtractor
 
         return $key;
     }
-
 }
