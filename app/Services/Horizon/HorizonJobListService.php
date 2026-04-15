@@ -393,13 +393,7 @@ class HorizonJobListService
 
         $queue = (string) ($job['queue'] ?? '');
         $name = (string) ($job['name'] ?? '');
-        $payload = $job['payload'] ?? [];
-        if ($payload instanceof \stdClass) {
-            $decoded = \json_decode(\json_encode($payload, \JSON_UNESCAPED_UNICODE), true);
-            $payload = \is_array($decoded) ? $decoded : [];
-        } elseif (! \is_array($payload)) {
-            $payload = [];
-        }
+        $payload = isset($job['payload']) && \is_array($job['payload']) ? $job['payload'] : [];
 
         $pushedAt = $job['pushedAt'] ?? $payload['pushedAt'] ?? null;
         $reservedAtRaw = $job['reserved_at'] ?? $job['reservedAt'] ?? $payload['reserved_at'] ?? $payload['reservedAt'] ?? null;
@@ -412,12 +406,9 @@ class HorizonJobListService
         $failedAt = JobRuntimeHelper::parseJobTimestamp($failedAtRaw);
         JobRuntimeHelper::normalizeStatusDates($status, $processedAt, $failedAt);
 
-        $delay = JobCommandDataExtractor::extractDelaySeconds($payload, $job['delay'] ?? null);
-        $availableAt = null;
-        if ($delay !== null && $queuedAt instanceof Carbon) {
-            $availableAt = $queuedAt->copy()->addSeconds($delay);
-        }
+        $commandData = JobCommandDataExtractor::extract($payload);
 
+        $availableAt = isset($commandData['delay']['date']) ? JobRuntimeHelper::parseJobTimestamp($commandData['delay']['date']) : null;
         $attemptsRaw = $job['attempts'] ?? $payload['attempts'] ?? null;
         $attempts = $attemptsRaw !== null && $attemptsRaw !== '' ? (int) $attemptsRaw : null;
         if ($attempts !== null && $attempts < 1) {
@@ -445,7 +436,6 @@ class HorizonJobListService
             'processed_at' => $processedAt,
             'failed_at' => $failedAt,
             'runtime' => $runtime,
-            'delay' => $delay,
             'available_at' => $availableAt,
             'service' => $service,
         ];

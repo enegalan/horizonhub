@@ -156,25 +156,29 @@ class HorizonJobDetailServiceTest extends TestCase
             'base_url' => 'http://example.test',
         ]);
 
+        $delayAt = Carbon::parse('2026-04-15 12:59:10');
+        $job = new EvaluateAlertJob(99, 'eval-delay-date');
+        $job->delay($delayAt);
+
         $jobData = [
             'uuid' => 'job-delayed',
-            'name' => 'App\\Jobs\\DelayedJob',
+            'name' => EvaluateAlertJob::class,
             'queue' => 'default',
             'status' => 'pending',
             'payload' => [
                 'pushedAt' => '1711111111.000',
-                'delay' => 600,
+                'data' => [
+                    'commandName' => EvaluateAlertJob::class,
+                    'command' => serialize(clone $job),
+                ],
             ],
         ];
 
         $serviceUnderTest = new HorizonJobDetailService;
         $result = $serviceUnderTest->buildShowViewData($service, $jobData, 'job-delayed');
 
-        $this->assertSame(600, $result['job']->delay);
         $this->assertInstanceOf(Carbon::class, $result['job']->available_at);
-
-        $expectedAvailableAt = Carbon::createFromTimestampMs(1711111111000)->addSeconds(600);
-        $this->assertSame($expectedAvailableAt->toIso8601String(), $result['job']->available_at->toIso8601String());
+        $this->assertSame($delayAt->toIso8601String(), $result['job']->available_at->toIso8601String());
     }
 
     #[Test]
@@ -207,10 +211,42 @@ class HorizonJobDetailServiceTest extends TestCase
         $serviceUnderTest = new HorizonJobDetailService;
         $result = $serviceUnderTest->buildShowViewData($service, $jobData, 'job-serialized-delay');
 
-        $this->assertSame(300, $result['job']->delay);
+        $this->assertNull($result['job']->available_at);
+    }
+
+    #[Test]
+    public function it_uses_absolute_delay_datetime_from_serialized_command_when_delay_seconds_are_missing(): void
+    {
+        $service = new Service;
+        $service->forceFill([
+            'name' => 'Orders API',
+            'base_url' => 'http://example.test',
+        ]);
+
+        $delayAt = Carbon::parse('2026-04-15 12:59:10');
+        $job = new EvaluateAlertJob(10, 'eval-absolute-delay');
+        $job->delay($delayAt);
+
+        $jobData = [
+            'uuid' => 'job-serialized-absolute-delay',
+            'name' => EvaluateAlertJob::class,
+            'queue' => 'default',
+            'status' => 'pending',
+            'payload' => [
+                'pushedAt' => '1711111111.000',
+                'delay' => null,
+                'data' => [
+                    'commandName' => EvaluateAlertJob::class,
+                    'command' => serialize(clone $job),
+                ],
+            ],
+        ];
+
+        $serviceUnderTest = new HorizonJobDetailService;
+        $result = $serviceUnderTest->buildShowViewData($service, $jobData, 'job-serialized-absolute-delay');
+
         $this->assertInstanceOf(Carbon::class, $result['job']->available_at);
-        $expectedAvailableAt = Carbon::createFromTimestampMs(1711111111000)->addSeconds(300);
-        $this->assertSame($expectedAvailableAt->toIso8601String(), $result['job']->available_at->toIso8601String());
+        $this->assertSame($delayAt->toIso8601String(), $result['job']->available_at->toIso8601String());
     }
 
     #[Test]
@@ -236,7 +272,6 @@ class HorizonJobDetailServiceTest extends TestCase
         $serviceUnderTest = new HorizonJobDetailService;
         $result = $serviceUnderTest->buildShowViewData($service, $jobData, 'job-no-delay');
 
-        $this->assertNull($result['job']->delay);
         $this->assertNull($result['job']->available_at);
     }
 
