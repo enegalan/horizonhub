@@ -14,6 +14,8 @@ Centralized dashboard for monitoring Laravel Horizon jobs across multiple servic
 
 - PHP 8.2+
 - Laravel 12
+- Composer
+- Node.js and npm
 - MySQL 8 or SQLite
 - Redis
 
@@ -41,9 +43,21 @@ Open http://localhost (redirects to the Horizon dashboard at `/horizon`). Regist
 
 1. In the Hub UI, go to **Services**.
 2. Click **Register service**: enter a name and the service **Base URL** (e.g. `https://my-app.example.com`).
-3. Copy the generated **API key** (shown once).
-4. On the Laravel service, ensure Laravel Horizon is installed and its HTTP API is reachable from Horizon Hub (for example, `/horizon/api`).
+3. On the Laravel service, ensure Laravel Horizon is installed and its HTTP API is reachable from Horizon Hub (for example, `/horizon/api`).
+
 See [examples/README.md](examples/README.md) for demo apps that push events to the Hub.
+
+## Testing and code style
+
+```bash
+composer test
+```
+
+Formatting (Laravel Pint):
+
+```bash
+./vendor/bin/pint
+```
 
 ## License
 
