@@ -163,7 +163,7 @@ class TurboStreamSseTest extends TestCase
         $jobUuid = '763dc9c2-a7cd-4b95-9da5-77beff5c264e';
 
         $this->mock(HorizonApiProxyService::class, function ($mock) use ($jobUuid): void {
-            $mock->shouldReceive('getFailedJob')
+            $mock->shouldReceive('getJob')
                 ->zeroOrMoreTimes()
                 ->andReturn([
                     'success' => true,
@@ -202,7 +202,7 @@ class TurboStreamSseTest extends TestCase
         $jobUuid = '863dc9c2-a7cd-4b95-9da5-77beff5c264e';
 
         $this->mock(HorizonApiProxyService::class, function ($mock) use ($jobUuid): void {
-            $mock->shouldReceive('getFailedJob')
+            $mock->shouldReceive('getJob')
                 ->zeroOrMoreTimes()
                 ->andReturn([
                     'success' => true,

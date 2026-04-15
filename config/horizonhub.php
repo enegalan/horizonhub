@@ -20,8 +20,8 @@ return [
     |   API for a given service.
     | - workload: the relative path used to read queue workload from
     |   Horizon API.
+    | - job: the relative path to read a single job
     | - failed_jobs: the relative path to list failed jobs.
-    | - failed_job: the relative path to read a single failed job
     |   by UUID; the "{id}" placeholder will be replaced with the job UUID.
     | - completed_jobs: the relative path to list completed jobs.
     | - pending_jobs: the relative path to list pending/processing jobs.
@@ -34,8 +34,8 @@ return [
         'retry' => '/jobs/retry/{id}',
         'ping' => '/stats',
         'workload' => '/workload',
+        'job' => '/jobs/{id}',
         'failed_jobs' => '/jobs/failed',
-        'failed_job' => '/jobs/failed/{id}',
         'completed_jobs' => '/jobs/completed',
         'pending_jobs' => '/jobs/pending',
         'masters' => '/masters',
@@ -85,7 +85,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Stale Minutes
+    | Stale Service Minutes
     |--------------------------------------------------------------------------
     |
     | After this many minutes without events, a service is considered stand-by
@@ -93,7 +93,7 @@ return [
     | `dead_service_minutes` are removed; services become offline.
     |
     */
-    'stale_minutes' => (int) env('HORIZON_HUB_STALE_MINUTES', 5),
+    'stale_service_minutes' => (int) env('HORIZON_HUB_STALE_SERVICE_MINUTES', 5),
 
     /*
     |--------------------------------------------------------------------------
@@ -166,17 +166,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Job resolver cache TTL (seconds)
-    |--------------------------------------------------------------------------
-    |
-    | How long to cache the mapping job_uuid => service_id so that resolving
-    | a job does not require iterating all services on every request, just for internal optimization.
-    |
-    */
-    'job_resolver_cache_ttl' => (int) env('HORIZON_HUB_JOB_RESOLVER_CACHE_TTL', 300),
-
-    /*
-    |--------------------------------------------------------------------------
     | Alerts configuration
     |--------------------------------------------------------------------------
     |
@@ -197,5 +186,13 @@ return [
         'delivery_log_max_distinct_jobs' => (int) env('HORIZON_HUB_ALERT_DELIVERY_LOG_MAX_DISTINCT_JOBS', 20),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Failed Job Exception Preview Lines
+    |--------------------------------------------------------------------------
+    |
+    | The number of lines to preview in the exception of a failed job.
+    |
+    */
     'failed_job_exception_preview_lines' => (int) env('HORIZON_HUB_FAILED_JOB_EXCEPTION_PREVIEW_LINES', 5),
 ];

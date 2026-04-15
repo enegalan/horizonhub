@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Horizon;
 
 use App\Http\Controllers\Controller;
 use App\Models\Service;
+use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\HorizonJobDetailService;
 use App\Services\Horizon\HorizonJobListService;
-use App\Services\Horizon\HorizonJobResolverService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
@@ -23,9 +23,9 @@ class JobController extends Controller
     private HorizonJobDetailService $jobDetail;
 
     /**
-     * The job resolver service.
+     * The Horizon API proxy service.
      */
-    private HorizonJobResolverService $jobResolver;
+    private HorizonApiProxyService $horizonApi;
 
     /**
      * The constructor.
@@ -33,11 +33,11 @@ class JobController extends Controller
     public function __construct(
         HorizonJobListService $jobList,
         HorizonJobDetailService $jobDetail,
-        HorizonJobResolverService $jobResolver,
+        HorizonApiProxyService $horizonApi,
     ) {
         $this->jobList = $jobList;
         $this->jobDetail = $jobDetail;
-        $this->jobResolver = $jobResolver;
+        $this->horizonApi = $horizonApi;
     }
 
     /**
@@ -66,18 +66,23 @@ class JobController extends Controller
     public function show(Request $request, string $job): View
     {
         $serviceId = (int) $request->query('service_id');
-        if ($serviceId < 1) {
-            $serviceId = null;
-        }
 
-        $resolved = $this->jobResolver->getJobAndService($job, $serviceId);
+        $service = Service::query()
+            ->whereKey($serviceId)
+            ->whereNotNull('base_url')
+            ->first();
 
-        if ($resolved === null) {
+        if ($service === null) {
             \abort(404);
         }
 
-        $service = $resolved['service'];
-        $jobData = $resolved['job'];
+        $response = $this->horizonApi->getJob($service, $job);
+        $jobData = [];
+        if (($response['success'] ?? false) && isset($response['data']) && \is_array($response['data']) && \count($response['data']) > 0) {
+            $jobData = $response['data'];
+        } else {
+            abort(404);
+        }
 
         $viewData = $this->jobDetail->buildShowViewData($service, $jobData, $job);
         $jobView = $viewData['job'];

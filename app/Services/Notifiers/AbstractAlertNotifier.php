@@ -51,7 +51,7 @@ abstract class AbstractAlertNotifier implements AlertNotifier
             if ($jobUuid === '') {
                 continue;
             }
-            $response = $this->horizonApi->getFailedJob($service, $jobUuid);
+            $response = $this->horizonApi->getJob($service, $jobUuid);
             $data = $response['data'] ?? null;
             if (! ($response['success'] ?? false) || ! \is_array($data)) {
                 continue;

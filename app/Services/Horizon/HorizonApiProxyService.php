@@ -21,9 +21,9 @@ class HorizonApiProxyService
      */
     public function retryJob(Service $service, string $jobUuid): array
     {
-        $relativePath = $this->private__parseTemplate('horizonhub.horizon_paths.retry', '{id}', $jobUuid);
+        $relativePath = ConfigHelper::getParsedTpl('horizonhub.horizon_paths.retry', ['{id}' => $jobUuid]);
 
-        return $this->private__callWithDashboardSession($service, $relativePath, 'post');
+        return $this->private__call($service, $relativePath, 'post', true);
     }
 
     /**
@@ -49,7 +49,7 @@ class HorizonApiProxyService
 
         $result = $this->private__call($service, $relativePath, 'get');
         if (! ($result['success'] ?? false) && \in_array($result['status'] ?? 0, [401, 403], true)) {
-            $result = $this->private__callWithDashboardSession($service, $relativePath, 'get');
+            $result = $this->private__call($service, $relativePath, 'get', true);
         }
 
         return $result;
@@ -101,13 +101,13 @@ class HorizonApiProxyService
     }
 
     /**
-     * Get a single failed job by UUID from the Horizon HTTP API for a service.
+     * Get a single job by UUID from the Horizon HTTP API for a service.
      *
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
-    public function getFailedJob(Service $service, string $jobUuid): array
+    public function getJob(Service $service, string $jobUuid): array
     {
-        $relativePath = $this->private__parseTemplate('horizonhub.horizon_paths.failed_job', '{id}', $jobUuid);
+        $relativePath = ConfigHelper::getParsedTpl('horizonhub.horizon_paths.job', ['{id}' => $jobUuid]);
 
         return $this->private__call($service, $relativePath, 'get');
     }
@@ -196,153 +196,12 @@ class HorizonApiProxyService
     }
 
     /**
-     * Parse a template path replacing a placeholder with a value.
-     */
-    private function private__parseTemplate(string $templateKey, string $placeholder, mixed $value): string
-    {
-        $template = (string) ConfigHelper::get($templateKey);
-        if ($template === '') {
-            throw new \RuntimeException("Invalid configuration: {$templateKey} is empty.");
-        }
-        if (\strpos($template, $placeholder) === false) {
-            throw new \RuntimeException("Invalid configuration: {$templateKey} must contain \"{$placeholder}\" placeholder.");
-        }
-
-        return \str_replace($placeholder, $value, $template);
-    }
-
-    /**
-     * Parse the response body as JSON.
-     *
-     * @return array<string, mixed>|null
-     */
-    private function private__parseResponseBody(string $rawBody): ?array
-    {
-        if ($rawBody === '') {
-            return null;
-        }
-        $decoded = \json_decode($rawBody, true);
-
-        return \is_array($decoded) ? $decoded : null;
-    }
-
-    /**
-     * Build an error message from a response.
-     */
-    private function private__buildErrorMessageFromResponse(Response $response): string
-    {
-        $rawBody = $response->body();
-        $decoded = $this->private__parseResponseBody($rawBody);
-
-        if (\is_array($decoded) && isset($decoded['message']) && (string) $decoded['message'] !== '') {
-            return (string) $decoded['message'];
-        }
-
-        $trimmedBody = \trim((string) $rawBody);
-        $isHtml = $trimmedBody !== \strip_tags($trimmedBody);
-        if (! $isHtml && $trimmedBody !== '') {
-            return \mb_substr($trimmedBody, 0, 200);
-        }
-
-        return "Horizon API returned an HTTP error ({$response->status()}).";
-    }
-
-    /**
-     * Process the HTTP response.
-     *
-     * @return array{success: bool, message?: string, status?: int, data?: array}
-     */
-    private function private__processHttpResponse(
-        Response $response,
-        Service $service,
-        string $url,
-        bool $updateHeartbeat = false,
-        string $logContext = '',
-    ): array {
-        if ($response->successful()) {
-            $data = $this->private__parseResponseBody($response->body());
-            if ($updateHeartbeat) {
-                $service->forceFill([
-                    'last_seen_at' => \now(),
-                    'status' => 'online',
-                ])->saveQuietly();
-            }
-
-            return $data === null
-                ? ['success' => true]
-                : ['success' => true, 'data' => $data];
-        }
-
-        $message = $this->private__buildErrorMessageFromResponse($response);
-        Log::warning("Horizon Hub: Horizon API call failed $logContext", [
-            'service_id' => $service->id,
-            'url' => $url,
-            'status' => $response->status(),
-            'message' => $message,
-        ]);
-
-        return [
-            'success' => false,
-            'message' => $message,
-            'status' => $response->status(),
-        ];
-    }
-
-    /**
-     * Build an HTTP client for Horizon calls with unified timeout and optional GET retries.
-     *
-     * @param  string  $httpMethod  Uppercase or lowercase HTTP method (retry only when GET).
-     */
-    private function private__newHorizonPendingRequest(string $httpMethod = 'get'): PendingRequest
-    {
-        $httpMethod = \strtoupper($httpMethod);
-        $timeoutSeconds = ConfigHelper::getIntWithMin('horizonhub.api_timeout', 10);
-        $request = Http::timeout($timeoutSeconds);
-
-        $connectTimeout = ConfigHelper::get('horizonhub.horizon_http_connect_timeout');
-        if ($connectTimeout !== null && (float) $connectTimeout > 0) {
-            $request->connectTimeout((float) $connectTimeout);
-        }
-
-        $retryConfig = ConfigHelper::get('horizonhub.horizon_http_retry');
-        $retryTimes = (int) $retryConfig['times'];
-        $sleepBaseMs = (int) $retryConfig['sleep_ms'];
-        $retryOnStatus = $retryConfig['retry_on_status'];
-
-        if ($retryConfig && $httpMethod === 'GET' && $retryTimes > 1) {
-            $request = $request->retry(
-                $retryTimes,
-                function (int $attempt, \Throwable $e) use ($sleepBaseMs): int {
-                    return $sleepBaseMs * (2 ** \max(0, $attempt - 1));
-                },
-                function (\Throwable $exception, PendingRequest $pending, ?string $method = 'GET') use ($retryOnStatus): bool {
-                    if ($method !== null && \strtoupper($method) !== 'GET') {
-                        return false;
-                    }
-
-                    if ($exception instanceof ConnectionException) {
-                        return true;
-                    }
-
-                    if ($exception instanceof RequestException && $exception->response !== null) {
-                        return \in_array($exception->response->status(), $retryOnStatus, true);
-                    }
-
-                    return false;
-                },
-                throw: false,
-            );
-        }
-
-        return $request;
-    }
-
-    /**
      * Call the Horizon HTTP API for a given service.
      *
+     * @param  bool  $withDashboardSession  When true, bootstrap Horizon dashboard session and CSRF token.
      * @return array{success: bool, message?: string, status?: int}
      */
-    private function private__call(Service $service, string $path, string $method = 'post'): array
+    private function private__call(Service $service, string $path, string $method = 'post', bool $withDashboardSession = false): array
     {
         try {
             $base = $this->private__buildBaseUrl($service);
@@ -356,18 +215,52 @@ class HorizonApiProxyService
 
         $url = "$base/".\ltrim($path, '/');
 
-        try {
-            $httpMethod = \strtolower($method);
+        $httpMethod = \strtolower($method);
+        $attempt = function () use ($service, $url, $httpMethod, $withDashboardSession): ?Response {
             $request = $this->private__newHorizonPendingRequest($httpMethod);
-            $response = match ($httpMethod) {
+
+            if ($withDashboardSession) {
+                $bootstrap = $this->private__bootstrapDashboardSession($service);
+                if ($bootstrap === null) {
+                    return null;
+                }
+                $request = $request
+                    ->withOptions(['cookies' => $bootstrap['cookies']])
+                    ->withHeaders(['X-CSRF-TOKEN' => $bootstrap['csrf_token']]);
+            }
+
+            return match ($httpMethod) {
                 'get' => $request->get($url),
                 'delete' => $request->delete($url),
                 default => $request->post($url),
             };
+        };
 
-            return $this->private__processHttpResponse($response, $service, $url, true);
+        try {
+            $response = $attempt();
+            if ($response === null) {
+                return [
+                    'success' => false,
+                    'message' => 'Unable to bootstrap Horizon dashboard session or CSRF token.',
+                    'status' => 502,
+                ];
+            }
+            if ($withDashboardSession && $response->status() === 419) {
+                $retryResponse = $attempt();
+                if ($retryResponse !== null) {
+                    $response = $retryResponse;
+                }
+            }
+
+            return $this->private__processHttpResponse(
+                $response,
+                $service,
+                $url,
+                ! $withDashboardSession,
+                $withDashboardSession ? ' (with dashboard session)' : '',
+            );
         } catch (\Throwable $e) {
-            Log::error('Horizon Hub: Horizon API call exception', [
+            Log::error('Horizon Hub: Horizon API call exception'.($withDashboardSession ? ' (with dashboard session)' : ''), [
                 'service_id' => $service->id ?? null,
                 'url' => $url ?? null,
                 'error' => $e->getMessage(),
@@ -458,76 +351,113 @@ class HorizonApiProxyService
     }
 
     /**
-     * Call the Horizon HTTP API for a given service using a dashboard session and CSRF token.
+     * Build an HTTP client for Horizon calls with unified timeout and optional GET retries.
      *
-     * This is intended for write operations (such as retrying jobs) that are
-     * protected by Laravel's CSRF middleware on the service.
-     *
-     * If a 419 status is returned, a single automatic re-bootstrap and retry
-     * is performed to refresh the session/CSRF token.
-     *
-     * @return array{success: bool, message?: string, status?: int}
+     * @param  string  $httpMethod  Uppercase or lowercase HTTP method.
      */
-    private function private__callWithDashboardSession(Service $service, string $path, string $method = 'post'): array
+    private function private__newHorizonPendingRequest(string $httpMethod = 'get'): PendingRequest
     {
-        try {
-            $base = $this->private__buildBaseUrl($service);
-        } catch (\Throwable $e) {
-            return [
-                'success' => false,
-                'message' => $e->getMessage(),
-                'status' => 400,
-            ];
+        $httpMethod = \strtoupper($httpMethod);
+        $timeoutSeconds = ConfigHelper::getIntWithMin('horizonhub.api_timeout', 10);
+        $request = Http::timeout($timeoutSeconds);
+
+        $connectTimeout = ConfigHelper::get('horizonhub.horizon_http_connect_timeout');
+        if ($connectTimeout !== null && (float) $connectTimeout > 0) {
+            $request->connectTimeout((float) $connectTimeout);
         }
 
-        $url = "$base/".\ltrim($path, '/');
+        $retryConfig = ConfigHelper::get('horizonhub.horizon_http_retry');
+        $retryTimes = (int) $retryConfig['times'];
+        $sleepBaseMs = (int) $retryConfig['sleep_ms'];
+        $retryOnStatus = $retryConfig['retry_on_status'];
 
-        $httpMethod = \strtolower($method);
-        $attempt = function () use ($service, $url, $httpMethod): ?Response {
-            $bootstrap = $this->private__bootstrapDashboardSession($service);
-            if ($bootstrap === null) {
-                return null;
-            }
-            $request = $this->private__newHorizonPendingRequest($httpMethod)
-                ->withOptions(['cookies' => $bootstrap['cookies']])
-                ->withHeaders(['X-CSRF-TOKEN' => $bootstrap['csrf_token']]);
+        if ($retryConfig && $httpMethod === 'GET' && $retryTimes > 1) {
+            $request = $request->retry(
+                $retryTimes,
+                function (int $attempt, \Throwable $e) use ($sleepBaseMs): int {
+                    return $sleepBaseMs * (2 ** \max(0, $attempt - 1));
+                },
+                function (\Throwable $exception, PendingRequest $pending, ?string $method = 'GET') use ($retryOnStatus): bool {
+                    if ($method !== null && \strtoupper($method) !== 'GET') {
+                        return false;
+                    }
 
-            return match ($httpMethod) {
-                'get' => $request->get($url),
-                'delete' => $request->delete($url),
-                default => $request->post($url),
-            };
-        };
+                    if ($exception instanceof ConnectionException) {
+                        return true;
+                    }
 
-        try {
-            $response = $attempt();
-            if ($response === null) {
-                return [
-                    'success' => false,
-                    'message' => 'Unable to bootstrap Horizon dashboard session or CSRF token.',
-                    'status' => 502,
-                ];
-            }
-            if ($response->status() === 419) {
-                $retryResponse = $attempt();
-                if ($retryResponse !== null) {
-                    $response = $retryResponse;
-                }
-            }
+                    if ($exception instanceof RequestException && $exception->response !== null) {
+                        return \in_array($exception->response->status(), $retryOnStatus, true);
+                    }
 
-            return $this->private__processHttpResponse($response, $service, $url, false, ' (with dashboard session)');
-        } catch (\Throwable $e) {
-            Log::error('Horizon Hub: Horizon API call exception (with dashboard session)', [
-                'service_id' => $service->id ?? null,
-                'url' => $url ?? null,
-                'error' => $e->getMessage(),
-            ]);
-
-            return [
-                'success' => false,
-                'message' => $e->getMessage(),
-                'status' => 502,
-            ];
+                    return false;
+                },
+                throw: false,
+            );
         }
+
+        return $request;
+    }
+
+    /**
+     * Process the HTTP response.
+     *
+     * @return array{success: bool, message?: string, status?: int, data?: array}
+     */
+    private function private__processHttpResponse(
+        Response $response,
+        Service $service,
+        string $url,
+        bool $updateHeartbeat = false,
+        string $logContext = '',
+    ): array {
+        if ($response->successful()) {
+            $data = \json_decode($response->body(), true);
+            if ($updateHeartbeat) {
+                $service->forceFill([
+                    'last_seen_at' => \now(),
+                    'status' => 'online',
+                ])->saveQuietly();
+            }
+
+            return !\is_array($data)
+                ? ['success' => true]
+                : ['success' => true, 'data' => $data];
+        }
+
+        $message = $this->private__buildErrorMessageFromResponse($response);
+        Log::warning("Horizon Hub: Horizon API call failed $logContext", [
+            'service_id' => $service->id,
+            'url' => $url,
+            'status' => $response->status(),
+            'message' => $message,
+        ]);
+
+        return [
+            'success' => false,
+            'message' => $message,
+            'status' => $response->status(),
+        ];
+    }
+
+    /**
+     * Build an error message from a response.
+     */
+    private function private__buildErrorMessageFromResponse(Response $response): string
+    {
+        $rawBody = $response->body();
+        $decoded = \json_decode($rawBody, true);
+
+        if (\is_array($decoded) && isset($decoded['message']) && (string) $decoded['message'] !== '') {
+            return (string) $decoded['message'];
+        }
+
+        $trimmedBody = \trim((string) $rawBody);
+        $isHtml = $trimmedBody !== \strip_tags($trimmedBody);
+        if (! $isHtml && $trimmedBody !== '') {
+            return \mb_substr($trimmedBody, 0, 200);
+        }
+
+        return "Horizon API returned an HTTP error ({$response->status()}).";
     }
 }

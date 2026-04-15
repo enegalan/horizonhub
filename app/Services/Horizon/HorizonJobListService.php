@@ -45,9 +45,9 @@ class HorizonJobListService
         string $path,
         array $query,
     ): array {
-        $jobsProcessing = $this->private__collectAndSortJobsAcrossServices($services, 'processing', $search);
-        $jobsProcessed = $this->private__collectAndSortJobsAcrossServices($services, 'processed', $search);
-        $jobsFailed = $this->private__collectAndSortJobsAcrossServices($services, 'failed', $search);
+        $jobsProcessing = $this->private__collectAndSortJobsForServices($services, 'processing', $search);
+        $jobsProcessed = $this->private__collectAndSortJobsForServices($services, 'processed', $search);
+        $jobsFailed = $this->private__collectAndSortJobsForServices($services, 'failed', $search);
 
         return [
             'processing' => $this->private__makePaginator($jobsProcessing, $perPage, $pageProcessing, $path, $query, 'page_processing'),
@@ -122,9 +122,11 @@ class HorizonJobListService
         string $path,
         array $query,
     ): array {
-        $jobsProcessing = $this->private__collectAndSortJobsForService($service, 'processing', $search);
-        $jobsProcessed = $this->private__collectAndSortJobsForService($service, 'processed', $search);
-        $jobsFailed = $this->private__collectAndSortJobsForService($service, 'failed', $search);
+        $merged = \collect();
+        $merged->push($service);
+        $jobsProcessing = $this->private__collectAndSortJobsForServices($merged, 'processing', $search);
+        $jobsProcessed = $this->private__collectAndSortJobsForServices($merged, 'processed', $search);
+        $jobsFailed = $this->private__collectAndSortJobsForServices($merged, 'failed', $search);
 
         return [
             'processing' => $this->private__makePaginator($jobsProcessing, $perPage, $pageProcessing, $path, $query, 'page_processing'),
@@ -248,13 +250,13 @@ class HorizonJobListService
     }
 
     /**
-     * Collect and sort jobs across multiple services.
+     * Collect and sort jobs for one or more services.
      *
      * @param  Collection<int, Service>  $services
      * @param  'processing'|'processed'|'failed'  $status
      * @return Collection<int, object>
      */
-    private function private__collectAndSortJobsAcrossServices(Collection $services, string $status, string $search): Collection
+    private function private__collectAndSortJobsForServices(Collection $services, string $status, string $search): Collection
     {
         $merged = \collect();
         foreach ($services as $service) {
@@ -270,31 +272,6 @@ class HorizonJobListService
                 }
                 $merged->push($row);
             }
-        }
-
-        return $this->private__sortJobRows($merged, $status)->values();
-    }
-
-    /**
-     * Collect and sort jobs for a single service.
-     *
-     * @param  'processing'|'processed'|'failed'  $status
-     * @return Collection<int, object>
-     */
-    private function private__collectAndSortJobsForService(Service $service, string $status, string $search): Collection
-    {
-        $fetcher = $this->private__apiFetcherForStatus($service, $status);
-        $rawJobs = $this->private__fetchAllJobsForService($fetcher);
-        $merged = \collect();
-        foreach ($rawJobs as $job) {
-            $row = $this->private__mapRawJobToListRow(\is_array($job) ? $job : [], $service, $status);
-            if ($row === null) {
-                continue;
-            }
-            if (! $this->private__matchesSearch($row, $search)) {
-                continue;
-            }
-            $merged->push($row);
         }
 
         return $this->private__sortJobRows($merged, $status)->values();

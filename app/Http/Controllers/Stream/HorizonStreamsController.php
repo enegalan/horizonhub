@@ -9,7 +9,6 @@ use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\HorizonJobDetailService;
 use App\Services\Horizon\HorizonJobListService;
-use App\Services\Horizon\HorizonJobResolverService;
 use App\Services\Horizon\HorizonMetricsService;
 use App\Services\Horizon\MetricsDashboardDataService;
 use App\Services\Horizon\ServiceShowPageDataService;
@@ -24,7 +23,6 @@ class HorizonStreamsController extends StreamController
         private HorizonMetricsService $metrics,
         private HorizonApiProxyService $horizonApi,
         private HorizonJobListService $jobList,
-        private HorizonJobResolverService $jobResolver,
         private HorizonJobDetailService $jobDetail,
         private ServiceShowPageDataService $serviceShowPageData,
         private ServiceStatsAttachmentService $serviceStats,
@@ -196,12 +194,24 @@ class HorizonStreamsController extends StreamController
 
     private function private__buildJobShowStreams(string $routeJobUuid, int $serviceId): ?string
     {
-        $resolved = $this->jobResolver->getJobAndService($routeJobUuid, $serviceId);
-        if ($resolved === null) {
+        $service = Service::query()
+            ->whereKey($serviceId)
+            ->whereNotNull('base_url')
+            ->first();
+
+        if ($service === null) {
             return null;
         }
 
-        $viewData = $this->jobDetail->buildShowViewData($resolved['service'], $resolved['job'], $routeJobUuid);
+        $response = $this->horizonApi->getJob($service, $routeJobUuid);
+        $jobData = [];
+        if (($response['success'] ?? false) && isset($response['data']) && \is_array($response['data']) && \count($response['data']) > 0) {
+            $jobData = $response['data'];
+        } else {
+            return null;
+        }
+
+        $viewData = $this->jobDetail->buildShowViewData($service, $jobData, $routeJobUuid);
         $jobView = $viewData['job'];
 
         $exception = $viewData['exception'] ? html_entity_decode($viewData['exception'], ENT_QUOTES | ENT_HTML401, 'UTF-8') : null;
