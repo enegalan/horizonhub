@@ -76,10 +76,7 @@ import { parseJson } from '../lib/parse';
      */
     function getColumnIds(table) {
         var raw = table.getAttribute('data-column-ids');
-        if (raw) return raw.split(',').map(s => s.trim());
-
-        var ths = table.querySelectorAll('thead tr th[data-column-id]');
-        return Array.from(ths).map(th => th.getAttribute('data-column-id'));
+        return raw ? raw.split(',').map(s => s.trim()) : [];
     }
 
     /**
@@ -455,7 +452,7 @@ import { parseJson } from '../lib/parse';
     }
 
     /**
-     * Re-apply stored column order and widths (e.g. after tbody is replaced by Alpine).
+     * Re-apply stored column order and widths.
      * Does not attach duplicate resize/reorder listeners.
      * @param {HTMLElement} table
      * @returns {void}
@@ -499,10 +496,7 @@ import { parseJson } from '../lib/parse';
      * @returns {void}
      */
     function syncResizableTablesUnderRoot(syncRoot) {
-        if (!syncRoot || typeof syncRoot.querySelectorAll !== 'function') {
-            return;
-        }
-        if (typeof window.horizonSyncResizableTableLayout !== 'function') {
+        if (!syncRoot || typeof syncRoot.querySelectorAll !== 'function' || typeof window.horizonSyncResizableTableLayout !== 'function') {
             return;
         }
         var tables = [];

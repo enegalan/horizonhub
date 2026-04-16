@@ -60,24 +60,24 @@
 </div>
 <div>
     <dt class="label-muted">Queued at</dt>
-    <dd class="mt-0.5 text-foreground" data-datetime="{{ $job->queued_at ? \Carbon\Carbon::parse($job->queued_at)->toIso8601String() : '' }}">-</dd>
+    <dd class="mt-0.5 text-foreground">{{ $job->queued_at?->format('Y-m-d H:i:s') ?? '–' }}</dd>
 </div>
 @if($job->available_at)
     <div>
         <dt class="label-muted">Delayed until</dt>
-        <dd class="mt-0.5 text-foreground" data-datetime="{{ \Carbon\Carbon::parse($job->available_at)->toIso8601String() }}">-</dd>
+        <dd class="mt-0.5 text-foreground">{{ $job->available_at?->format('Y-m-d H:i:s') ?? '–' }}</dd>
     </div>
 @endif
 @if($job->status !== 'failed')
     <div>
         <dt class="label-muted">Processed at</dt>
-        <dd class="mt-0.5 text-foreground" data-datetime="{{ $job->processed_at ? \Carbon\Carbon::parse($job->processed_at)->toIso8601String() : '' }}">-</dd>
+        <dd class="mt-0.5 text-foreground">{{ $job->processed_at?->format('Y-m-d H:i:s') ?? '–' }}</dd>
     </div>
 @endif
 @if($job->status === 'failed')
     <div>
         <dt class="label-muted">Failed at</dt>
-        <dd class="mt-0.5 text-foreground" data-datetime="{{ $job->failed_at ? \Carbon\Carbon::parse($job->failed_at)->toIso8601String() : '' }}">-</dd>
+        <dd class="mt-0.5 text-foreground">{{ $job->failed_at?->format('Y-m-d H:i:s') ?? '–' }}</dd>
     </div>
 @endif
 @php

@@ -122,10 +122,15 @@
                                 <x-button
                                     type="button"
                                     variant="outline"
-                                    class="h-9 text-sm"
+                                    class="h-9 text-sm inline-flex items-center justify-center gap-1 min-w-[7.5rem]"
+                                    x-bind:disabled="selectingAllFailed"
                                     @click="selectAllFailed()"
                                 >
-                                    Select all
+                                    <span x-show="!selectingAllFailed">Select all</span>
+                                    <span x-cloak x-show="selectingAllFailed" style="display: none" class="inline-flex items-center gap-1">
+                                        <x-loader class="size-4" />
+                                        Selecting...
+                                    </span>
                                 </x-button>
                                 <x-button
                                     type="button"
@@ -170,8 +175,8 @@
                                                 <td class="px-4 py-2.5" data-column-id="select">
                                                     <template x-if="job.uuid">
                                                         <x-checkbox
-                                                            x-bind:checked="selectedFailedIds.includes(job.uuid)"
-                                                            @change="toggleFailed(job.uuid)"
+                                                            x-bind:checked="selectedFailedJobs.some((j) => j.id === job.uuid)"
+                                                            @change="toggleFailed(job.uuid, job.service_id)"
                                                             x-bind:aria-label="'Select job ' + job.uuid"
                                                         />
                                                     </template>
@@ -184,12 +189,7 @@
                                                     x-text="job.name || '–'"
                                                     x-bind:title="job.name || ''"
                                                 ></td>
-                                                <td
-                                                    class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]"
-                                                    data-column-id="failed_at"
-                                                    x-text="job.failed_at_formatted || '–'"
-                                                    x-bind:data-datetime="job.failed_at_iso || ''"
-                                                ></td>
+                                                <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="failed_at" x-text="job.failed_at_formatted || '–'"></td>
                                             </tr>
                                         </template>
                                 </x-table>
@@ -256,10 +256,10 @@
                                 <button
                                     type="button"
                                     class="inline-flex h-9 items-center justify-center gap-1 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
-                                    x-bind:disabled="selectedFailedIds.length === 0 || retrying"
+                                    x-bind:disabled="selectedFailedJobs.length === 0 || retrying"
                                     @click="retrySelected()"
                                 >
-                                    <span x-show="!retrying" x-text="'Retry selected (' + selectedFailedIds.length + ')'"></span>
+                                    <span x-show="!retrying" x-text="'Retry selected (' + selectedFailedJobs.length + ')'"></span>
                                     <span x-cloak x-show="retrying" style="display: none" class="inline-flex items-center gap-1">
                                         <x-loader class="size-4" />
                                         Retrying...

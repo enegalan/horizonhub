@@ -26,9 +26,9 @@
             </x-slot:head>
             @foreach($retryHistory as $retryJob)
                 @php
-                    $retriedAtIso = null;
+                    $retriedAt = null;
                     if (isset($retryJob['retried_at']) && \is_numeric($retryJob['retried_at'])) {
-                        $retriedAtIso = \Carbon\Carbon::createFromTimestamp((int) $retryJob['retried_at'])->toIso8601String();
+                        $retriedAt = \Carbon\Carbon::createFromTimestamp((int) $retryJob['retried_at']);
                     }
                     $retryStatus = isset($retryJob['status']) && \is_string($retryJob['status']) && $retryJob['status'] !== ''
                         ? $retryJob['status']
@@ -55,7 +55,7 @@
                             –
                         @endif
                     </td>
-                    <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="retried_at" data-datetime="{{ $retriedAtIso ?? '' }}">-</td>
+                    <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="retried_at">{{ $retriedAt?->format('Y-m-d H:i:s') ?? '–' }}</td>
                 </tr>
             @endforeach
         </x-table>

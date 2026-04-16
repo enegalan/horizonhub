@@ -6,7 +6,7 @@ import { horizonAlertsList, horizonAlertDetail } from './horizon/alerts';
 import { horizonMetricsPage } from './horizon/metrics';
 import { initTurboStream } from './lib/sse';
 import { createHttpHelpers } from './lib/http';
-import { formatDateTimeElements, formatQueueWaitElements } from './lib/datetime-format';
+import { formatQueueWaitElements } from './lib/datetime-format';
 import { onDocumentReady, schedule } from './lib/init';
 import { getTurboStreamTargetElement, renderTurboStreamWithGuards } from './lib/stream-guard';
 import { mountToaster } from './components/toaster';
@@ -43,20 +43,15 @@ document.addEventListener('turbo:load', function () {
         Alpine.initTree(document.body);
     });
     schedule(function () {
-        formatDateTimeElements();
         formatQueueWaitElements();
     });
+    mountToaster();
 });
 
-/**
- * Initialize the app.
- * @returns {void}
- */
 onDocumentReady(function () {
     mountToaster();
     applyTheme();
     schedule(function () {
-        formatDateTimeElements();
         formatQueueWaitElements();
     });
     initTurboStream();
@@ -72,9 +67,7 @@ document.addEventListener('turbo:before-stream-render', function (e) {
         }
         var syncRoot = getTurboStreamTargetElement(streamElement);
         schedule(function () {
-            var formatRoot = syncRoot || document;
-            formatDateTimeElements(formatRoot);
-            formatQueueWaitElements(formatRoot);
+            formatQueueWaitElements(syncRoot);
             if (outcome === 'rendered') {
                 if (syncRoot && typeof window.horizonSyncResizableTablesUnderRoot === 'function') {
                     window.horizonSyncResizableTablesUnderRoot(syncRoot);

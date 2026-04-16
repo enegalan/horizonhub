@@ -34,18 +34,14 @@
             @php $attempts = $job->attempts; $attemptsDisplay = ($attempts !== null && $attempts > 0) ? $attempts : '–'; @endphp
             {{ $attemptsDisplay }}
         </td>
-        <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="queued_at" data-datetime="{{ $job->queued_at?->format('c') ?? '' }}">{{ $job->queued_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
+        <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="queued_at">{{ $job->queued_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
         @if($kind === 'processing')
-            <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="delayed_until"
-                @if($job->available_at)
-                    data-datetime="{{ $job->available_at->format('c') }}"
-                @endif
-            >{{ $job->available_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
+            <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="delayed_until">{{ $job->available_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
         @elseif($kind === 'processed')
-            <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="processed" data-datetime="{{ $job->processed_at?->format('c') ?? '' }}">{{ $job->processed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
+            <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="processed">{{ $job->processed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
             <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="runtime">{{ $job->runtime ?? '–' }}</td>
         @elseif($kind === 'failed')
-            <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="failed_at" data-datetime="{{ $job->failed_at?->format('c') ?? '' }}">{{ $job->failed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
+            <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="failed_at">{{ $job->failed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
             <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="runtime">{{ $job->runtime ?? '–' }}</td>
         @endif
         <td class="px-4 py-2.5" data-column-id="actions">

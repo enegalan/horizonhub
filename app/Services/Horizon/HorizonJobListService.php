@@ -136,18 +136,16 @@ class HorizonJobListService
     }
 
     /**
-     * Fetch failed jobs from one or more services, apply filters, sort, and slice for HTTP pagination.
+     * Build filtered, sorted failed-job rows for the retry modal (before pagination).
      *
      * @param  Collection<int, Service>  $services
-     * @return array{rows: list<array<string, mixed>>, total: int, last_page: int}
+     * @return list<array<string, mixed>>
      */
-    public function buildFailedJobsRetryModalPage(
+    private function private__buildRetryModalFailedRows(
         Collection $services,
         string $search,
         mixed $dateFrom,
         mixed $dateTo,
-        int $page,
-        int $perPage,
     ): array {
         $rows = [];
 
@@ -230,6 +228,25 @@ class HorizonJobListService
 
             return $aTime->lt($bTime) ? 1 : -1;
         });
+
+        return $rows;
+    }
+
+    /**
+     * Fetch failed jobs from one or more services, apply filters, sort, and slice for HTTP pagination.
+     *
+     * @param  Collection<int, Service>  $services
+     * @return array{rows: list<array<string, mixed>>, total: int, last_page: int}
+     */
+    public function buildFailedJobsRetryModalPage(
+        Collection $services,
+        string $search,
+        mixed $dateFrom,
+        mixed $dateTo,
+        int $page,
+        int $perPage,
+    ): array {
+        $rows = $this->private__buildRetryModalFailedRows($services, $search, $dateFrom, $dateTo);
 
         $total = \count($rows);
         $lastPage = $perPage > 0 ? (int) \max(1, (int) \ceil($total / $perPage)) : 1;

@@ -5,6 +5,7 @@
  *
  * Table rows: only direct td/th with data-column-id are compared and updated.
  * Use data-stream-preserve-client on a cell to keep the live DOM (e.g. CSRF tokens in forms).
+ * Mark any subtree that client JS rewrites after load (e.g. JSON tree) with data-stream-preserve-client
  */
 
 /**
@@ -69,42 +70,37 @@ function preserveJobsSectionsOpenState(streamElement) {
 }
 
 /**
- * Resolve a stream target element by its attribute value.
- * @param {string} targetAttr
- * @returns {Element|null}
+ * Remove whitespace-only text nodes so Blade/indented HTML compares to live DOM consistently.
+ * @param {Node} node
+ * @returns {void}
  */
-function resolveStreamTargetElement(targetAttr) {
-    var raw = String(targetAttr || '').trim();
-    if (!raw) {
-        return null;
-    }
-    if (raw.charAt(0) === '#') {
-        return document.querySelector(raw);
-    }
-    var byId = document.getElementById(raw);
-    if (byId) {
-        return byId;
-    }
-    try {
-        return document.querySelector(raw);
-    } catch (e) {
-        return null;
+function stripWhitespaceOnlyTextNodes(node) {
+    var child = node.firstChild;
+    while (child) {
+        var next = child.nextSibling;
+        if (child.nodeType === Node.TEXT_NODE) {
+            if (/^\s*$/.test(String(child.textContent || ''))) {
+                node.removeChild(child);
+            }
+        } else if (child.nodeType === Node.ELEMENT_NODE) {
+            stripWhitespaceOnlyTextNodes(child);
+        }
+        child = next;
     }
 }
 
 /**
- * Clone subtree and reset client-only display mutations so it matches server stream markup.
- * @param {Element} root
- * @returns {string}
+ * Clone subtree, drop client-expanded bodies under [data-stream-preserve-client], strip ignorable whitespace.
+ * @param {Element} el
+ * @returns {Element}
  */
-function innerHtmlNormalizedForStreamCompare(root) {
-    var clone = root.cloneNode(true);
-    var dt = clone.querySelectorAll('[data-datetime]');
-    var i;
-    for (i = 0; i < dt.length; i++) {
-        dt[i].textContent = '-';
-    }
-    return clone.innerHTML;
+function cloneNormalizedForStreamCompare(el) {
+    var clone = el.cloneNode(true);
+    clone.querySelectorAll('[data-stream-preserve-client]').forEach(function (host) {
+        host.innerHTML = '';
+    });
+    stripWhitespaceOnlyTextNodes(clone);
+    return clone;
 }
 
 /**
@@ -132,15 +128,11 @@ function isRedundantUpdate(targetEl, templateEl) {
         }
     }
 
-    var incomingSources = scratch.querySelectorAll('[data-json-source]');
-    var existingSources = targetEl.querySelectorAll('[data-json-source]');
-    if (incomingSources.length === 1 && existingSources.length === 1) {
-        var a = String(incomingSources[0].getAttribute('data-json-source') || '');
-        var b = String(existingSources[0].getAttribute('data-json-source') || '');
-        return a === b;
-    }
-
-    return innerHtmlNormalizedForStreamCompare(targetEl) === innerHtmlNormalizedForStreamCompare(scratch);
+    var wrap = document.createElement('div');
+    wrap.innerHTML = incomingHtml;
+    return (
+        cloneNormalizedForStreamCompare(targetEl).innerHTML === cloneNormalizedForStreamCompare(wrap).innerHTML
+    );
 }
 
 /**
@@ -161,14 +153,18 @@ function isRedundantReplace(targetEl, templateEl) {
         return false;
     }
     if (children.length === 1) {
-        return targetEl.outerHTML === children[0].outerHTML;
+        var onlyChild = children[0];
+        return (
+            cloneNormalizedForStreamCompare(targetEl).outerHTML ===
+            cloneNormalizedForStreamCompare(onlyChild).outerHTML
+        );
     }
     var incoming = '';
     var i;
     for (i = 0; i < children.length; i++) {
-        incoming += children[i].outerHTML;
+        incoming += cloneNormalizedForStreamCompare(children[i]).outerHTML;
     }
-    return targetEl.outerHTML === incoming;
+    return cloneNormalizedForStreamCompare(targetEl).outerHTML === incoming;
 }
 
 /**
@@ -177,15 +173,22 @@ function isRedundantReplace(targetEl, templateEl) {
  * @returns {Element|null}
  */
 export function getTurboStreamTargetElement(streamElement) {
-    if (!streamElement || !streamElement.getAttribute) {
-        return null;
-    }
     var targetAttr = String(streamElement.getAttribute('target') || '').trim();
     if (!targetAttr) {
         return null;
     }
 
-    return resolveStreamTargetElement(targetAttr);
+    var raw = String(targetAttr).trim();
+    if (!raw) {
+        return null;
+    }
+    var targetId = raw.charAt(0) === '#' ? raw.slice(1) : raw;
+    var byId = document.getElementById(targetId);
+    if (byId) {
+        return byId;
+    }
+
+    return document.querySelector(targetId);
 }
 
 /**
@@ -194,7 +197,7 @@ export function getTurboStreamTargetElement(streamElement) {
  * @param {Element} streamElement
  * @returns {boolean}
  */
-export function isStreamUpdateRedundant(streamElement) {
+function isStreamUpdateRedundant(streamElement) {
     var action = String(streamElement.getAttribute('action') || '').toLowerCase();
     if (action !== 'update' && action !== 'replace') {
         return false;
@@ -246,37 +249,6 @@ function getKeyedDirectChildren(container) {
         }
     }
     return out;
-}
-
-/**
- * Get the inner HTML normalized for compare.
- * @param {HTMLTableCellElement} td
- * @returns {string}
- */
-function cellInnerHtmlNormalizedForCompare(td) {
-    var clone = td.cloneNode(true);
-    var dt = clone.querySelectorAll('[data-datetime]');
-    var i;
-    for (i = 0; i < dt.length; i++) {
-        dt[i].textContent = '-';
-    }
-    return clone.innerHTML;
-}
-
-/**
- * Includes host cell stream attributes so last_seen updates when only data-datetime changes.
- * @param {Element} td
- * @returns {string}
- */
-function cellStreamEquivalenceSignature(td) {
-    var norm = cellInnerHtmlNormalizedForCompare(td);
-    if (td.hasAttribute('data-datetime')) {
-        norm += '\0dt=' + String(td.getAttribute('data-datetime') || '');
-    }
-    if (td.hasAttribute('data-wait-seconds')) {
-        norm += '\0ws=' + String(td.getAttribute('data-wait-seconds') || '');
-    }
-    return norm;
 }
 
 /**
@@ -342,20 +314,10 @@ function mergeTableRowCells(existingRow, incomingRow) {
         if (etd.hasAttribute('data-stream-preserve-client')) {
             continue;
         }
-        if (cellStreamEquivalenceSignature(etd) === cellStreamEquivalenceSignature(itd)) {
+        if (String(etd.getAttribute('data-wait-seconds')) === String(itd.getAttribute('data-wait-seconds'))) {
             continue;
         }
-        etd.innerHTML = itd.innerHTML;
-        var attrs = ['data-datetime', 'data-wait-seconds'];
-        var a;
-        for (a = 0; a < attrs.length; a++) {
-            var attr = attrs[a];
-            if (itd.hasAttribute(attr)) {
-                etd.setAttribute(attr, String(itd.getAttribute(attr) || ''));
-            } else {
-                etd.removeAttribute(attr);
-            }
-        }
+        mergeGenericKeyedChild(etd, itd);
         changed = true;
     }
     return changed;
@@ -368,21 +330,13 @@ function mergeTableRowCells(existingRow, incomingRow) {
  * @returns {void}
  */
 function mergeGenericKeyedChild(existing, incoming) {
-    if (innerHtmlNormalizedForStreamCompare(existing) === innerHtmlNormalizedForStreamCompare(incoming)) {
-        return false;
-    }
     existing.innerHTML = incoming.innerHTML;
-    var attrs = ['data-datetime', 'data-wait-seconds'];
-    var a;
-    for (a = 0; a < attrs.length; a++) {
-        var attr = attrs[a];
-        if (incoming.hasAttribute(attr)) {
-            existing.setAttribute(attr, String(incoming.getAttribute(attr) || ''));
-        } else {
-            existing.removeAttribute(attr);
-        }
+    var attr = 'data-wait-seconds'
+    if (incoming.hasAttribute(attr)) {
+        existing.setAttribute(attr, String(incoming.getAttribute(attr)));
+    } else {
+        existing.removeAttribute(attr);
     }
-    return true;
 }
 
 /**

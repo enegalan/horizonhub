@@ -407,13 +407,11 @@ export function renderJsonTree(target, options) {
         existingRoot &&
         existingRoot.classList.contains('horizon-json-node')
     ) {
-        target.classList.add('horizon-json-tree already-rendered');
         return;
     }
 
     var jsonTree = buildJsonNode(null, parsed, [], state, true);
     target.innerHTML = '';
-    target.classList.add('horizon-json-tree');
     target.appendChild(jsonTree);
     jsonTreeLastRenderedSource.set(target, source);
 }
