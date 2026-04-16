@@ -5,6 +5,7 @@
  *
  * Table rows: only direct td/th with data-column-id are compared and updated.
  * Use data-stream-preserve-client on a cell to keep the live DOM (e.g. CSRF tokens in forms).
+ * Mark any subtree that client JS rewrites after load (e.g. JSON tree) with data-stream-preserve-client
  */
 
 /**
@@ -69,6 +70,40 @@ function preserveJobsSectionsOpenState(streamElement) {
 }
 
 /**
+ * Remove whitespace-only text nodes so Blade/indented HTML compares to live DOM consistently.
+ * @param {Node} node
+ * @returns {void}
+ */
+function stripWhitespaceOnlyTextNodes(node) {
+    var child = node.firstChild;
+    while (child) {
+        var next = child.nextSibling;
+        if (child.nodeType === Node.TEXT_NODE) {
+            if (/^\s*$/.test(String(child.textContent || ''))) {
+                node.removeChild(child);
+            }
+        } else if (child.nodeType === Node.ELEMENT_NODE) {
+            stripWhitespaceOnlyTextNodes(child);
+        }
+        child = next;
+    }
+}
+
+/**
+ * Clone subtree, drop client-expanded bodies under [data-stream-preserve-client], strip ignorable whitespace.
+ * @param {Element} el
+ * @returns {Element}
+ */
+function cloneNormalizedForStreamCompare(el) {
+    var clone = el.cloneNode(true);
+    clone.querySelectorAll('[data-stream-preserve-client]').forEach(function (host) {
+        host.innerHTML = '';
+    });
+    stripWhitespaceOnlyTextNodes(clone);
+    return clone;
+}
+
+/**
  * Whether an incoming `update` would produce the same effective markup as the live target.
  * @param {Element} targetEl
  * @param {HTMLTemplateElement} templateEl
@@ -93,15 +128,11 @@ function isRedundantUpdate(targetEl, templateEl) {
         }
     }
 
-    var incomingSources = scratch.querySelectorAll('[data-json-source]');
-    var existingSources = targetEl.querySelectorAll('[data-json-source]');
-    if (incomingSources.length === 1 && existingSources.length === 1) {
-        var a = String(incomingSources[0].getAttribute('data-json-source') || '');
-        var b = String(existingSources[0].getAttribute('data-json-source') || '');
-        return a === b;
-    }
-
-    return false;
+    var wrap = document.createElement('div');
+    wrap.innerHTML = incomingHtml;
+    return (
+        cloneNormalizedForStreamCompare(targetEl).innerHTML === cloneNormalizedForStreamCompare(wrap).innerHTML
+    );
 }
 
 /**
@@ -111,7 +142,6 @@ function isRedundantUpdate(targetEl, templateEl) {
  * @returns {boolean}
  */
 function isRedundantReplace(targetEl, templateEl) {
-    console.log('fn: isRedundantReplace', targetEl, templateEl.content);
     var fragment = templateEl.content;
     if (!fragment || !fragment.childNodes.length) {
         return false;
@@ -120,21 +150,21 @@ function isRedundantReplace(targetEl, templateEl) {
     holder.appendChild(fragment.cloneNode(true));
     var children = holder.children;
     if (children.length === 0) {
-        console.log('fn: children.length === 0');
         return false;
     }
     if (children.length === 1) {
-        // console.log('fn: children.length === 1', targetEl.outerHTML, children[0].outerHTML, targetEl.outerHTML === children[0].outerHTML);
-        console.log('fn: children.length === 1', targetEl.innerHTML, children[0].outerHTML, targetEl.innerHTML == children[0].outerHTML);
-        return targetEl.innerHTML === children[0].outerHTML;
+        var onlyChild = children[0];
+        return (
+            cloneNormalizedForStreamCompare(targetEl).outerHTML ===
+            cloneNormalizedForStreamCompare(onlyChild).outerHTML
+        );
     }
     var incoming = '';
     var i;
     for (i = 0; i < children.length; i++) {
-        incoming += children[i].outerHTML;
+        incoming += cloneNormalizedForStreamCompare(children[i]).outerHTML;
     }
-    console.log('fn: targetEl.outerHTML === incoming', targetEl.outerHTML, incoming, targetEl.outerHTML === incoming);
-    return targetEl.outerHTML === incoming;
+    return cloneNormalizedForStreamCompare(targetEl).outerHTML === incoming;
 }
 
 /**
@@ -167,7 +197,7 @@ export function getTurboStreamTargetElement(streamElement) {
  * @param {Element} streamElement
  * @returns {boolean}
  */
-export function isStreamUpdateRedundant(streamElement) {
+function isStreamUpdateRedundant(streamElement) {
     var action = String(streamElement.getAttribute('action') || '').toLowerCase();
     if (action !== 'update' && action !== 'replace') {
         return false;
@@ -182,8 +212,7 @@ export function isStreamUpdateRedundant(streamElement) {
     }
 
     if (action === 'update') {
-        console.log('isRedundantUpdate', isRedundantUpdate(targetEl, templateEl), isRedundantReplace(targetEl, templateEl));
-        // return isRedundantUpdate(targetEl, templateEl);
+        return isRedundantUpdate(targetEl, templateEl);
     }
 
     return isRedundantReplace(targetEl, templateEl);

@@ -70,8 +70,7 @@ export function initJsonTrees() {
     var rootEl = document.querySelector('[data-horizon-job-detail-root="1"]');
     if (!rootEl) return;
     var jobUuid = String(rootEl.getAttribute('data-horizon-job-uuid') || '').trim();
-    var jsonTargets = rootEl.querySelectorAll('[data-json-tree]');
-    jsonTargets.forEach(function (target) {
+    rootEl.querySelectorAll('[data-json-tree]').forEach(function (target) {
         var treeName = target.getAttribute('data-json-tree');
         var storageKey = null;
         if (jobUuid && treeName) {
