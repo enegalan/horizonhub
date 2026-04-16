@@ -38,11 +38,10 @@
         <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="jobs">{{ $service->horizon_jobs_count ?? 0 }}</td>
         <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="failed">{{ $service->horizon_failed_jobs_count ?? 0 }}</td>
         <td
-            class="px-4 py-2.5 text-xs text-muted-foreground"
+            class="px-4 py-2.5 text-xs text-muted-foreground font-mono tabular-nums"
             data-column-id="last_seen"
-            data-datetime="{{ $service->last_seen_at?->toIso8601String() }}"
         >
-            -
+            {{ $service->last_seen_at?->format('Y-m-d H:i:s') ?? '-' }}
         </td>
         <td class="px-4 py-2.5" data-column-id="actions" data-stream-preserve-client>
             <div class="flex items-center gap-2">
