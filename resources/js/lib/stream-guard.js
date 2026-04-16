@@ -323,6 +323,7 @@ function findDirectTableCellByColumnId(tr, columnId) {
  * @returns {void}
  */
 function mergeTableRowCells(existingRow, incomingRow) {
+    var changed = false;
     var incomingTds = getDirectTableCellsWithColumnId(incomingRow);
     var j;
     for (j = 0; j < incomingTds.length; j++) {
@@ -355,7 +356,9 @@ function mergeTableRowCells(existingRow, incomingRow) {
                 etd.removeAttribute(attr);
             }
         }
+        changed = true;
     }
+    return changed;
 }
 
 /**
@@ -366,7 +369,7 @@ function mergeTableRowCells(existingRow, incomingRow) {
  */
 function mergeGenericKeyedChild(existing, incoming) {
     if (innerHtmlNormalizedForStreamCompare(existing) === innerHtmlNormalizedForStreamCompare(incoming)) {
-        return;
+        return false;
     }
     existing.innerHTML = incoming.innerHTML;
     var attrs = ['data-datetime', 'data-wait-seconds'];
@@ -379,6 +382,7 @@ function mergeGenericKeyedChild(existing, incoming) {
             existing.removeAttribute(attr);
         }
     }
+    return true;
 }
 
 /**
@@ -391,10 +395,9 @@ function mergeKeyedChild(existingChild, incomingChild) {
     const isExistingTableRow = existingChild && existingChild.tagName && String(existingChild.tagName).toUpperCase() === 'TR';
     const isIncomingTableRow = incomingChild && incomingChild.tagName && String(incomingChild.tagName).toUpperCase() === 'TR';
     if (isExistingTableRow && isIncomingTableRow) {
-        mergeTableRowCells(existingChild, incomingChild);
-        return;
+        return mergeTableRowCells(existingChild, incomingChild);
     }
-    mergeGenericKeyedChild(existingChild, incomingChild);
+    return mergeGenericKeyedChild(existingChild, incomingChild);
 }
 
 /**
@@ -421,24 +424,29 @@ function findKeyedDirectChild(container, rowId) {
  * @returns {void}
  */
 function syncStructuralChildById(domChild, incChild) {
+    var changed = false;
     if (domChild.innerHTML !== incChild.innerHTML) {
         domChild.innerHTML = incChild.innerHTML;
+        changed = true;
     }
     if (incChild.hasAttribute('style')) {
         var ns = incChild.getAttribute('style') || '';
         if (domChild.getAttribute('style') !== ns) {
             domChild.setAttribute('style', ns);
+            changed = true;
         }
     } else if (domChild.hasAttribute('style')) {
         domChild.removeAttribute('style');
+        changed = true;
     }
+    return changed;
 }
 
 /**
  * When the stream target opts in, patch keyed direct children in place instead of morphing the whole subtree.
  * Works for tbody, div lists, ul/ol, etc., as long as the server sends the same set of `data-stream-row-id` values.
  * @param {Element} streamElement
- * @returns {boolean} true when the default turbo-stream render must be skipped
+ * @returns {false|'incremental-unchanged'|'incremental-changed'}
  */
 export function tryApplyIncrementalStreamPatch(streamElement) {
     var action = String(streamElement.getAttribute('action') || '').toLowerCase();
@@ -493,6 +501,8 @@ export function tryApplyIncrementalStreamPatch(streamElement) {
         }
     }
 
+    var anyChanged = false;
+
     var ch = holder.children;
     for (i = 0; i < ch.length; i++) {
         var node = ch[i];
@@ -507,7 +517,9 @@ export function tryApplyIncrementalStreamPatch(streamElement) {
         if (!domChild || !targetEl.contains(domChild)) {
             continue;
         }
-        syncStructuralChildById(domChild, node);
+        if (syncStructuralChildById(domChild, node)) {
+            anyChanged = true;
+        }
     }
 
     for (i = 0; i < incomingKeyed.length; i++) {
@@ -520,22 +532,25 @@ export function tryApplyIncrementalStreamPatch(streamElement) {
         if (!curChild) {
             return false;
         }
-        mergeKeyedChild(curChild, incChild);
+        if (mergeKeyedChild(curChild, incChild)) {
+            anyChanged = true;
+        }
     }
 
-    return true;
+    return anyChanged ? 'incremental-changed' : 'incremental-unchanged';
 }
 
 /**
  * Render turbo stream with guards.
  * @param {Element} streamElement
  * @param {function(Element): void} originalRender
- * @returns {'patched'|'skipped'|'rendered'}
+ * @returns {'incremental-changed'|'incremental-unchanged'|'skipped'|'rendered'}
  */
 export function renderTurboStreamWithGuards(streamElement, originalRender) {
     preserveJobsSectionsOpenState(streamElement);
-    if (tryApplyIncrementalStreamPatch(streamElement)) {
-        return 'patched';
+    var patchOutcome = tryApplyIncrementalStreamPatch(streamElement);
+    if (patchOutcome === 'incremental-changed' || patchOutcome === 'incremental-unchanged') {
+        return patchOutcome;
     }
     if (isStreamUpdateRedundant(streamElement)) {
         return 'skipped';

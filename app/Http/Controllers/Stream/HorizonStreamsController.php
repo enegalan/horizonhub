@@ -14,6 +14,7 @@ use App\Services\Horizon\MetricsDashboardDataService;
 use App\Services\Horizon\ServiceShowPageDataService;
 use App\Services\Horizon\ServiceStatsAttachmentService;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HorizonStreamsController extends StreamController
@@ -175,17 +176,16 @@ class HorizonStreamsController extends StreamController
 
         $index = $this->jobList->buildAggregatedJobsIndexFromRequest($pageRequest);
 
-        $html = \view('horizon.jobs.partials.job-list-collapsible-stack', [
-            'jobsProcessing' => $index['processing'],
-            'jobsProcessed' => $index['processed'],
-            'jobsFailed' => $index['failed'],
-            'showServiceColumn' => true,
-            'pageService' => null,
-            'columnIds' => 'uuid,service,queue,job,attempts,queued_at,delayed_until,processed,failed_at,runtime,actions',
-            'resizablePrefix' => 'horizon-job-list',
-        ])->render();
-
-        return $this->private__turboStreamTag('replace', 'horizon-jobs-stack', $html, 'morph');
+        return \implode("\n", $this->private__streamsForJobListSections(
+            [
+                'processing' => $index['processing'],
+                'processed' => $index['processed'],
+                'failed' => $index['failed'],
+            ],
+            'horizon-job-list',
+            true,
+            null,
+        ));
     }
 
     // ------------------------------------------------------------------
@@ -325,19 +325,49 @@ class HorizonStreamsController extends StreamController
             'morph',
         );
 
-        $jobsHtml = \view('horizon.jobs.partials.job-list-collapsible-stack', [
-            'jobsProcessing' => $d['jobsProcessing'],
-            'jobsProcessed' => $d['jobsProcessed'],
-            'jobsFailed' => $d['jobsFailed'],
-            'showServiceColumn' => false,
-            'pageService' => $service,
-            'columnIds' => 'uuid,queue,job,attempts,queued_at,delayed_until,processed,failed_at,runtime,actions',
-            'resizablePrefix' => 'horizon-service-dashboard-jobs',
-        ])->render();
-
-        $streams[] = $this->private__turboStreamTag('replace', 'horizon-jobs-stack', $jobsHtml, 'morph');
+        foreach ($this->private__streamsForJobListSections(
+            [
+                'processing' => $d['jobsProcessing'],
+                'processed' => $d['jobsProcessed'],
+                'failed' => $d['jobsFailed'],
+            ],
+            'horizon-service-dashboard-jobs',
+            false,
+            $service,
+        ) as $jobStream) {
+            $streams[] = $jobStream;
+        }
 
         return \implode("\n", $streams);
+    }
+
+    /**
+     * Turbo streams for the three job list section tbodies, badge counts, and pagination (no thead replace).
+     *
+     * @param  array{processing: LengthAwarePaginator, processed: LengthAwarePaginator, failed: LengthAwarePaginator}  $jobsIndex
+     * @return list<string>
+     */
+    private function private__streamsForJobListSections(array $jobsIndex, string $resizablePrefix, bool $showServiceColumn, ?Service $pageService): array
+    {
+        $streams = [];
+        foreach (['processing', 'processed', 'failed'] as $kind) {
+            $paginator = $jobsIndex[$kind];
+            $bodyKey = $resizablePrefix.'-'.$kind;
+            $tbodyHtml = \view('horizon.jobs.partials.job-list-tbody-rows', [
+                'kind' => $kind,
+                'paginator' => $paginator,
+                'showServiceColumn' => $showServiceColumn,
+                'pageService' => $pageService,
+            ])->render();
+            $streams[] = $this->private__turboStreamTag('update', 'turbo-tbody-'.$bodyKey, $tbodyHtml, 'morph');
+            $streams[] = $this->private__turboStreamTag('update', 'job-count-'.$bodyKey, \e((string) $paginator->total()));
+            $paginationHtml = \view('horizon.jobs.partials.job-list-section-pagination', [
+                'paginator' => $paginator,
+            ])->render();
+            $streams[] = $this->private__turboStreamTag('update', 'job-pagination-'.$bodyKey, $paginationHtml, 'morph');
+        }
+
+        return $streams;
     }
 
     // ------------------------------------------------------------------

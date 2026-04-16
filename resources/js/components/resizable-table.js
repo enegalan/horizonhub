@@ -1,4 +1,3 @@
-import { onDocumentReady } from '../lib/init';
 import { parseJson } from '../lib/parse';
 
 (function () {
@@ -121,12 +120,74 @@ import { parseJson } from '../lib/parse';
     }
 
     /**
+     * Whether thead order, widths, and tbody column order already match storage.
+     * @param {HTMLElement} table
+     * @param {object} state
+     * @returns {boolean}
+     */
+    function tableLayoutMatchesStoredState(table, state) {
+        var theadRow = table.querySelector('thead tr');
+        if (!theadRow) {
+            return true;
+        }
+        var thsById = {};
+        theadRow.querySelectorAll('th[data-column-id]').forEach(function (th) {
+            thsById[th.getAttribute('data-column-id')] = th;
+        });
+        var expectedOrder = [];
+        state.order.forEach(function (colId) {
+            if (thsById[colId]) {
+                expectedOrder.push(colId);
+            }
+        });
+        var currentHead = getDirectColumnCells(theadRow, 'TH');
+        if (currentHead.length !== expectedOrder.length) {
+            return false;
+        }
+        var i;
+        for (i = 0; i < expectedOrder.length; i++) {
+            if (currentHead[i].getAttribute('data-column-id') !== expectedOrder[i]) {
+                return false;
+            }
+        }
+        for (i = 0; i < expectedOrder.length; i++) {
+            var colId = expectedOrder[i];
+            var th = thsById[colId];
+            var w = state.widths[colId];
+            var widthStr = typeof w === 'number' && isFinite(w) ? w + 'px' : '';
+            if (th.style.width !== widthStr || th.style.maxWidth !== widthStr) {
+                return false;
+            }
+        }
+        var columnOrder = expectedOrder.slice();
+        var bodyRows = table.querySelectorAll('tbody tr');
+        for (var r = 0; r < bodyRows.length; r++) {
+            var tr = bodyRows[r];
+            var cur = getDirectColumnCells(tr, 'TD').map(function (td) {
+                return td.getAttribute('data-column-id');
+            });
+            if (cur.length !== columnOrder.length) {
+                return false;
+            }
+            for (var c = 0; c < columnOrder.length; c++) {
+                if (cur[c] !== columnOrder[c]) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
      * Apply the state to the table.
      * @param {HTMLElement} table
      * @param {object} state
      * @returns {void}
      */
     function applyState(table, state) {
+        if (tableLayoutMatchesStoredState(table, state)) {
+            return;
+        }
         var theadRow = table.querySelector('thead tr');
         var bodyRows = table.querySelectorAll('tbody tr');
         if (!theadRow) return;
@@ -154,7 +215,10 @@ import { parseJson } from '../lib/parse';
             var th = thsById[colId];
             if (!th) return;
             var w = state.widths[colId];
-            th.style.width = th.style.maxWidth = w !== null ? w + 'px' : '';
+            var widthStr = typeof w === 'number' && isFinite(w) ? w + 'px' : '';
+            if (th.style.width !== widthStr || th.style.maxWidth !== widthStr) {
+                th.style.width = th.style.maxWidth = widthStr;
+            }
         });
 
         var columnOrder = getDirectColumnCells(theadRow, 'TH').map(function (th) {

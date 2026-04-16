@@ -137,7 +137,7 @@ class TurboStreamSseTest extends TestCase
         $this->assertSame([1, 3], $reflection->invoke($controller, 'service_id%5B0%5D=1&service_id%5B1%5D=3'));
     }
 
-    public function test_build_jobs_index_streams_returns_jobs_stack_replace(): void
+    public function test_build_jobs_index_streams_returns_per_section_tbody_updates(): void
     {
         $controller = $this->app->make(HorizonStreamsController::class);
 
@@ -147,8 +147,11 @@ class TurboStreamSseTest extends TestCase
         $result = $reflection->invoke($controller, '');
 
         $this->assertNotNull($result);
-        $this->assertStringContainsString('target="horizon-jobs-stack" method="morph"', $result);
-        $this->assertStringContainsString('action="replace"', $result);
+        $this->assertStringContainsString('target="turbo-tbody-horizon-job-list-processing" method="morph"', $result);
+        $this->assertStringContainsString('target="job-count-horizon-job-list-processing"', $result);
+        $this->assertStringContainsString('target="job-pagination-horizon-job-list-processing"', $result);
+        $this->assertStringContainsString('action="update"', $result);
+        $this->assertStringNotContainsString('target="horizon-jobs-stack"', $result);
     }
 
     public function test_build_job_show_streams_returns_granular_detail_updates(): void

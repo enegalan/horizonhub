@@ -75,10 +75,12 @@ document.addEventListener('turbo:before-stream-render', function (e) {
             var formatRoot = syncRoot || document;
             formatDateTimeElements(formatRoot);
             formatQueueWaitElements(formatRoot);
-            if (syncRoot && typeof window.horizonSyncResizableTablesUnderRoot === 'function') {
-                window.horizonSyncResizableTablesUnderRoot(syncRoot);
-            } else if (typeof window.horizonInitResizableTables === 'function') {
-                window.horizonInitResizableTables();
+            if (outcome === 'rendered') {
+                if (syncRoot && typeof window.horizonSyncResizableTablesUnderRoot === 'function') {
+                    window.horizonSyncResizableTablesUnderRoot(syncRoot);
+                } else if (typeof window.horizonInitResizableTables === 'function') {
+                    window.horizonInitResizableTables();
+                }
             }
             initJsonTrees();
         });
