@@ -7,11 +7,11 @@ use App\Models\Service;
 use App\Rules\RetryModalDateFilter;
 use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\HorizonJobListService;
-use App\Services\Horizon\HorizonJobResolverService;
 use App\Support\ConfigHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 
 class JobActionController extends Controller
@@ -20,11 +20,6 @@ class JobActionController extends Controller
      * The Horizon API proxy service.
      */
     private HorizonApiProxyService $horizonApi;
-
-    /**
-     * The job resolver service.
-     */
-    private HorizonJobResolverService $jobResolver;
 
     /**
      * The job list service.
@@ -36,11 +31,9 @@ class JobActionController extends Controller
      */
     public function __construct(
         HorizonApiProxyService $horizonApi,
-        HorizonJobResolverService $jobResolver,
         HorizonJobListService $jobList,
     ) {
         $this->horizonApi = $horizonApi;
-        $this->jobResolver = $jobResolver;
         $this->jobList = $jobList;
     }
 
@@ -86,7 +79,10 @@ class JobActionController extends Controller
             'date_to' => ['nullable', 'string', 'max:32', new RetryModalDateFilter],
             'page' => 'nullable|integer|min:1',
             'per_page' => 'nullable|integer|min:1|max:100',
+            'selection' => ['nullable', 'string', Rule::in(['page', 'all'])],
         ]);
+
+        $selection = (string) ($validated['selection'] ?? 'page');
 
         $perPage = (int) ($validated['per_page'] ?? ConfigHelper::getIntWithMin('horizonhub.jobs_per_page'));
         $page = (int) ($validated['page'] ?? 1);
@@ -120,12 +116,42 @@ class JobActionController extends Controller
         $services = $servicesQuery->get();
 
         if ($services->count() === 0) {
+            if ($selection === 'all') {
+                return \response()->json([
+                    'jobs' => [],
+                    'meta' => ['total' => 0],
+                ]);
+            }
+
             return \response()->json($returnData);
         }
 
         $search = \trim((string) ($validated['search'] ?? ''));
         $dateFrom = $validated['date_from'] ?? null;
         $dateTo = $validated['date_to'] ?? null;
+
+        if ($selection === 'all') {
+            $pageData = $this->jobList->buildFailedJobsRetryModalPage(
+                $services,
+                $search,
+                $dateFrom,
+                $dateTo,
+                1,
+                \PHP_INT_MAX,
+            );
+            $jobs = [];
+            foreach ($pageData['rows'] as $row) {
+                $jobs[] = [
+                    'id' => (string) $row['uuid'],
+                    'service_id' => (int) $row['service_id'],
+                ];
+            }
+
+            return \response()->json([
+                'jobs' => $jobs,
+                'meta' => ['total' => $pageData['total']],
+            ]);
+        }
 
         $pageData = $this->jobList->buildFailedJobsRetryModalPage(
             $services,

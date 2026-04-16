@@ -108,10 +108,15 @@ export function horizonJobsPage(config) {
          */
         failedJobs: [],
         /**
-         * Selected failed IDs.
-         * @type {string[]}
+         * Selected jobs for batch retry (id = Horizon job UUID).
+         * @type {{ id: string, service_id: number }[]}
          */
-        selectedFailedIds: [],
+        selectedFailedJobs: [],
+        /**
+         * Selecting all failed jobs to retry.
+         * @type {boolean}
+         */
+        selectingAllFailed: false,
         /**
          * Retry page.
          * @type {number}
@@ -166,7 +171,8 @@ export function horizonJobsPage(config) {
                     }
                 });
             });
-            this.selectedFailedIds = [];
+            this.selectedFailedJobs = [];
+            this.selectingAllFailed = false;
             this.retryPage = 1;
             this.loadFailedJobs();
         },
@@ -184,7 +190,8 @@ export function horizonJobsPage(config) {
          */
         closeRetryModal() {
             this.showRetryModal = false;
-            this.selectedFailedIds = [];
+            this.selectedFailedJobs = [];
+            this.selectingAllFailed = false;
             window.setTimeout(() => {
                 if (!this.showRetryModal) {
                     this.retryModalMounted = false;
@@ -195,11 +202,13 @@ export function horizonJobsPage(config) {
          * Load the failed jobs.
          * @returns {void}
          */
-        loadFailedJobs() {
-            if (!window.horizon || !window.horizon.http) {
-                console.warn('[horizonJobsPage] window.horizon.http is not available');
-                return;
-            }
+        /**
+         * Query string for GET /jobs/failed (retry modal).
+         * @param {{ selection?: string }} options
+         * @returns {URLSearchParams}
+         */
+        retryModalFailedListQuery(options) {
+            options = options || {};
             var params = new URLSearchParams();
             var serviceIds = this.retryFilters.service_ids;
             if (Array.isArray(serviceIds)) {
@@ -213,8 +222,21 @@ export function horizonJobsPage(config) {
             var rangeParts = parseFailedAtRange(this.retryFilters.failed_at_range);
             if (rangeParts.dateFrom) params.append('date_from', rangeParts.dateFrom);
             if (rangeParts.dateTo) params.append('date_to', rangeParts.dateTo);
-            if (this.retryPage) params.append('page', this.retryPage);
-            if (this.retryPerPage) params.append('per_page', this.retryPerPage);
+            if (options.selection) {
+                params.append('selection', options.selection);
+            }
+            if (options.selection !== 'all') {
+                if (this.retryPage) params.append('page', this.retryPage);
+                if (this.retryPerPage) params.append('per_page', this.retryPerPage);
+            }
+            return params;
+        },
+        loadFailedJobs() {
+            if (!window.horizon || !window.horizon.http) {
+                console.warn('[horizonJobsPage] window.horizon.http is not available');
+                return;
+            }
+            var params = this.retryModalFailedListQuery();
             var url = config.failedListUrl + (params.toString() ? ('?' + params.toString()) : '');
             window.horizon.http.get(url).then((data) => {
                 this.failedJobs = Array.isArray(data.data) ? data.data : [];
@@ -227,13 +249,6 @@ export function horizonJobsPage(config) {
                     this.retryLastPage = 1;
                     this.retryTotal = this.failedJobs.length;
                 }
-                // Do not clear selectedFailedIds on pagination so selection is kept across pages.
-                window.requestAnimationFrame(function () {
-                    var table = document.querySelector('table[data-resizable-table="horizon-retry-modal-failed-jobs"]');
-                    if (table && typeof window.horizonSyncResizableTableLayout === 'function') {
-                        window.horizonSyncResizableTableLayout(table);
-                    }
-                });
             }).catch(function (error) {
                 console.error('[horizonJobsPage] failedList request error', error);
             });
@@ -243,25 +258,56 @@ export function horizonJobsPage(config) {
          * @param {string} id
          * @returns {void}
          */
-        toggleFailed(id) {
-            var i = this.selectedFailedIds.indexOf(id);
-            if (i >= 0) this.selectedFailedIds.splice(i, 1);
-            else this.selectedFailedIds.push(id);
+        toggleFailed(id, serviceId) {
+            var i = this.selectedFailedJobs.findIndex(function (j) { return j.id === id; });
+            if (i >= 0) {
+                this.selectedFailedJobs.splice(i, 1);
+            } else {
+                this.selectedFailedJobs.push({
+                    id: id,
+                    service_id: typeof serviceId === 'number' ? serviceId : Number(serviceId),
+                });
+            }
         },
         /**
          * Select all failed jobs.
          * @returns {void}
          */
         selectAllFailed() {
-            this.selectedFailedIds = this.failedJobs
-                .map(function (j) { return j.uuid; });
+            var self = this;
+            if (!window.horizon || !window.horizon.http) {
+                return;
+            }
+            if (this.selectingAllFailed) {
+                return;
+            }
+            this.selectingAllFailed = true;
+            var params = this.retryModalFailedListQuery({ selection: 'all' });
+            var url = config.failedListUrl + (params.toString() ? ('?' + params.toString()) : '');
+            window.horizon.http.get(url).then(function (data) {
+                var jobs = Array.isArray(data.jobs) ? data.jobs : [];
+                self.selectedFailedJobs = jobs
+                    .map(function (j) {
+                        return {
+                            id: String(j.id || ''),
+                            service_id: typeof j.service_id === 'number' ? j.service_id : Number(j.service_id),
+                        };
+                    })
+                    .filter(function (j) {
+                        return j.id !== '' && !Number.isNaN(j.service_id) && j.service_id > 0;
+                    });
+            }).catch(function (error) {
+                console.error('[horizonJobsPage] failedList selection=all error', error);
+            }).finally(function () {
+                self.selectingAllFailed = false;
+            });
         },
         /**
          * Clear the selection.
          * @returns {void}
          */
         clearSelection() {
-            this.selectedFailedIds = [];
+            this.selectedFailedJobs = [];
         },
         /**
          * Set the retry page.
@@ -319,18 +365,18 @@ export function horizonJobsPage(config) {
         retrySelected() {
             var self = this;
             if (!window.horizon || !window.horizon.http) return;
-            if (this.selectedFailedIds.length === 0) return;
-            var jobs = this.selectedFailedIds.map(function (id) {
-                var job = self.failedJobs.find(function (j) { return j.uuid === id; });
-                return job && job.service_id != null ? { id: job.uuid, service_id: job.service_id } : null;
-            }).filter(Boolean);
-            if (jobs.length === 0) return;
+            if (this.selectedFailedJobs.length === 0) return;
+            var jobs = this.selectedFailedJobs.map(function (j) {
+                return { id: j.id, service_id: j.service_id };
+            });
+            var requestedCount = jobs.length;
             this.retrying = true;
             window.horizon.http.post(config.retryBatchUrl, { jobs: jobs }).then(function (data) {
                 self.retrying = false;
                 self.closeRetryModal();
                 if (window.toast && window.toast.success) {
-                    var msg = 'Retry requested for ' + (data.succeeded || self.selectedFailedIds.length) + ' job(s).';
+                    var n = typeof data.succeeded === 'number' ? data.succeeded : requestedCount;
+                    var msg = 'Retry requested for ' + n + ' job(s).';
                     window.toast.success(msg);
                 }
             }).catch(function () {
