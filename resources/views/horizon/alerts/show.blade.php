@@ -178,7 +178,12 @@
                                     <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="sent_at">{{ $log->sent_at->format('Y-m-d H:i:s') }}</td>
                                     <td class="px-4 py-2.5 text-sm text-foreground" data-column-id="service">
                                         @if($log->service)
-                                            <a href="{{ route('horizon.services.show', $log->service) }}" class="link" data-turbo-action="replace">{{ $log->service->name }}</a>
+                                            <a
+                                                href="{{ route('horizon.services.show', $log->service) }}"
+                                                class="link"
+                                                data-turbo-frame="_top"
+                                                data-turbo-action="replace"
+                                            >{{ $log->service->name }}</a>
                                         @else
                                             –
                                         @endif

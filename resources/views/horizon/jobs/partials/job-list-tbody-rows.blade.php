@@ -12,7 +12,12 @@
 @forelse($paginator as $job)
     <tr class="transition-colors hover:bg-muted/30" data-stream-row-id="{{ $job->uuid }}">
         <td class="px-4 py-2.5 text-sm text-primary cursor-pointer truncate max-w-[180px]" data-column-id="uuid">
-            <a class="link" href="{{ route('horizon.jobs.show', ['job' => $job->uuid, 'service_id' => $job->service->id]) }}" data-turbo-action="replace">
+            <a
+                class="link"
+                href="{{ route('horizon.jobs.show', ['job' => $job->uuid, 'service_id' => $job->service->id]) }}"
+                data-turbo-frame="_top"
+                data-turbo-action="replace"
+            >
                 {{ $job->uuid }}
             </a>
         </td>
