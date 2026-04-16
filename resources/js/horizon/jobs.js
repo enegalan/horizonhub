@@ -232,10 +232,6 @@ export function horizonJobsPage(config) {
             return params;
         },
         loadFailedJobs() {
-            if (!window.horizon || !window.horizon.http) {
-                console.warn('[horizonJobsPage] window.horizon.http is not available');
-                return;
-            }
             var params = this.retryModalFailedListQuery();
             var url = config.failedListUrl + (params.toString() ? ('?' + params.toString()) : '');
             window.horizon.http.get(url).then((data) => {
@@ -250,7 +246,7 @@ export function horizonJobsPage(config) {
                     this.retryTotal = this.failedJobs.length;
                 }
             }).catch(function (error) {
-                console.error('[horizonJobsPage] failedList request error', error);
+                console.error('Failed loading failed jobs', error);
             });
         },
         /**
@@ -275,12 +271,7 @@ export function horizonJobsPage(config) {
          */
         selectAllFailed() {
             var self = this;
-            if (!window.horizon || !window.horizon.http) {
-                return;
-            }
-            if (this.selectingAllFailed) {
-                return;
-            }
+            if (this.selectingAllFailed) return;
             this.selectingAllFailed = true;
             var params = this.retryModalFailedListQuery({ selection: 'all' });
             var url = config.failedListUrl + (params.toString() ? ('?' + params.toString()) : '');
@@ -297,7 +288,7 @@ export function horizonJobsPage(config) {
                         return j.id !== '' && !Number.isNaN(j.service_id) && j.service_id > 0;
                     });
             }).catch(function (error) {
-                console.error('[horizonJobsPage] failedList selection=all error', error);
+                console.error('Failed selecting all failed jobs', error);
             }).finally(function () {
                 self.selectingAllFailed = false;
             });
