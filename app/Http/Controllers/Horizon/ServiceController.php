@@ -108,7 +108,7 @@ class ServiceController extends Controller
     {
         if (! $service->base_url) {
             return redirect()
-                ->route('horizon.services.index')
+                ->back()
                 ->with('status', 'Service has no base URL configured.');
         }
 
@@ -121,7 +121,7 @@ class ServiceController extends Controller
             ]);
 
             return redirect()
-                ->route('horizon.services.index')
+                ->back()
                 ->with('status', 'Service Horizon API is reachable.');
         }
 
@@ -130,7 +130,7 @@ class ServiceController extends Controller
         $message = $result['message'] ?? 'Connection test failed.';
 
         return redirect()
-            ->route('horizon.services.index')
+            ->back()
             ->with('status', $message);
     }
 
