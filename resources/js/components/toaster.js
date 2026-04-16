@@ -6,14 +6,24 @@ var TOAST_DURATION_MS = 4500;
 var DEFAULT_TOAST_MESSAGE = 'Done.';
 
 /**
+ * Remove Notyf DOM nodes.
+ * @returns {void}
+ */
+function removeNotyfDom() {
+    document.querySelectorAll('.notyf-announcer').forEach(function (el) {
+        el.remove();
+    });
+    document.querySelectorAll('.notyf').forEach(function (el) {
+        el.remove();
+    });
+}
+
+/**
  * Mount Notyf and expose toast on window.
  * @returns {void}
  */
 export function mountToaster() {
-    if (window._hubNotyfMounted) {
-        return;
-    }
-    window._hubNotyfMounted = true;
+    removeNotyfDom();
 
     var notyf = new Notyf({
         duration: TOAST_DURATION_MS,

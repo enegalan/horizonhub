@@ -45,12 +45,9 @@ document.addEventListener('turbo:load', function () {
     schedule(function () {
         formatQueueWaitElements();
     });
+    mountToaster();
 });
 
-/**
- * Initialize the app.
- * @returns {void}
- */
 onDocumentReady(function () {
     mountToaster();
     applyTheme();
