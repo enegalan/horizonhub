@@ -184,12 +184,7 @@
                                                     x-text="job.name || '–'"
                                                     x-bind:title="job.name || ''"
                                                 ></td>
-                                                <td
-                                                    class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]"
-                                                    data-column-id="failed_at"
-                                                    x-text="job.failed_at_formatted || '–'"
-                                                    x-bind:data-datetime="job.failed_at_iso || ''"
-                                                ></td>
+                                                <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="failed_at" x-text="job.failed_at_formatted || '–'"></td>
                                             </tr>
                                         </template>
                                 </x-table>

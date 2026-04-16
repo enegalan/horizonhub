@@ -407,7 +407,7 @@ export function renderJsonTree(target, options) {
         existingRoot &&
         existingRoot.classList.contains('horizon-json-node')
     ) {
-        target.classList.add('horizon-json-tree already-rendered');
+        target.classList.add('horizon-json-tree');
         return;
     }
 
