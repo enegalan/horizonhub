@@ -24,7 +24,6 @@
         <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
-        <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <script>
             window.horizonHubStreamsBaseUrl = {{ Js::from(url('/horizon/streams')) }};

@@ -1,5 +1,6 @@
 import './bootstrap';
 import './components/resizable-table';
+import * as echarts from 'echarts';
 import * as Turbo from '@hotwired/turbo';
 import { horizonJobsPage, horizonJobDetail, horizonJobRowRetry, initJsonTrees } from './horizon/jobs';
 import { horizonAlertsList, horizonAlertDetail } from './horizon/alerts';
@@ -16,6 +17,7 @@ import Alpine from 'alpinejs';
 import moment from 'moment';
 
 window.Turbo = Turbo;
+window.echarts = echarts;
 
 registerInputDatePicker(Alpine);
 
