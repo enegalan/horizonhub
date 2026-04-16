@@ -29,7 +29,7 @@ class QueueController extends Controller
             'services' => Service::orderBy('name')->get(),
             'totalJobs' => $queues->sum('job_count'),
             'serviceIds' => $serviceFilterIds,
-            'header' => 'Horizon Hub – Queues',
+            'header' => 'Queues',
         ]);
     }
 }

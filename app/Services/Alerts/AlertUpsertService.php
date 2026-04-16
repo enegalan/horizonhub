@@ -42,7 +42,7 @@ class AlertUpsertService
             'ruleTypes' => $ruleTypes,
             'selectedProviderIds' => $alert->exists ? $alert->notificationProviders()->pluck('notification_providers.id')->all() : [],
             'selectedServiceIds' => $alert->exists ? $alert->scopedServiceIds() : [],
-            'header' => "Horizon Hub – $header",
+            'header' => $header,
         ];
     }
 

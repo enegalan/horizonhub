@@ -26,7 +26,7 @@ class ServiceController extends Controller
 
         return \view('horizon.services.index', [
             'services' => $services,
-            'header' => 'Horizon Hub – Services',
+            'header' => 'Services',
         ]);
     }
 
@@ -143,7 +143,7 @@ class ServiceController extends Controller
 
         return \view('horizon.services.show', \array_merge($data, [
             'service' => $service,
-            'header' => "Horizon Hub – {$service->name}",
+            'header' => $service->name,
         ]));
     }
 

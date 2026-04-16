@@ -57,7 +57,7 @@ class AlertController extends Controller
 
         return \view('horizon.alerts.index', [
             'alerts' => $alerts,
-            'header' => 'Horizon Hub – Alerts',
+            'header' => 'Alerts',
         ]);
     }
 
@@ -170,7 +170,7 @@ class AlertController extends Controller
                 'service_id' => $serviceFilter !== null ? (string) $serviceFilter : '',
                 'per_page' => $perPage,
             ],
-            'header' => "Horizon Hub – $alertName",
+            'header' => $alertName,
         ]);
     }
 
