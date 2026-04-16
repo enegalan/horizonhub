@@ -81,7 +81,7 @@ class ProviderController extends Controller
             'provider' => $provider,
             'webhookUrl' => $webhookUrl,
             'emailTo' => $emailTo,
-            'header' => 'Horizon Hub – '.($provider->exists ? 'Edit provider' : 'New provider'),
+            'header' => $provider->exists ? 'Edit provider' : 'New provider',
         ]);
     }
 

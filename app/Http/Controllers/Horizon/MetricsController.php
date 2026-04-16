@@ -25,7 +25,7 @@ class MetricsController extends Controller
         return \view('horizon.metrics.index', \array_merge($this->metricsDashboard->build($serviceIds), [
             'services' => $services,
             'serviceIds' => $serviceIds,
-            'header' => 'Horizon Hub – Metrics',
+            'header' => 'Metrics',
         ]));
     }
 }

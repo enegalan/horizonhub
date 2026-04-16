@@ -56,7 +56,7 @@ class JobController extends Controller
                 'serviceIds' => $index['serviceFilterIds'],
                 'search' => $index['search'],
             ],
-            'header' => 'Horizon Hub – Jobs',
+            'header' => 'Jobs',
         ]);
     }
 

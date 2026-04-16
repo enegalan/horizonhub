@@ -54,24 +54,22 @@
                     <h2 class="text-section-title text-foreground mb-3">Theme</h2>
                     <p class="text-sm text-muted-foreground mb-4">Choose how Horizon Hub looks. You can pick a theme or use your system setting.</p>
                     <div class="flex flex-wrap gap-2"
-                        x-data="{ theme: (window.__horizonhub_theme || 'light') }"
-                        x-init="theme = (window.__horizonhub_theme || (function(){ var t = localStorage.getItem('horizonhub_theme'); return (t === 'light' || t === 'dark' || t === 'system') ? t : 'light'; })())"
-                        @theme-changed.window="theme = $event.detail"
-                        @apply-theme.window="theme = (window.__horizonhub_theme || (function(){ var t = localStorage.getItem('horizonhub_theme'); return (t === 'light' || t === 'dark' || t === 'system') ? t : 'light'; })())">
+                        x-data="{ theme: window.horizonHubTheme.getStoredTheme() }"
+                        @apply-theme.window="theme = window.horizonHubTheme.getStoredTheme()">
                         <button type="button"
-                            @click="theme = 'light'; localStorage.setItem('horizonhub_theme', 'light'); window.dispatchEvent(new CustomEvent('theme-changed', { detail: 'light' })); window.dispatchEvent(new CustomEvent('apply-theme'));"
+                            @click="theme = window.horizonHubTheme.setTheme('light')"
                             :class="theme === 'light' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'"
                             class="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors">
                             Light
                         </button>
                         <button type="button"
-                            @click="theme = 'dark'; localStorage.setItem('horizonhub_theme', 'dark'); window.dispatchEvent(new CustomEvent('theme-changed', { detail: 'dark' })); window.dispatchEvent(new CustomEvent('apply-theme'));"
+                            @click="theme = window.horizonHubTheme.setTheme('dark')"
                             :class="theme === 'dark' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'"
                             class="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors">
                             Dark
                         </button>
                         <button type="button"
-                            @click="theme = 'system'; localStorage.setItem('horizonhub_theme', 'system'); window.dispatchEvent(new CustomEvent('theme-changed', { detail: 'system' })); window.dispatchEvent(new CustomEvent('apply-theme'));"
+                            @click="theme = window.horizonHubTheme.setTheme('system')"
                             :class="theme === 'system' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'"
                             class="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors">
                             System
