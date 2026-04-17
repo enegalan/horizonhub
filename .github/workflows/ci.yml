@@ -32,7 +32,7 @@ jobs:
           node-version: '20'
 
       - name: Install Node dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Build frontend assets
         run: npm run build
