@@ -4,6 +4,10 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    ignore:
+      # v4 needs @tailwindcss/postcss + CSS migration; this app uses v3 @apply/component patterns.
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "composer"
     directory: "/"
     schedule:
