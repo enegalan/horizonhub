@@ -4,8 +4,11 @@ use App\Http\Controllers\Stream\HorizonStreamsController;
 use Illuminate\Support\Facades\Route;
 
 Route::group(['prefix' => 'streams/horizon'], function () {
-    // Index
-    Route::get('/', [HorizonStreamsController::class, 'jobs'])->name('streams.jobs');
+    // Dashboard
+    Route::get('/', [HorizonStreamsController::class, 'dashboard'])->name('streams.dashboard');
+
+    // Jobs
+    Route::get('/jobs', [HorizonStreamsController::class, 'jobs'])->name('streams.jobs');
 
     // Metrics
     Route::get('/metrics', [HorizonStreamsController::class, 'metrics'])->name('streams.metrics');

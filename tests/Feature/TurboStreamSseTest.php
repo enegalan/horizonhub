@@ -19,6 +19,13 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringStartsWith('text/event-stream', $response->headers->get('Content-Type'));
     }
 
+    public function test_streams_dashboard_returns_sse_content_type(): void
+    {
+        $response = $this->get(route('horizon.streams.dashboard'));
+
+        $this->assertStringStartsWith('text/event-stream', $response->headers->get('Content-Type'));
+    }
+
     public function test_streams_service_show_returns_sse_content_type(): void
     {
         $service = Service::create([
@@ -152,6 +159,22 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('target="job-pagination-horizon-job-list-processing"', $result);
         $this->assertStringContainsString('action="update"', $result);
         $this->assertStringNotContainsString('target="horizon-jobs-stack"', $result);
+    }
+
+    public function test_build_dashboard_streams_returns_expected_targets(): void
+    {
+        $controller = $this->app->make(HorizonStreamsController::class);
+
+        $reflection = new \ReflectionMethod($controller, 'private__buildDashboardStreams');
+        $reflection->setAccessible(true);
+
+        $result = $reflection->invoke($controller);
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('target="dashboard-value-jobs-minute"', $result);
+        $this->assertStringContainsString('target="dashboard-service-health-grid" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-recent-alerts-body" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-workload-summary-body" method="morph"', $result);
     }
 
     public function test_build_job_show_streams_returns_granular_detail_updates(): void

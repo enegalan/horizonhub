@@ -43,6 +43,10 @@
         </div>
         <nav class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden p-2">
             <a href="{{ route('horizon.index') }}" class="nav-side-link {{ request()->routeIs('horizon.index') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false" data-turbo-action="replace">
+                <x-heroicon-o-squares-2x2 class="h-4 w-4 shrink-0" />
+                Dashboard
+            </a>
+            <a href="{{ route('horizon.jobs.index') }}" class="nav-side-link {{ request()->routeIs('horizon.jobs.index') || request()->routeIs('horizon.jobs.show') || request()->routeIs('horizon.jobs.failed') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false" data-turbo-action="replace">
                 <x-heroicon-o-clipboard-document-list class="h-4 w-4 shrink-0" />
                 Jobs
             </a>

@@ -79,3 +79,55 @@ export function applyChartOptions(el, options) {
         chart.resize();
     }
 }
+
+/**
+ * ECharts options for "jobs per hour (last 24 hours)" line chart (completed vs failed).
+ * @param {{ xAxis?: string[], completed?: number[], failed?: number[] }} jobsVolumeLast24h
+ * @param {ReturnType<typeof getChartColors>} c
+ * @returns {object}
+ */
+export function buildJobsVolumeLast24hOptions(jobsVolumeLast24h, c) {
+    return {
+        animation: false,
+        color: [c.processed, c.failed],
+        tooltip: { trigger: 'axis' },
+        legend: {
+            data: ['Completed', 'Failed'],
+            bottom: 0,
+            textStyle: { color: c.axis, fontSize: 10 },
+        },
+        grid: { left: 48, right: 24, top: 16, bottom: 36 },
+        xAxis: {
+            type: 'category',
+            data: jobsVolumeLast24h.xAxis || [],
+            axisLine: { lineStyle: { color: c.axis } },
+            axisLabel: { color: c.axis, fontSize: 10 },
+        },
+        yAxis: {
+            type: 'value',
+            name: 'Jobs',
+            minInterval: 1,
+            axisLine: { show: false },
+            splitLine: { lineStyle: { color: c.axis, opacity: 0.3 } },
+            axisLabel: { color: c.axis, fontSize: 10 },
+        },
+        series: [
+            {
+                type: 'line',
+                name: 'Completed',
+                data: jobsVolumeLast24h.completed || [],
+                smooth: false,
+                showSymbol: false,
+                lineStyle: { width: 2 },
+            },
+            {
+                type: 'line',
+                name: 'Failed',
+                data: jobsVolumeLast24h.failed || [],
+                smooth: false,
+                showSymbol: false,
+                lineStyle: { width: 2 },
+            },
+        ],
+    };
+}

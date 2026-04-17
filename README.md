@@ -3,8 +3,7 @@
 Centralized dashboard for monitoring Laravel Horizon jobs across multiple services. Provides real-time metrics, job management, and alerting.
 
 <p align="center">
-  <img src="art/jobs.png" width="495" alt="Horizon Hub Jobs page" />&nbsp;&nbsp;
-  <img src="art/metrics.png" width="495" alt="Horizon Hub Metrics page" />
+  <img src="art/dashboard.png" width="600" alt="Horizon Hub Jobs page" />
 </p>
 
 ## Features

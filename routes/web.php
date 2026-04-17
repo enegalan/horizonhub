@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Horizon\AlertController;
+use App\Http\Controllers\Horizon\DashboardController;
 use App\Http\Controllers\Horizon\JobActionController;
 use App\Http\Controllers\Horizon\JobController;
 use App\Http\Controllers\Horizon\MetricsController;
@@ -14,8 +15,11 @@ Route::redirect('/', '/horizon');
 Route::get('/dashboard', fn () => redirect()->route('horizon.index'))->name('dashboard');
 
 Route::prefix('horizon')->name('horizon.')->middleware(['throttle:60,1'])->group(function (): void {
-    // Index
-    Route::get('/', [JobController::class, 'index'])->name('index');
+    // Dashboard
+    Route::get('/', [DashboardController::class, 'index'])->name('index');
+
+    // Jobs
+    Route::get('/jobs', [JobController::class, 'index'])->name('jobs.index');
 
     // Metrics
     Route::get('/metrics', [MetricsController::class, 'index'])->name('metrics');

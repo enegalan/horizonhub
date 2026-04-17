@@ -6,6 +6,7 @@ use App\Http\Controllers\StreamController;
 use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Alert;
 use App\Models\Service;
+use App\Services\Horizon\DashboardDataService;
 use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\HorizonJobDetailService;
 use App\Services\Horizon\HorizonJobListService;
@@ -19,21 +20,79 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HorizonStreamsController extends StreamController
 {
+    /**
+     * The metrics dashboard data service.
+     */
+    private MetricsDashboardDataService $metricsDashboard;
+
+    /**
+     * The dashboard data service.
+     */
+    private DashboardDataService $dashboardData;
+
+    /**
+     * The metrics service.
+     */
+    private HorizonMetricsService $metrics;
+
+    /**
+     * The horizon api proxy service.
+     */
+    private HorizonApiProxyService $horizonApi;
+
+    /**
+     * The horizon job list service.
+     */
+    private HorizonJobListService $jobList;
+
+    /**
+     * The horizon job detail service.
+     */
+    private HorizonJobDetailService $jobDetail;
+
+    /**
+     * The service show page data service.
+     */
+    private ServiceShowPageDataService $serviceShowPageData;
+
+    /**
+     * The service stats attachment service.
+     */
+    private ServiceStatsAttachmentService $serviceStats;
+
+    /**
+     * The constructor.
+     */
     public function __construct(
-        private MetricsDashboardDataService $metricsDashboard,
-        private HorizonMetricsService $metrics,
-        private HorizonApiProxyService $horizonApi,
-        private HorizonJobListService $jobList,
-        private HorizonJobDetailService $jobDetail,
-        private ServiceShowPageDataService $serviceShowPageData,
-        private ServiceStatsAttachmentService $serviceStats,
-    ) {}
+        MetricsDashboardDataService $metricsDashboard,
+        DashboardDataService $dashboardData,
+        HorizonMetricsService $metrics,
+        HorizonApiProxyService $horizonApi,
+        HorizonJobListService $jobList,
+        HorizonJobDetailService $jobDetail,
+        ServiceShowPageDataService $serviceShowPageData,
+        ServiceStatsAttachmentService $serviceStats,
+    ) {
+        $this->metricsDashboard = $metricsDashboard;
+        $this->dashboardData = $dashboardData;
+        $this->metrics = $metrics;
+        $this->horizonApi = $horizonApi;
+        $this->jobList = $jobList;
+        $this->jobDetail = $jobDetail;
+        $this->serviceShowPageData = $serviceShowPageData;
+        $this->serviceStats = $serviceStats;
+    }
 
     public function metrics(Request $request): StreamedResponse
     {
         $query = $request->getQueryString() ?? '';
 
         return $this->runStream(fn (): ?string => $this->private__buildMetricsStreams($query));
+    }
+
+    public function dashboard(): StreamedResponse
+    {
+        return $this->runStream(fn (): ?string => $this->private__buildDashboardStreams());
     }
 
     public function queues(Request $request): StreamedResponse
@@ -118,6 +177,45 @@ class HorizonStreamsController extends StreamController
     }
 
     // ------------------------------------------------------------------
+    //  Dashboard
+    // ------------------------------------------------------------------
+
+    private function private__buildDashboardStreams(): ?string
+    {
+        $d = $this->dashboardData->build($this->horizonApi);
+
+        $streams = [];
+
+        $streams[] = $this->private__turboStreamTag('update', 'dashboard-value-jobs-minute', e($d['jobsPastMinute'] ?? '—'));
+        $streams[] = $this->private__turboStreamTag('update', 'dashboard-value-jobs-hour', e($d['jobsPastHour'] ?? '—'));
+        $streams[] = $this->private__turboStreamTag('update', 'dashboard-value-failed-seven', e($d['failedPastSevenDays'] ?? '—'));
+
+        $kpiServicesHtml = \view('horizon.dashboard.partials.kpi-services-online-inner', [
+            'servicesHealthDotClass' => $d['servicesHealthDotClass'] ?? 'bg-slate-400',
+            'servicesOnlineCount' => $d['servicesOnlineCount'] ?? 0,
+            'servicesTotal' => $d['servicesTotal'] ?? 0,
+        ])->render();
+        $streams[] = $this->private__turboStreamTag('update', 'dashboard-services-kpi-inner', $kpiServicesHtml, 'morph');
+
+        $servicesGridHtml = \view('horizon.dashboard.partials.service-health-grid', [
+            'services' => $d['services'] ?? collect(),
+        ])->render();
+        $streams[] = $this->private__turboStreamTag('update', 'dashboard-service-health-grid', $servicesGridHtml, 'morph');
+
+        $alertsHtml = \view('horizon.dashboard.partials.recent-alerts-tbody', [
+            'recentAlertLogs' => $d['recentAlertLogs'] ?? collect(),
+        ])->render();
+        $streams[] = $this->private__turboStreamTag('update', 'dashboard-recent-alerts-body', $alertsHtml, 'morph');
+
+        $workloadHtml = \view('horizon.dashboard.partials.workload-summary-tbody', [
+            'workloadRows' => $d['workloadRows'] ?? [],
+        ])->render();
+        $streams[] = $this->private__turboStreamTag('update', 'dashboard-workload-summary-body', $workloadHtml, 'morph');
+
+        return \implode("\n", $streams);
+    }
+
+    // ------------------------------------------------------------------
     //  Queues
     // ------------------------------------------------------------------
 
@@ -168,7 +266,7 @@ class HorizonStreamsController extends StreamController
 
     private function private__buildJobsIndexStreams(string $query): ?string
     {
-        $url = \route('horizon.index', [], true);
+        $url = \route('horizon.jobs.index', [], true);
         if ($query !== '') {
             $url .= "?$query";
         }

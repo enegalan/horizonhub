@@ -18,7 +18,7 @@
         }"
     >
         <p class="mb-3 text-xs text-muted-foreground">
-            <a href="{{ route('horizon.index') }}" class="link" data-turbo-action="replace">Jobs</a> /
+            <a href="{{ route('horizon.jobs.index') }}" class="link" data-turbo-action="replace">Jobs</a> /
             <a href="{{ route('horizon.services.index') }}" class="link" data-turbo-action="replace">Services</a> /
             <span class="text-foreground">{{ $service->name }}</span>
         </p>
