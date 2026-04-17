@@ -82,19 +82,19 @@
                 >
                     <x-heroicon-o-pencil-square class="size-4" />
                 </x-button>
-                <form method="POST" action="{{ route('horizon.services.destroy', $service) }}" onsubmit="return confirm('Delete service {{ $service->name }}?');">
-                    @csrf
-                    @method('DELETE')
-                    <x-button
-                        variant="ghost"
-                        type="submit"
-                        class="h-8 min-h-8 p-2 text-destructive hover:text-destructive"
-                        aria-label="Delete"
-                        title="Delete"
-                    >
-                        <x-heroicon-o-trash class="size-4" />
-                    </x-button>
-                </form>
+                @php
+                    $serviceDeleteClick = 'openDeleteServiceModal('.\Illuminate\Support\Js::from($service->name).', '.\Illuminate\Support\Js::from(route('horizon.services.destroy', $service)).')';
+                @endphp
+                <x-button
+                    variant="ghost"
+                    type="button"
+                    class="h-8 min-h-8 p-2 text-destructive hover:text-destructive"
+                    aria-label="Delete"
+                    title="Delete"
+                    x-on:click="{{ $serviceDeleteClick }}"
+                >
+                    <x-heroicon-o-trash class="size-4" />
+                </x-button>
             </div>
         </td>
     </tr>

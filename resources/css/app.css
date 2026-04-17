@@ -195,7 +195,7 @@
         @apply text-muted-foreground;
     }
     .horizon-json-value {
-        @apply ml-4
+        @apply ml-4 break-all;
     }
     .horizon-json-tree .horizon-json-value .hljs-string {
         color: rgb(21 128 61);

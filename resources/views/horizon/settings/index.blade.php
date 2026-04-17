@@ -6,6 +6,21 @@
             tab: '{{ $tab }}',
             contentHeight: 280,
             measureMode: true,
+            showDeleteProviderModal: false,
+            deleteProviderName: '',
+            deleteProviderAction: '',
+            openDeleteProviderModal(name, action) {
+                this.deleteProviderName = name;
+                this.deleteProviderAction = action;
+                this.showDeleteProviderModal = true;
+            },
+            closeDeleteProviderModal() {
+                this.showDeleteProviderModal = false;
+            },
+            confirmDeleteProvider() {
+                this.$refs.deleteProviderForm.requestSubmit();
+                this.closeDeleteProviderModal();
+            },
             refName() { return this.tab + 'Panel'; },
             updateHeight() {
                 const el = this.$refs[this.refName()];
@@ -148,19 +163,19 @@
                                                 >
                                                     <x-heroicon-o-pencil-square class="size-4" />
                                                 </x-button>
-                                                <form method="POST" action="{{ route('horizon.providers.destroy', $provider) }}" onsubmit="return confirm('Delete provider {{ $provider->name }}?');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <x-button
-                                                        variant="ghost"
-                                                        type="submit"
-                                                        class="h-8 min-h-8 p-2 text-destructive hover:text-destructive"
-                                                        aria-label="Delete"
-                                                        title="Delete"
-                                                    >
-                                                        <x-heroicon-o-trash class="size-4" />
-                                                    </x-button>
-                                                </form>
+                                                @php
+                                                    $providerDeleteClick = 'openDeleteProviderModal('.\Illuminate\Support\Js::from($provider->name).', '.\Illuminate\Support\Js::from(route('horizon.providers.destroy', $provider)).')';
+                                                @endphp
+                                                <x-button
+                                                    variant="ghost"
+                                                    type="button"
+                                                    class="h-8 min-h-8 p-2 text-destructive hover:text-destructive"
+                                                    aria-label="Delete"
+                                                    title="Delete"
+                                                    x-on:click="{{ $providerDeleteClick }}"
+                                                >
+                                                    <x-heroicon-o-trash class="size-4" />
+                                                </x-button>
                                             </div>
                                         </td>
                                     </tr>
@@ -186,5 +201,7 @@
                 </div>
             </div>
         </div>
+
+        @include('horizon.settings.partials.delete-provider-confirm-modal')
     </div>
 @endsection

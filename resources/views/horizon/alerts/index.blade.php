@@ -2,6 +2,25 @@
 
 @section('content')
     <div
+        x-data="{
+            showDeleteAlertModal: false,
+            deleteAlertName: '',
+            deleteAlertAction: '',
+            openDeleteAlertModal(name, action) {
+                this.deleteAlertName = name;
+                this.deleteAlertAction = action;
+                this.showDeleteAlertModal = true;
+            },
+            closeDeleteAlertModal() {
+                this.showDeleteAlertModal = false;
+            },
+            confirmDeleteAlert() {
+                this.$refs.deleteAlertForm.requestSubmit();
+                this.closeDeleteAlertModal();
+            }
+        }"
+    >
+    <div
         class="card mb-4"
         x-data="window.horizonAlertsList ? window.horizonAlertsList() : {}"
         x-init="typeof init === 'function' && init()"
@@ -62,5 +81,8 @@
             </x-slot:head>
                     @include('horizon.alerts.partials.alert-tbody', ['alerts' => $alerts])
         </x-table>
+    </div>
+
+        @include('horizon.alerts.partials.delete-alert-confirm-modal')
     </div>
 @endsection

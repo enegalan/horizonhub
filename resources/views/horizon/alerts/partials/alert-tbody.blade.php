@@ -84,19 +84,20 @@
                 >
                     <x-heroicon-o-pencil-square class="size-4" />
                 </x-button>
-                <form method="POST" action="{{ route('horizon.alerts.destroy', $alert) }}" onsubmit="return confirm('Delete alert {{ $alert->name ?: ('#' . $alert->id) }}?');">
-                    @csrf
-                    @method('DELETE')
-                    <x-button
-                        variant="ghost"
-                        type="submit"
-                        class="h-8 min-h-8 p-2 text-destructive hover:text-destructive"
-                        aria-label="Delete"
-                        title="Delete"
-                    >
-                        <x-heroicon-o-trash class="size-4" />
-                    </x-button>
-                </form>
+                @php
+                    $alertDeleteLabel = $alert->name ?: ('#' . $alert->id);
+                    $alertDeleteClick = 'openDeleteAlertModal('.\Illuminate\Support\Js::from($alertDeleteLabel).', '.\Illuminate\Support\Js::from(route('horizon.alerts.destroy', $alert)).')';
+                @endphp
+                <x-button
+                    variant="ghost"
+                    type="button"
+                    class="h-8 min-h-8 p-2 text-destructive hover:text-destructive"
+                    aria-label="Delete"
+                    title="Delete"
+                    x-on:click="{{ $alertDeleteClick }}"
+                >
+                    <x-heroicon-o-trash class="size-4" />
+                </x-button>
             </div>
         </td>
     </tr>

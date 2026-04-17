@@ -208,6 +208,7 @@
                                             @php
                                                 /** @var \App\Models\AlertLog $log */
                                                 $payload = \App\Support\Alerts\AlertDeliveryLogPresenter::payloadFromLog($log);
+                                                $deliveryLogOpenClick = 'openDeliveryLogModal('.\Illuminate\Support\Js::from($payload).')';
                                             @endphp
                                             <x-button
                                                 variant="outline"
@@ -215,7 +216,7 @@
                                                 class="inline-flex items-center justify-center h-8 min-h-8 p-2 rounded-md"
                                                 aria-label="View delivery log"
                                                 title="View delivery log"
-                                                @click='openDeliveryLogModal({{ \Illuminate\Support\Js::from($payload) }})'
+                                                x-on:click="{{ $deliveryLogOpenClick }}"
                                             >
                                                 <x-heroicon-o-document-text class="size-4" />
                                             </x-button>

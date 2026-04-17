@@ -1,7 +1,25 @@
 @extends('layouts.app')
 
 @section('content')
-    <div>
+    <div
+        x-data="{
+            showDeleteServiceModal: false,
+            deleteServiceName: '',
+            deleteServiceAction: '',
+            openDeleteServiceModal(name, action) {
+                this.deleteServiceName = name;
+                this.deleteServiceAction = action;
+                this.showDeleteServiceModal = true;
+            },
+            closeDeleteServiceModal() {
+                this.showDeleteServiceModal = false;
+            },
+            confirmDeleteService() {
+                this.$refs.deleteServiceForm.requestSubmit();
+                this.closeDeleteServiceModal();
+            }
+        }"
+    >
         <div class="card mb-4">
             <div class="px-4 py-3">
                 <h2 class="text-section-title text-foreground mb-3">Register service</h2>
@@ -60,5 +78,7 @@
                         @include('horizon.services.partials.service-tbody', ['services' => $services])
             </x-table>
         </div>
+
+        @include('horizon.services.partials.delete-service-confirm-modal')
     </div>
 @endsection

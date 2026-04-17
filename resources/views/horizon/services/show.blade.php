@@ -3,6 +3,19 @@
 @section('content')
     <div
         id="horizon-service-dashboard"
+        x-data="{
+            showDeleteServiceModal: false,
+            openDeleteServiceModal() {
+                this.showDeleteServiceModal = true;
+            },
+            closeDeleteServiceModal() {
+                this.showDeleteServiceModal = false;
+            },
+            confirmDeleteService() {
+                this.$refs.deleteServiceForm.requestSubmit();
+                this.closeDeleteServiceModal();
+            }
+        }"
     >
         <p class="mb-3 text-xs text-muted-foreground">
             <a href="{{ route('horizon.index') }}" class="link" data-turbo-action="replace">Jobs</a> /
@@ -67,19 +80,16 @@
             >
                 <x-heroicon-o-pencil-square class="size-4" />
             </x-button>
-            <form method="POST" action="{{ route('horizon.services.destroy', $service) }}" onsubmit="return confirm('Delete service {{ $service->name }}?');">
-                @csrf
-                @method('DELETE')
-                <x-button
-                    variant="ghost"
-                    type="submit"
-                    class="h-8 min-h-8 p-2 text-destructive hover:text-destructive"
-                    aria-label="Delete service"
-                    title="Delete service"
-                >
-                    <x-heroicon-o-trash class="size-4" />
-                </x-button>
-            </form>
+            <x-button
+                variant="ghost"
+                type="button"
+                class="h-8 min-h-8 p-2 text-destructive hover:text-destructive"
+                aria-label="Delete service"
+                title="Delete service"
+                @click="openDeleteServiceModal()"
+            >
+                <x-heroicon-o-trash class="size-4" />
+            </x-button>
         </div>
 
         <div id="service-show-stats-row-1" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -157,5 +167,7 @@
             ])
         </div>
         </x-turbo::frame>
+
+        @include('horizon.services.partials.delete-service-confirm-modal', ['detailService' => $service])
     </div>
 @endsection
