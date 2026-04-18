@@ -1,7 +1,8 @@
 <p align="center">
-  <img src="public/logo.svg" width="300" alt="Horizon Hub" />
+  <img src="art/logo.png" width="360" alt="Horizon Hub" />
 </p>
-# Horizon Hub
+
+# Introduction
 
 Centralized dashboard for monitoring Laravel Horizon jobs across multiple services. Provides real-time metrics, job management, and alerting.
 
