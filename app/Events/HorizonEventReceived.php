@@ -37,12 +37,8 @@ class HorizonEventReceived implements ShouldBroadcast
     /**
      * Construct the Horizon event received event.
      */
-    public function __construct(
-        string $eventType,
-        int $serviceId,
-        ?string $jobUuid,
-        array $payload
-    ) {
+    public function __construct(string $eventType, int $serviceId, ?string $jobUuid, array $payload)
+    {
         $this->eventType = $eventType;
         $this->serviceId = $serviceId;
         $this->jobUuid = $jobUuid;
