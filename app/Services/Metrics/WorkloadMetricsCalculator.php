@@ -10,6 +10,7 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
     /**
      * Get the current workload rows for a single service.
      *
+     * @param  Service  $service  The service.
      * @return array<int, array{queue: string, jobs: int, processes: int|null, wait: float|null}>
      */
     public function getWorkloadForService(Service $service): array
@@ -81,6 +82,7 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
     /**
      * Get supervisors aggregated across services (optionally filtered by service).
      *
+     * @param  array<string, mixed>  $serviceScope  The service scope.
      * @return array<int, array{
      *     service_id: int,
      *     service: string,
@@ -167,6 +169,7 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
     /**
      * Get current workload aggregated across services (optionally filtered by service).
      *
+     * @param  array<string, mixed>  $serviceScope  The service scope.
      * @return array<int, array{
      *     service_id: int,
      *     service: string,

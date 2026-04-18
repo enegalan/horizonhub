@@ -11,7 +11,9 @@ class HorizonJobDetailService
     /**
      * Build the show view data.
      *
-     * @param  array<string, mixed>  $jobData
+     * @param  Service  $service  The service.
+     * @param  array<string, mixed>  $jobData  The job data.
+     * @param  string  $routeUuid  The route UUID.
      * @return array{
      *     job: object,
      *     exception: string|null,

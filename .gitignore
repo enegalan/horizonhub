@@ -24,3 +24,4 @@ Homestead.yaml
 Thumbs.db
 package-lock.json
 composer.lock
+demo/*

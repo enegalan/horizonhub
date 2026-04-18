@@ -19,22 +19,13 @@ final class QueueBlockedAlertRuleStrategy implements AlertRuleStrategyInterface
     /**
      * The Horizon API proxy service.
      */
-
-    /**
-     * Construct the strategy.
-     *
-     * @param  AlertRuleEvaluationSupport  $support
-     * @param  HorizonApiProxyService  $horizonApi
-     */
     private HorizonApiProxyService $horizonApi;
 
     /**
      * Construct the strategy.
      */
-    public function __construct(
-        AlertRuleEvaluationSupport $support,
-        HorizonApiProxyService $horizonApi,
-    ) {
+    public function __construct(AlertRuleEvaluationSupport $support, HorizonApiProxyService $horizonApi)
+    {
         $this->support = $support;
         $this->horizonApi = $horizonApi;
     }

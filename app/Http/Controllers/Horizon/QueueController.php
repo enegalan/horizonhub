@@ -11,9 +11,18 @@ use Illuminate\Http\Request;
 
 class QueueController extends Controller
 {
-    public function __construct(
-        private HorizonMetricsService $metrics,
-    ) {}
+    /**
+     * The Horizon metrics service.
+     */
+    private HorizonMetricsService $metrics;
+
+    /**
+     * The constructor.
+     */
+    public function __construct(HorizonMetricsService $metrics)
+    {
+        $this->metrics = $metrics;
+    }
 
     /**
      * Display the queue list.

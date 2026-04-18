@@ -7,7 +7,6 @@ use App\Models\Service;
 use App\Rules\RetryModalDateFilter;
 use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\HorizonJobListService;
-use App\Support\ConfigHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -29,10 +28,8 @@ class JobActionController extends Controller
     /**
      * The constructor.
      */
-    public function __construct(
-        HorizonApiProxyService $horizonApi,
-        HorizonJobListService $jobList,
-    ) {
+    public function __construct(HorizonApiProxyService $horizonApi, HorizonJobListService $jobList)
+    {
         $this->horizonApi = $horizonApi;
         $this->jobList = $jobList;
     }
@@ -84,7 +81,7 @@ class JobActionController extends Controller
 
         $selection = (string) ($validated['selection'] ?? 'page');
 
-        $perPage = (int) ($validated['per_page'] ?? ConfigHelper::getIntWithMin('horizonhub.jobs_per_page'));
+        $perPage = (int) ($validated['per_page'] ?? config('horizonhub.jobs_per_page'));
         $page = (int) ($validated['page'] ?? 1);
         if ($page < 1) {
             $page = 1;

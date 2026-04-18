@@ -263,7 +263,7 @@
                                             name="thresholdCount"
                                             min="1"
                                             class="w-24"
-                                            value="{{ old('thresholdCount') !== null ? old('thresholdCount') : ($alert->threshold['count'] ?? \App\Support\ConfigHelper::getIntWithMin('horizonhub.alerts.default_count', 1)) }}"
+                                            value="{{ old('thresholdCount') !== null ? old('thresholdCount') : ($alert->threshold['count'] ?? config('horizonhub.alerts.default_count')) }}"
                                         />
                                         @error('thresholdCount') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                                     </div>
@@ -274,7 +274,7 @@
                                             name="thresholdMinutes"
                                             min="1"
                                             class="w-24"
-                                            value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->threshold['minutes'] ?? \App\Support\ConfigHelper::getIntWithMin('horizonhub.alerts.default_minutes', 1)) }}"
+                                            value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->threshold['minutes'] ?? config('horizonhub.alerts.default_minutes')) }}"
                                         />
                                         @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                                     </div>
@@ -290,7 +290,7 @@
                                             name="thresholdSeconds"
                                             min="0.1"
                                             class="w-24"
-                                            value="{{ old('thresholdSeconds') !== null ? old('thresholdSeconds') : ($alert->threshold['seconds'] ?? \App\Support\ConfigHelper::get('horizonhub.alerts.default_seconds')) }}"
+                                            value="{{ old('thresholdSeconds') !== null ? old('thresholdSeconds') : ($alert->threshold['seconds'] ?? config('horizonhub.alerts.default_seconds')) }}"
                                         />
                                         @error('thresholdSeconds') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                                     </div>
@@ -301,7 +301,7 @@
                                             name="thresholdMinutes"
                                             min="1"
                                             class="w-24"
-                                            value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->threshold['minutes'] ?? \App\Support\ConfigHelper::getIntWithMin('horizonhub.alerts.default_minutes', 1)) }}"
+                                            value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->threshold['minutes'] ?? config('horizonhub.alerts.default_minutes')) }}"
                                         />
                                         @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                                     </div>
@@ -315,7 +315,7 @@
                                         name="thresholdMinutes"
                                         min="1"
                                         class="w-24"
-                                        value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->threshold['minutes'] ?? \App\Support\ConfigHelper::getIntWithMin('horizonhub.alerts.default_minutes', 1)) }}"
+                                        value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->threshold['minutes'] ?? config('horizonhub.alerts.default_minutes')) }}"
                                     />
                                     @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                                 </div>
@@ -348,7 +348,7 @@
                             min="0"
                             max="1440"
                             class="w-24"
-                            value="{{ old('email_interval_minutes', $alert->email_interval_minutes ?? \App\Support\ConfigHelper::getIntWithMin('horizonhub.alerts.default_email_interval_minutes', 1)) }}"
+                            value="{{ old('email_interval_minutes', $alert->email_interval_minutes ?? config('horizonhub.alerts.default_email_interval_minutes')) }}"
                         />
                         <p class="text-xs text-muted-foreground">
                             Minimum minutes between sends. Multiple triggers in that window are batched into one notification. Use 0 to send on every trigger.

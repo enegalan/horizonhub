@@ -3,13 +3,13 @@
 namespace App\Support\Alerts;
 
 use App\Models\AlertLog;
-use App\Support\ConfigHelper;
 
 class AlertDeliveryLogPresenter
 {
     /**
      * Get the payload for the delivery log modal.
      *
+     * @param  AlertLog|null  $log  The log.
      * @return array<string, mixed>|null
      */
     public static function payloadFromLog(?AlertLog $log): ?array
@@ -30,7 +30,7 @@ class AlertDeliveryLogPresenter
         }
         $initialUniqueJobTypesCount = \count($initialJobTotals);
         $initialEffectiveJobTypesCount = \min($initialUniqueJobTypesCount, $initialTriggerCount);
-        $maxDistinctJobs = ConfigHelper::getIntWithMin('horizonhub.alerts.delivery_log_max_distinct_jobs', $initialEffectiveJobTypesCount);
+        $maxDistinctJobs = (int) config('horizonhub.alerts.delivery_log_max_distinct_jobs', $initialEffectiveJobTypesCount);
         $initialJobItems = [];
         foreach (\array_slice(\array_keys($initialJobTotals), 0, $maxDistinctJobs) as $initialJobId) {
             $initialJobItems[] = [

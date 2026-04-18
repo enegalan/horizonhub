@@ -28,8 +28,10 @@
         <x-button variant="ghost" type="button" @click="drawerOpen = !drawerOpen" class="h-8 w-8 p-0" aria-label="Open menu">
             <x-heroicon-o-bars-3 class="size-6" />
         </x-button>
-        <img src="{{ asset('logo.svg') }}" alt="Horizon Hub" class="h-6 w-6 shrink-0 rounded-md object-contain">
-        <span class="text-sm font-semibold text-foreground">Horizon Hub</span>
+        <a href="{{ route('horizon.index') }}" class="flex min-w-0 items-center gap-2.5" @click="drawerOpen = false" data-turbo-action="replace">
+            <img src="{{ asset('logo.svg') }}" alt="Horizon Hub" class="h-6 w-6 shrink-0 rounded-md object-contain">
+            <span class="truncate text-sm font-semibold text-foreground">Horizon Hub</span>
+        </a>
     </div>
 
     <aside class="aside-drawer fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card transition-transform duration-300 ease-in-out lg:inset-auto lg:h-full lg:min-h-0 lg:translate-x-0 w-[inherit]"

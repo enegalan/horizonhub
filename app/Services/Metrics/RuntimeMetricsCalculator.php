@@ -9,6 +9,7 @@ class RuntimeMetricsCalculator extends HorizonMetricsComputation
     /**
      * Per-job runtimes over the rolling last 24 hours (completed and failed), for scatter charts.
      *
+     * @param  array<string, mixed>  $serviceScope  The service scope.
      * @return array{points: list<array{endAtMs: int, seconds: float, name: string, service: string, status: string}>}
      */
     public function getJobRuntimesLast24h(array $serviceScope = []): array

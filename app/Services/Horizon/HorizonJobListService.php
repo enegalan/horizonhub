@@ -4,7 +4,6 @@ namespace App\Services\Horizon;
 
 use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
-use App\Support\ConfigHelper;
 use App\Support\DatetimeBoundaryParser;
 use App\Support\Horizon\JobCommandDataExtractor;
 use App\Support\Horizon\JobRuntimeHelper;
@@ -32,7 +31,13 @@ class HorizonJobListService
      * Build paginators for processing, processed, and failed job lists (aggregated across services).
      *
      * @param  Collection<int, Service>  $services
-     * @param  array<string, mixed>  $query
+     * @param  string  $search  The search.
+     * @param  int  $pageProcessing  The page processing.
+     * @param  int  $pageProcessed  The page processed.
+     * @param  int  $pageFailed  The page failed.
+     * @param  int  $perPage  The per page.
+     * @param  string  $path  The path.
+     * @param  array<string, mixed>  $query  The query.
      * @return array{processing: LengthAwarePaginator, processed: LengthAwarePaginator, failed: LengthAwarePaginator}
      */
     public function buildAggregatedStatusPaginators(
@@ -59,6 +64,7 @@ class HorizonJobListService
     /**
      * Aggregated jobs index paginators from the current request query.
      *
+     * @param  Request  $request  The request.
      * @return array{
      *     processing: LengthAwarePaginator,
      *     processed: LengthAwarePaginator,
@@ -72,7 +78,7 @@ class HorizonJobListService
         $serviceFilterIds = ServiceRequest::existingIdsFromRequest($request, ['serviceFilter']);
         $search = (string) $request->query('search', '');
 
-        $perPage = (int) ConfigHelper::get('horizonhub.jobs_per_page');
+        $perPage = (int) config('horizonhub.jobs_per_page');
 
         $servicesQuery = Service::query()->whereNotNull('base_url');
         if ($serviceFilterIds !== []) {
@@ -109,7 +115,14 @@ class HorizonJobListService
     /**
      * Build paginators for a single service dashboard (same three sections).
      *
-     * @param  array<string, mixed>  $query
+     * @param  Service  $service  The service.
+     * @param  string  $search  The search.
+     * @param  int  $pageProcessing  The page processing.
+     * @param  int  $pageProcessed  The page processed.
+     * @param  int  $pageFailed  The page failed.
+     * @param  int  $perPage  The per page.
+     * @param  string  $path  The path.
+     * @param  array<string, mixed>  $query  The query.
      * @return array{processing: LengthAwarePaginator, processed: LengthAwarePaginator, failed: LengthAwarePaginator}
      */
     public function buildServiceStatusPaginators(
@@ -138,7 +151,10 @@ class HorizonJobListService
     /**
      * Build filtered, sorted failed-job rows for the retry modal (before pagination).
      *
-     * @param  Collection<int, Service>  $services
+     * @param  Collection<int, Service>  $services  The services.
+     * @param  string  $search  The search.
+     * @param  mixed  $dateFrom  The date from.
+     * @param  mixed  $dateTo  The date to.
      * @return list<array<string, mixed>>
      */
     private function private__buildRetryModalFailedRows(
@@ -236,6 +252,11 @@ class HorizonJobListService
      * Fetch failed jobs from one or more services, apply filters, sort, and slice for HTTP pagination.
      *
      * @param  Collection<int, Service>  $services
+     * @param  string  $search  The search.
+     * @param  mixed  $dateFrom  The date from.
+     * @param  mixed  $dateTo  The date to.
+     * @param  int  $page  The page.
+     * @param  int  $perPage  The per page.
      * @return array{rows: list<array<string, mixed>>, total: int, last_page: int}
      */
     public function buildFailedJobsRetryModalPage(
@@ -269,8 +290,9 @@ class HorizonJobListService
     /**
      * Collect and sort jobs for one or more services.
      *
-     * @param  Collection<int, Service>  $services
-     * @param  'processing'|'processed'|'failed'  $status
+     * @param  Collection<int, Service>  $services  The services.
+     * @param  'processing'|'processed'|'failed'  $status  The status.
+     * @param  string  $search  The search.
      * @return Collection<int, object>
      */
     private function private__collectAndSortJobsForServices(Collection $services, string $status, string $search): Collection
@@ -297,14 +319,14 @@ class HorizonJobListService
     /**
      * Fetch all jobs for a single service.
      *
-     * @param  callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>}  $fetcher
+     * @param  callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>}  $fetcher  The fetcher.
      * @return list<mixed>
      */
     private function private__fetchAllJobsForService(callable $fetcher): array
     {
-        $maxPages = ConfigHelper::getIntWithMin('horizonhub.max_horizon_pages', 1);
+        $maxPages = (int) config('horizonhub.max_horizon_pages');
 
-        $jobsPerRequest = ConfigHelper::getIntWithMin('horizonhub.horizon_api_job_list_page_size', 1);
+        $jobsPerRequest = (int) config('horizonhub.horizon_api_job_list_page_size');
         $accumulated = [];
         $startingAt = -1;
 
@@ -345,7 +367,8 @@ class HorizonJobListService
     /**
      * Get the API fetcher for a given status.
      *
-     * @param  'processing'|'processed'|'failed'  $status
+     * @param  Service  $service  The service.
+     * @param  string  $status  The status.
      * @return callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>}
      */
     private function private__apiFetcherForStatus(Service $service, string $status): callable
@@ -360,7 +383,8 @@ class HorizonJobListService
     /**
      * Get the next starting at value for the next batch.
      *
-     * @param  list<mixed>  $batch
+     * @param  int  $startingAt  The starting at.
+     * @param  list<mixed>  $batch  The batch.
      */
     private function private__nextStartingAt(int $startingAt, array $batch): int
     {
@@ -375,8 +399,9 @@ class HorizonJobListService
     /**
      * Map a raw job to a list row.
      *
-     * @param  array<string, mixed>  $job
-     * @param  'processing'|'processed'|'failed'  $status
+     * @param  array<string, mixed>  $job  The job.
+     * @param  Service  $service  The service.
+     * @param  'processing'|'processed'|'failed'  $status  The status.
      */
     private function private__mapRawJobToListRow(array $job, Service $service, string $status): ?object
     {
@@ -437,6 +462,9 @@ class HorizonJobListService
 
     /**
      * Check if a row matches the search.
+     *
+     * @param  object  $row  The row.
+     * @param  string  $search  The search.
      */
     private function private__matchesSearch(object $row, string $search): bool
     {
@@ -479,7 +507,8 @@ class HorizonJobListService
     /**
      * Get the timestamp for a given status.
      *
-     * @param  'processing'|'processed'|'failed'  $status
+     * @param  object  $row  The row.
+     * @param  'processing'|'processed'|'failed'  $status  The status.
      */
     private function private__sortTimeForStatus(object $row, string $status): float
     {
@@ -499,8 +528,12 @@ class HorizonJobListService
     /**
      * Make a paginator for a given collection of items.
      *
-     * @param  Collection<int, object>  $items
-     * @param  array<string, mixed>  $query
+     * @param  Collection<int, object>  $items  The items.
+     * @param  int  $perPage  The per page.
+     * @param  int  $page  The page.
+     * @param  string  $path  The path.
+     * @param  array<string, mixed>  $query  The query.
+     * @param  string  $pageName  The page name.
      */
     private function private__makePaginator(
         Collection $items,

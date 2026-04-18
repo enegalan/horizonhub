@@ -6,7 +6,6 @@ use App\Contracts\SlackAlertNotifier;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
-use App\Support\ConfigHelper;
 use Illuminate\Support\Facades\Http;
 
 class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier
@@ -36,7 +35,9 @@ class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier
     /**
      * Send a batched alert.
      *
-     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $events
+     * @param  Alert  $alert  The alert.
+     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $events  The events.
+     * @param  array<string, mixed>  $config  The config.
      */
     public function sendBatched(Alert $alert, array $events, array $config): void
     {
@@ -56,8 +57,8 @@ class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier
 
         if ($alert->rule_type === 'failure_count') {
             $threshold = $alert->threshold ?? [];
-            $thresholdCount = (int) (isset($threshold['count']) ? $threshold['count'] : ConfigHelper::get('horizonhub.alerts.default_count'));
-            $thresholdMinutes = (int) (isset($threshold['minutes']) ? $threshold['minutes'] : ConfigHelper::get('horizonhub.alerts.default_minutes'));
+            $thresholdCount = (int) ($threshold['count'] ?? config('horizonhub.alerts.default_count'));
+            $thresholdMinutes = (int) ($threshold['minutes'] ?? config('horizonhub.alerts.default_minutes'));
             $queueName = $alert->queue ?? null;
 
             $condition = \sprintf(

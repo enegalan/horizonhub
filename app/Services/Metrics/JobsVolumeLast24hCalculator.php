@@ -10,6 +10,7 @@ class JobsVolumeLast24hCalculator extends HorizonMetricsComputation
     /**
      * Hourly completed and failed job counts over the rolling last 24 hours.
      *
+     * @param  array<string, mixed>  $serviceScope  The service scope.
      * @return array{xAxis: list<string>, completed: list<int>, failed: list<int>}
      */
     public function getJobsVolumeLast24h(array $serviceScope = []): array

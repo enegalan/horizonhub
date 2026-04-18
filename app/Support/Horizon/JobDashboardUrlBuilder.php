@@ -3,12 +3,15 @@
 namespace App\Support\Horizon;
 
 use App\Models\Service;
-use App\Support\ConfigHelper;
 
 class JobDashboardUrlBuilder
 {
     /**
      * Build the Horizon dashboard URL for a job.
+     *
+     * @param  Service|null  $service  The service.
+     * @param  string|null  $jobUuid  The job UUID.
+     * @param  string|null  $jobStatus  The job status.
      */
     public static function build(?Service $service, ?string $jobUuid, ?string $jobStatus): ?string
     {
@@ -21,7 +24,7 @@ class JobDashboardUrlBuilder
             return null;
         }
 
-        $dashboardPath = \rtrim((string) ConfigHelper::get('horizonhub.horizon_paths.dashboard'), '/');
+        $dashboardPath = \rtrim((string) config('horizonhub.horizon_paths.dashboard'), '/');
         $status = (string) $jobStatus;
         $encodedUuid = \urlencode($jobUuid);
 

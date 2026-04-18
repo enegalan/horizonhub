@@ -29,12 +29,23 @@ class EvaluateAlertJob implements ShouldQueue
     private const CACHE_TTL_SECONDS = 1800;
 
     /**
+     * The alert ID.
+     */
+    public int $alertId;
+
+    /**
+     * The evaluation ID.
+     */
+    public string $evaluationId;
+
+    /**
      * Create a new job instance.
      */
-    public function __construct(
-        public int $alertId,
-        public string $evaluationId
-    ) {}
+    public function __construct(int $alertId, string $evaluationId)
+    {
+        $this->alertId = $alertId;
+        $this->evaluationId = $evaluationId;
+    }
 
     /**
      * Execute the job.

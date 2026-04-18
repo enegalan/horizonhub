@@ -11,7 +11,6 @@ use App\Services\Alerts\AlertEngine;
 use App\Services\Alerts\AlertEvaluationBatchService;
 use App\Services\Alerts\AlertUpsertService;
 use App\Support\Alerts\AlertDeliveryLogPresenter;
-use App\Support\ConfigHelper;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -114,7 +113,7 @@ class AlertController extends Controller
         $serviceFilter = $request->query('service_id');
         $perPage = (int) $request->query('per_page');
         if (! $perPage || $perPage <= 0) {
-            $perPage = ConfigHelper::get('horizonhub.jobs_per_page');
+            $perPage = config('horizonhub.jobs_per_page');
         }
 
         $logsQuery = $alert->alertLogs()
@@ -184,7 +183,7 @@ class AlertController extends Controller
 
         return redirect()
             ->route('horizon.alerts.index')
-            ->with('status', 'Alert '.$name.' deleted.');
+            ->with('status', "Alert $name deleted.");
     }
 
     /**
@@ -217,9 +216,7 @@ class AlertController extends Controller
      */
     public function evaluateAllAlerts(): JsonResponse
     {
-        $payload = $this->evaluationBatch->startEvaluateAll();
-
-        return \response()->json($payload);
+        return \response()->json($this->evaluationBatch->startEvaluateAll());
     }
 
     /**

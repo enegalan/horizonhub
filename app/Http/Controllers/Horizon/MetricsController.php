@@ -10,9 +10,18 @@ use Illuminate\Contracts\View\View;
 
 class MetricsController extends Controller
 {
-    public function __construct(
-        private MetricsDashboardDataService $metricsDashboard,
-    ) {}
+    /**
+     * The metrics dashboard data service.
+     */
+    private MetricsDashboardDataService $metricsDashboard;
+
+    /**
+     * The constructor.
+     */
+    public function __construct(MetricsDashboardDataService $metricsDashboard)
+    {
+        $this->metricsDashboard = $metricsDashboard;
+    }
 
     /**
      * Show the metrics dashboard.

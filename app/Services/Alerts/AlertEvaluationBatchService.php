@@ -14,7 +14,7 @@ class AlertEvaluationBatchService
     /**
      * Start evaluating all alerts.
      *
-     * @return array<string, mixed>
+     * @return array{evaluation_id: string, status: string, total_alerts: int}
      */
     public function startEvaluateAll(): array
     {
@@ -75,6 +75,7 @@ class AlertEvaluationBatchService
     /**
      * Get the evaluation status.
      *
+     * @param  string  $evaluationId  The evaluation ID.
      * @return array<string, mixed>
      */
     public function getEvaluationStatus(string $evaluationId): array

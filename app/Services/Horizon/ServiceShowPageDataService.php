@@ -3,22 +3,37 @@
 namespace App\Services\Horizon;
 
 use App\Models\Service;
-use App\Support\ConfigHelper;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
-/**
- * Builds view data for the service dashboard (show page) for HTTP and SSE.
- */
 class ServiceShowPageDataService
 {
-    public function __construct(
-        private HorizonMetricsService $metrics,
-        private HorizonJobListService $jobList,
-    ) {}
+    /**
+     * The Horizon metrics service.
+     */
+    private HorizonMetricsService $metrics;
 
     /**
+     * The Horizon job list service.
+     */
+    private HorizonJobListService $jobList;
+
+    /**
+     * The constructor.
+     */
+    public function __construct(HorizonMetricsService $metrics, HorizonJobListService $jobList)
+    {
+        $this->metrics = $metrics;
+        $this->jobList = $jobList;
+    }
+
+    /**
+     * Build the service show page data.
+     *
+     * @param  Service  $service  The service.
+     * @param  Request  $request  The request.
+     * @param  HorizonApiProxyService  $horizonApi  The horizon API proxy service.
      * @return array{
      *     jobsPastMinute: mixed,
      *     jobsPastHour: mixed,
@@ -184,7 +199,7 @@ class ServiceShowPageDataService
 
         $workloadQueues = $workloadQueues->values();
 
-        $perPage = (int) ConfigHelper::get('horizonhub.jobs_per_page');
+        $perPage = (int) config('horizonhub.jobs_per_page');
 
         $pageProcessing = \max(1, (int) $request->query('page_processing', 1));
         $pageProcessed = \max(1, (int) $request->query('page_processed', 1));

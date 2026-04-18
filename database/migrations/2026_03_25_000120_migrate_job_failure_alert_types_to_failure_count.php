@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\Alert;
-use App\Support\ConfigHelper;
 use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
@@ -21,9 +20,9 @@ return new class extends Migration
                     if (! \is_array($threshold)) {
                         $threshold = [];
                     }
-                    $count = (int) ($threshold['count'] ?? ConfigHelper::getIntWithMin('horizonhub.alerts.default_count', 1));
+                    $count = (int) ($threshold['count'] ?? config('horizonhub.alerts.default_count'));
                     $threshold['count'] = $count;
-                    $minutes = (int) ($threshold['minutes'] ?? ConfigHelper::getIntWithMin('horizonhub.alerts.default_minutes', 1));
+                    $minutes = (int) ($threshold['minutes'] ?? config('horizonhub.alerts.default_minutes'));
                     $threshold['minutes'] = $minutes;
 
                     $alert->rule_type = Alert::RULE_FAILURE_COUNT;

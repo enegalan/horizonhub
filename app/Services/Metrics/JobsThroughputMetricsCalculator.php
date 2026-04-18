@@ -9,6 +9,8 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
 {
     /**
      * Get the number of jobs processed in the past minute.
+     *
+     * @param  Service|null  $service  The service.
      */
     public function getJobsPastMinute(?Service $service = null): int
     {
@@ -51,6 +53,8 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
 
     /**
      * Get the number of jobs processed in the past hour.
+     *
+     * @param  Service|null  $service  The service.
      */
     public function getJobsPastHour(?Service $service = null): int
     {
@@ -93,6 +97,8 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
 
     /**
      * Get the number of failed jobs in the past seven days.
+     *
+     * @param  Service|null  $service  The service.
      */
     public function getFailedPastSevenDays(?Service $service = null): int
     {

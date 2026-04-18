@@ -37,7 +37,9 @@ class EmailNotifier extends AbstractAlertNotifier implements EmailAlertNotifier
     /**
      * Send a batched alert.
      *
-     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $events
+     * @param  Alert  $alert  The alert.
+     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $events  The events.
+     * @param  array<string, mixed>  $config  The config.
      */
     public function sendBatched(Alert $alert, array $events, array $config): void
     {

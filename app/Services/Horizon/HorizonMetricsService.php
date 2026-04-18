@@ -15,6 +15,13 @@ use Illuminate\Support\Collection;
 class HorizonMetricsService
 {
     /**
+     * The number of top queues to return.
+     *
+     * @var int
+     */
+    private const TOP_N_QUEUES = 12;
+
+    /**
      * The jobs throughput metrics calculator.
      */
     private JobsThroughputMetricsCalculator $jobsThroughputMetrics;
@@ -284,7 +291,7 @@ class HorizonMetricsService
             return null;
         }
         \arsort($waits, \SORT_NUMERIC);
-        $top = \array_slice($waits, 0, 12, true);
+        $top = \array_slice($waits, 0, self::TOP_N_QUEUES, true);
         $queues = \array_keys($top);
         $wait = \array_values($top);
 

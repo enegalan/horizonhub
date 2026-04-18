@@ -8,6 +8,8 @@ final class DatetimeBoundaryParser
 {
     /**
      * Lower bound: date-only strings (Y-m-d) use start of day; datetimes use the parsed instant.
+     *
+     * @param  string|null  $value  The value.
      */
     public static function parseLower(?string $value): ?Carbon
     {
@@ -29,6 +31,8 @@ final class DatetimeBoundaryParser
 
     /**
      * Upper bound: date-only strings (Y-m-d) use end of day; datetimes use the parsed instant.
+     *
+     * @param  string|null  $value  The value.
      */
     public static function parseUpper(?string $value): ?Carbon
     {

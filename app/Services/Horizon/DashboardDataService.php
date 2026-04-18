@@ -27,6 +27,9 @@ class DashboardDataService
     }
 
     /**
+     * Build the dashboard data.
+     *
+     * @param  HorizonApiProxyService  $horizonApi  The horizon API proxy service.
      * @return array<string, mixed>
      */
     public function build(HorizonApiProxyService $horizonApi): array

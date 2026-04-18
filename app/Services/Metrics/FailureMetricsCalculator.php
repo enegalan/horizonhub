@@ -10,6 +10,7 @@ class FailureMetricsCalculator extends HorizonMetricsComputation
     /**
      * Get the failure rate from 00:00 of the previous day until now.
      *
+     * @param  array<string, mixed>  $serviceScope  The service scope.
      * @return array{rate: float, processed: int, failed: int}
      */
     public function getFailureRate24h(array $serviceScope = []): array
@@ -50,6 +51,7 @@ class FailureMetricsCalculator extends HorizonMetricsComputation
     /**
      * Get the failure rate over time from 00:00 of the previous day until now.
      *
+     * @param  array<string, mixed>  $serviceScope  The service scope.
      * @return array{xAxis: list<string>, rate: list<float|null>}
      */
     public function getFailureRateOverTime(array $serviceScope = []): array

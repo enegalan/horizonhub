@@ -30,11 +30,8 @@ class JobController extends Controller
     /**
      * The constructor.
      */
-    public function __construct(
-        HorizonJobListService $jobList,
-        HorizonJobDetailService $jobDetail,
-        HorizonApiProxyService $horizonApi,
-    ) {
+    public function __construct(HorizonJobListService $jobList, HorizonJobDetailService $jobDetail, HorizonApiProxyService $horizonApi)
+    {
         $this->jobList = $jobList;
         $this->jobDetail = $jobDetail;
         $this->horizonApi = $horizonApi;

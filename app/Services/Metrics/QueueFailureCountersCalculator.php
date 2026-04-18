@@ -9,6 +9,7 @@ class QueueFailureCountersCalculator extends HorizonMetricsComputation
     /**
      * Get the processed vs failed data by queue.
      *
+     * @param  array<string, mixed>  $serviceScope  The service scope.
      * @return array{queues: list<string>, processed: list<int>, failed: list<int>}
      */
     public function getProcessedFailedByQueue(array $serviceScope = []): array

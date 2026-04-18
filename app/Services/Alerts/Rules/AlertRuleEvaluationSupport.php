@@ -31,6 +31,7 @@ final class AlertRuleEvaluationSupport
     /**
      * Resolve the job patterns from the alert threshold.
      *
+     * @param  Alert  $alert  The alert.
      * @return array<int, string>
      */
     public function resolveJobPatterns(Alert $alert): array
@@ -110,7 +111,8 @@ final class AlertRuleEvaluationSupport
     /**
      * Check if the failed job row matches the alert.
      *
-     * @param  array<string, mixed>  $job
+     * @param  Alert  $alert  The alert.
+     * @param  array<string, mixed>  $job  The job.
      */
     public function failedJobRowMatches(Alert $alert, array $job): bool
     {
@@ -121,7 +123,8 @@ final class AlertRuleEvaluationSupport
     /**
      * Check if the completed job row matches the alert.
      *
-     * @param  array<string, mixed>  $job
+     * @param  Alert  $alert  The alert.
+     * @param  array<string, mixed>  $job  The job.
      */
     public function completedJobRowMatches(Alert $alert, array $job): bool
     {
@@ -133,7 +136,7 @@ final class AlertRuleEvaluationSupport
      * Filter the failed jobs in the window.
      *
      * @param  Collection<int, mixed>  $jobs
-     * @param  Collection<int, mixed>  $jobs
+     * @param  Carbon  $cutoff  The cutoff time.
      * @return Collection<int, array<string, mixed>>
      */
     public function filterFailedJobsInWindow(Collection $jobs, Carbon $cutoff): Collection
@@ -151,6 +154,9 @@ final class AlertRuleEvaluationSupport
     /**
      * Find the matching failed jobs in the window.
      *
+     * @param  Alert  $alert  The alert.
+     * @param  Service  $service  The service.
+     * @param  Carbon  $cutoff  The cutoff time.
      * @return Collection<int, array<string, mixed>>
      */
     public function matchingFailedJobsInWindow(Alert $alert, Service $service, Carbon $cutoff): Collection
@@ -190,6 +196,8 @@ final class AlertRuleEvaluationSupport
 
     /**
      * Parse the failed at value.
+     *
+     * @param  mixed  $value  The value to parse.
      */
     private function private__parseFailedAt(mixed $value): ?Carbon
     {
@@ -219,7 +227,7 @@ final class AlertRuleEvaluationSupport
     /**
      * Get the job payload haystack.
      *
-     * @param  array<string, mixed>  $job
+     * @param  array<string, mixed>  $job  The job.
      */
     private function private__jobPayloadHaystack(array $job): string
     {
@@ -236,7 +244,8 @@ final class AlertRuleEvaluationSupport
     /**
      * Check if the job matches the job patterns.
      *
-     * @param  array<string, mixed>  $job
+     * @param  Alert  $alert  The alert.
+     * @param  array<string, mixed>  $job  The job.
      */
     private function private__jobMatchesJobPatterns(Alert $alert, array $job): bool
     {

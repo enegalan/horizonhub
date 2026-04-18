@@ -6,7 +6,6 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
 use App\Services\Horizon\HorizonApiProxyService;
-use App\Support\ConfigHelper;
 use Carbon\Carbon;
 
 final class SupervisorOfflineAlertRuleStrategy implements AlertRuleStrategyInterface
@@ -43,7 +42,7 @@ final class SupervisorOfflineAlertRuleStrategy implements AlertRuleStrategyInter
     private function private__evaluateSupervisorOffline(Alert $alert, int $serviceId): bool
     {
         $threshold = $alert->threshold ?? [];
-        $minutes = (int) ($threshold['minutes'] ?? ConfigHelper::getIntWithMin('horizonhub.alerts.default_minutes', 1));
+        $minutes = (int) ($threshold['minutes'] ?? config('horizonhub.alerts.default_minutes'));
 
         $service = Service::find($serviceId);
         if (! $service || ! $service->base_url) {

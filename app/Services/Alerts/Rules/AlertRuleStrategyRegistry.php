@@ -28,15 +28,8 @@ final class AlertRuleStrategyRegistry
     /**
      * Construct the strategy registry.
      */
-    public function __construct(
-        NullAlertRuleStrategy $nullStrategy,
-        FailureCountAlertRuleStrategy $failureCount,
-        AvgExecutionTimeAlertRuleStrategy $avgExecutionTime,
-        QueueBlockedAlertRuleStrategy $queueBlocked,
-        WorkerOfflineAlertRuleStrategy $workerOffline,
-        SupervisorOfflineAlertRuleStrategy $supervisorOffline,
-        HorizonOfflineAlertRuleStrategy $horizonOffline,
-    ) {
+    public function __construct(NullAlertRuleStrategy $nullStrategy, FailureCountAlertRuleStrategy $failureCount, AvgExecutionTimeAlertRuleStrategy $avgExecutionTime, QueueBlockedAlertRuleStrategy $queueBlocked, WorkerOfflineAlertRuleStrategy $workerOffline, SupervisorOfflineAlertRuleStrategy $supervisorOffline, HorizonOfflineAlertRuleStrategy $horizonOffline)
+    {
         $this->nullStrategy = $nullStrategy;
         $this->strategies = [
             Alert::RULE_FAILURE_COUNT => $failureCount,
@@ -50,6 +43,8 @@ final class AlertRuleStrategyRegistry
 
     /**
      * Resolve the strategy for the given rule type.
+     *
+     * @param  string  $ruleType  The rule type.
      */
     public function resolve(string $ruleType): AlertRuleStrategyInterface
     {

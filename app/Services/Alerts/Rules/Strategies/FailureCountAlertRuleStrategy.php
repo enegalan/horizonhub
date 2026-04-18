@@ -7,7 +7,6 @@ use App\Models\Service;
 use App\Services\Alerts\Rules\AlertRuleEvaluationSupport;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
 use App\Services\Horizon\HorizonApiProxyService;
-use App\Support\ConfigHelper;
 
 final class FailureCountAlertRuleStrategy implements AlertRuleStrategyInterface
 {
@@ -24,10 +23,8 @@ final class FailureCountAlertRuleStrategy implements AlertRuleStrategyInterface
     /**
      * Construct the strategy.
      */
-    public function __construct(
-        AlertRuleEvaluationSupport $support,
-        HorizonApiProxyService $horizonApi,
-    ) {
+    public function __construct(AlertRuleEvaluationSupport $support, HorizonApiProxyService $horizonApi)
+    {
         $this->support = $support;
         $this->horizonApi = $horizonApi;
     }
@@ -40,8 +37,8 @@ final class FailureCountAlertRuleStrategy implements AlertRuleStrategyInterface
     public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array
     {
         $threshold = $alert->threshold ?? [];
-        $count = (int) ($threshold['count'] ?? ConfigHelper::get('horizonhub.alerts.default_count'));
-        $minutes = (int) ($threshold['minutes'] ?? ConfigHelper::get('horizonhub.alerts.default_minutes'));
+        $count = (int) ($threshold['count'] ?? config('horizonhub.alerts.default_count'));
+        $minutes = (int) ($threshold['minutes'] ?? config('horizonhub.alerts.default_minutes'));
 
         $service = Service::find($serviceId);
         if (! $service || ! $service->base_url) {
