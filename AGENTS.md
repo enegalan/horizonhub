@@ -8,7 +8,7 @@ These instructions apply to the whole repository.
 
 - PHP 8.2+
 - Laravel 12
-- PHPUnit 11
+- PHPUnit 12
 - Laravel Pint
 
 ## Development rules
