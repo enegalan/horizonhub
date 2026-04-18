@@ -27,6 +27,8 @@ class QueueNameNormalizer
      *    Longer keys are tried first (e.g. `redis_cluster` before `redis`).
      * 2. Otherwise strip one segment if the whole string matches a standard Laravel Horizon
      *    `connection.queue` / `connection:queue` pattern (letter-first connection identifier).
+     *
+     * @param  string|null  $queue  The queue.
      */
     public static function normalize(?string $queue): ?string
     {
@@ -55,6 +57,8 @@ class QueueNameNormalizer
     }
 
     /**
+     * Get the connection names from the config.
+     *
      * @return list<string>
      */
     private static function connectionNamesFromConfig(): array

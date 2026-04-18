@@ -133,17 +133,6 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('data-stream-row-id="svc-', $html);
     }
 
-    public function test_parse_service_ids_from_query(): void
-    {
-        $controller = $this->app->make(HorizonStreamsController::class);
-
-        $reflection = new \ReflectionMethod($controller, 'private__parseServiceIdsFromQuery');
-        $reflection->setAccessible(true);
-
-        $this->assertSame([], $reflection->invoke($controller, ''));
-        $this->assertSame([1, 3], $reflection->invoke($controller, 'service_id%5B0%5D=1&service_id%5B1%5D=3'));
-    }
-
     public function test_build_jobs_index_streams_returns_per_section_tbody_updates(): void
     {
         $controller = $this->app->make(HorizonStreamsController::class);

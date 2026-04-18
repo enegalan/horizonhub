@@ -25,10 +25,8 @@ class AlertNotificationDispatcher
     /**
      * Construct the dispatcher.
      */
-    public function __construct(
-        EmailAlertNotifier $emailNotifier,
-        SlackAlertNotifier $slackNotifier
-    ) {
+    public function __construct(EmailAlertNotifier $emailNotifier, SlackAlertNotifier $slackNotifier)
+    {
         $this->emailNotifier = $emailNotifier;
         $this->slackNotifier = $slackNotifier;
     }
@@ -36,7 +34,9 @@ class AlertNotificationDispatcher
     /**
      * Send alert notifications for the given log using notification providers.
      *
-     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $events
+     * @param  Alert  $alert  The alert.
+     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $events  The events.
+     * @param  AlertLog  $log  The alert log.
      */
     public function dispatch(Alert $alert, array $events, AlertLog $log): void
     {

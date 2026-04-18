@@ -9,6 +9,7 @@ class AlertDeliveryLogPresenter
     /**
      * Get the payload for the delivery log modal.
      *
+     * @param  AlertLog|null  $log  The log.
      * @return array<string, mixed>|null
      */
     public static function payloadFromLog(?AlertLog $log): ?array

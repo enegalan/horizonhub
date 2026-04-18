@@ -11,7 +11,6 @@ import { formatQueueWaitElements } from './lib/datetime-format';
 import { onDocumentReady, schedule } from './lib/init';
 import { getTurboStreamTargetElement, renderTurboStreamWithGuards } from './lib/stream-guard';
 import { mountToaster } from './components/toaster';
-import { applyTheme } from './components/theme';
 import { registerInputDatePicker } from './components/input-date-picker';
 import Alpine from 'alpinejs';
 import moment from 'moment';
@@ -52,7 +51,7 @@ document.addEventListener('turbo:load', function () {
 
 onDocumentReady(function () {
     mountToaster();
-    applyTheme();
+    window.horizonHubTheme.applyTheme();
     schedule(function () {
         formatQueueWaitElements();
     });
@@ -83,5 +82,5 @@ document.addEventListener('turbo:before-stream-render', function (e) {
 });
 
 window.addEventListener('apply-theme', function () {
-    applyTheme();
+    window.horizonHubTheme.applyTheme();
 });

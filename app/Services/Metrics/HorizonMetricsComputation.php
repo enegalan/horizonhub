@@ -43,6 +43,8 @@ abstract class HorizonMetricsComputation
      * Each request uses Horizon query `limit` = horizonhub.horizon_api_job_list_page_size.
      * The number of HTTP pages per service is capped by horizonhub.max_horizon_pages.
      *
+     * @param  Service  $service  The service.
+     * @param  int  $sinceTimestamp  The since timestamp.
      * @return list<array<string, mixed>>
      */
     protected function private__fetchCompletedJobsInWindow(Service $service, int $sinceTimestamp): array
@@ -69,6 +71,8 @@ abstract class HorizonMetricsComputation
      * Each request uses Horizon query `limit` = horizonhub.horizon_api_job_list_page_size.
      * The number of HTTP pages per service is capped by horizonhub.max_horizon_pages.
      *
+     * @param  Service  $service  The service.
+     * @param  int  $sinceTimestamp  The since timestamp.
      * @return list<array<string, mixed>>
      */
     protected function private__fetchFailedJobsInWindow(Service $service, int $sinceTimestamp): array
@@ -92,16 +96,13 @@ abstract class HorizonMetricsComputation
     /**
      * Fetch jobs in a time window by paginating Horizon until we cross the lower bound.
      *
-     * @param  int  $sinceTimestamp  Unix timestamp.
-     * @param  callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>}  $pageFetcher
-     * @param  callable(array<string, mixed>): ?int  $jobTimestampExtractor
+     * @param  int  $sinceTimestamp  The since timestamp.
+     * @param  callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>}  $pageFetcher  The page fetcher.
+     * @param  callable(array<string, mixed>): ?int  $jobTimestampExtractor  The job timestamp extractor.
      * @return list<array<string, mixed>>
      */
-    protected function private__fetchJobsInWindow(
-        int $sinceTimestamp,
-        callable $pageFetcher,
-        callable $jobTimestampExtractor,
-    ): array {
+    protected function private__fetchJobsInWindow(int $sinceTimestamp, callable $pageFetcher, callable $jobTimestampExtractor): array
+    {
         $jobs = [];
         $startingAt = -1;
         $page = 0;
@@ -153,7 +154,8 @@ abstract class HorizonMetricsComputation
     /**
      * Next Horizon jobs list cursor: starting_at is a zero-based index into the Redis-backed list, not a unix timestamp.
      *
-     * @param  list<mixed>  $batch
+     * @param  int  $startingAt  The starting at.
+     * @param  array<int, mixed>  $batch  The batch.
      */
     protected function private__nextMetricsJobsStartingAt(int $startingAt, array $batch): int
     {
@@ -168,8 +170,9 @@ abstract class HorizonMetricsComputation
     /**
      * Get services that can provide Horizon metrics.
      *
-     * @param  list<int>  $serviceScope  Empty = all services with base_url; non-empty = restrict by id.
-     * @param  array<int, string>  $selectColumns
+     * @param  list<int>|null  $serviceScope  The service scope. Empty = all services with base_url; non-empty = restrict by id.
+     * @param  bool  $orderByName  The order by name.
+     * @param  array<int, string>  $selectColumns  The select columns.
      * @return Collection<int, Service>
      */
     protected function private__getServicesForMetrics(array $serviceScope = [], bool $orderByName = false, array $selectColumns = []): Collection
@@ -201,7 +204,11 @@ abstract class HorizonMetricsComputation
     /**
      * Initialize hourly buckets between $since and $endHour (inclusive).
      *
-     * @param  callable(): array  $bucketInitializer
+     * @param  Carbon  $since  The since.
+     * @param  Carbon  $endHour  The end hour.
+     * @param  string  $bucketFormat  The bucket format.
+     * @param  int  $maxBuckets  The max buckets.
+     * @param  callable(): array  $bucketInitializer  The bucket initializer.
      * @return array<string, array<string, mixed>>
      */
     protected function private__initHourlyBuckets(Carbon $since, Carbon $endHour, string $bucketFormat, int $maxBuckets, callable $bucketInitializer): array
@@ -270,7 +277,10 @@ abstract class HorizonMetricsComputation
     /**
      * Aggregate queue counters from Horizon jobs payload.
      *
-     * @param  array<string, int>  $queueCounts
+     * @param  mixed  $jobsPayload  The jobs payload.
+     * @param  int  $sinceTimestamp  The since timestamp.
+     * @param  string  $timestampField  The timestamp field.
+     * @param  array<string, int>  $queueCounts  The queue counts.
      */
     protected function private__aggregateQueueCountsFromJobsPayload(mixed $jobsPayload, int $sinceTimestamp, string $timestampField, array &$queueCounts): void
     {
@@ -301,6 +311,7 @@ abstract class HorizonMetricsComputation
     /**
      * Get queue rows (name + 0 jobs) from masters/supervisors when workload API returns nothing.
      *
+     * @param  Service  $service  The service.
      * @return array<int, array{queue: string, jobs: int, processes: int|null, wait: float|null}>
      */
     protected function private__getWorkloadFallbackFromMasters(Service $service): array

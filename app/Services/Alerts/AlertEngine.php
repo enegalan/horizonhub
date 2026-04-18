@@ -28,11 +28,8 @@ class AlertEngine
     /**
      * Construct the alert engine.
      */
-    public function __construct(
-        AlertRuleEvaluator $ruleEvaluator,
-        AlertBatchStore $batchStore,
-        AlertNotificationDispatcher $notificationDispatcher
-    ) {
+    public function __construct(AlertRuleEvaluator $ruleEvaluator, AlertBatchStore $batchStore, AlertNotificationDispatcher $notificationDispatcher)
+    {
         $this->ruleEvaluator = $ruleEvaluator;
         $this->batchStore = $batchStore;
         $this->notificationDispatcher = $notificationDispatcher;
@@ -67,6 +64,10 @@ class AlertEngine
 
     /**
      * Evaluate the alert after an event.
+     *
+     * @param  int  $serviceId  The service ID.
+     * @param  string  $eventType  The event type.
+     * @param  string|null  $jobUuid  The job UUID.
      */
     public function evaluateAfterEvent(int $serviceId, string $eventType, ?string $jobUuid = null): void
     {
@@ -129,6 +130,7 @@ class AlertEngine
     /**
      * Evaluate a single alert immediately (scheduled context).
      *
+     * @param  Alert  $alert  The alert.
      * @return array{
      *     alert_id: int,
      *     pending_flushed: bool,
@@ -227,6 +229,8 @@ class AlertEngine
 
     /**
      * Retry the alert log.
+     *
+     * @param  AlertLog  $log  The alert log.
      */
     public function retryAlertLog(AlertLog $log): void
     {
@@ -256,6 +260,9 @@ class AlertEngine
 
     /**
      * Should evaluate the alert.
+     *
+     * @param  Alert  $alert  The alert.
+     * @param  string  $eventType  The event type.
      */
     private function private__shouldEvaluate(Alert $alert, string $eventType): bool
     {
@@ -280,6 +287,9 @@ class AlertEngine
     /**
      * Evaluate the rule and return triggering job UUIDs when applicable.
      *
+     * @param  Alert  $alert  The alert.
+     * @param  int  $serviceId  The service ID.
+     * @param  string|null  $jobUuid  The job UUID.
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
     private function private__evaluateRuleWithJobs(Alert $alert, int $serviceId, ?string $jobUuid): array
@@ -295,6 +305,7 @@ class AlertEngine
      *              generate placeholder events with null job UUIDs when the
      *              trigger_count is greater than the number of stored job UUIDs.
      *
+     * @param  AlertLog  $log  The alert log.
      * @return array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>
      */
     private function private__rebuildEventsFromLog(AlertLog $log): array
@@ -325,6 +336,9 @@ class AlertEngine
     /**
      * Trigger the alert.
      *
+     * @param  Alert  $alert  The alert.
+     * @param  int  $serviceId  The service ID.
+     * @param  string|null  $jobUuid  The job UUID.
      * @param  array<int, string>  $triggeringJobUuids
      */
     private function private__triggerAlert(Alert $alert, int $serviceId, ?string $jobUuid, array $triggeringJobUuids = []): void
@@ -364,6 +378,7 @@ class AlertEngine
     /**
      * Send the batched alert.
      *
+     * @param  Alert  $alert  The alert.
      * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $events
      */
     private function private__sendBatchedAlert(Alert $alert, array $events): void

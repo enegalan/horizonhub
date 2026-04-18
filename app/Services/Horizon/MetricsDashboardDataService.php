@@ -2,17 +2,25 @@
 
 namespace App\Services\Horizon;
 
-/**
- * Builds metrics dashboard view data and SSE JSON payloads from service scope.
- */
 class MetricsDashboardDataService
 {
-    public function __construct(
-        private HorizonMetricsService $metrics,
-    ) {}
+    /**
+     * The Horizon metrics service.
+     */
+    private HorizonMetricsService $metrics;
 
     /**
-     * @param  list<int>  $serviceIds
+     * Construct the metrics dashboard data service.
+     */
+    public function __construct(HorizonMetricsService $metrics)
+    {
+        $this->metrics = $metrics;
+    }
+
+    /**
+     * Build the metrics dashboard data.
+     *
+     * @param  list<int>  $serviceIds  The service IDs.
      * @return array{
      *     metricsChartData: array<string, mixed>,
      *     jobsPastMinute: mixed,

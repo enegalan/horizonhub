@@ -28,10 +28,8 @@ class JobActionController extends Controller
     /**
      * The constructor.
      */
-    public function __construct(
-        HorizonApiProxyService $horizonApi,
-        HorizonJobListService $jobList,
-    ) {
+    public function __construct(HorizonApiProxyService $horizonApi, HorizonJobListService $jobList)
+    {
         $this->horizonApi = $horizonApi;
         $this->jobList = $jobList;
     }

@@ -8,9 +8,10 @@ use Illuminate\Support\Collection;
 class ServiceStatsAttachmentService
 {
     /**
-     * Mutates each service with horizon_failed_jobs_count, horizon_jobs_count, horizon_status.
+     * Attach the Horizon stats to the services.
      *
-     * @param  iterable<int, Service>|Collection<int, Service>  $services
+     * @param  iterable<int, Service>|Collection<int, Service>  $services  The services.
+     * @param  HorizonApiProxyService  $horizonApi  The horizon API proxy service.
      */
     public function attachHorizonStats(iterable $services, HorizonApiProxyService $horizonApi): void
     {

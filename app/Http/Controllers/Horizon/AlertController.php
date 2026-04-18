@@ -183,7 +183,7 @@ class AlertController extends Controller
 
         return redirect()
             ->route('horizon.alerts.index')
-            ->with('status', 'Alert '.$name.' deleted.');
+            ->with('status', "Alert $name deleted.");
     }
 
     /**
@@ -216,9 +216,7 @@ class AlertController extends Controller
      */
     public function evaluateAllAlerts(): JsonResponse
     {
-        $payload = $this->evaluationBatch->startEvaluateAll();
-
-        return \response()->json($payload);
+        return \response()->json($this->evaluationBatch->startEvaluateAll());
     }
 
     /**

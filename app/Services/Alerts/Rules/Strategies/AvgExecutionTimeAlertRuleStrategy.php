@@ -24,10 +24,8 @@ final class AvgExecutionTimeAlertRuleStrategy implements AlertRuleStrategyInterf
     /**
      * Construct the strategy.
      */
-    public function __construct(
-        AlertRuleEvaluationSupport $support,
-        HorizonApiProxyService $horizonApi,
-    ) {
+    public function __construct(AlertRuleEvaluationSupport $support, HorizonApiProxyService $horizonApi)
+    {
         $this->support = $support;
         $this->horizonApi = $horizonApi;
     }

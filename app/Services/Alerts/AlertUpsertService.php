@@ -19,6 +19,7 @@ class AlertUpsertService
     /**
      * Build the form view variables.
      *
+     * @param  Alert  $alert  The alert.
      * @return array<string, mixed>
      */
     public function buildFormViewVariables(Alert $alert): array
@@ -49,7 +50,7 @@ class AlertUpsertService
     /**
      * Validate the alert.
      *
-     * @param  Alert|null  $alert
+     * @param  Request  $request  The request.
      * @return array{alert: array<string, mixed>, provider_ids: array<int>}
      */
     public function validateAlert(Request $request): array
@@ -162,7 +163,7 @@ class AlertUpsertService
             $queueColumn = (string) $validated['queue'];
         }
 
-        $jobTypeColumn = $this->jobTypeColumnFromPatterns($jobPatterns);
+        $jobTypeColumn = $jobPatterns === [] ? null : Str::limit(\implode(', ', $jobPatterns), 252);
         $serviceIds = \array_values(\array_unique(\array_map('intval', $validated['service_ids'] ?? [])));
         \sort($serviceIds);
 
@@ -186,6 +187,7 @@ class AlertUpsertService
     /**
      * Sanitize the pattern array.
      *
+     * @param  mixed  $raw  The raw value to sanitize.
      * @return list<string>
      */
     public function sanitizePatternArray(mixed $raw): array
@@ -211,7 +213,8 @@ class AlertUpsertService
     /**
      * Merge the job type into the patterns.
      *
-     * @param  list<string>  $patterns
+     * @param  list<string>  $patterns  The patterns.
+     * @param  string|null  $jobType  The job type.
      * @return list<string>
      */
     public function mergeJobTypeIntoPatterns(array $patterns, ?string $jobType): array
@@ -230,15 +233,5 @@ class AlertUpsertService
         $merged[] = $jt;
 
         return \array_slice(\array_values(\array_unique($merged)), 0, self::ALERT_PATTERN_LINES_MAX);
-    }
-
-    /**
-     * Get the job type column from the patterns.
-     *
-     * @param  list<string>  $patterns
-     */
-    public function jobTypeColumnFromPatterns(array $patterns): ?string
-    {
-        return $patterns === [] ? null : Str::limit(\implode(', ', $patterns), 252);
     }
 }

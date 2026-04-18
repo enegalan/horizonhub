@@ -41,7 +41,8 @@ abstract class AbstractAlertNotifier implements AlertNotifier
     /**
      * Load failed job details from the Horizon API for the given service and UUIDs.
      *
-     * @param  array<int, string>  $jobUuids
+     * @param  Service  $service  The service.
+     * @param  array<int, string>  $jobUuids  The job UUIDs.
      * @return Collection<string, object{payload: array, name: string|null, queue: string|null, failed_at: Carbon|null, exception: string, attempts: int|null}>
      */
     protected function getJobs(Service $service, array $jobUuids): Collection
@@ -86,7 +87,9 @@ abstract class AbstractAlertNotifier implements AlertNotifier
     /**
      * Enrich events with job details from the Horizon API.
      *
-     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $events
+     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $events  The events.
+     * @param  int  $maxEvents  The max events.
+     * @param  int  $exceptionMaxLength  The exception max length.
      * @return array<int, array{service_id: int, job_uuid: string|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}>
      */
     protected function enrichEvents(array $events, int $maxEvents, int $exceptionMaxLength): array
@@ -145,6 +148,9 @@ abstract class AbstractAlertNotifier implements AlertNotifier
 
     /**
      * Truncate exception text to the given maximum length.
+     *
+     * @param  string  $text  The text.
+     * @param  int  $maxLength  The max length.
      */
     protected function truncateException(string $text, int $maxLength): string
     {

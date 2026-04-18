@@ -25,6 +25,7 @@ class AlertBatchStore
     /**
      * Get the pending events for the given alert.
      *
+     * @param  Alert  $alert  The alert.
      * @return array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>
      */
     public function getPending(Alert $alert): array
@@ -41,7 +42,8 @@ class AlertBatchStore
     /**
      * Set the pending events for the given alert.
      *
-     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $pending
+     * @param  Alert  $alert  The alert.
+     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $pending  The pending events.
      */
     public function setPending(Alert $alert, array $pending): void
     {
@@ -56,6 +58,8 @@ class AlertBatchStore
 
     /**
      * Clear the pending events for the given alert.
+     *
+     * @param  Alert  $alert  The alert.
      */
     public function clearPending(Alert $alert): void
     {
@@ -64,6 +68,8 @@ class AlertBatchStore
 
     /**
      * Get the last sent at time for the given alert.
+     *
+     * @param  Alert  $alert  The alert.
      */
     public function getLastSentAt(Alert $alert): ?Carbon
     {
@@ -78,6 +84,9 @@ class AlertBatchStore
 
     /**
      * Set the last sent at time for the given alert.
+     *
+     * @param  Alert  $alert  The alert.
+     * @param  Carbon|null  $time  The time to set.
      */
     public function setLastSentAt(Alert $alert, ?Carbon $time = null): void
     {
@@ -88,6 +97,8 @@ class AlertBatchStore
 
     /**
      * Get the interval minutes for the given alert.
+     *
+     * @param  Alert  $alert  The alert.
      */
     public function getIntervalMinutes(Alert $alert): int
     {
@@ -100,6 +111,8 @@ class AlertBatchStore
 
     /**
      * Determine if the alert should send now based on interval and last sent time.
+     *
+     * @param  Alert  $alert  The alert.
      */
     public function shouldSendNow(Alert $alert): bool
     {

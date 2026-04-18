@@ -11,17 +11,17 @@ export function isHotReloadEnabled() {
 /**
  * @type {number}
  */
-export var SSE_BACKOFF_INITIAL_MS = 1000;
+var SSE_BACKOFF_INITIAL_MS = 1000;
 
 /**
  * @type {number}
  */
-export var SSE_BACKOFF_MAX_MS = 30000;
+var SSE_BACKOFF_MAX_MS = 30000;
 
 /**
  * @type {number}
  */
-export var SSE_BACKOFF_MULTIPLIER = 2;
+var SSE_BACKOFF_MULTIPLIER = 2;
 
 /**
  * @type {number}
@@ -116,6 +116,7 @@ function openStream() {
 
     _eventSource.onopen = function () {
         _backoffMs = SSE_BACKOFF_INITIAL_MS;
+        _reconnectAttempts = 0;
     };
 }
 

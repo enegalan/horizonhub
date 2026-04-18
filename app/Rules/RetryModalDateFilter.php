@@ -6,11 +6,16 @@ use Carbon\Carbon;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
-/**
- * Accepts YYYY-MM-DD or YYYY-MM-DDTHH:MM (no timezone).
- */
 final class RetryModalDateFilter implements ValidationRule
 {
+    /**
+     * Validate the date filter.
+     * Accepts YYYY-MM-DD or YYYY-MM-DDTHH:MM (no timezone).
+     *
+     * @param  string  $attribute  The attribute name.
+     * @param  mixed  $value  The value to validate.
+     * @param  Closure  $fail  The closure to call if the validation fails.
+     */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         if ($value === null || $value === '') {

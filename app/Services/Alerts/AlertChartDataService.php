@@ -11,6 +11,8 @@ class AlertChartDataService
     /**
      * Build chart data for an alert for a given window.
      *
+     * @param  Alert  $alert  The alert.
+     * @param  int  $days  The number of days to build the chart for.
      * @return array{xAxis: list<string>, sent: list<int>, failed: list<int>}
      */
     public function buildChart(Alert $alert, int $days): array

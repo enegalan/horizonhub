@@ -7,7 +7,7 @@ class JobCommandDataExtractor
     /**
      * Extract command data from job payload.
      *
-     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $payload  The payload.
      * @return array<string, mixed>|null
      */
     public static function extract(array $payload): ?array
@@ -36,6 +36,8 @@ class JobCommandDataExtractor
 
     /**
      * Normalize unserialized data to scalar/array values.
+     *
+     * @param  mixed  $value  The value.
      */
     private static function normalize(mixed $value): mixed
     {
@@ -71,6 +73,8 @@ class JobCommandDataExtractor
 
     /**
      * Convert private/protected serialized property names to plain keys.
+     *
+     * @param  string|int  $key  The key.
      */
     private static function cleanPropertyKey(string|int $key): string|int
     {

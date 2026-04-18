@@ -402,7 +402,7 @@ function syncStructuralChildById(domChild, incChild) {
  * @param {Element} streamElement
  * @returns {false|'incremental-unchanged'|'incremental-changed'}
  */
-export function tryApplyIncrementalStreamPatch(streamElement) {
+function tryApplyIncrementalStreamPatch(streamElement) {
     var action = String(streamElement.getAttribute('action') || '').toLowerCase();
     var method = String(streamElement.getAttribute('method') || '').toLowerCase();
     if (action !== 'update' || method !== 'morph') {

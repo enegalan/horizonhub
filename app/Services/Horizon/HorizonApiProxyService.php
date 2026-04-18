@@ -16,6 +16,8 @@ class HorizonApiProxyService
     /**
      * Retry a job through the Horizon HTTP API.
      *
+     * @param  Service  $service  The service.
+     * @param  string  $jobUuid  The job UUID.
      * @return array{success: bool, message?: string, status?: int}
      */
     public function retryJob(Service $service, string $jobUuid): array
@@ -28,6 +30,7 @@ class HorizonApiProxyService
     /**
      * Test connectivity with the Horizon HTTP API for a service.
      *
+     * @param  Service  $service  The service.
      * @return array{success: bool, message?: string, status?: int}
      */
     public function ping(Service $service): array
@@ -40,6 +43,7 @@ class HorizonApiProxyService
     /**
      * Get the queue workload from the Horizon HTTP API for a service.
      *
+     * @param  Service  $service  The service.
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     public function getWorkload(Service $service): array
@@ -60,6 +64,7 @@ class HorizonApiProxyService
      *
      * This proxies the Horizon `/stats` endpoint and returns its decoded payload.
      *
+     * @param  Service  $service  The service.
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     public function getStats(Service $service): array
@@ -72,6 +77,7 @@ class HorizonApiProxyService
     /**
      * Get Horizon masters (and their supervisors) from the Horizon HTTP API for a service.
      *
+     * @param  Service  $service  The service.
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     public function getMasters(Service $service): array
@@ -84,6 +90,7 @@ class HorizonApiProxyService
     /**
      * Get failed jobs from the Horizon HTTP API for a service.
      *
+     * @param  Service  $service  The service.
      * @param  array<string, mixed>  $query
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
@@ -97,6 +104,8 @@ class HorizonApiProxyService
     /**
      * Get a single job by UUID from the Horizon HTTP API for a service.
      *
+     * @param  Service  $service  The service.
+     * @param  string  $jobUuid  The job UUID.
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     public function getJob(Service $service, string $jobUuid): array
@@ -109,6 +118,7 @@ class HorizonApiProxyService
     /**
      * Get completed jobs from the Horizon HTTP API for a service.
      *
+     * @param  Service  $service  The service.
      * @param  array<string, mixed>  $query
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
@@ -122,6 +132,7 @@ class HorizonApiProxyService
     /**
      * Get pending/processing jobs from the Horizon HTTP API for a service.
      *
+     * @param  Service  $service  The service.
      * @param  array<string, mixed>  $query
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
@@ -135,6 +146,7 @@ class HorizonApiProxyService
     /**
      * Build query parameters for job list endpoints.
      *
+     * @param  array<string, mixed>  $overrides  The overrides.
      * @return array{starting_at: int, limit: int}
      */
     private function private__buildJobListQuery(array $overrides = []): array
@@ -148,6 +160,7 @@ class HorizonApiProxyService
     /**
      * Get queue metrics from the Horizon HTTP API for a service (queue sizes, etc.).
      *
+     * @param  Service  $service  The service.
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     public function getMetricsQueues(Service $service): array
@@ -158,6 +171,10 @@ class HorizonApiProxyService
     }
 
     /**
+     * Get the service base URL.
+     *
+     * @param  Service  $service  The service.
+     *
      * @throws \RuntimeException
      */
     private function private__getServiceBase(Service $service): string
@@ -172,6 +189,8 @@ class HorizonApiProxyService
 
     /**
      * Build the base URL for the Horizon API of a service.
+     *
+     * @param  Service  $service  The service.
      */
     private function private__buildBaseUrl(Service $service): string
     {
@@ -183,6 +202,8 @@ class HorizonApiProxyService
 
     /**
      * Build the URL for the Horizon dashboard of a service.
+     *
+     * @param  Service  $service  The service.
      */
     private function private__buildDashboardUrl(Service $service): string
     {
@@ -278,6 +299,7 @@ class HorizonApiProxyService
      * a session and CSRF token that can be used to call Horizon's API
      * endpoints protected by CSRF.
      *
+     * @param  Service  $service  The service.
      * @return array{csrf_token: string, cookies: CookieJar}|null
      */
     private function private__bootstrapDashboardSession(Service $service): ?array
@@ -350,7 +372,7 @@ class HorizonApiProxyService
     /**
      * Build an HTTP client for Horizon calls with unified timeout and optional GET retries.
      *
-     * @param  string  $httpMethod  Uppercase or lowercase HTTP method.
+     * @param  string  $httpMethod  The HTTP method.
      */
     private function private__newHorizonPendingRequest(string $httpMethod = 'get'): PendingRequest
     {
@@ -399,6 +421,11 @@ class HorizonApiProxyService
     /**
      * Process the HTTP response.
      *
+     * @param  Response  $response  The response.
+     * @param  Service  $service  The service.
+     * @param  string  $url  The URL.
+     * @param  bool  $updateHeartbeat  Whether to update the heartbeat.
+     * @param  string  $logContext  The log context.
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     private function private__processHttpResponse(
@@ -439,6 +466,8 @@ class HorizonApiProxyService
 
     /**
      * Build an error message from a response.
+     *
+     * @param  Response  $response  The response.
      */
     private function private__buildErrorMessageFromResponse(Response $response): string
     {

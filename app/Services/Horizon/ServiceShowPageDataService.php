@@ -7,17 +7,33 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
-/**
- * Builds view data for the service dashboard (show page) for HTTP and SSE.
- */
 class ServiceShowPageDataService
 {
-    public function __construct(
-        private HorizonMetricsService $metrics,
-        private HorizonJobListService $jobList,
-    ) {}
+    /**
+     * The Horizon metrics service.
+     */
+    private HorizonMetricsService $metrics;
 
     /**
+     * The Horizon job list service.
+     */
+    private HorizonJobListService $jobList;
+
+    /**
+     * The constructor.
+     */
+    public function __construct(HorizonMetricsService $metrics, HorizonJobListService $jobList)
+    {
+        $this->metrics = $metrics;
+        $this->jobList = $jobList;
+    }
+
+    /**
+     * Build the service show page data.
+     *
+     * @param  Service  $service  The service.
+     * @param  Request  $request  The request.
+     * @param  HorizonApiProxyService  $horizonApi  The horizon API proxy service.
      * @return array{
      *     jobsPastMinute: mixed,
      *     jobsPastHour: mixed,
