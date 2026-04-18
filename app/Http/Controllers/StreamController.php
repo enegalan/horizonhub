@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Support\ConfigHelper;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 abstract class StreamController extends Controller
@@ -32,7 +31,7 @@ abstract class StreamController extends Controller
      */
     protected function runStream(callable $turboStreamCallback): StreamedResponse
     {
-        $interval = ConfigHelper::getIntWithMin('horizonhub.hot_reload_interval', 1);
+        $interval = (int) config('horizonhub.hot_reload_interval');
 
         return \response()->stream(function () use ($interval, $turboStreamCallback): void {
             echo ": stream-open\n\n";

@@ -7,11 +7,11 @@
                     @class([
                         'w-full py-1 px-3 leading-10 border-b whitespace-pre-wrap break-words border-red-500/20'
                     ])
-                    x-show="showAllExceptionLines || {{ $lineIndex < \App\Support\ConfigHelper::getIntWithMin('horizonhub.failed_job_exception_preview_lines', 1) ? 'true' : 'false' }}"
-                    @if($lineIndex >= \App\Support\ConfigHelper::getIntWithMin('horizonhub.failed_job_exception_preview_lines', 1)) x-cloak @endif
+                    x-show="showAllExceptionLines || {{ $lineIndex < config('horizonhub.failed_job_exception_preview_lines', 10) ? 'true' : 'false' }}"
+                    @if($lineIndex >= config('horizonhub.failed_job_exception_preview_lines')) x-cloak @endif
                 >{{ $line }}</code>
             @endforeach
-            @if(\count($exception) > \App\Support\ConfigHelper::getIntWithMin('horizonhub.failed_job_exception_preview_lines', 1))
+            @if(\count($exception) > config('horizonhub.failed_job_exception_preview_lines'))
                 <button
                     type="button"
                     class="mx-4 my-4 font-medium text-primary-solid"

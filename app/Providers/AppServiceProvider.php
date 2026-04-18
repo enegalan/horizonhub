@@ -6,7 +6,6 @@ use App\Contracts\EmailAlertNotifier;
 use App\Contracts\SlackAlertNotifier;
 use App\Services\Notifiers\EmailNotifier;
 use App\Services\Notifiers\SlackNotifier;
-use App\Support\ConfigHelper;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -29,7 +28,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         RateLimiter::for('horizon-stream', function (Request $request): Limit {
-            $limit = ConfigHelper::getIntWithMin('horizonhub.stream_rate_limit', 1);
+            $limit = (int) config('horizonhub.stream_rate_limit');
 
             return Limit::perMinute($limit)->by($request->user()?->id ?: $request->ip());
         });

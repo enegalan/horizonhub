@@ -4,7 +4,6 @@ namespace App\Services\Horizon;
 
 use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
-use App\Support\ConfigHelper;
 use App\Support\DatetimeBoundaryParser;
 use App\Support\Horizon\JobCommandDataExtractor;
 use App\Support\Horizon\JobRuntimeHelper;
@@ -72,7 +71,7 @@ class HorizonJobListService
         $serviceFilterIds = ServiceRequest::existingIdsFromRequest($request, ['serviceFilter']);
         $search = (string) $request->query('search', '');
 
-        $perPage = (int) ConfigHelper::get('horizonhub.jobs_per_page');
+        $perPage = (int) config('horizonhub.jobs_per_page');
 
         $servicesQuery = Service::query()->whereNotNull('base_url');
         if ($serviceFilterIds !== []) {
@@ -302,9 +301,9 @@ class HorizonJobListService
      */
     private function private__fetchAllJobsForService(callable $fetcher): array
     {
-        $maxPages = ConfigHelper::getIntWithMin('horizonhub.max_horizon_pages', 1);
+        $maxPages = (int) config('horizonhub.max_horizon_pages');
 
-        $jobsPerRequest = ConfigHelper::getIntWithMin('horizonhub.horizon_api_job_list_page_size', 1);
+        $jobsPerRequest = (int) config('horizonhub.horizon_api_job_list_page_size');
         $accumulated = [];
         $startingAt = -1;
 

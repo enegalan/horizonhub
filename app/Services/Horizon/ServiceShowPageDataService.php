@@ -3,7 +3,6 @@
 namespace App\Services\Horizon;
 
 use App\Models\Service;
-use App\Support\ConfigHelper;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -184,7 +183,7 @@ class ServiceShowPageDataService
 
         $workloadQueues = $workloadQueues->values();
 
-        $perPage = (int) ConfigHelper::get('horizonhub.jobs_per_page');
+        $perPage = (int) config('horizonhub.jobs_per_page');
 
         $pageProcessing = \max(1, (int) $request->query('page_processing', 1));
         $pageProcessed = \max(1, (int) $request->query('page_processed', 1));

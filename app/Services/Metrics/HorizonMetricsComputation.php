@@ -4,7 +4,6 @@ namespace App\Services\Metrics;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
-use App\Support\ConfigHelper;
 use App\Support\Horizon\QueueNameNormalizer;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
@@ -106,8 +105,8 @@ abstract class HorizonMetricsComputation
         $jobs = [];
         $startingAt = -1;
         $page = 0;
-        $jobsPerRequest = ConfigHelper::getIntWithMin('horizonhub.horizon_api_job_list_page_size', 1);
-        $maxPages = ConfigHelper::getIntWithMin('horizonhub.max_horizon_pages', 1);
+        $jobsPerRequest = (int) config('horizonhub.horizon_api_job_list_page_size');
+        $maxPages = (int) config('horizonhub.max_horizon_pages');
 
         while ($page < $maxPages) {
             $response = $pageFetcher([

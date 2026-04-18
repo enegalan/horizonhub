@@ -5,7 +5,6 @@ namespace App\Services\Alerts\Rules\Strategies;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
-use App\Support\ConfigHelper;
 
 final class WorkerOfflineAlertRuleStrategy implements AlertRuleStrategyInterface
 {
@@ -28,7 +27,7 @@ final class WorkerOfflineAlertRuleStrategy implements AlertRuleStrategyInterface
     private function private__evaluateWorkerOffline(Alert $alert, int $serviceId): bool
     {
         $threshold = $alert->threshold ?? [];
-        $minutes = (int) ($threshold['minutes'] ?? ConfigHelper::getIntWithMin('horizonhub.alerts.default_minutes', 1));
+        $minutes = (int) ($threshold['minutes'] ?? config('horizonhub.alerts.default_minutes'));
 
         $service = Service::find($serviceId);
         if (! $service || ! $service->last_seen_at) {
