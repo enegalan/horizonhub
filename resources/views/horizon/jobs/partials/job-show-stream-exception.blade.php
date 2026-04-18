@@ -1,7 +1,7 @@
 @if(count($exception) > 0)
     <div>
         <dt class="label-muted mb-1">Error</dt>
-        <div class="flex flex-col items-start mt-1 rounded-md border border-red-500/30 bg-red-500/5 text-sm text-foreground break-words break-all">
+        <div class="flex flex-col items-start mt-1 rounded-md border border-red-500/30 bg-red-500/5 text-xs text-foreground break-words break-all">
             @foreach($exception as $lineIndex => $line)
                 <code
                     @class([
