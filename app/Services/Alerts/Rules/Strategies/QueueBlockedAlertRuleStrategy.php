@@ -52,7 +52,7 @@ final class QueueBlockedAlertRuleStrategy implements AlertRuleStrategyInterface
         $minutes = (int) ($threshold['minutes'] ?? 30);
 
         $service = Service::find($serviceId);
-        if (! $service || ! $service->base_url) {
+        if (! $service || ! $service->getBaseUrl()) {
             return false;
         }
 

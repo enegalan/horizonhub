@@ -44,13 +44,13 @@
                 </span>
             </div>
             @php
-                $dashboardBase = $service->public_url ?: $service->base_url;
+                $dashboardUrl = $service->getPublicUrl().'/'.\config('horizonhub.horizon_paths.dashboard');
             @endphp
-            @if($dashboardBase)
+            @if($dashboardUrl)
                 <x-button
                     variant="ghost"
                     type="button"
-                    onclick="window.open('{{ rtrim($dashboardBase, '/') . \config('horizonhub.horizon_paths.dashboard') }}', '_blank')"
+                    onclick="window.open('{{ $dashboardUrl }}', '_blank')"
                     class="h-8 min-h-8 p-2"
                     aria-label="Open Horizon dashboard"
                     title="Open Horizon dashboard"

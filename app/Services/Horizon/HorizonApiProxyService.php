@@ -158,62 +158,6 @@ class HorizonApiProxyService
     }
 
     /**
-     * Get queue metrics from the Horizon HTTP API for a service (queue sizes, etc.).
-     *
-     * @param  Service  $service  The service.
-     * @return array{success: bool, message?: string, status?: int, data?: array}
-     */
-    public function getMetricsQueues(Service $service): array
-    {
-        $relativePath = (string) config('horizonhub.horizon_paths.metrics_queues');
-
-        return $this->private__call($service, $relativePath, 'get');
-    }
-
-    /**
-     * Get the service base URL.
-     *
-     * @param  Service  $service  The service.
-     *
-     * @throws \RuntimeException
-     */
-    private function private__getServiceBase(Service $service): string
-    {
-        $serviceBase = \rtrim($service->base_url ?? '', '/');
-        if ($serviceBase === '') {
-            throw new \RuntimeException('Service has no base_url configured.');
-        }
-
-        return $serviceBase;
-    }
-
-    /**
-     * Build the base URL for the Horizon API of a service.
-     *
-     * @param  Service  $service  The service.
-     */
-    private function private__buildBaseUrl(Service $service): string
-    {
-        $apiBasePath = (string) config('horizonhub.horizon_paths.api');
-        $apiBasePath = '/'.\ltrim($apiBasePath, '/');
-
-        return $this->private__getServiceBase($service).\rtrim($apiBasePath, '/');
-    }
-
-    /**
-     * Build the URL for the Horizon dashboard of a service.
-     *
-     * @param  Service  $service  The service.
-     */
-    private function private__buildDashboardUrl(Service $service): string
-    {
-        $dashboardPath = (string) config('horizonhub.horizon_paths.dashboard');
-        $dashboardPath = \ltrim($dashboardPath, '/');
-
-        return $this->private__getServiceBase($service).'/'.$dashboardPath;
-    }
-
-    /**
      * Call the Horizon HTTP API for a given service.
      *
      * @param  bool  $withDashboardSession  When true, bootstrap Horizon dashboard session and CSRF token.
@@ -222,7 +166,7 @@ class HorizonApiProxyService
     private function private__call(Service $service, string $path, string $method = 'post', bool $withDashboardSession = false): array
     {
         try {
-            $base = $this->private__buildBaseUrl($service);
+            $base = $service->getBaseUrl().'/'.\ltrim((string) config('horizonhub.horizon_paths.api'), '/');
         } catch (\Throwable $e) {
             return [
                 'success' => false,
@@ -305,7 +249,7 @@ class HorizonApiProxyService
     private function private__bootstrapDashboardSession(Service $service): ?array
     {
         try {
-            $dashboardUrl = $this->private__buildDashboardUrl($service);
+            $dashboardUrl = $service->getBaseUrl().'/'.\ltrim((string) config('horizonhub.horizon_paths.dashboard'), '/');
         } catch (\Throwable $e) {
             Log::warning('Horizon Hub: failed to build Horizon dashboard URL', [
                 'service_id' => $service->id ?? null,
@@ -428,13 +372,8 @@ class HorizonApiProxyService
      * @param  string  $logContext  The log context.
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
-    private function private__processHttpResponse(
-        Response $response,
-        Service $service,
-        string $url,
-        bool $updateHeartbeat = false,
-        string $logContext = '',
-    ): array {
+    private function private__processHttpResponse(Response $response, Service $service, string $url, bool $updateHeartbeat = false, string $logContext = ''): array
+    {
         if ($response->successful()) {
             $data = \json_decode($response->body(), true);
             if ($updateHeartbeat) {

@@ -1,5 +1,5 @@
 <div class="flex flex-wrap gap-2">
-    @if($job->service && $job->service->base_url && $job->status === 'failed')
+    @if($job->service && $job->service->getBaseUrl() && $job->status === 'failed')
         <x-button
             type="button"
             class="h-8 min-h-8 p-2 relative"

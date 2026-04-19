@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('services', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
-            $table->string('base_url')->nullable();
+            $table->string('base_url')->nullable(false);
             $table->string('status', 20)->default('online');
             $table->timestamp('last_seen_at')->nullable();
             $table->timestamps();

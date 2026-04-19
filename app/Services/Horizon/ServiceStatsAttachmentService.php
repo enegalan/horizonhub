@@ -20,7 +20,7 @@ class ServiceStatsAttachmentService
                 continue;
             }
 
-            if (! $service->base_url) {
+            if (! $service->getBaseUrl()) {
                 $service->horizon_failed_jobs_count = 0;
                 $service->horizon_jobs_count = 0;
                 $service->horizon_status = null;

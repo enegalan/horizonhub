@@ -47,10 +47,7 @@ class AlertEngine
         foreach ($alerts as $alert) {
             try {
                 $pending = $this->batchStore->getPending($alert);
-                if (empty($pending)) {
-                    continue;
-                }
-                if (! $this->batchStore->shouldSendNow($alert)) {
+                if (empty($pending) || ! $this->batchStore->shouldSendNow($alert)) {
                     continue;
                 }
                 $this->private__sendBatchedAlert($alert, $pending);
@@ -83,7 +80,7 @@ class AlertEngine
             if (! $this->private__shouldEvaluate($alert, $eventType)) {
                 continue;
             }
-            $result = $this->private__evaluateRuleWithJobs($alert, $serviceId, $jobUuid);
+            $result = $this->ruleEvaluator->evaluateWithTriggeringJobs($alert, $serviceId, $jobUuid);
             if ($result['triggered']) {
                 $this->private__triggerAlert($alert, $serviceId, $jobUuid, $result['job_uuids']);
             }
@@ -115,7 +112,7 @@ class AlertEngine
                     continue;
                 }
                 foreach ($serviceIds as $serviceId) {
-                    $result = $this->private__evaluateRuleWithJobs($alert, $serviceId, null);
+                    $result = $this->ruleEvaluator->evaluateWithTriggeringJobs($alert, $serviceId, null);
                     if ($result['triggered']) {
                         $this->private__triggerAlert($alert, $serviceId, null, $result['job_uuids']);
                         break;
@@ -194,7 +191,7 @@ class AlertEngine
             }
 
             foreach ($serviceIds as $serviceId) {
-                $result = $this->private__evaluateRuleWithJobs($alert, (int) $serviceId, null);
+                $result = $this->ruleEvaluator->evaluateWithTriggeringJobs($alert, (int) $serviceId, null);
                 if ($result['triggered']) {
                     $this->private__triggerAlert($alert, (int) $serviceId, null, $result['job_uuids']);
                     $triggered = true;
@@ -242,12 +239,11 @@ class AlertEngine
         if (empty($events)) {
             return;
         }
-        $serviceId = (int) $log->service_id;
         $jobUuids = \array_values(\array_filter(\array_column($events, 'job_uuid')));
 
         $newLog = AlertLog::create([
             'alert_id' => $alert->id,
-            'service_id' => $serviceId,
+            'service_id' => (int) $log->service_id,
             'trigger_count' => \count($events),
             'job_uuids' => ! empty($jobUuids) ? $jobUuids : null,
             'status' => 'sent',
@@ -282,19 +278,6 @@ class AlertEngine
         }
 
         return true;
-    }
-
-    /**
-     * Evaluate the rule and return triggering job UUIDs when applicable.
-     *
-     * @param  Alert  $alert  The alert.
-     * @param  int  $serviceId  The service ID.
-     * @param  string|null  $jobUuid  The job UUID.
-     * @return array{triggered: bool, job_uuids: array<int, string>}
-     */
-    private function private__evaluateRuleWithJobs(Alert $alert, int $serviceId, ?string $jobUuid): array
-    {
-        return $this->ruleEvaluator->evaluateWithTriggeringJobs($alert, $serviceId, $jobUuid);
     }
 
     /**

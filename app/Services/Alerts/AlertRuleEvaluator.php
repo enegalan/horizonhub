@@ -21,18 +21,6 @@ class AlertRuleEvaluator
     }
 
     /**
-     * Evaluate the given alert rule for the provided context.
-     *
-     * @param  Alert  $alert  The alert.
-     * @param  int  $serviceId  The service ID.
-     * @param  string|null  $jobUuid  The job UUID.
-     */
-    public function evaluate(Alert $alert, int $serviceId, ?string $jobUuid): bool
-    {
-        return $this->evaluateWithTriggeringJobs($alert, $serviceId, $jobUuid)['triggered'];
-    }
-
-    /**
      * Evaluate the alert rule and return whether it triggered plus the list of job UUIDs that triggered it.
      *
      * @param  Alert  $alert  The alert.

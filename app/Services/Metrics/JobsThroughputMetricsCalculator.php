@@ -14,7 +14,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
      */
     public function getJobsPastMinute(?Service $service = null): int
     {
-        if ($service !== null && $service->base_url) {
+        if ($service !== null && $service->getBaseUrl()) {
             $response = $this->horizonApi->getStats($service);
             $data = $response['data'] ?? null;
 
@@ -42,9 +42,6 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
 
         $total = 0;
         foreach ($services as $svc) {
-            if (! $svc->base_url) {
-                continue;
-            }
             $total += $this->getJobsPastMinute($svc);
         }
 
@@ -58,7 +55,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
      */
     public function getJobsPastHour(?Service $service = null): int
     {
-        if ($service !== null && $service->base_url) {
+        if ($service !== null && $service->getBaseUrl()) {
             $response = $this->horizonApi->getStats($service);
             $data = $response['data'] ?? null;
 
@@ -78,10 +75,6 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
 
         $total = 0;
         foreach ($services as $svc) {
-            if (! $svc->base_url) {
-                continue;
-            }
-
             $response = $this->horizonApi->getStats($svc);
             $data = $response['data'] ?? null;
 
@@ -102,7 +95,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
      */
     public function getFailedPastSevenDays(?Service $service = null): int
     {
-        if ($service !== null && $service->base_url) {
+        if ($service !== null && $service->getBaseUrl()) {
             $response = $this->horizonApi->getStats($service);
             $data = $response['data'] ?? null;
 
@@ -122,10 +115,6 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
 
         $total = 0;
         foreach ($services as $svc) {
-            if (! $svc->base_url) {
-                continue;
-            }
-
             $response = $this->horizonApi->getStats($svc);
             $data = $response['data'] ?? null;
 
@@ -158,10 +147,6 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
 
         /** @var Service $service */
         foreach ($services as $service) {
-            if (! $service->base_url) {
-                continue;
-            }
-
             $response = $this->horizonApi->getStats($service);
             $data = $response['data'] ?? null;
 

@@ -39,32 +39,33 @@ class Service extends Model
     }
 
     /**
-     * Scope the query for online services.
+     * Get the base URL of the service.
      *
-     * @param  Builder  $query
+     * @return string
+     * @throws \RuntimeException
      */
-    public function scopeOnline($query): Builder
+    public function getBaseUrl(): string
     {
-        return $query->where('status', 'online');
+        $serviceBase = \rtrim($this->base_url ?? '', '/');
+        if ($serviceBase === '') {
+            throw new \RuntimeException('Service has no base_url configured.');
+        }
+
+        return $serviceBase;
     }
 
     /**
-     * Scope the query for stand-by services.
+     * Get the public URL of the service.
      *
-     * @param  Builder  $query
+     * @return string
      */
-    public function scopeStandBy($query): Builder
+    public function getPublicUrl(): string
     {
-        return $query->where('status', 'stand_by');
-    }
+        $publicUrl = \rtrim($this->public_url ?? '', '/');
+        if ($publicUrl === '') {
+            return $this->getBaseUrl();
+        }
 
-    /**
-     * Scope the query for offline services.
-     *
-     * @param  Builder  $query
-     */
-    public function scopeOffline($query): Builder
-    {
-        return $query->where('status', 'offline');
+        return $publicUrl;
     }
 }

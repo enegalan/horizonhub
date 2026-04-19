@@ -26,7 +26,6 @@ return [
     | - completed_jobs: the relative path to list completed jobs.
     | - pending_jobs: the relative path to list pending/processing jobs.
     | - masters: the relative path to list Horizon masters.
-    | - metrics_queues: the relative path for per-queue metrics (24h charts).
     */
     'horizon_paths' => [
         'dashboard' => '/horizon',
@@ -39,7 +38,6 @@ return [
         'completed_jobs' => '/jobs/completed',
         'pending_jobs' => '/jobs/pending',
         'masters' => '/masters',
-        'metrics_queues' => '/metrics/queues',
     ],
 
     /*

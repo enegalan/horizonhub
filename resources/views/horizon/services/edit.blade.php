@@ -14,7 +14,7 @@
                 </div>
                 <div class="space-y-2">
                     <x-input-label>Base URL</x-input-label>
-                    <x-text-input type="url" name="base_url" value="{{ old('base_url', $service->base_url) }}" class="w-full" />
+                    <x-text-input type="url" name="base_url" value="{{ old('base_url', $service->getBaseUrl()) }}" class="w-full" />
                     @error('base_url') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     <p class="text-xs text-muted-foreground">
                         Internal URL used to obtain events from the service.
@@ -22,7 +22,7 @@
                 </div>
                 <div class="space-y-2">
                     <x-input-label>Public URL (optional)</x-input-label>
-                    <x-text-input type="url" name="public_url" value="{{ old('public_url', $service->public_url) }}" class="w-full" />
+                    <x-text-input type="url" name="public_url" value="{{ old('public_url', $service->getPublicUrl()) }}" class="w-full" />
                     @error('public_url') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     <p class="text-xs text-muted-foreground">
                         URL reachable from your browser.
