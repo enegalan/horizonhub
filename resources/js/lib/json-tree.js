@@ -1,4 +1,3 @@
-import { decodeHtmlEntities } from './dom';
 import hljs from 'highlight.js/lib/core';
 import jsonLanguage from 'highlight.js/lib/languages/json';
 
@@ -31,6 +30,17 @@ function getJsonTreeSource(target) {
     }
     var cached = jsonTreeSourceCache.get(target);
     return typeof cached === 'string' ? cached : '';
+}
+
+/**
+ * Decode HTML entities from a string.
+ * @param {string} value
+ * @returns {string}
+ */
+function decodeHtmlEntities(value) {
+    if (typeof document === 'undefined') return value;
+    var doc = new DOMParser().parseFromString(String(value), 'text/html');
+    return doc.documentElement.textContent || '';
 }
 
 /**
@@ -348,13 +358,11 @@ function createJsonTreeStateStore(storageKey) {
     var cache = new Set();
     try {
         var raw = window.localStorage ? window.localStorage.getItem(storageKey) : null;
-        if (raw) {
-            var parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-                parsed.forEach(function (p) {
-                    if (typeof p === 'string' && p) cache.add(p);
-                });
-            }
+        var parsed = parseJson(raw);
+        if (parsed && Array.isArray(parsed)) {
+            parsed.forEach(function (p) {
+                if (typeof p === 'string' && p) cache.add(p);
+            });
         }
     } catch (e) {
     }

@@ -8,6 +8,8 @@
  * Mark any subtree that client JS rewrites after load (e.g. JSON tree) with data-stream-preserve-client
  */
 
+import { parseJson } from "./parse";
+
 /**
  * Preserve open/closed state for jobs stack sections across replace/update streams.
  * @param {Element} streamElement
@@ -32,13 +34,11 @@ function preserveJobsSectionsOpenState(streamElement) {
     var openBySection = {};
     try {
         var raw = window.localStorage ? window.localStorage.getItem('horizon_jobs_sections') : null;
-        if (raw) {
-            var parsed = JSON.parse(raw);
-            if (parsed && typeof parsed === 'object') {
-                Object.keys(parsed).forEach(function (key) {
-                    openBySection[String(key)] = !!parsed[key];
-                });
-            }
+        var parsed = parseJson(raw);
+        if (parsed && typeof parsed === 'object') {
+            Object.keys(parsed).forEach(function (key) {
+                openBySection[String(key)] = !!parsed[key];
+            });
         }
     } catch (e) {
     }
