@@ -20,6 +20,9 @@ class JobDashboardUrlBuilder
         }
 
         $dashboardBase = $service->getPublicUrl();
+        if ($dashboardBase === '') {
+            return null;
+        }
         $dashboardPath = \rtrim((string) config('horizonhub.horizon_paths.dashboard'), '/');
         $status = (string) $jobStatus;
         $encodedUuid = \urlencode($jobUuid);

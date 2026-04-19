@@ -15,6 +15,10 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
      */
     public function getWorkloadForService(Service $service): array
     {
+        if ($service->getBaseUrl() === '') {
+            return [];
+        }
+
         $response = $this->horizonApi->getWorkload($service);
         $payload = $response['data'] ?? null;
 

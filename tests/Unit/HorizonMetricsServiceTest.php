@@ -82,7 +82,7 @@ class HorizonMetricsServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'svc-b',
-            'base_url' => null,
+            'base_url' => '',
             'status' => 'online',
         ]);
 

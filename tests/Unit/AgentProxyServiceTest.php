@@ -57,7 +57,7 @@ class AgentProxyServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'no-base',
-            'base_url' => null,
+            'base_url' => '',
             'status' => 'online',
         ]);
 

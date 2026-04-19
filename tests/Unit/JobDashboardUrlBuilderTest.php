@@ -42,7 +42,7 @@ class JobDashboardUrlBuilderTest extends TestCase
     {
         $service = new Service;
         $service->forceFill([
-            'base_url' => null,
+            'base_url' => '',
             'public_url' => null,
         ]);
 

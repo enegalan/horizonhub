@@ -39,17 +39,10 @@ class Service extends Model
 
     /**
      * Get the base URL of the service.
-     *
-     * @throws \RuntimeException
      */
     public function getBaseUrl(): string
     {
-        $serviceBase = \rtrim($this->base_url ?? '', '/');
-        if ($serviceBase === '') {
-            throw new \RuntimeException('Service has no base_url configured.');
-        }
-
-        return $serviceBase;
+        return \rtrim($this->base_url ?? '', '/');
     }
 
     /**
@@ -58,10 +51,10 @@ class Service extends Model
     public function getPublicUrl(): string
     {
         $publicUrl = \rtrim($this->public_url ?? '', '/');
-        if ($publicUrl === '') {
-            return $this->getBaseUrl();
+        if ($publicUrl !== '') {
+            return $publicUrl;
         }
 
-        return $publicUrl;
+        return $this->getBaseUrl();
     }
 }

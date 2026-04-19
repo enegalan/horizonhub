@@ -165,15 +165,16 @@ class HorizonApiProxyService
      */
     private function private__call(Service $service, string $path, string $method = 'post', bool $withDashboardSession = false): array
     {
-        try {
-            $base = $service->getBaseUrl().'/'.\ltrim((string) config('horizonhub.horizon_paths.api'), '/');
-        } catch (\Throwable $e) {
+        $serviceBase = $service->getBaseUrl();
+        if ($serviceBase === '') {
             return [
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Service has no base_url configured.',
                 'status' => 400,
             ];
         }
+
+        $base = "$serviceBase/".\ltrim((string) config('horizonhub.horizon_paths.api'), '/');
 
         $url = "$base/".\ltrim($path, '/');
 
@@ -248,16 +249,17 @@ class HorizonApiProxyService
      */
     private function private__bootstrapDashboardSession(Service $service): ?array
     {
-        try {
-            $dashboardUrl = $service->getBaseUrl().'/'.\ltrim((string) config('horizonhub.horizon_paths.dashboard'), '/');
-        } catch (\Throwable $e) {
+        $serviceBase = $service->getBaseUrl();
+        if ($serviceBase === '') {
             Log::warning('Horizon Hub: failed to build Horizon dashboard URL', [
                 'service_id' => $service->id ?? null,
-                'error' => $e->getMessage(),
+                'error' => 'missing base_url',
             ]);
 
             return null;
         }
+
+        $dashboardUrl = "$serviceBase/".\ltrim((string) config('horizonhub.horizon_paths.dashboard'), '/');
 
         $cookieJar = new CookieJar;
 

@@ -46,18 +46,16 @@
             @php
                 $dashboardUrl = $service->getPublicUrl().'/'.\config('horizonhub.horizon_paths.dashboard');
             @endphp
-            @if($dashboardUrl)
-                <x-button
-                    variant="ghost"
-                    type="button"
-                    onclick="window.open('{{ $dashboardUrl }}', '_blank')"
-                    class="h-8 min-h-8 p-2"
-                    aria-label="Open Horizon dashboard"
-                    title="Open Horizon dashboard"
-                >
-                    <x-heroicon-o-window class="size-4" />
-                </x-button>
-            @endif
+            <x-button
+                variant="ghost"
+                type="button"
+                onclick="window.open('{{ $dashboardUrl }}', '_blank')"
+                class="h-8 min-h-8 p-2"
+                aria-label="Open Horizon dashboard"
+                title="Open Horizon dashboard"
+            >
+                <x-heroicon-o-window class="size-4" />
+            </x-button>
             <form method="POST" action="{{ route('horizon.services.test-connection', $service) }}">
                 @csrf
                 <x-button
