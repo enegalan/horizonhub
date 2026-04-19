@@ -61,7 +61,6 @@ class HorizonMetricsServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'svc-a',
-            'api_key' => 'k12345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://metrics.test',
             'status' => 'online',
         ]);
@@ -83,7 +82,6 @@ class HorizonMetricsServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'svc-b',
-            'api_key' => 'k22345678901234567890123456789012345678901234567890123456789012',
             'base_url' => null,
             'status' => 'online',
         ]);
@@ -103,7 +101,6 @@ class HorizonMetricsServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'svc-c',
-            'api_key' => 'k32345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://metrics-c.test',
             'status' => 'online',
         ]);
@@ -124,7 +121,6 @@ class HorizonMetricsServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'svc-d',
-            'api_key' => 'k42345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://metrics-d.test',
             'status' => 'online',
         ]);
@@ -146,7 +142,6 @@ class HorizonMetricsServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'svc-series',
-            'api_key' => 'k12345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://metrics-series.test',
             'status' => 'online',
         ]);
@@ -218,7 +213,6 @@ class HorizonMetricsServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'svc-jobs-volume-24h',
-            'api_key' => 'k72345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://jobs-volume-24h.test',
             'status' => 'online',
         ]);
@@ -268,7 +262,6 @@ class HorizonMetricsServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'svc-pagination',
-            'api_key' => 'k52345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://metrics-pagination.test',
             'status' => 'online',
         ]);
@@ -325,7 +318,6 @@ class HorizonMetricsServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'svc-runtime',
-            'api_key' => 'k32345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://metrics-runtime.test',
             'status' => 'online',
         ]);
@@ -396,7 +388,6 @@ class HorizonMetricsServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'svc-supervisors',
-            'api_key' => 'k123789012345678901234567890123456789012345678901234567890123456',
             'base_url' => 'https://metrics-supervisors.test',
             'status' => 'online',
         ]);

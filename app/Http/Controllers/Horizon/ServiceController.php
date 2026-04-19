@@ -41,11 +41,8 @@ class ServiceController extends Controller
             'public_url' => 'nullable|url',
         ]);
 
-        $apiKey = $this->private__generateApiKey();
-
         Service::create([
             'name' => $validated['name'],
-            'api_key' => $apiKey,
             'base_url' => \rtrim($validated['base_url'], '/'),
             'public_url' => ! empty($validated['public_url']) ? \rtrim($validated['public_url'], '/') : null,
             'status' => 'online',
@@ -145,18 +142,5 @@ class ServiceController extends Controller
             'service' => $service,
             'header' => $service->name,
         ]));
-    }
-
-    /**
-     * Generate a unique API key for a service.
-     */
-    private function private__generateApiKey(): string
-    {
-        do {
-            $apiKey = \Str::random(64);
-            $apiKeyHash = Service::hashApiKey($apiKey);
-        } while (Service::where('api_key_hash', $apiKeyHash)->exists());
-
-        return $apiKey;
     }
 }

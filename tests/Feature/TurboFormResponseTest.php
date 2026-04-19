@@ -40,7 +40,6 @@ class TurboFormResponseTest extends TestCase
         $service = Service::create([
             'name' => 'Destroy Test',
             'base_url' => 'https://example.com',
-            'api_key' => \Str::random(64),
             'status' => 'online',
         ]);
 

@@ -34,7 +34,6 @@ class AgentProxyServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'svc',
-            'api_key' => 'secret-key',
             'base_url' => 'https://example.test',
             'status' => 'online',
         ]);
@@ -58,7 +57,6 @@ class AgentProxyServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'no-base',
-            'api_key' => 'b12345678901234567890123456789012345678901234567890123456789012',
             'base_url' => null,
             'status' => 'online',
         ]);
@@ -87,7 +85,6 @@ class AgentProxyServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'proxy-err',
-            'api_key' => 'c12345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://proxy-err.test',
             'status' => 'online',
         ]);

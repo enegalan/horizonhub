@@ -42,7 +42,6 @@ class HorizonApiProxyServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'svc-workload-fallback',
-            'api_key' => 'k12345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://service-workload.test',
             'status' => 'offline',
         ]);
@@ -86,7 +85,6 @@ class HorizonApiProxyServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'svc-retry-419',
-            'api_key' => 'k22345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://service-retry.test',
             'status' => 'online',
         ]);
@@ -110,7 +108,6 @@ class HorizonApiProxyServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'svc-exception',
-            'api_key' => 'k32345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://service-exception.test',
             'status' => 'offline',
         ]);
@@ -139,7 +136,6 @@ class HorizonApiProxyServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'svc-plain-text-error',
-            'api_key' => 'k42345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://service-plain-error.test',
             'status' => 'online',
         ]);
@@ -163,7 +159,6 @@ class HorizonApiProxyServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'svc-heartbeat',
-            'api_key' => 'k52345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://service-heartbeat.test',
             'status' => 'offline',
             'last_seen_at' => null,
@@ -200,7 +195,6 @@ class HorizonApiProxyServiceTest extends TestCase
 
         $service = Service::create([
             'name' => 'svc-retry-429',
-            'api_key' => 'k62345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://service-retry-429.test',
             'status' => 'online',
         ]);
