@@ -1,5 +1,5 @@
 @php
-    /** @var \Illuminate\Database\Eloquent\Collection $services */
+    /** @var \App\Models\Service $service */
 @endphp
 @forelse($services as $service)
     <tr class="transition-colors hover:bg-muted/30" data-stream-row-id="svc-{{ (int) $service->id }}">
@@ -7,7 +7,7 @@
             <a href="{{ route('horizon.services.show', $service) }}" class="link" data-turbo-action="replace">{{ $service->name }}</a>
         </td>
         <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="base_url">
-            {{ $service->base_url ?? '–' }}
+            {{ $service->getBaseUrl() ?: '–' }}
         </td>
         <td class="px-4 py-2.5" data-column-id="status">
             @if($service->status === 'online')
@@ -46,20 +46,18 @@
         <td class="px-4 py-2.5" data-column-id="actions" data-stream-preserve-client>
             <div class="flex items-center gap-2">
                 @php
-                    $dashboardBase = $service->public_url ?: $service->base_url;
+                    $dashboardUrl = $service->getPublicUrl().'/'.\config('horizonhub.horizon_paths.dashboard');
                 @endphp
-                @if($dashboardBase)
-                    <x-button
-                        variant="ghost"
-                        type="button"
-                        onclick="window.open('{{ rtrim($dashboardBase, '/') . \config('horizonhub.horizon_paths.dashboard') }}', '_blank')"
-                        class="h-8 min-h-8 p-2"
-                        aria-label="Open Horizon dashboard"
-                        title="Open Horizon dashboard"
-                    >
-                        <x-heroicon-o-window class="size-4" />
-                    </x-button>
-                @endif
+                <x-button
+                    variant="ghost"
+                    type="button"
+                    onclick="window.open('{{ $dashboardUrl }}', '_blank')"
+                    class="h-8 min-h-8 p-2"
+                    aria-label="Open Horizon dashboard"
+                    title="Open Horizon dashboard"
+                >
+                    <x-heroicon-o-window class="size-4" />
+                </x-button>
                 <form method="POST" action="{{ route('horizon.services.test-connection', $service) }}">
                     @csrf
                     <x-button

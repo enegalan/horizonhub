@@ -15,7 +15,7 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
      */
     public function getWorkloadForService(Service $service): array
     {
-        if (! $service->base_url) {
+        if ($service->getBaseUrl() === '') {
             return [];
         }
 

@@ -219,14 +219,8 @@ class AlertUpsertService
      */
     public function mergeJobTypeIntoPatterns(array $patterns, ?string $jobType): array
     {
-        if ($jobType === null || $jobType === '') {
-            return $patterns;
-        }
-        $jt = \trim($jobType);
-        if ($jt === '') {
-            return $patterns;
-        }
-        if (\in_array($jt, $patterns, true)) {
+        $jt = $jobType !== null ? \trim($jobType) : '';
+        if ($jt === '' || \in_array($jt, $patterns, true)) {
             return $patterns;
         }
         $merged = $patterns;

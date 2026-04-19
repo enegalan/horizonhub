@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -39,32 +38,23 @@ class Service extends Model
     }
 
     /**
-     * Scope the query for online services.
-     *
-     * @param  Builder  $query
+     * Get the base URL of the service.
      */
-    public function scopeOnline($query): Builder
+    public function getBaseUrl(): string
     {
-        return $query->where('status', 'online');
+        return \rtrim($this->base_url ?? '', '/');
     }
 
     /**
-     * Scope the query for stand-by services.
-     *
-     * @param  Builder  $query
+     * Get the public URL of the service.
      */
-    public function scopeStandBy($query): Builder
+    public function getPublicUrl(): string
     {
-        return $query->where('status', 'stand_by');
-    }
+        $publicUrl = \rtrim($this->public_url ?? '', '/');
+        if ($publicUrl !== '') {
+            return $publicUrl;
+        }
 
-    /**
-     * Scope the query for offline services.
-     *
-     * @param  Builder  $query
-     */
-    public function scopeOffline($query): Builder
-    {
-        return $query->where('status', 'offline');
+        return $this->getBaseUrl();
     }
 }

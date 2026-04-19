@@ -42,7 +42,7 @@ final class AvgExecutionTimeAlertRuleStrategy implements AlertRuleStrategyInterf
         $minutes = (int) ($threshold['minutes'] ?? config('horizonhub.alerts.default_minutes'));
 
         $service = Service::find($serviceId);
-        if (! $service || ! $service->base_url) {
+        if (! $service || ! $service->getBaseUrl()) {
             return ['triggered' => false, 'job_uuids' => []];
         }
 
@@ -84,8 +84,7 @@ final class AvgExecutionTimeAlertRuleStrategy implements AlertRuleStrategyInterf
             return ['triggered' => false, 'job_uuids' => []];
         }
 
-        $avg = $durations->average();
-        $triggered = (float) $avg >= $maxSeconds;
+        $triggered = (float) $durations->average() >= $maxSeconds;
 
         return [
             'triggered' => $triggered,

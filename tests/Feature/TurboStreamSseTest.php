@@ -30,7 +30,7 @@ class TurboStreamSseTest extends TestCase
     {
         $service = Service::create([
             'name' => 'test-svc',
-            'base_url' => null,
+            'base_url' => '',
             'status' => 'online',
         ]);
 
@@ -63,7 +63,7 @@ class TurboStreamSseTest extends TestCase
     {
         Service::create([
             'name' => 'test-svc',
-            'base_url' => null,
+            'base_url' => '',
             'status' => 'online',
         ]);
 
@@ -97,7 +97,7 @@ class TurboStreamSseTest extends TestCase
     {
         Service::create([
             'name' => 'test-svc-stream',
-            'base_url' => null,
+            'base_url' => '',
             'status' => 'online',
         ]);
 
@@ -117,7 +117,7 @@ class TurboStreamSseTest extends TestCase
     {
         Service::create([
             'name' => 'merge-markup-svc',
-            'base_url' => null,
+            'base_url' => '',
             'status' => 'online',
         ]);
 

@@ -29,7 +29,7 @@ class MetricsController extends Controller
     public function index(ServiceRequest $request): View
     {
         $services = Service::orderBy('name')->get(['id', 'name']);
-        $serviceIds = $request->getServiceIds();
+        $serviceIds = ServiceRequest::existingIdsFromRequest($request, ['service_id']);
 
         return \view('horizon.metrics.index', \array_merge($this->metricsDashboard->build($serviceIds), [
             'services' => $services,

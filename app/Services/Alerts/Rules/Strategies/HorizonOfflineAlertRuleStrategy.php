@@ -41,7 +41,7 @@ final class HorizonOfflineAlertRuleStrategy implements AlertRuleStrategyInterfac
     private function private__evaluateHorizonOffline(int $serviceId): bool
     {
         $service = Service::find($serviceId);
-        if (! $service || ! $service->base_url) {
+        if (! $service || ! $service->getBaseUrl()) {
             return false;
         }
 

@@ -45,7 +45,7 @@ final class SupervisorOfflineAlertRuleStrategy implements AlertRuleStrategyInter
         $minutes = (int) ($threshold['minutes'] ?? config('horizonhub.alerts.default_minutes'));
 
         $service = Service::find($serviceId);
-        if (! $service || ! $service->base_url) {
+        if (! $service || ! $service->getBaseUrl()) {
             return false;
         }
 
