@@ -1,5 +1,3 @@
-import { getCssHsl } from '../lib/dom';
-
 /**
  * Get the chart colors.
  * @returns {object}
@@ -11,6 +9,17 @@ export function getChartColors() {
         failed: getCssHsl('--destructive'),
         line: getCssHsl('--muted-foreground'),
     };
+}
+
+/**
+ * Get the HSL value of a CSS variable.
+ * @param {string} varName
+ * @returns {string}
+ */
+function getCssHsl(varName) {
+    var val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    if (!val) return null;
+    return 'hsl(' + val.replace(/\s+/g, ', ') + ')';
 }
 
 /**

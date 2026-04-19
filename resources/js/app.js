@@ -8,7 +8,6 @@ import { horizonMetricsPage } from './horizon/metrics';
 import { initTurboStream } from './lib/sse';
 import { createHttpHelpers } from './lib/http';
 import { formatQueueWaitElements } from './lib/datetime-format';
-import { onDocumentReady, schedule } from './lib/init';
 import { getTurboStreamTargetElement, renderTurboStreamWithGuards } from './lib/stream-guard';
 import { mountToaster } from './components/toaster';
 import { registerInputDatePicker } from './components/input-date-picker';
@@ -87,3 +86,25 @@ document.addEventListener('turbo:before-stream-render', function (e) {
 window.addEventListener('apply-theme', function () {
     window.horizonHubTheme.applyTheme();
 });
+
+/**
+ * Schedule a callback.
+ * @param {function} callback
+ * @returns {void}
+ */
+function schedule(callback) {
+    setTimeout(callback, 0);
+}
+
+/**
+ * Initialize the document.
+ * @param {function} callback
+ * @returns {void}
+ */
+function onDocumentReady(callback) {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', callback, { once: true });
+    } else {
+        callback();
+    }
+}
