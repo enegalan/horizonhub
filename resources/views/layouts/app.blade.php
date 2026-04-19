@@ -9,6 +9,7 @@
     <head>
         <!-- Meta -->
         <meta charset="utf-8">
+        <meta name="description" content="Horizon Hub is a centralized dashboard for monitoring Laravel Horizon jobs across multiple services.">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="turbo-prefetch" content="false">
         <meta name="csrf-token" content="{{ csrf_token() }}">
