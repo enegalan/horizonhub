@@ -12,7 +12,7 @@ Route::group(['prefix' => 'streams/horizon'], function () {
 
     // Job
     Route::get('/jobs/{job}', [HorizonStreamsController::class, 'jobShow'])->name('streams.job-show');
-    
+
     // Metrics
     Route::get('/metrics', [HorizonStreamsController::class, 'metrics'])->name('streams.metrics');
 
