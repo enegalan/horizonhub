@@ -29,7 +29,6 @@ class AlertEngineTest extends TestCase
 
         $service = Service::create([
             'name' => 'alert-svc',
-            'api_key' => 'a52345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://alerts.test',
             'status' => 'online',
         ]);
@@ -64,7 +63,6 @@ class AlertEngineTest extends TestCase
 
         $service = Service::create([
             'name' => 'alert-svc-2',
-            'api_key' => 'a62345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://alerts-2.test',
             'status' => 'online',
         ]);
@@ -104,13 +102,11 @@ class AlertEngineTest extends TestCase
 
         $serviceOne = Service::create([
             'name' => 'alert-svc-3',
-            'api_key' => 'a72345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://alerts-3.test',
             'status' => 'online',
         ]);
         $serviceTwo = Service::create([
             'name' => 'alert-svc-4',
-            'api_key' => 'a82345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://alerts-4.test',
             'status' => 'online',
         ]);

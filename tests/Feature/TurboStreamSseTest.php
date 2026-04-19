@@ -31,7 +31,6 @@ class TurboStreamSseTest extends TestCase
         $service = Service::create([
             'name' => 'test-svc',
             'base_url' => null,
-            'api_key' => 'key123',
             'status' => 'online',
         ]);
 
@@ -65,7 +64,6 @@ class TurboStreamSseTest extends TestCase
         Service::create([
             'name' => 'test-svc',
             'base_url' => null,
-            'api_key' => 'key123',
             'status' => 'online',
         ]);
 
@@ -100,7 +98,6 @@ class TurboStreamSseTest extends TestCase
         Service::create([
             'name' => 'test-svc-stream',
             'base_url' => null,
-            'api_key' => 'key456',
             'status' => 'online',
         ]);
 
@@ -121,7 +118,6 @@ class TurboStreamSseTest extends TestCase
         Service::create([
             'name' => 'merge-markup-svc',
             'base_url' => null,
-            'api_key' => 'key-merge-markup',
             'status' => 'online',
         ]);
 
@@ -171,7 +167,6 @@ class TurboStreamSseTest extends TestCase
         $service = Service::create([
             'name' => 'stream-job-svc',
             'base_url' => 'https://horizon-api-stream-job.test',
-            'api_key' => 'k12345678901234567890123456789012345678901234567890123456789012',
             'status' => 'online',
         ]);
 
@@ -210,7 +205,6 @@ class TurboStreamSseTest extends TestCase
         $service = Service::create([
             'name' => 'stream-job-svc-2',
             'base_url' => 'https://horizon-api-stream-job-2.test',
-            'api_key' => 'k22345678901234567890123456789022345678901234567890123456789022',
             'status' => 'online',
         ]);
 

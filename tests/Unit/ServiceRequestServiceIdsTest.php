@@ -25,13 +25,11 @@ class ServiceRequestServiceIdsTest extends TestCase
     {
         $s1 = Service::create([
             'name' => 'svc-a',
-            'api_key' => 'k12345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://a.test',
             'status' => 'online',
         ]);
         $s2 = Service::create([
             'name' => 'svc-b',
-            'api_key' => 'k22345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://b.test',
             'status' => 'online',
         ]);

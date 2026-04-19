@@ -39,7 +39,6 @@ class HorizonJobListServiceRetryModalTest extends TestCase
 
         $svc = Service::create([
             'name' => 'svc-retry-modal-batch',
-            'api_key' => 'k32345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://svc-retry-modal.test',
             'status' => 'online',
         ]);
@@ -87,7 +86,6 @@ class HorizonJobListServiceRetryModalTest extends TestCase
 
         $svc = Service::create([
             'name' => 'svc-retry-modal-page',
-            'api_key' => 'k42345678901234567890123456789012345678901234567890123456789012',
             'base_url' => 'https://svc-retry-page.test',
             'status' => 'online',
         ]);
