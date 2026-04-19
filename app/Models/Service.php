@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -41,7 +40,6 @@ class Service extends Model
     /**
      * Get the base URL of the service.
      *
-     * @return string
      * @throws \RuntimeException
      */
     public function getBaseUrl(): string
@@ -56,8 +54,6 @@ class Service extends Model
 
     /**
      * Get the public URL of the service.
-     *
-     * @return string
      */
     public function getPublicUrl(): string
     {
