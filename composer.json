@@ -6,7 +6,7 @@
     "keywords": ["laravel", "horizon", "hub", "dashboard", "jobs", "monitoring"],
     "license": "MIT",
     "require": {
-        "php": "^8.2",
+        "php": "^8.4",
         "blade-ui-kit/blade-heroicons": "^2.1",
         "hotwired-laravel/turbo-laravel": "^2.6",
         "laravel/framework": "^12.0",

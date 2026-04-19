@@ -20,7 +20,7 @@ Centralized dashboard for monitoring Laravel Horizon jobs across multiple servic
 
 ## Requirements
 
-- PHP 8.2+
+- PHP 8.4+
 - Laravel 12
 - Composer
 - Node.js and npm

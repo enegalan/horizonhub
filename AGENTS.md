@@ -6,7 +6,7 @@ These instructions apply to the whole repository.
 
 ## Tech stack
 
-- PHP 8.2+
+- PHP 8.4+
 - Laravel 12
 - PHPUnit 12
 - Laravel Pint

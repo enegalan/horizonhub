@@ -14,6 +14,7 @@ import { mountToaster } from './components/toaster';
 import { registerInputDatePicker } from './components/input-date-picker';
 import Alpine from 'alpinejs';
 import moment from 'moment';
+import { initTheme } from './components/theme';
 
 window.Turbo = Turbo;
 window.echarts = echarts;
@@ -31,6 +32,8 @@ window.horizonJobRowRetry = horizonJobRowRetry;
 window.horizonAlertsList = horizonAlertsList;
 window.horizonAlertDetail = horizonAlertDetail;
 window.horizonMetricsPage = horizonMetricsPage;
+
+window.horizonHubTheme = initTheme();
 
 window.Alpine = Alpine;
 Alpine.start();

@@ -1,5 +1,23 @@
 var THEME_KEY = 'horizonhub_theme';
 
+export function initTheme() {
+    return {
+        getStoredTheme: getStoredTheme,
+        resolveDark: resolveDark,
+        applyFromPreference: function (theme) {
+            document.documentElement.classList.toggle('dark', resolveDark(theme));
+        },
+        applyTheme: function () {
+            document.documentElement.classList.toggle('dark', resolveDark(getStoredTheme()));
+        },
+        setTheme: function (theme) {
+            localStorage.setItem(THEME_KEY, theme);
+            window.dispatchEvent(new CustomEvent('apply-theme'));
+            return theme;
+        },
+    };
+}
+
 /**
  * Validated theme value from localStorage.
  * @returns {'light'|'dark'|'system'}
@@ -19,22 +37,4 @@ function resolveDark(theme) {
     }
 
     return theme === 'dark';
-}
-
-if (typeof window !== 'undefined') {
-    window.horizonHubTheme = {
-        getStoredTheme: getStoredTheme,
-        resolveDark: resolveDark,
-        applyFromPreference: function (theme) {
-            document.documentElement.classList.toggle('dark', resolveDark(theme));
-        },
-        applyTheme: function () {
-            document.documentElement.classList.toggle('dark', resolveDark(getStoredTheme()));
-        },
-        setTheme: function (theme) {
-            localStorage.setItem(THEME_KEY, theme);
-            window.dispatchEvent(new CustomEvent('apply-theme'));
-            return theme;
-        },
-    };
 }
