@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Alerts\Rules;
+namespace App\Services\Alerts\Rules\Strategies;
 
 use App\Models\Alert;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;

@@ -7,7 +7,7 @@
             <x-heroicon-o-queue-list class="empty-state-icon" />
             <p class="empty-state-title">No supervisor data yet</p>
             <p class="empty-state-description">
-                Supervisors will appear here once Horizon is running on your services and the Hub agent has synced data.
+                Supervisors will appear here once Horizon is running on your services.
             </p>
         </div>
     </td>

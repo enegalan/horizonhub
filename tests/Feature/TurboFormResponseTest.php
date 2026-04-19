@@ -4,12 +4,20 @@ namespace Tests\Feature;
 
 use App\Models\Service;
 use HotwiredLaravel\TurboLaravel\Turbo;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class TurboFormResponseTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withoutMiddleware(ValidateCsrfToken::class);
+    }
 
     public function test_service_store_returns_303_for_turbo_request(): void
     {

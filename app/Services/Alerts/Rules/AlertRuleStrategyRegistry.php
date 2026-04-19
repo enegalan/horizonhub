@@ -7,6 +7,7 @@ use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
 use App\Services\Alerts\Rules\Strategies\AvgExecutionTimeAlertRuleStrategy;
 use App\Services\Alerts\Rules\Strategies\FailureCountAlertRuleStrategy;
 use App\Services\Alerts\Rules\Strategies\HorizonOfflineAlertRuleStrategy;
+use App\Services\Alerts\Rules\Strategies\NullAlertRuleStrategy;
 use App\Services\Alerts\Rules\Strategies\QueueBlockedAlertRuleStrategy;
 use App\Services\Alerts\Rules\Strategies\SupervisorOfflineAlertRuleStrategy;
 use App\Services\Alerts\Rules\Strategies\WorkerOfflineAlertRuleStrategy;

@@ -57,11 +57,6 @@ abstract class AbstractAlertNotifier implements AlertNotifier
             if (! ($response['success'] ?? false) || ! \is_array($data)) {
                 continue;
             }
-            $payload = $data['payload'] ?? [];
-            $name = $data['name'] ?? (isset($payload['displayName']) ? $payload['displayName'] : null);
-            if ($name === null && isset($payload['job'])) {
-                $name = \is_string($payload['job']) ? $payload['job'] : 'Unknown';
-            }
             $failedAt = null;
             if (isset($data['failed_at']) && (string) $data['failed_at'] !== '') {
                 try {
@@ -71,8 +66,8 @@ abstract class AbstractAlertNotifier implements AlertNotifier
                 }
             }
             $job = (object) [
-                'payload' => $payload,
-                'name' => $name,
+                'payload' => isset($data['payload']) ? $data['payload'] : [],
+                'name' => isset($data['name']) ? $data['name'] : null,
                 'queue' => isset($data['queue']) ? (string) $data['queue'] : null,
                 'failed_at' => $failedAt,
                 'exception' => isset($data['exception']) ? (string) $data['exception'] : '',
@@ -118,14 +113,9 @@ abstract class AbstractAlertNotifier implements AlertNotifier
             $attempts = null;
 
             if ($job) {
-                $payload = $job->payload ?? [];
-                $jobClass = $job->name ?? (isset($payload['displayName']) ? $payload['displayName'] : null);
-                if ($jobClass === null && isset($payload['job'])) {
-                    $jobClass = \is_string($payload['job']) ? $payload['job'] : 'Unknown';
-                }
-                $jobClass ??= 'Unknown';
+                $jobClass = $job->name ?? 'Unknown';
                 $queue = $job->queue ?? null;
-                $failedAt = $job->failed_at ? $job->failed_at->format('Y-m-d H:i:s T') : null;
+                $failedAt = $job?->failed_at->format('Y-m-d H:i:s T');
                 $rawException = $job->exception ?? '';
                 $exception = $rawException !== '' ? $this->truncateException($rawException, $exceptionMaxLength) : null;
                 $attempts = $job->attempts ?? null;
