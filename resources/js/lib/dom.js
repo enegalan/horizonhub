@@ -10,21 +10,12 @@ export function getCssHsl(varName) {
 }
 
 /**
- * The textarea element used to decode HTML entities.
- * @type {HTMLTextAreaElement|null}
- */
-var _textarea = null;
-/**
  * Decode HTML entities from a string.
  * @param {string} value
  * @returns {string}
  */
 export function decodeHtmlEntities(value) {
     if (typeof document === 'undefined') return value;
-    if (!_textarea) {
-        _textarea = document.createElement('textarea');
-    }
-    _textarea.innerHTML = value;
-
-    return _textarea.value;
+    var doc = new DOMParser().parseFromString(String(value), 'text/html');
+    return doc.documentElement.textContent || '';
 }
