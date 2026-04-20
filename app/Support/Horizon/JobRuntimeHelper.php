@@ -7,35 +7,17 @@ use Carbon\Carbon;
 class JobRuntimeHelper
 {
     /**
-     * Parse a Horizon timestamp value into Carbon.
+     * Human-readable runtime in seconds (e.g. "0.08 s", "1.23 s").
      *
-     * @param  mixed  $value  The value.
+     * @param  float|null  $seconds  The seconds.
      */
-    public static function parseJobTimestamp(mixed $value): ?Carbon
+    public static function getFormattedRuntime(?float $seconds): ?string
     {
-        if ($value === null || $value === '' || $value === false) {
+        if ($seconds === null) {
             return null;
         }
 
-        if ($value instanceof Carbon) {
-            return $value;
-        }
-
-        if (\is_numeric($value)) {
-            $seconds = (float) $value;
-
-            return Carbon::createFromTimestampMs((int) \round($seconds * 1000));
-        }
-
-        if (\is_string($value)) {
-            try {
-                return Carbon::parse($value);
-            } catch (\Throwable $e) {
-                return null;
-            }
-        }
-
-        return null;
+        return \number_format($seconds, 2).' s';
     }
 
     /**
@@ -66,20 +48,6 @@ class JobRuntimeHelper
     }
 
     /**
-     * Human-readable runtime in seconds (e.g. "0.08 s", "1.23 s").
-     *
-     * @param  float|null  $seconds  The seconds.
-     */
-    public static function getFormattedRuntime(?float $seconds): ?string
-    {
-        if ($seconds === null) {
-            return null;
-        }
-
-        return \number_format($seconds, 2).' s';
-    }
-
-    /**
      * Normalise processed/failed timestamps according to job status.
      *
      * - For "processed" jobs, failed_at is cleared.
@@ -100,6 +68,38 @@ class JobRuntimeHelper
             $processedAt = null;
             $failedAt = null;
         }
+    }
+
+    /**
+     * Parse a Horizon timestamp value into Carbon.
+     *
+     * @param  mixed  $value  The value.
+     */
+    public static function parseJobTimestamp(mixed $value): ?Carbon
+    {
+        if ($value === null || $value === '' || $value === false) {
+            return null;
+        }
+
+        if ($value instanceof Carbon) {
+            return $value;
+        }
+
+        if (\is_numeric($value)) {
+            $seconds = (float) $value;
+
+            return Carbon::createFromTimestampMs((int) \round($seconds * 1000));
+        }
+
+        if (\is_string($value)) {
+            try {
+                return Carbon::parse($value);
+            } catch (\Throwable $e) {
+                return null;
+            }
+        }
+
+        return null;
     }
 
     /**

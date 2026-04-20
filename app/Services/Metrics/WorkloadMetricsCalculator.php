@@ -8,78 +8,6 @@ use App\Support\Horizon\QueueNameNormalizer;
 class WorkloadMetricsCalculator extends HorizonMetricsComputation
 {
     /**
-     * Get the current workload rows for a single service.
-     *
-     * @param  Service  $service  The service.
-     * @return array<int, array{queue: string, jobs: int, processes: int|null, wait: float|null}>
-     */
-    public function getWorkloadForService(Service $service): array
-    {
-        if ($service->getBaseUrl() === '') {
-            return [];
-        }
-
-        $response = $this->horizonApi->getWorkload($service);
-        $payload = $response['data'] ?? null;
-
-        if (! ($response['success'] ?? false) || $payload === null) {
-            return [];
-        }
-
-        $data = $payload['data'] ?? $payload['workload'] ?? null;
-        if ($data === null || ! \is_array($data)) {
-            if (\is_array($payload) && isset($payload[0]) && \is_array($payload[0]) && isset($payload[0]['name'])) {
-                $data = $payload;
-            } else {
-                return [];
-            }
-        }
-        if ($data === []) {
-            return [];
-        }
-
-        $rows = [];
-        foreach ($data as $row) {
-            if (! \is_array($row)) {
-                continue;
-            }
-
-            $queueName = '';
-            if (isset($row['name']) && (string) $row['name'] !== '') {
-                $queueName = (string) $row['name'];
-            }
-
-            $queueName = QueueNameNormalizer::normalize($queueName) ?? $queueName;
-            if ($queueName === '') {
-                continue;
-            }
-
-            $jobs = $row['length'] ?? $row['size'] ?? $row['pending'] ?? $row['jobs'] ?? 0;
-
-            $processes = null;
-            if (isset($row['processes']) && \is_numeric($row['processes'])) {
-                $processes = (int) $row['processes'];
-            }
-
-            $wait = null;
-            if (isset($row['wait']) && \is_numeric($row['wait'])) {
-                $wait = (float) $row['wait'];
-            }
-
-            $rows[] = [
-                'queue' => $queueName,
-                'jobs' => $jobs,
-                'processes' => $processes,
-                'wait' => $wait,
-            ];
-        }
-
-        \usort($rows, static fn (array $a, array $b): int => \strcmp($a['queue'], $b['queue']));
-
-        return $rows;
-    }
-
-    /**
      * Get supervisors aggregated across services (optionally filtered by service).
      *
      * @param  array<string, mixed>  $serviceScope  The service scope.
@@ -208,5 +136,77 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
         }
 
         return $result;
+    }
+
+    /**
+     * Get the current workload rows for a single service.
+     *
+     * @param  Service  $service  The service.
+     * @return array<int, array{queue: string, jobs: int, processes: int|null, wait: float|null}>
+     */
+    public function getWorkloadForService(Service $service): array
+    {
+        if ($service->getBaseUrl() === '') {
+            return [];
+        }
+
+        $response = $this->horizonApi->getWorkload($service);
+        $payload = $response['data'] ?? null;
+
+        if (! ($response['success'] ?? false) || $payload === null) {
+            return [];
+        }
+
+        $data = $payload['data'] ?? $payload['workload'] ?? null;
+        if ($data === null || ! \is_array($data)) {
+            if (\is_array($payload) && isset($payload[0]) && \is_array($payload[0]) && isset($payload[0]['name'])) {
+                $data = $payload;
+            } else {
+                return [];
+            }
+        }
+        if ($data === []) {
+            return [];
+        }
+
+        $rows = [];
+        foreach ($data as $row) {
+            if (! \is_array($row)) {
+                continue;
+            }
+
+            $queueName = '';
+            if (isset($row['name']) && (string) $row['name'] !== '') {
+                $queueName = (string) $row['name'];
+            }
+
+            $queueName = QueueNameNormalizer::normalize($queueName) ?? $queueName;
+            if ($queueName === '') {
+                continue;
+            }
+
+            $jobs = $row['length'] ?? $row['size'] ?? $row['pending'] ?? $row['jobs'] ?? 0;
+
+            $processes = null;
+            if (isset($row['processes']) && \is_numeric($row['processes'])) {
+                $processes = (int) $row['processes'];
+            }
+
+            $wait = null;
+            if (isset($row['wait']) && \is_numeric($row['wait'])) {
+                $wait = (float) $row['wait'];
+            }
+
+            $rows[] = [
+                'queue' => $queueName,
+                'jobs' => $jobs,
+                'processes' => $processes,
+                'wait' => $wait,
+            ];
+        }
+
+        \usort($rows, static fn (array $a, array $b): int => \strcmp($a['queue'], $b['queue']));
+
+        return $rows;
     }
 }

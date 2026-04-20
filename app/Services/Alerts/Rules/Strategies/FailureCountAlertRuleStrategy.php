@@ -11,14 +11,14 @@ use App\Services\Horizon\HorizonApiProxyService;
 final class FailureCountAlertRuleStrategy implements AlertRuleStrategyInterface
 {
     /**
-     * The evaluation support.
-     */
-    private AlertRuleEvaluationSupport $support;
-
-    /**
      * The Horizon API proxy service.
      */
     private HorizonApiProxyService $horizonApi;
+
+    /**
+     * The evaluation support.
+     */
+    private AlertRuleEvaluationSupport $support;
 
     /**
      * Construct the strategy.

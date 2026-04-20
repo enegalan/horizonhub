@@ -38,6 +38,72 @@ abstract class HorizonMetricsComputation
     }
 
     /**
+     * Aggregate queue counters from Horizon jobs payload.
+     *
+     * @param  mixed  $jobsPayload  The jobs payload.
+     * @param  int  $sinceTimestamp  The since timestamp.
+     * @param  string  $timestampField  The timestamp field.
+     * @param  array<string, int>  $queueCounts  The queue counts.
+     */
+    protected function private__aggregateQueueCountsFromJobsPayload(mixed $jobsPayload, int $sinceTimestamp, string $timestampField, array &$queueCounts): void
+    {
+        foreach ($jobsPayload as $job) {
+            if (! \is_array($job)) {
+                continue;
+            }
+
+            $tsRaw = $job[$timestampField] ?? null;
+            if (! \is_numeric($tsRaw) || (int) $tsRaw < $sinceTimestamp) {
+                continue;
+            }
+
+            $queueRaw = isset($job['queue']) ? (string) $job['queue'] : '';
+            $queue = QueueNameNormalizer::normalize($queueRaw);
+            if ($queue === null) {
+                $queue = $queueRaw;
+            }
+
+            if (! isset($queueCounts[$queue])) {
+                $queueCounts[$queue] = 0;
+            }
+
+            $queueCounts[$queue]++;
+        }
+    }
+
+    /**
+     * Extract a normalized queue list from supervisor options.
+     *
+     * @param  array<string, mixed>  $options
+     * @return array<int, string>
+     */
+    protected function private__extractQueuesFromSupervisorOptions(array $options): array
+    {
+        $queues = $options['queue'] ?? null;
+        if (! \is_array($queues)) {
+            if (empty($queues)) {
+                return [];
+            }
+
+            $queue = QueueNameNormalizer::normalize((string) $queues);
+
+            return $queue !== null && $queue !== '' ? [$queue] : [];
+        }
+
+        $normalizedQueues = [];
+        foreach ($queues as $queue) {
+            $normalizedQueue = QueueNameNormalizer::normalize((string) $queue);
+            if (empty($normalizedQueue)) {
+                continue;
+            }
+
+            $normalizedQueues[$normalizedQueue] = true;
+        }
+
+        return \array_keys($normalizedQueues);
+    }
+
+    /**
      * Fetch completed jobs with completed_at >= $sinceTimestamp by paginating the Horizon API.
      *
      * Each request uses Horizon query `limit` = horizonhub.horizon_api_job_list_page_size.
@@ -152,22 +218,6 @@ abstract class HorizonMetricsComputation
     }
 
     /**
-     * Next Horizon jobs list cursor: starting_at is a zero-based index into the Redis-backed list, not a unix timestamp.
-     *
-     * @param  int  $startingAt  The starting at.
-     * @param  array<int, mixed>  $batch  The batch.
-     */
-    protected function private__nextMetricsJobsStartingAt(int $startingAt, array $batch): int
-    {
-        $last = $batch[\array_key_last($batch)];
-        if (\is_array($last) && isset($last['index'])) {
-            return (int) $last['index'];
-        }
-
-        return \max(0, $startingAt + 1) + \count($batch) - 1;
-    }
-
-    /**
      * Get services that can provide Horizon metrics.
      *
      * @param  list<int>|null  $serviceScope  The service scope. Empty = all services with base_url; non-empty = restrict by id.
@@ -199,113 +249,6 @@ abstract class HorizonMetricsComputation
         }
 
         return $servicesQuery->get();
-    }
-
-    /**
-     * Initialize hourly buckets between $since and $endHour (inclusive).
-     *
-     * @param  Carbon  $since  The since.
-     * @param  Carbon  $endHour  The end hour.
-     * @param  string  $bucketFormat  The bucket format.
-     * @param  int  $maxBuckets  The max buckets.
-     * @param  callable(): array  $bucketInitializer  The bucket initializer.
-     * @return array<string, array<string, mixed>>
-     */
-    protected function private__initHourlyBuckets(Carbon $since, Carbon $endHour, string $bucketFormat, int $maxBuckets, callable $bucketInitializer): array
-    {
-        $buckets = [];
-        $bucketStart = $since->copy();
-
-        while ($bucketStart <= $endHour && \count($buckets) < $maxBuckets) {
-            $key = $bucketStart->format($bucketFormat);
-            $buckets[$key] = $bucketInitializer();
-            $bucketStart->addHour();
-        }
-
-        return $buckets;
-    }
-
-    /**
-     * Extract a normalized queue list from supervisor options.
-     *
-     * @param  array<string, mixed>  $options
-     * @return array<int, string>
-     */
-    protected function private__extractQueuesFromSupervisorOptions(array $options): array
-    {
-        $queues = $options['queue'] ?? null;
-        if (! \is_array($queues)) {
-            if (empty($queues)) {
-                return [];
-            }
-
-            $queue = QueueNameNormalizer::normalize((string) $queues);
-
-            return $queue !== null && $queue !== '' ? [$queue] : [];
-        }
-
-        $normalizedQueues = [];
-        foreach ($queues as $queue) {
-            $normalizedQueue = QueueNameNormalizer::normalize((string) $queue);
-            if (empty($normalizedQueue)) {
-                continue;
-            }
-
-            $normalizedQueues[$normalizedQueue] = true;
-        }
-
-        return \array_keys($normalizedQueues);
-    }
-
-    /**
-     * Sum jobs by queue names using a precomputed lookup table.
-     *
-     * @param  array<int, string>  $queueNames
-     * @param  array<string, int>  $jobsByQueue
-     */
-    protected function private__sumJobsByQueueNames(array $queueNames, array $jobsByQueue): int
-    {
-        $jobs = 0;
-
-        foreach ($queueNames as $q) {
-            $jobs += $jobsByQueue[$q] ?? 0;
-        }
-
-        return $jobs;
-    }
-
-    /**
-     * Aggregate queue counters from Horizon jobs payload.
-     *
-     * @param  mixed  $jobsPayload  The jobs payload.
-     * @param  int  $sinceTimestamp  The since timestamp.
-     * @param  string  $timestampField  The timestamp field.
-     * @param  array<string, int>  $queueCounts  The queue counts.
-     */
-    protected function private__aggregateQueueCountsFromJobsPayload(mixed $jobsPayload, int $sinceTimestamp, string $timestampField, array &$queueCounts): void
-    {
-        foreach ($jobsPayload as $job) {
-            if (! \is_array($job)) {
-                continue;
-            }
-
-            $tsRaw = $job[$timestampField] ?? null;
-            if (! \is_numeric($tsRaw) || (int) $tsRaw < $sinceTimestamp) {
-                continue;
-            }
-
-            $queueRaw = isset($job['queue']) ? (string) $job['queue'] : '';
-            $queue = QueueNameNormalizer::normalize($queueRaw);
-            if ($queue === null) {
-                $queue = $queueRaw;
-            }
-
-            if (! isset($queueCounts[$queue])) {
-                $queueCounts[$queue] = 0;
-            }
-
-            $queueCounts[$queue]++;
-        }
     }
 
     /**
@@ -375,5 +318,62 @@ abstract class HorizonMetricsComputation
         }
 
         return $rows;
+    }
+
+    /**
+     * Initialize hourly buckets between $since and $endHour (inclusive).
+     *
+     * @param  Carbon  $since  The since.
+     * @param  Carbon  $endHour  The end hour.
+     * @param  string  $bucketFormat  The bucket format.
+     * @param  int  $maxBuckets  The max buckets.
+     * @param  callable(): array  $bucketInitializer  The bucket initializer.
+     * @return array<string, array<string, mixed>>
+     */
+    protected function private__initHourlyBuckets(Carbon $since, Carbon $endHour, string $bucketFormat, int $maxBuckets, callable $bucketInitializer): array
+    {
+        $buckets = [];
+        $bucketStart = $since->copy();
+
+        while ($bucketStart <= $endHour && \count($buckets) < $maxBuckets) {
+            $key = $bucketStart->format($bucketFormat);
+            $buckets[$key] = $bucketInitializer();
+            $bucketStart->addHour();
+        }
+
+        return $buckets;
+    }
+
+    /**
+     * Next Horizon jobs list cursor: starting_at is a zero-based index into the Redis-backed list, not a unix timestamp.
+     *
+     * @param  int  $startingAt  The starting at.
+     * @param  array<int, mixed>  $batch  The batch.
+     */
+    protected function private__nextMetricsJobsStartingAt(int $startingAt, array $batch): int
+    {
+        $last = $batch[\array_key_last($batch)];
+        if (\is_array($last) && isset($last['index'])) {
+            return (int) $last['index'];
+        }
+
+        return \max(0, $startingAt + 1) + \count($batch) - 1;
+    }
+
+    /**
+     * Sum jobs by queue names using a precomputed lookup table.
+     *
+     * @param  array<int, string>  $queueNames
+     * @param  array<string, int>  $jobsByQueue
+     */
+    protected function private__sumJobsByQueueNames(array $queueNames, array $jobsByQueue): int
+    {
+        $jobs = 0;
+
+        foreach ($queueNames as $q) {
+            $jobs += $jobsByQueue[$q] ?? 0;
+        }
+
+        return $jobs;
     }
 }

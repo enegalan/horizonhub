@@ -14,6 +14,29 @@ use Illuminate\Http\Request;
 class ServiceController extends Controller
 {
     /**
+     * Delete a service.
+     */
+    public function destroy(Service $service): RedirectResponse
+    {
+        $service->delete();
+
+        return redirect()
+            ->route('horizon.services.index')
+            ->with('status', 'Service deleted.');
+    }
+
+    /**
+     * Edit an existing service.
+     */
+    public function edit(Service $service): View
+    {
+        return \view('horizon.services.edit', [
+            'service' => $service,
+            'header' => 'Edit service',
+        ]);
+    }
+
+    /**
      * Display the list of services and registration form.
      */
     public function index(HorizonApiProxyService $horizonApi, ServiceStatsAttachmentService $serviceStats): View
@@ -28,6 +51,19 @@ class ServiceController extends Controller
             'services' => $services,
             'header' => 'Services',
         ]);
+    }
+
+    /**
+     * Show the service dashboard.
+     */
+    public function show(Request $request, Service $service, HorizonApiProxyService $horizonApi, ServiceShowPageDataService $serviceShowPageData): View
+    {
+        $data = $serviceShowPageData->build($service, $request, $horizonApi);
+
+        return \view('horizon.services.show', \array_merge($data, [
+            'service' => $service,
+            'header' => $service->name,
+        ]));
     }
 
     /**
@@ -51,51 +87,6 @@ class ServiceController extends Controller
         return redirect()
             ->route('horizon.services.index')
             ->with('status', 'Service created.');
-    }
-
-    /**
-     * Edit an existing service.
-     */
-    public function edit(Service $service): View
-    {
-        return \view('horizon.services.edit', [
-            'service' => $service,
-            'header' => 'Edit service',
-        ]);
-    }
-
-    /**
-     * Update an existing service.
-     */
-    public function update(Request $request, Service $service): RedirectResponse
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:services,name,'.(int) $service->id,
-            'base_url' => 'required|url',
-            'public_url' => 'nullable|url',
-        ]);
-
-        $service->update([
-            'name' => $validated['name'],
-            'base_url' => \rtrim($validated['base_url'], '/'),
-            'public_url' => ! empty($validated['public_url']) ? \rtrim($validated['public_url'], '/') : null,
-        ]);
-
-        return redirect()
-            ->route('horizon.services.index')
-            ->with('status', 'Service updated.');
-    }
-
-    /**
-     * Delete a service.
-     */
-    public function destroy(Service $service): RedirectResponse
-    {
-        $service->delete();
-
-        return redirect()
-            ->route('horizon.services.index')
-            ->with('status', 'Service deleted.');
     }
 
     /**
@@ -132,15 +123,24 @@ class ServiceController extends Controller
     }
 
     /**
-     * Show the service dashboard.
+     * Update an existing service.
      */
-    public function show(Request $request, Service $service, HorizonApiProxyService $horizonApi, ServiceShowPageDataService $serviceShowPageData): View
+    public function update(Request $request, Service $service): RedirectResponse
     {
-        $data = $serviceShowPageData->build($service, $request, $horizonApi);
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:services,name,'.(int) $service->id,
+            'base_url' => 'required|url',
+            'public_url' => 'nullable|url',
+        ]);
 
-        return \view('horizon.services.show', \array_merge($data, [
-            'service' => $service,
-            'header' => $service->name,
-        ]));
+        $service->update([
+            'name' => $validated['name'],
+            'base_url' => \rtrim($validated['base_url'], '/'),
+            'public_url' => ! empty($validated['public_url']) ? \rtrim($validated['public_url'], '/') : null,
+        ]);
+
+        return redirect()
+            ->route('horizon.services.index')
+            ->with('status', 'Service updated.');
     }
 }

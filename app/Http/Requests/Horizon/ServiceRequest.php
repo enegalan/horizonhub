@@ -9,24 +9,23 @@ use Illuminate\Http\Request;
 class ServiceRequest extends FormRequest
 {
     /**
-     * Authorize the request.
-     */
-    public function authorize(): bool
-    {
-        return true;
-    }
-
-    /**
-     * Get the validation rules for the request.
+     * Read the first non-empty request/query value for the given keys (in order), then parse and restrict to existing services.
      *
-     * @return array<string, array<int, string>>
+     * @param  list<string>  $keys
+     * @return list<int>
      */
-    public function rules(): array
+    public static function existingIdsFromRequest(Request $request, array $keys): array
     {
-        return [
-            'service_id' => ['nullable', 'array'],
-            'service_id.*' => ['integer', 'exists:services,id'],
-        ];
+        $raw = self::private__firstRawValueForKeys($request, $keys);
+        $serviceIds = self::parseIds($raw);
+        if ($serviceIds === []) {
+            return [];
+        }
+
+        $existing = Service::query()->whereIn('id', $serviceIds)->pluck('id')->map(static fn ($id): int => (int) $id)->all();
+        \sort($existing);
+
+        return \array_values($existing);
     }
 
     /**
@@ -53,23 +52,24 @@ class ServiceRequest extends FormRequest
     }
 
     /**
-     * Read the first non-empty request/query value for the given keys (in order), then parse and restrict to existing services.
-     *
-     * @param  list<string>  $keys
-     * @return list<int>
+     * Authorize the request.
      */
-    public static function existingIdsFromRequest(Request $request, array $keys): array
+    public function authorize(): bool
     {
-        $raw = self::private__firstRawValueForKeys($request, $keys);
-        $serviceIds = self::parseIds($raw);
-        if ($serviceIds === []) {
-            return [];
-        }
+        return true;
+    }
 
-        $existing = Service::query()->whereIn('id', $serviceIds)->pluck('id')->map(static fn ($id): int => (int) $id)->all();
-        \sort($existing);
-
-        return \array_values($existing);
+    /**
+     * Get the validation rules for the request.
+     *
+     * @return array<string, array<int, string>>
+     */
+    public function rules(): array
+    {
+        return [
+            'service_id' => ['nullable', 'array'],
+            'service_id.*' => ['integer', 'exists:services,id'],
+        ];
     }
 
     /**

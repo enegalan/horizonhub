@@ -7,21 +7,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 abstract class StreamController extends Controller
 {
     /**
-     * Get the stream headers.
-     *
-     * @return array<string, string>
-     */
-    protected function streamHeaders(): array
-    {
-        return [
-            'Content-Type' => 'text/event-stream',
-            'Cache-Control' => 'no-cache, no-store, must-revalidate',
-            'Pragma' => 'no-cache',
-            'X-Accel-Buffering' => 'no',
-        ];
-    }
-
-    /**
      * Run a streaming SSE.
      *
      * The callback must return a Turbo Stream HTML string (one or more
@@ -71,5 +56,20 @@ abstract class StreamController extends Controller
                 \sleep($interval);
             }
         }, 200, $this->streamHeaders());
+    }
+
+    /**
+     * Get the stream headers.
+     *
+     * @return array<string, string>
+     */
+    protected function streamHeaders(): array
+    {
+        return [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'X-Accel-Buffering' => 'no',
+        ];
     }
 }

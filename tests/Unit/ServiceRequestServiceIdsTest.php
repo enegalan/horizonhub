@@ -12,15 +12,6 @@ class ServiceRequestServiceIdsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_parse_positive_int_ids_from_array_and_scalar(): void
-    {
-        $this->assertSame([1, 2], ServiceRequest::parseIds(['1', '2', '1']));
-        $this->assertSame([5], ServiceRequest::parseIds('5'));
-        $this->assertSame([], ServiceRequest::parseIds([]));
-        $this->assertSame([], ServiceRequest::parseIds('x'));
-        $this->assertSame([], ServiceRequest::parseIds(null));
-    }
-
     public function test_existing_ids_from_request_uses_first_non_empty_key(): void
     {
         $s1 = Service::create([
@@ -42,5 +33,14 @@ class ServiceRequestServiceIdsTest extends TestCase
         $request2 = Request::create('/x?second%5B%5D='.$s1->id, 'GET');
         $ids2 = ServiceRequest::existingIdsFromRequest($request2, ['first', 'second']);
         $this->assertSame([(int) $s1->id], $ids2);
+    }
+
+    public function test_parse_positive_int_ids_from_array_and_scalar(): void
+    {
+        $this->assertSame([1, 2], ServiceRequest::parseIds(['1', '2', '1']));
+        $this->assertSame([5], ServiceRequest::parseIds('5'));
+        $this->assertSame([], ServiceRequest::parseIds([]));
+        $this->assertSame([], ServiceRequest::parseIds('x'));
+        $this->assertSame([], ServiceRequest::parseIds(null));
     }
 }

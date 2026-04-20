@@ -21,19 +21,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class HorizonStreamsController extends StreamController
 {
     /**
-     * The metrics dashboard data service.
-     */
-    private MetricsDashboardDataService $metricsDashboard;
-
-    /**
      * The dashboard data service.
      */
     private DashboardDataService $dashboardData;
-
-    /**
-     * The metrics service.
-     */
-    private HorizonMetricsService $metrics;
 
     /**
      * The horizon api proxy service.
@@ -41,14 +31,24 @@ class HorizonStreamsController extends StreamController
     private HorizonApiProxyService $horizonApi;
 
     /**
+     * The horizon job detail service.
+     */
+    private HorizonJobDetailService $jobDetail;
+
+    /**
      * The horizon job list service.
      */
     private HorizonJobListService $jobList;
 
     /**
-     * The horizon job detail service.
+     * The metrics service.
      */
-    private HorizonJobDetailService $jobDetail;
+    private HorizonMetricsService $metrics;
+
+    /**
+     * The metrics dashboard data service.
+     */
+    private MetricsDashboardDataService $metricsDashboard;
 
     /**
      * The service show page data service.
@@ -75,33 +75,14 @@ class HorizonStreamsController extends StreamController
         $this->serviceStats = $serviceStats;
     }
 
-    public function metrics(Request $request): StreamedResponse
+    public function alerts(): StreamedResponse
     {
-        $query = $request->getQueryString() ?? '';
-
-        return $this->runStream(fn (): ?string => $this->private__buildMetricsStreams($query));
+        return $this->runStream(fn (): ?string => $this->private__buildAlertsStreams());
     }
 
     public function dashboard(): StreamedResponse
     {
         return $this->runStream(fn (): ?string => $this->private__buildDashboardStreams());
-    }
-
-    public function queues(Request $request): StreamedResponse
-    {
-        $query = $request->getQueryString() ?? '';
-
-        return $this->runStream(fn (): ?string => $this->private__buildQueuesStreams($query));
-    }
-
-    public function serviceList(): StreamedResponse
-    {
-        return $this->runStream(fn (): ?string => $this->private__buildServicesStreams());
-    }
-
-    public function alerts(): StreamedResponse
-    {
-        return $this->runStream(fn (): ?string => $this->private__buildAlertsStreams());
     }
 
     public function jobs(Request $request): StreamedResponse
@@ -118,6 +99,25 @@ class HorizonStreamsController extends StreamController
         return $this->runStream(fn (): ?string => $this->private__buildJobShowStreams($job, $serviceId));
     }
 
+    public function metrics(Request $request): StreamedResponse
+    {
+        $query = $request->getQueryString() ?? '';
+
+        return $this->runStream(fn (): ?string => $this->private__buildMetricsStreams($query));
+    }
+
+    public function queues(Request $request): StreamedResponse
+    {
+        $query = $request->getQueryString() ?? '';
+
+        return $this->runStream(fn (): ?string => $this->private__buildQueuesStreams($query));
+    }
+
+    public function serviceList(): StreamedResponse
+    {
+        return $this->runStream(fn (): ?string => $this->private__buildServicesStreams());
+    }
+
     public function serviceShow(Request $request, Service $service): StreamedResponse
     {
         $query = $request->getQueryString() ?? '';
@@ -126,39 +126,20 @@ class HorizonStreamsController extends StreamController
     }
 
     // ------------------------------------------------------------------
-    //  Metrics
+    //  Alerts index
     // ------------------------------------------------------------------
 
-    private function private__buildMetricsStreams(string $query): ?string
+    private function private__buildAlertsStreams(): ?string
     {
-        $d = $this->metricsDashboard->build($this->private__parseServiceIdsFromQuery($query));
+        $alerts = Alert::query()
+            ->withCount('alertLogs')
+            ->withMax('alertLogs', 'sent_at')
+            ->orderByDesc('created_at')
+            ->get();
 
-        $updates = [
-            'metrics-value-jobs-minute' => e($d['jobsPastMinute'] ?? '—'),
-            'metrics-value-jobs-hour' => e($d['jobsPastHour'] ?? '—'),
-            'metrics-value-failed-seven' => e($d['failedPastSevenDays'] ?? '—'),
-            'metrics-workload-summary' => e($d['workloadSummary']),
-            'metrics-supervisors-summary' => e($d['supervisorsSummary']),
-        ];
+        $html = \view('horizon.alerts.partials.alert-tbody', ['alerts' => $alerts])->render();
 
-        $streams = [];
-        $this->private__pushStreamUpdates($streams, $updates);
-
-        $failureRateHtml = \view('horizon.metrics.partials.failure-rate-value', [
-            'failureRate24h' => $d['failureRate24h'],
-        ])->render();
-        $streams[] = $this->private__turboStreamTag('update', 'metrics-value-failure-rate', $failureRateHtml);
-
-        $chartJson = \json_encode($d['metricsChartData'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        $streams[] = $this->private__turboStreamTag('replace', 'metrics-chart-data', '<script type="application/json" id="metrics-chart-data">'.$chartJson.'</script>');
-
-        $views = [
-            'metrics-workload-body' => ['view' => 'horizon.metrics.partials.workload-tbody', 'data' => ['workloadRows' => $d['workloadRows']]],
-            'metrics-supervisors-body' => ['view' => 'horizon.metrics.partials.supervisors-tbody', 'data' => ['supervisorsRows' => $d['supervisorsRows']]],
-        ];
-        $this->private__pushViewStreams($streams, $views, 'morph');
-
-        return \implode("\n", $streams);
+        return $this->private__turboStreamTag('update', 'turbo-tbody-horizon-alerts-list', $html, 'morph');
     }
 
     // ------------------------------------------------------------------
@@ -190,77 +171,6 @@ class HorizonStreamsController extends StreamController
         $this->private__pushViewStreams($streams, $views, 'morph');
 
         return \implode("\n", $streams);
-    }
-
-    // ------------------------------------------------------------------
-    //  Queues
-    // ------------------------------------------------------------------
-
-    private function private__buildQueuesStreams(string $query): ?string
-    {
-        $serviceFilterIds = $this->private__parseServiceIdsFromQuery($query, 'queue_services');
-        $queues = $this->metrics->buildQueuesCollectionForServiceFilter($serviceFilterIds);
-
-        $html = \view('horizon.queues.partials.queue-tbody', ['queues' => $queues])->render();
-
-        return $this->private__turboStreamTag('update', 'turbo-tbody-horizon-queue-list', $html, 'morph');
-    }
-
-    // ------------------------------------------------------------------
-    //  Services index
-    // ------------------------------------------------------------------
-
-    private function private__buildServicesStreams(): ?string
-    {
-        $services = Service::query()->orderBy('name')->get();
-        $this->serviceStats->attachHorizonStats($services, $this->horizonApi);
-
-        $html = \view('horizon.services.partials.service-tbody', ['services' => $services])->render();
-
-        return $this->private__turboStreamTag('update', 'turbo-tbody-horizon-service-list', $html, 'morph');
-    }
-
-    // ------------------------------------------------------------------
-    //  Alerts index
-    // ------------------------------------------------------------------
-
-    private function private__buildAlertsStreams(): ?string
-    {
-        $alerts = Alert::query()
-            ->withCount('alertLogs')
-            ->withMax('alertLogs', 'sent_at')
-            ->orderByDesc('created_at')
-            ->get();
-
-        $html = \view('horizon.alerts.partials.alert-tbody', ['alerts' => $alerts])->render();
-
-        return $this->private__turboStreamTag('update', 'turbo-tbody-horizon-alerts-list', $html, 'morph');
-    }
-
-    // ------------------------------------------------------------------
-    //  Jobs index
-    // ------------------------------------------------------------------
-
-    private function private__buildJobsIndexStreams(string $query): ?string
-    {
-        $url = \route('horizon.jobs.index', [], true);
-        if ($query !== '') {
-            $url .= "?$query";
-        }
-        $pageRequest = Request::create($url, 'GET');
-
-        $index = $this->jobList->buildAggregatedJobsIndexFromRequest($pageRequest);
-
-        return \implode("\n", $this->private__streamsForJobListSections(
-            [
-                'processing' => $index['processing'],
-                'processed' => $index['processed'],
-                'failed' => $index['failed'],
-            ],
-            'horizon-job-list',
-            true,
-            null,
-        ));
     }
 
     // ------------------------------------------------------------------
@@ -323,6 +233,82 @@ class HorizonStreamsController extends StreamController
     }
 
     // ------------------------------------------------------------------
+    //  Jobs index
+    // ------------------------------------------------------------------
+
+    private function private__buildJobsIndexStreams(string $query): ?string
+    {
+        $url = \route('horizon.jobs.index', [], true);
+        if ($query !== '') {
+            $url .= "?$query";
+        }
+        $pageRequest = Request::create($url, 'GET');
+
+        $index = $this->jobList->buildAggregatedJobsIndexFromRequest($pageRequest);
+
+        return \implode("\n", $this->private__streamsForJobListSections(
+            [
+                'processing' => $index['processing'],
+                'processed' => $index['processed'],
+                'failed' => $index['failed'],
+            ],
+            'horizon-job-list',
+            true,
+            null,
+        ));
+    }
+
+    // ------------------------------------------------------------------
+    //  Metrics
+    // ------------------------------------------------------------------
+
+    private function private__buildMetricsStreams(string $query): ?string
+    {
+        $d = $this->metricsDashboard->build($this->private__parseServiceIdsFromQuery($query));
+
+        $updates = [
+            'metrics-value-jobs-minute' => e($d['jobsPastMinute'] ?? '—'),
+            'metrics-value-jobs-hour' => e($d['jobsPastHour'] ?? '—'),
+            'metrics-value-failed-seven' => e($d['failedPastSevenDays'] ?? '—'),
+            'metrics-workload-summary' => e($d['workloadSummary']),
+            'metrics-supervisors-summary' => e($d['supervisorsSummary']),
+        ];
+
+        $streams = [];
+        $this->private__pushStreamUpdates($streams, $updates);
+
+        $failureRateHtml = \view('horizon.metrics.partials.failure-rate-value', [
+            'failureRate24h' => $d['failureRate24h'],
+        ])->render();
+        $streams[] = $this->private__turboStreamTag('update', 'metrics-value-failure-rate', $failureRateHtml);
+
+        $chartJson = \json_encode($d['metricsChartData'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $streams[] = $this->private__turboStreamTag('replace', 'metrics-chart-data', '<script type="application/json" id="metrics-chart-data">'.$chartJson.'</script>');
+
+        $views = [
+            'metrics-workload-body' => ['view' => 'horizon.metrics.partials.workload-tbody', 'data' => ['workloadRows' => $d['workloadRows']]],
+            'metrics-supervisors-body' => ['view' => 'horizon.metrics.partials.supervisors-tbody', 'data' => ['supervisorsRows' => $d['supervisorsRows']]],
+        ];
+        $this->private__pushViewStreams($streams, $views, 'morph');
+
+        return \implode("\n", $streams);
+    }
+
+    // ------------------------------------------------------------------
+    //  Queues
+    // ------------------------------------------------------------------
+
+    private function private__buildQueuesStreams(string $query): ?string
+    {
+        $serviceFilterIds = $this->private__parseServiceIdsFromQuery($query, 'queue_services');
+        $queues = $this->metrics->buildQueuesCollectionForServiceFilter($serviceFilterIds);
+
+        $html = \view('horizon.queues.partials.queue-tbody', ['queues' => $queues])->render();
+
+        return $this->private__turboStreamTag('update', 'turbo-tbody-horizon-queue-list', $html, 'morph');
+    }
+
+    // ------------------------------------------------------------------
     //  Service show
     // ------------------------------------------------------------------
 
@@ -373,6 +359,51 @@ class HorizonStreamsController extends StreamController
         return \implode("\n", $streams);
     }
 
+    // ------------------------------------------------------------------
+    //  Services index
+    // ------------------------------------------------------------------
+
+    private function private__buildServicesStreams(): ?string
+    {
+        $services = Service::query()->orderBy('name')->get();
+        $this->serviceStats->attachHorizonStats($services, $this->horizonApi);
+
+        $html = \view('horizon.services.partials.service-tbody', ['services' => $services])->render();
+
+        return $this->private__turboStreamTag('update', 'turbo-tbody-horizon-service-list', $html, 'morph');
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function private__parseServiceIdsFromQuery(string $query, string $key = 'service_id'): array
+    {
+        if ($query === '') {
+            return [];
+        }
+
+        \parse_str($query, $params);
+        $raw = $params[$key] ?? null;
+
+        return ServiceRequest::parseIds($raw);
+    }
+
+    private function private__pushStreamUpdates(array &$streams, array $updates, ?string $streamMethod = null): void
+    {
+        foreach ($updates as $target => $content) {
+            $streams[] = $this->private__turboStreamTag('update', $target, $content, $streamMethod);
+        }
+    }
+
+    private function private__pushViewStreams(array &$streams, array $views, ?string $streamMethod = null): void
+    {
+        $updates = [];
+        foreach ($views as $target => $viewData) {
+            $updates[$target] = \view($viewData['view'], $viewData['data'] ?? [])->render();
+        }
+        $this->private__pushStreamUpdates($streams, $updates, $streamMethod);
+    }
+
     /**
      * Turbo streams for the three job list section tbodies, badge counts, and pagination (no thead replace).
      *
@@ -414,36 +445,5 @@ class HorizonStreamsController extends StreamController
         }
 
         return "$open><template>$content</template></turbo-stream>";
-    }
-
-    private function private__pushStreamUpdates(array &$streams, array $updates, ?string $streamMethod = null): void
-    {
-        foreach ($updates as $target => $content) {
-            $streams[] = $this->private__turboStreamTag('update', $target, $content, $streamMethod);
-        }
-    }
-
-    private function private__pushViewStreams(array &$streams, array $views, ?string $streamMethod = null): void
-    {
-        $updates = [];
-        foreach ($views as $target => $viewData) {
-            $updates[$target] = \view($viewData['view'], $viewData['data'] ?? [])->render();
-        }
-        $this->private__pushStreamUpdates($streams, $updates, $streamMethod);
-    }
-
-    /**
-     * @return list<int>
-     */
-    private function private__parseServiceIdsFromQuery(string $query, string $key = 'service_id'): array
-    {
-        if ($query === '') {
-            return [];
-        }
-
-        \parse_str($query, $params);
-        $raw = $params[$key] ?? null;
-
-        return ServiceRequest::parseIds($raw);
     }
 }

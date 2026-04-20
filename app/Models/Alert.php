@@ -8,24 +8,29 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Alert extends Model
 {
-    /**
-     * Cached service names grouped by service id.
-     *
-     * @var array<int, string>|null
-     */
-    private static ?array $cachedServiceNamesById = null;
+    public const RULE_AVG_EXECUTION_TIME = 'avg_execution_time';
 
     public const RULE_FAILURE_COUNT = 'failure_count';
 
-    public const RULE_AVG_EXECUTION_TIME = 'avg_execution_time';
+    public const RULE_HORIZON_OFFLINE = 'horizon_offline';
 
     public const RULE_QUEUE_BLOCKED = 'queue_blocked';
 
-    public const RULE_WORKER_OFFLINE = 'worker_offline';
-
     public const RULE_SUPERVISOR_OFFLINE = 'supervisor_offline';
 
-    public const RULE_HORIZON_OFFLINE = 'horizon_offline';
+    public const RULE_WORKER_OFFLINE = 'worker_offline';
+
+    /**
+     * The casts of the alert.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'threshold' => 'array',
+        'service_ids' => 'array',
+        'enabled' => 'boolean',
+        'email_interval_minutes' => 'integer',
+    ];
 
     /**
      * The fillable attributes of the alert.
@@ -44,16 +49,11 @@ class Alert extends Model
     ];
 
     /**
-     * The casts of the alert.
+     * Cached service names grouped by service id.
      *
-     * @var array<string, string>
+     * @var array<int, string>|null
      */
-    protected $casts = [
-        'threshold' => 'array',
-        'service_ids' => 'array',
-        'enabled' => 'boolean',
-        'email_interval_minutes' => 'integer',
-    ];
+    private static ?array $cachedServiceNamesById = null;
 
     /**
      * Get the alert logs of the alert.
@@ -61,6 +61,19 @@ class Alert extends Model
     public function alertLogs(): HasMany
     {
         return $this->hasMany(AlertLog::class);
+    }
+
+    /**
+     * Check whether this alert applies to the given service id.
+     */
+    public function appliesToServiceId(int $serviceId): bool
+    {
+        $scopedIds = $this->scopedServiceIds();
+        if ($scopedIds === []) {
+            return true;
+        }
+
+        return \in_array($serviceId, $scopedIds, true);
     }
 
     /**
@@ -122,18 +135,5 @@ class Alert extends Model
         }
 
         return $labels;
-    }
-
-    /**
-     * Check whether this alert applies to the given service id.
-     */
-    public function appliesToServiceId(int $serviceId): bool
-    {
-        $scopedIds = $this->scopedServiceIds();
-        if ($scopedIds === []) {
-            return true;
-        }
-
-        return \in_array($serviceId, $scopedIds, true);
     }
 }

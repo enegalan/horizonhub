@@ -11,11 +11,6 @@ use Illuminate\Support\Facades\Log;
 class AlertEngine
 {
     /**
-     * The rule evaluator.
-     */
-    private AlertRuleEvaluator $ruleEvaluator;
-
-    /**
      * The batch store.
      */
     private AlertBatchStore $batchStore;
@@ -26,6 +21,11 @@ class AlertEngine
     private AlertNotificationDispatcher $notificationDispatcher;
 
     /**
+     * The rule evaluator.
+     */
+    private AlertRuleEvaluator $ruleEvaluator;
+
+    /**
      * Construct the alert engine.
      */
     public function __construct(AlertRuleEvaluator $ruleEvaluator, AlertBatchStore $batchStore, AlertNotificationDispatcher $notificationDispatcher)
@@ -33,30 +33,6 @@ class AlertEngine
         $this->ruleEvaluator = $ruleEvaluator;
         $this->batchStore = $batchStore;
         $this->notificationDispatcher = $notificationDispatcher;
-    }
-
-    /**
-     * Flush pending alerts.
-     */
-    public function flushPendingAlerts(): void
-    {
-        /** @var Collection<int, Alert> $alerts */
-        $alerts = Alert::where('enabled', true)
-            ->with('notificationProviders')
-            ->get();
-        foreach ($alerts as $alert) {
-            try {
-                $pending = $this->batchStore->getPending($alert);
-                if (empty($pending) || ! $this->batchStore->shouldSendNow($alert)) {
-                    continue;
-                }
-                $this->private__sendBatchedAlert($alert, $pending);
-                $this->batchStore->clearPending($alert);
-                $this->batchStore->setLastSentAt($alert);
-            } catch (\Throwable $e) {
-                Log::error('Horizon Hub: flush pending alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
-            }
-        }
     }
 
     /**
@@ -83,43 +59,6 @@ class AlertEngine
             $result = $this->ruleEvaluator->evaluateWithTriggeringJobs($alert, $serviceId, $jobUuid);
             if ($result['triggered']) {
                 $this->private__triggerAlert($alert, $serviceId, $jobUuid, $result['job_uuids']);
-            }
-        }
-    }
-
-    /**
-     * Evaluate the scheduled alerts.
-     */
-    public function evaluateScheduled(): void
-    {
-        $this->flushPendingAlerts();
-
-        /** @var Collection<int, Alert> $alerts */
-        $alerts = Alert::where('enabled', true)
-            ->with('notificationProviders')
-            ->get();
-        $services = Service::all();
-
-        foreach ($alerts as $alert) {
-            try {
-                $serviceIds = $alert->scopedServiceIds();
-                if ($serviceIds === []) {
-                    $serviceIds = $services->pluck('id')->all();
-                }
-                if (empty($serviceIds)) {
-                    Log::warning('Horizon Hub: no services to evaluate alert (add at least one service)', ['alert_id' => $alert->id]);
-
-                    continue;
-                }
-                foreach ($serviceIds as $serviceId) {
-                    $result = $this->ruleEvaluator->evaluateWithTriggeringJobs($alert, $serviceId, null);
-                    if ($result['triggered']) {
-                        $this->private__triggerAlert($alert, $serviceId, null, $result['job_uuids']);
-                        break;
-                    }
-                }
-            } catch (\Throwable $e) {
-                Log::error('Horizon Hub: evaluate scheduled alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
             }
         }
     }
@@ -225,6 +164,67 @@ class AlertEngine
     }
 
     /**
+     * Evaluate the scheduled alerts.
+     */
+    public function evaluateScheduled(): void
+    {
+        $this->flushPendingAlerts();
+
+        /** @var Collection<int, Alert> $alerts */
+        $alerts = Alert::where('enabled', true)
+            ->with('notificationProviders')
+            ->get();
+        $services = Service::all();
+
+        foreach ($alerts as $alert) {
+            try {
+                $serviceIds = $alert->scopedServiceIds();
+                if ($serviceIds === []) {
+                    $serviceIds = $services->pluck('id')->all();
+                }
+                if (empty($serviceIds)) {
+                    Log::warning('Horizon Hub: no services to evaluate alert (add at least one service)', ['alert_id' => $alert->id]);
+
+                    continue;
+                }
+                foreach ($serviceIds as $serviceId) {
+                    $result = $this->ruleEvaluator->evaluateWithTriggeringJobs($alert, $serviceId, null);
+                    if ($result['triggered']) {
+                        $this->private__triggerAlert($alert, $serviceId, null, $result['job_uuids']);
+                        break;
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::error('Horizon Hub: evaluate scheduled alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
+            }
+        }
+    }
+
+    /**
+     * Flush pending alerts.
+     */
+    public function flushPendingAlerts(): void
+    {
+        /** @var Collection<int, Alert> $alerts */
+        $alerts = Alert::where('enabled', true)
+            ->with('notificationProviders')
+            ->get();
+        foreach ($alerts as $alert) {
+            try {
+                $pending = $this->batchStore->getPending($alert);
+                if (empty($pending) || ! $this->batchStore->shouldSendNow($alert)) {
+                    continue;
+                }
+                $this->private__sendBatchedAlert($alert, $pending);
+                $this->batchStore->clearPending($alert);
+                $this->batchStore->setLastSentAt($alert);
+            } catch (\Throwable $e) {
+                Log::error('Horizon Hub: flush pending alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
+            }
+        }
+    }
+
+    /**
      * Retry the alert log.
      *
      * @param  AlertLog  $log  The alert log.
@@ -252,32 +252,6 @@ class AlertEngine
         ]);
 
         $this->notificationDispatcher->dispatch($alert, $events, $newLog);
-    }
-
-    /**
-     * Should evaluate the alert.
-     *
-     * @param  Alert  $alert  The alert.
-     * @param  string  $eventType  The event type.
-     */
-    private function private__shouldEvaluate(Alert $alert, string $eventType): bool
-    {
-        if ($alert->rule_type === Alert::RULE_FAILURE_COUNT && $eventType !== 'JobFailed') {
-            return false;
-        }
-        if ($alert->rule_type === Alert::RULE_AVG_EXECUTION_TIME) {
-            return \in_array($eventType, ['JobProcessed', 'JobCompleted'], true);
-        }
-        if (\in_array($alert->rule_type, [
-            Alert::RULE_QUEUE_BLOCKED,
-            Alert::RULE_WORKER_OFFLINE,
-            Alert::RULE_SUPERVISOR_OFFLINE,
-            Alert::RULE_HORIZON_OFFLINE,
-        ], true)) {
-            return false;
-        }
-
-        return true;
     }
 
     /**
@@ -314,6 +288,56 @@ class AlertEngine
         }
 
         return $events;
+    }
+
+    /**
+     * Send the batched alert.
+     *
+     * @param  Alert  $alert  The alert.
+     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $events
+     */
+    private function private__sendBatchedAlert(Alert $alert, array $events): void
+    {
+        $first = $events[0];
+        $serviceId = (int) $first['service_id'];
+        $jobUuids = \array_values(\array_filter(\array_column($events, 'job_uuid')));
+
+        $log = AlertLog::create([
+            'alert_id' => $alert->id,
+            'service_id' => $serviceId,
+            'trigger_count' => \count($events),
+            'job_uuids' => $jobUuids ?: null,
+            'status' => 'sent',
+            'sent_at' => \now(),
+        ]);
+
+        $this->notificationDispatcher->dispatch($alert, $events, $log);
+    }
+
+    /**
+     * Should evaluate the alert.
+     *
+     * @param  Alert  $alert  The alert.
+     * @param  string  $eventType  The event type.
+     */
+    private function private__shouldEvaluate(Alert $alert, string $eventType): bool
+    {
+        if ($alert->rule_type === Alert::RULE_FAILURE_COUNT && $eventType !== 'JobFailed') {
+            return false;
+        }
+        if ($alert->rule_type === Alert::RULE_AVG_EXECUTION_TIME) {
+            return \in_array($eventType, ['JobProcessed', 'JobCompleted'], true);
+        }
+        if (\in_array($alert->rule_type, [
+            Alert::RULE_QUEUE_BLOCKED,
+            Alert::RULE_WORKER_OFFLINE,
+            Alert::RULE_SUPERVISOR_OFFLINE,
+            Alert::RULE_HORIZON_OFFLINE,
+        ], true)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -356,29 +380,5 @@ class AlertEngine
         $this->private__sendBatchedAlert($alert, $pending);
         $this->batchStore->clearPending($alert);
         $this->batchStore->setLastSentAt($alert);
-    }
-
-    /**
-     * Send the batched alert.
-     *
-     * @param  Alert  $alert  The alert.
-     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $events
-     */
-    private function private__sendBatchedAlert(Alert $alert, array $events): void
-    {
-        $first = $events[0];
-        $serviceId = (int) $first['service_id'];
-        $jobUuids = \array_values(\array_filter(\array_column($events, 'job_uuid')));
-
-        $log = AlertLog::create([
-            'alert_id' => $alert->id,
-            'service_id' => $serviceId,
-            'trigger_count' => \count($events),
-            'job_uuids' => $jobUuids ?: null,
-            'status' => 'sent',
-            'sent_at' => \now(),
-        ]);
-
-        $this->notificationDispatcher->dispatch($alert, $events, $log);
     }
 }

@@ -14,123 +14,60 @@ class HorizonMetricsServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_queue_name_normalizer_strips_redis_prefix(): void
-    {
-        $this->assertNull(QueueNameNormalizer::normalize(null));
-        $this->assertSame('', QueueNameNormalizer::normalize(''));
-        $this->assertSame('default', QueueNameNormalizer::normalize('redis.default'));
-        $this->assertSame('default', QueueNameNormalizer::normalize('redis:default'));
-        $this->assertSame('emails', QueueNameNormalizer::normalize('database.emails'));
-        $this->assertSame('notifications', QueueNameNormalizer::normalize('sqs:notifications'));
-        $this->assertSame('redis.', QueueNameNormalizer::normalize('redis.'));
-        $this->assertSame('alpha', QueueNameNormalizer::normalize('alpha'));
-    }
-
-    public function test_queue_name_normalizer_strips_custom_connection_prefix_via_fallback_pattern(): void
-    {
-        $this->assertSame('jobs', QueueNameNormalizer::normalize('acme_worker:jobs'));
-        $this->assertSame('emails', QueueNameNormalizer::normalize('acme_worker.emails'));
-    }
-
-    public function test_queue_name_normalizer_prefers_longest_queue_config_connection_name(): void
-    {
-        \config(['queue.connections.redis_cluster' => ['driver' => 'redis']]);
-
-        $this->assertSame('default', QueueNameNormalizer::normalize('redis_cluster:default'));
-        $this->assertSame('default', QueueNameNormalizer::normalize('redis:default'));
-    }
-
-    public function test_queue_name_normalizer_does_not_strip_when_leading_segment_starts_with_digit(): void
-    {
-        $this->assertSame('1queue:jobs', QueueNameNormalizer::normalize('1queue:jobs'));
-    }
-
-    public function test_get_workload_for_service_maps_nested_data_payload(): void
+    public function test_get_failure_rate_24h_fetches_multiple_horizon_pages_using_index_cursor(): void
     {
         $api = $this->createMock(HorizonApiProxyService::class);
-        $api->expects($this->once())
-            ->method('getWorkload')
-            ->willReturn([
-                'success' => true,
-                'data' => [
-                    'data' => [
-                        ['name' => 'redis.default', 'length' => 7, 'processes' => 2, 'wait' => 1.5],
-                    ],
-                ],
-            ]);
+
+        $now = Carbon::parse('2026-03-20 15:30:00');
+        Carbon::setTestNow($now);
 
         $service = Service::create([
-            'name' => 'svc-a',
-            'base_url' => 'https://metrics.test',
+            'name' => 'svc-pagination',
+            'base_url' => 'https://metrics-pagination.test',
             'status' => 'online',
         ]);
 
-        $metrics = new HorizonMetricsService($api);
-        $rows = $metrics->getWorkloadForService($service);
+        $since = $now->copy()->subDay()->startOfDay();
+        $sinceTs = $since->getTimestamp();
+        $completedTs = $sinceTs + 3600;
 
-        $this->assertCount(1, $rows);
-        $this->assertSame('default', $rows[0]['queue']);
-        $this->assertSame(7, $rows[0]['jobs']);
-        $this->assertSame(2, $rows[0]['processes']);
-        $this->assertSame(1.5, $rows[0]['wait']);
-    }
+        $api->method('getCompletedJobs')->willReturnCallback(function ($svc, array $query) use ($service, $completedTs): array {
+            $this->assertInstanceOf(Service::class, $svc);
+            $this->assertSame((int) $service->id, (int) $svc->id);
+            $startingAt = (int) ($query['starting_at'] ?? -1);
+            if ($startingAt === -1) {
+                $jobs = [];
+                for ($i = 0; $i < 50; $i++) {
+                    $jobs[] = [
+                        'completed_at' => $completedTs + $i,
+                        'index' => $i,
+                    ];
+                }
 
-    public function test_get_workload_for_service_returns_empty_without_base_url(): void
-    {
-        $api = $this->createMock(HorizonApiProxyService::class);
-        $api->expects($this->never())->method('getWorkload');
+                return ['success' => true, 'data' => ['jobs' => $jobs]];
+            }
+            if ($startingAt === 49) {
+                return ['success' => true, 'data' => ['jobs' => [
+                    ['completed_at' => $completedTs + 100, 'index' => 50],
+                ]]];
+            }
 
-        $service = Service::create([
-            'name' => 'svc-b',
-            'base_url' => '',
-            'status' => 'online',
-        ]);
+            return ['success' => true, 'data' => ['jobs' => []]];
+        });
 
-        $metrics = new HorizonMetricsService($api);
-        $this->assertSame([], $metrics->getWorkloadForService($service));
-    }
-
-    public function test_get_workload_for_service_returns_empty_when_api_fails(): void
-    {
-        $api = $this->createMock(HorizonApiProxyService::class);
-        $api->method('getWorkload')->willReturn([
-            'success' => false,
-            'status' => 503,
-            'message' => 'unavailable',
-        ]);
-
-        $service = Service::create([
-            'name' => 'svc-c',
-            'base_url' => 'https://metrics-c.test',
-            'status' => 'online',
-        ]);
-
-        $metrics = new HorizonMetricsService($api);
-        $this->assertSame([], $metrics->getWorkloadForService($service));
-    }
-
-    public function test_get_workload_for_service_accepts_numeric_indexed_rows(): void
-    {
-        $api = $this->createMock(HorizonApiProxyService::class);
-        $api->method('getWorkload')->willReturn([
+        $api->method('getFailedJobs')->willReturn([
             'success' => true,
-            'data' => [
-                ['name' => 'alpha', 'size' => 4],
-            ],
-        ]);
-
-        $service = Service::create([
-            'name' => 'svc-d',
-            'base_url' => 'https://metrics-d.test',
-            'status' => 'online',
+            'data' => ['jobs' => []],
         ]);
 
         $metrics = new HorizonMetricsService($api);
-        $rows = $metrics->getWorkloadForService($service);
+        $result = $metrics->getFailureRate24h([(int) $service->id]);
 
-        $this->assertCount(1, $rows);
-        $this->assertSame('alpha', $rows[0]['queue']);
-        $this->assertSame(4, $rows[0]['jobs']);
+        $this->assertSame(51, $result['processed']);
+        $this->assertSame(0, $result['failed']);
+        $this->assertSame(0.0, $result['rate']);
+
+        Carbon::setTestNow();
     }
 
     public function test_get_failure_rate_over_time_builds_expected_buckets_and_rates(): void
@@ -204,111 +141,6 @@ class HorizonMetricsServiceTest extends TestCase
         Carbon::setTestNow();
     }
 
-    public function test_get_jobs_volume_last24h_counts_hourly_completed_and_failed(): void
-    {
-        $api = $this->createMock(HorizonApiProxyService::class);
-
-        $now = Carbon::parse('2026-03-21 15:30:00');
-        Carbon::setTestNow($now);
-
-        $service = Service::create([
-            'name' => 'svc-jobs-volume-24h',
-            'base_url' => 'https://jobs-volume-24h.test',
-            'status' => 'online',
-        ]);
-
-        $sinceBucketStart = $now->copy()->subHours(24)->startOfHour();
-        $activeHour = $sinceBucketStart->copy()->addHour();
-
-        $api->method('getCompletedJobs')->willReturn([
-            'success' => true,
-            'data' => [
-                'jobs' => [
-                    ['completed_at' => $activeHour->copy()->addMinutes(10)->getTimestamp()],
-                    ['completed_at' => $activeHour->copy()->addMinutes(20)->getTimestamp()],
-                ],
-            ],
-        ]);
-        $api->method('getFailedJobs')->willReturn([
-            'success' => true,
-            'data' => [
-                'jobs' => [
-                    ['failed_at' => $activeHour->copy()->addMinutes(30)->getTimestamp()],
-                ],
-            ],
-        ]);
-
-        $metrics = new HorizonMetricsService($api);
-        $result = $metrics->getJobsVolumeLast24h([(int) $service->id]);
-
-        $this->assertCount(25, $result['xAxis']);
-        $this->assertCount(25, $result['completed']);
-        $this->assertCount(25, $result['failed']);
-
-        $this->assertSame(0, $result['completed'][0]);
-        $this->assertSame(0, $result['failed'][0]);
-        $this->assertSame(2, $result['completed'][1]);
-        $this->assertSame(1, $result['failed'][1]);
-
-        Carbon::setTestNow();
-    }
-
-    public function test_get_failure_rate_24h_fetches_multiple_horizon_pages_using_index_cursor(): void
-    {
-        $api = $this->createMock(HorizonApiProxyService::class);
-
-        $now = Carbon::parse('2026-03-20 15:30:00');
-        Carbon::setTestNow($now);
-
-        $service = Service::create([
-            'name' => 'svc-pagination',
-            'base_url' => 'https://metrics-pagination.test',
-            'status' => 'online',
-        ]);
-
-        $since = $now->copy()->subDay()->startOfDay();
-        $sinceTs = $since->getTimestamp();
-        $completedTs = $sinceTs + 3600;
-
-        $api->method('getCompletedJobs')->willReturnCallback(function ($svc, array $query) use ($service, $completedTs): array {
-            $this->assertInstanceOf(Service::class, $svc);
-            $this->assertSame((int) $service->id, (int) $svc->id);
-            $startingAt = (int) ($query['starting_at'] ?? -1);
-            if ($startingAt === -1) {
-                $jobs = [];
-                for ($i = 0; $i < 50; $i++) {
-                    $jobs[] = [
-                        'completed_at' => $completedTs + $i,
-                        'index' => $i,
-                    ];
-                }
-
-                return ['success' => true, 'data' => ['jobs' => $jobs]];
-            }
-            if ($startingAt === 49) {
-                return ['success' => true, 'data' => ['jobs' => [
-                    ['completed_at' => $completedTs + 100, 'index' => 50],
-                ]]];
-            }
-
-            return ['success' => true, 'data' => ['jobs' => []]];
-        });
-
-        $api->method('getFailedJobs')->willReturn([
-            'success' => true,
-            'data' => ['jobs' => []],
-        ]);
-
-        $metrics = new HorizonMetricsService($api);
-        $result = $metrics->getFailureRate24h([(int) $service->id]);
-
-        $this->assertSame(51, $result['processed']);
-        $this->assertSame(0, $result['failed']);
-        $this->assertSame(0.0, $result['rate']);
-
-        Carbon::setTestNow();
-    }
-
     public function test_get_job_runtimes_last24h_returns_sorted_points_with_seconds(): void
     {
         $api = $this->createMock(HorizonApiProxyService::class);
@@ -378,6 +210,55 @@ class HorizonMetricsServiceTest extends TestCase
         $this->assertSame($endNewer * 1000, $result['points'][2]['endAtMs']);
         $this->assertSame(120.0, $result['points'][2]['seconds']);
         $this->assertSame('completed', $result['points'][2]['status']);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_get_jobs_volume_last24h_counts_hourly_completed_and_failed(): void
+    {
+        $api = $this->createMock(HorizonApiProxyService::class);
+
+        $now = Carbon::parse('2026-03-21 15:30:00');
+        Carbon::setTestNow($now);
+
+        $service = Service::create([
+            'name' => 'svc-jobs-volume-24h',
+            'base_url' => 'https://jobs-volume-24h.test',
+            'status' => 'online',
+        ]);
+
+        $sinceBucketStart = $now->copy()->subHours(24)->startOfHour();
+        $activeHour = $sinceBucketStart->copy()->addHour();
+
+        $api->method('getCompletedJobs')->willReturn([
+            'success' => true,
+            'data' => [
+                'jobs' => [
+                    ['completed_at' => $activeHour->copy()->addMinutes(10)->getTimestamp()],
+                    ['completed_at' => $activeHour->copy()->addMinutes(20)->getTimestamp()],
+                ],
+            ],
+        ]);
+        $api->method('getFailedJobs')->willReturn([
+            'success' => true,
+            'data' => [
+                'jobs' => [
+                    ['failed_at' => $activeHour->copy()->addMinutes(30)->getTimestamp()],
+                ],
+            ],
+        ]);
+
+        $metrics = new HorizonMetricsService($api);
+        $result = $metrics->getJobsVolumeLast24h([(int) $service->id]);
+
+        $this->assertCount(25, $result['xAxis']);
+        $this->assertCount(25, $result['completed']);
+        $this->assertCount(25, $result['failed']);
+
+        $this->assertSame(0, $result['completed'][0]);
+        $this->assertSame(0, $result['failed'][0]);
+        $this->assertSame(2, $result['completed'][1]);
+        $this->assertSame(1, $result['failed'][1]);
 
         Carbon::setTestNow();
     }
@@ -477,5 +358,124 @@ class HorizonMetricsServiceTest extends TestCase
             ['queue' => 'a'],
             ['queue' => 'b', 'wait' => null],
         ]));
+    }
+
+    public function test_get_workload_for_service_accepts_numeric_indexed_rows(): void
+    {
+        $api = $this->createMock(HorizonApiProxyService::class);
+        $api->method('getWorkload')->willReturn([
+            'success' => true,
+            'data' => [
+                ['name' => 'alpha', 'size' => 4],
+            ],
+        ]);
+
+        $service = Service::create([
+            'name' => 'svc-d',
+            'base_url' => 'https://metrics-d.test',
+            'status' => 'online',
+        ]);
+
+        $metrics = new HorizonMetricsService($api);
+        $rows = $metrics->getWorkloadForService($service);
+
+        $this->assertCount(1, $rows);
+        $this->assertSame('alpha', $rows[0]['queue']);
+        $this->assertSame(4, $rows[0]['jobs']);
+    }
+
+    public function test_get_workload_for_service_maps_nested_data_payload(): void
+    {
+        $api = $this->createMock(HorizonApiProxyService::class);
+        $api->expects($this->once())
+            ->method('getWorkload')
+            ->willReturn([
+                'success' => true,
+                'data' => [
+                    'data' => [
+                        ['name' => 'redis.default', 'length' => 7, 'processes' => 2, 'wait' => 1.5],
+                    ],
+                ],
+            ]);
+
+        $service = Service::create([
+            'name' => 'svc-a',
+            'base_url' => 'https://metrics.test',
+            'status' => 'online',
+        ]);
+
+        $metrics = new HorizonMetricsService($api);
+        $rows = $metrics->getWorkloadForService($service);
+
+        $this->assertCount(1, $rows);
+        $this->assertSame('default', $rows[0]['queue']);
+        $this->assertSame(7, $rows[0]['jobs']);
+        $this->assertSame(2, $rows[0]['processes']);
+        $this->assertSame(1.5, $rows[0]['wait']);
+    }
+
+    public function test_get_workload_for_service_returns_empty_when_api_fails(): void
+    {
+        $api = $this->createMock(HorizonApiProxyService::class);
+        $api->method('getWorkload')->willReturn([
+            'success' => false,
+            'status' => 503,
+            'message' => 'unavailable',
+        ]);
+
+        $service = Service::create([
+            'name' => 'svc-c',
+            'base_url' => 'https://metrics-c.test',
+            'status' => 'online',
+        ]);
+
+        $metrics = new HorizonMetricsService($api);
+        $this->assertSame([], $metrics->getWorkloadForService($service));
+    }
+
+    public function test_get_workload_for_service_returns_empty_without_base_url(): void
+    {
+        $api = $this->createMock(HorizonApiProxyService::class);
+        $api->expects($this->never())->method('getWorkload');
+
+        $service = Service::create([
+            'name' => 'svc-b',
+            'base_url' => '',
+            'status' => 'online',
+        ]);
+
+        $metrics = new HorizonMetricsService($api);
+        $this->assertSame([], $metrics->getWorkloadForService($service));
+    }
+
+    public function test_queue_name_normalizer_does_not_strip_when_leading_segment_starts_with_digit(): void
+    {
+        $this->assertSame('1queue:jobs', QueueNameNormalizer::normalize('1queue:jobs'));
+    }
+
+    public function test_queue_name_normalizer_prefers_longest_queue_config_connection_name(): void
+    {
+        \config(['queue.connections.redis_cluster' => ['driver' => 'redis']]);
+
+        $this->assertSame('default', QueueNameNormalizer::normalize('redis_cluster:default'));
+        $this->assertSame('default', QueueNameNormalizer::normalize('redis:default'));
+    }
+
+    public function test_queue_name_normalizer_strips_custom_connection_prefix_via_fallback_pattern(): void
+    {
+        $this->assertSame('jobs', QueueNameNormalizer::normalize('acme_worker:jobs'));
+        $this->assertSame('emails', QueueNameNormalizer::normalize('acme_worker.emails'));
+    }
+
+    public function test_queue_name_normalizer_strips_redis_prefix(): void
+    {
+        $this->assertNull(QueueNameNormalizer::normalize(null));
+        $this->assertSame('', QueueNameNormalizer::normalize(''));
+        $this->assertSame('default', QueueNameNormalizer::normalize('redis.default'));
+        $this->assertSame('default', QueueNameNormalizer::normalize('redis:default'));
+        $this->assertSame('emails', QueueNameNormalizer::normalize('database.emails'));
+        $this->assertSame('notifications', QueueNameNormalizer::normalize('sqs:notifications'));
+        $this->assertSame('redis.', QueueNameNormalizer::normalize('redis.'));
+        $this->assertSame('alpha', QueueNameNormalizer::normalize('alpha'));
     }
 }

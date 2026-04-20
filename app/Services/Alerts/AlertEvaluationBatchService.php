@@ -12,6 +12,38 @@ use Illuminate\Support\Str;
 class AlertEvaluationBatchService
 {
     /**
+     * Get the evaluation status.
+     *
+     * @param  string  $evaluationId  The evaluation ID.
+     * @return array<string, mixed>
+     */
+    public function getEvaluationStatus(string $evaluationId): array
+    {
+        $namespace = "horizonhub.alert_evaluation_batches.$evaluationId";
+
+        $status = (string) (Cache::get("$namespace.status") ?? 'running');
+        $totalAlerts = (int) (Cache::get("$namespace.total_alerts") ?? 0);
+        $evaluatedCount = (int) (Cache::get("$namespace.evaluated_count") ?? 0);
+        $triggeredCount = (int) (Cache::get("$namespace.triggered_count") ?? 0);
+        $deliveredCount = (int) (Cache::get("$namespace.delivered_count") ?? 0);
+        $errorCount = (int) (Cache::get("$namespace.error_count") ?? 0);
+        $firstErrorMessage = Cache::get("$namespace.first_error_message");
+        $errorMessage = Cache::get("$namespace.error_message");
+
+        return [
+            'evaluation_id' => $evaluationId,
+            'status' => $status,
+            'total_alerts' => $totalAlerts,
+            'evaluated_count' => $evaluatedCount,
+            'triggered_count' => $triggeredCount,
+            'delivered_count' => $deliveredCount,
+            'error_count' => $errorCount,
+            'first_error_message' => \is_string($firstErrorMessage) ? $firstErrorMessage : null,
+            'error_message' => \is_string($errorMessage) ? $errorMessage : null,
+        ];
+    }
+
+    /**
      * Start evaluating all alerts.
      *
      * @return array{evaluation_id: string, status: string, total_alerts: int}
@@ -69,38 +101,6 @@ class AlertEvaluationBatchService
             'evaluation_id' => $evaluationId,
             'status' => 'running',
             'total_alerts' => $total,
-        ];
-    }
-
-    /**
-     * Get the evaluation status.
-     *
-     * @param  string  $evaluationId  The evaluation ID.
-     * @return array<string, mixed>
-     */
-    public function getEvaluationStatus(string $evaluationId): array
-    {
-        $namespace = "horizonhub.alert_evaluation_batches.$evaluationId";
-
-        $status = (string) (Cache::get("$namespace.status") ?? 'running');
-        $totalAlerts = (int) (Cache::get("$namespace.total_alerts") ?? 0);
-        $evaluatedCount = (int) (Cache::get("$namespace.evaluated_count") ?? 0);
-        $triggeredCount = (int) (Cache::get("$namespace.triggered_count") ?? 0);
-        $deliveredCount = (int) (Cache::get("$namespace.delivered_count") ?? 0);
-        $errorCount = (int) (Cache::get("$namespace.error_count") ?? 0);
-        $firstErrorMessage = Cache::get("$namespace.first_error_message");
-        $errorMessage = Cache::get("$namespace.error_message");
-
-        return [
-            'evaluation_id' => $evaluationId,
-            'status' => $status,
-            'total_alerts' => $totalAlerts,
-            'evaluated_count' => $evaluatedCount,
-            'triggered_count' => $triggeredCount,
-            'delivered_count' => $deliveredCount,
-            'error_count' => $errorCount,
-            'first_error_message' => \is_string($firstErrorMessage) ? $firstErrorMessage : null,
-            'error_message' => \is_string($errorMessage) ? $errorMessage : null,
         ];
     }
 }
