@@ -23,17 +23,15 @@ class JobDashboardUrlBuilder
         if ($dashboardBase === '') {
             return null;
         }
-        $dashboardPath = \rtrim((string) config('horizonhub.horizon_paths.dashboard'), '/');
-        $status = (string) $jobStatus;
         $encodedUuid = \urlencode($jobUuid);
 
-        $jobPath = match ($status) {
+        $jobPath = match ((string) $jobStatus) {
             'processing', 'pending', 'reserved' => "/jobs/pending/$encodedUuid",
             'processed', 'completed' => "/jobs/completed/$encodedUuid",
             'failed' => "/failed/$encodedUuid",
             default => "/jobs/pending/$encodedUuid",
         };
 
-        return \rtrim($dashboardBase, '/').$dashboardPath.$jobPath;
+        return \rtrim($dashboardBase, '/').config('horizonhub.horizon_paths.dashboard').$jobPath;
     }
 }

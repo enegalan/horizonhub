@@ -44,7 +44,7 @@
                 </span>
             </div>
             @php
-                $dashboardUrl = $service->getPublicUrl().'/'.\config('horizonhub.horizon_paths.dashboard');
+                $dashboardUrl = $service->getPublicUrl().'/'.config('horizonhub.horizon_paths.dashboard');
             @endphp
             <x-button
                 variant="ghost"

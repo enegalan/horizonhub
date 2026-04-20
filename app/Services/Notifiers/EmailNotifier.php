@@ -36,7 +36,7 @@ class EmailNotifier extends AbstractAlertNotifier implements EmailAlertNotifier
         }
 
         $count = \count($events);
-        $enrichedEvents = $this->enrichEvents($events, \config('horizonhub.alerts.delivery_log_max_distinct_jobs'), \config('horizonhub.alerts.max_exception_length'));
+        $enrichedEvents = $this->enrichEvents($events, config('horizonhub.alerts.delivery_log_max_distinct_jobs'), config('horizonhub.alerts.max_exception_length'));
 
         $first = $events[0];
         $serviceId = (int) $first['service_id'];

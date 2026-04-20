@@ -165,7 +165,7 @@ class HorizonApiProxyService
             return null;
         }
 
-        $dashboardUrl = "$serviceBase/".\ltrim((string) config('horizonhub.horizon_paths.dashboard'), '/');
+        $dashboardUrl = $serviceBase.(string) config('horizonhub.horizon_paths.dashboard');
 
         $cookieJar = new CookieJar;
 
@@ -275,7 +275,7 @@ class HorizonApiProxyService
             ];
         }
 
-        $base = "$serviceBase/".\ltrim((string) config('horizonhub.horizon_paths.api'), '/');
+        $base = $serviceBase.(string) config('horizonhub.horizon_paths.api');
 
         $url = "$base/".\ltrim($path, '/');
 

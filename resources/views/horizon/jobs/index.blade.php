@@ -6,7 +6,7 @@
         x-data="window.horizonJobsPage ? window.horizonJobsPage({
             failedListUrl: '{{ route('horizon.jobs.failed') }}',
             retryBatchUrl: '{{ route('horizon.jobs.retry-batch') }}',
-            jobsPerPage: {{ \config('horizonhub.jobs_per_page') }},
+            jobsPerPage: {{ config('horizonhub.jobs_per_page') }},
         }) : {}"
     >
         <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">

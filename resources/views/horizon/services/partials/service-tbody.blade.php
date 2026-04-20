@@ -46,7 +46,7 @@
         <td class="px-4 py-2.5" data-column-id="actions" data-stream-preserve-client>
             <div class="flex items-center gap-2">
                 @php
-                    $dashboardUrl = $service->getPublicUrl().'/'.\config('horizonhub.horizon_paths.dashboard');
+                    $dashboardUrl = $service->getPublicUrl().config('horizonhub.horizon_paths.dashboard');
                 @endphp
                 <x-button
                     variant="ghost"

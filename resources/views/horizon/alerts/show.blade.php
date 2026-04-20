@@ -154,7 +154,7 @@
                             <x-input-label for="perPage">Per page</x-input-label>
                             <x-select id="perPage" name="per_page" class="w-24" onchange="typeof this.form.requestSubmit === 'function' ? this.form.requestSubmit() : this.form.submit()">
                                 @foreach([10,20,50] as $size)
-                                    <option value="{{ $size }}" @selected((int) ($filters['per_page'] ?? \config('horizonhub.jobs_per_page')) === $size)>{{ $size }}</option>
+                                    <option value="{{ $size }}" @selected((int) ($filters['per_page'] ?? config('horizonhub.jobs_per_page')) === $size)>{{ $size }}</option>
                                 @endforeach
                             </x-select>
                         </div>

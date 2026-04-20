@@ -16,7 +16,7 @@
         <meta name="view-transition" content="same-origin" />
 
         <!-- Title -->
-        <title>{{ \config('app.name') }}</title>
+        <title>{{ config('app.name') }}</title>
 
         <!-- Links -->
         <link rel="icon" type="image/svg+xml" href="{{ asset('logo.svg') }}">
