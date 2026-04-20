@@ -100,7 +100,7 @@ class HorizonApiProxyServiceTest extends TestCase
 
         \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
         \config()->set('horizonhub.horizon_paths.workload', '/workload');
-        \config()->set('horizonhub.horizon_paths.dashboard', 'horizon');
+        \config()->set('horizonhub.horizon_paths.dashboard', '/horizon');
 
         $service = Service::create([
             'name' => 'svc-workload-fallback',
@@ -189,7 +189,7 @@ class HorizonApiProxyServiceTest extends TestCase
             return Http::response('unexpected', 500);
         });
 
-        \config()->set('horizonhub.horizon_paths.dashboard', 'horizon');
+        \config()->set('horizonhub.horizon_paths.dashboard', '/horizon');
         \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
         \config()->set('horizonhub.horizon_paths.retry', '/jobs/retry/{id}');
 
