@@ -4,23 +4,19 @@
     @php
         $isEdit = $alert->exists;
         $action = $isEdit ? route('horizon.alerts.update', $alert) : route('horizon.alerts.store');
-        /** @var array<int,int> $selectedProviderIds */
-        $selectedProviderIds = $selectedProviderIds ?? [];
-        /** @var array<int,int> $selectedServiceIds */
-        $selectedServiceIds = $selectedServiceIds ?? [];
+        $selectedProviderIds ??= [];
+        $selectedServiceIds ??= [];
         $thresholdForm = $alert->threshold ?? [];
         $oldJobPatterns = old('job_patterns');
+        $jobPatternsForForm = [];
         if (\is_array($oldJobPatterns)) {
-            $jobPatternsForForm = [];
             foreach ($oldJobPatterns as $v) {
                 $jobPatternsForForm[] = \is_string($v) ? $v : '';
             }
-            if ($jobPatternsForForm === []) {
-                $jobPatternsForForm = [''];
-            }
         } elseif (isset($thresholdForm['job_patterns']) && \is_array($thresholdForm['job_patterns']) && $thresholdForm['job_patterns'] !== []) {
-            $jobPatternsForForm = \array_slice(\array_map('strval', $thresholdForm['job_patterns']), 0, 20);
-        } else {
+            $jobPatternsForForm = \array_values(\array_map('strval', $thresholdForm['job_patterns']));
+        }
+        if ($jobPatternsForForm === []) {
             $jobPatternsForForm = [''];
         }
         $jobTypeValueForForm = old('job_type');
@@ -31,19 +27,17 @@
             $jobTypeValueForForm = $hasStoredJobPatterns ? '' : (string) ($alert->job_type ?? '');
         }
         $oldQueuePatterns = old('queue_patterns');
+        $queuePatternsForForm = [];
         if (\is_array($oldQueuePatterns)) {
-            $queuePatternsForForm = [];
             foreach ($oldQueuePatterns as $v) {
                 $queuePatternsForForm[] = \is_string($v) ? $v : '';
             }
-            if ($queuePatternsForForm === []) {
-                $queuePatternsForForm = [''];
-            }
         } elseif (isset($thresholdForm['queue_patterns']) && \is_array($thresholdForm['queue_patterns']) && $thresholdForm['queue_patterns'] !== []) {
-            $queuePatternsForForm = \array_slice(\array_map('strval', $thresholdForm['queue_patterns']), 0, 20);
+            $queuePatternsForForm = \array_values(\array_map('strval', $thresholdForm['queue_patterns']));
         } elseif ($alert->queue !== null && (string) $alert->queue !== '') {
             $queuePatternsForForm = [(string) $alert->queue];
-        } else {
+        }
+        if ($queuePatternsForForm === []) {
             $queuePatternsForForm = [''];
         }
     @endphp
@@ -55,9 +49,7 @@
             jobPatterns: {!! \Illuminate\Support\Js::from($jobPatternsForForm) !!},
             queuePatterns: {!! \Illuminate\Support\Js::from($queuePatternsForForm) !!},
             addJobPattern() {
-                if (this.jobPatterns.length < 20) {
-                    this.jobPatterns.push('');
-                }
+                this.jobPatterns.push('');
             },
             removeJobPattern(i) {
                 if (this.jobPatterns.length > 1) {
@@ -67,9 +59,7 @@
                 }
             },
             addQueuePattern() {
-                if (this.queuePatterns.length < 20) {
-                    this.queuePatterns.push('');
-                }
+                this.queuePatterns.push('');
             },
             removeQueuePattern(i) {
                 if (this.queuePatterns.length > 1) {
@@ -190,7 +180,6 @@
                                 variant="secondary"
                                 class="h-9 text-sm"
                                 @click="addQueuePattern()"
-                                x-show="queuePatterns.length < 20"
                             >
                                 Add queue
                             </x-button>
@@ -230,7 +219,6 @@
                                 variant="secondary"
                                 class="h-9 text-sm"
                                 @click="addJobPattern()"
-                                x-show="jobPatterns.length < 20"
                             >
                                 Add pattern
                             </x-button>

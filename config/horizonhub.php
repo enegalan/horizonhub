@@ -109,7 +109,7 @@ return [
     | SSE stream tick interval
     |--------------------------------------------------------------------------
     |
-    | Seconds to wait between emitting consecutive Server-Sent Events on the
+    | Microseconds to wait between emitting consecutive Server-Sent Events on the
     | refresh stream (sleep inside the long-lived SSE response).
     | This is not a full browser reload interval.
     |
@@ -180,8 +180,10 @@ return [
         'default_count' => (int) env('HORIZON_HUB_ALERT_DEFAULT_COUNT', 5),
         'default_seconds' => (int) env('HORIZON_HUB_ALERT_DEFAULT_SECONDS', 60),
         'default_minutes' => (int) env('HORIZON_HUB_ALERT_DEFAULT_MINUTES', 15),
+        'default_email_interval_minutes' => (int) env('HORIZON_HUB_ALERT_DEFAULT_EMAIL_INTERVAL_MINUTES', 0),
         'pending_ttl_minutes' => (int) env('HORIZON_HUB_ALERT_PENDING_TTL_MINUTES', 60),
         'delivery_log_max_distinct_jobs' => (int) env('HORIZON_HUB_ALERT_DELIVERY_LOG_MAX_DISTINCT_JOBS', 20),
+        'max_exception_length' => (int) env('HORIZON_HUB_ALERT_MAX_EXCEPTION_LENGTH', 500),
     ],
 
     /*

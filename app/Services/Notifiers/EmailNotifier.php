@@ -13,20 +13,6 @@ use Illuminate\Support\Facades\Mail;
 class EmailNotifier extends AbstractAlertNotifier implements EmailAlertNotifier
 {
     /**
-     * Maximum length of exception text in the email body (keeps MIME encoding within memory limits).
-     *
-     * @var int
-     */
-    private const EMAIL_EXCEPTION_MAX_LENGTH = 500;
-
-    /**
-     * Maximum number of events to include in the email body (avoids memory exhaustion).
-     *
-     * @var int
-     */
-    private const MAX_EVENTS_IN_EMAIL = 20;
-
-    /**
      * Construct the email notifier.
      */
     public function __construct(HorizonApiProxyService $horizonApi)
@@ -50,7 +36,7 @@ class EmailNotifier extends AbstractAlertNotifier implements EmailAlertNotifier
         }
 
         $count = \count($events);
-        $enrichedEvents = $this->enrichEvents($events, self::MAX_EVENTS_IN_EMAIL, self::EMAIL_EXCEPTION_MAX_LENGTH);
+        $enrichedEvents = $this->enrichEvents($events, \config('horizonhub.alerts.delivery_log_max_distinct_jobs'), \config('horizonhub.alerts.max_exception_length'));
 
         $first = $events[0];
         $serviceId = (int) $first['service_id'];

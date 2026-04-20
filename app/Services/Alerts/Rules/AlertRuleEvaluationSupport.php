@@ -11,11 +11,6 @@ use Illuminate\Support\Collection;
 final class AlertRuleEvaluationSupport
 {
     /**
-     * The maximum number of triggering job UUIDs to collect.
-     */
-    public const MAX_TRIGGERING_JOB_UUIDS = 20;
-
-    /**
      * The Horizon API proxy service.
      */
     private HorizonApiProxyService $horizonApi;
@@ -36,7 +31,7 @@ final class AlertRuleEvaluationSupport
      */
     public function collectTriggeringJobUuids(Collection $jobs): array
     {
-        return $jobs->take(self::MAX_TRIGGERING_JOB_UUIDS)
+        return $jobs
             ->map(function ($job) {
                 $id = $job['id'] ?? null;
 

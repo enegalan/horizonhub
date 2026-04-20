@@ -12,11 +12,6 @@ use Illuminate\Support\Str;
 class AlertUpsertService
 {
     /**
-     * The maximum number of alert pattern lines.
-     */
-    private const ALERT_PATTERN_LINES_MAX = 20;
-
-    /**
      * Build the form view variables.
      *
      * @param  Alert  $alert  The alert.
@@ -63,7 +58,7 @@ class AlertUpsertService
         $merged = $patterns;
         $merged[] = $jt;
 
-        return \array_slice(\array_values(\array_unique($merged)), 0, self::ALERT_PATTERN_LINES_MAX);
+        return \array_values(\array_unique($merged));
     }
 
     /**
@@ -87,9 +82,7 @@ class AlertUpsertService
                 $out[] = $t;
             }
         }
-        $out = \array_values(\array_unique($out));
-
-        return \array_slice($out, 0, self::ALERT_PATTERN_LINES_MAX);
+        return \array_values(\array_unique($out));
     }
 
     /**
@@ -114,9 +107,9 @@ class AlertUpsertService
             'service_ids.*' => 'integer|exists:services,id',
             'queue' => 'nullable|string|max:255',
             'job_type' => 'nullable|string|max:255',
-            'job_patterns' => 'nullable|array|max:'.self::ALERT_PATTERN_LINES_MAX,
+            'job_patterns' => 'nullable|array',
             'job_patterns.*' => 'nullable|string|max:255',
-            'queue_patterns' => 'nullable|array|max:'.self::ALERT_PATTERN_LINES_MAX,
+            'queue_patterns' => 'nullable|array',
             'queue_patterns.*' => 'nullable|string|max:255',
             'thresholdCount' => 'nullable|integer|min:1',
             'thresholdMinutes' => 'nullable|integer|min:1',
