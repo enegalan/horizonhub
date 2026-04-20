@@ -82,6 +82,7 @@ class AlertUpsertService
                 $out[] = $t;
             }
         }
+
         return \array_values(\array_unique($out));
     }
 
