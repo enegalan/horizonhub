@@ -12,23 +12,23 @@ class NotificationProvider extends Model
      *
      * @var string
      */
-    public const TYPE_SLACK = 'slack';
+    public const TYPE_EMAIL = 'email';
 
     /**
      * The type of the provider.
      *
      * @var string
      */
-    public const TYPE_EMAIL = 'email';
+    public const TYPE_SLACK = 'slack';
+
+    protected $casts = [
+        'config' => 'array',
+    ];
 
     protected $fillable = [
         'name',
         'type',
         'config',
-    ];
-
-    protected $casts = [
-        'config' => 'array',
     ];
 
     /**
@@ -38,14 +38,6 @@ class NotificationProvider extends Model
     {
         return $this->belongsToMany(Alert::class, 'alert_notification_provider')
             ->withTimestamps();
-    }
-
-    /**
-     * Get the webhook URL of the provider.
-     */
-    public function getWebhookUrl(): string
-    {
-        return (string) ($this->config['webhook_url'] ?? '');
     }
 
     /**
@@ -68,5 +60,13 @@ class NotificationProvider extends Model
         }
 
         return [];
+    }
+
+    /**
+     * Get the webhook URL of the provider.
+     */
+    public function getWebhookUrl(): string
+    {
+        return (string) ($this->config['webhook_url'] ?? '');
     }
 }

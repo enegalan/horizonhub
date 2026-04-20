@@ -48,6 +48,51 @@ class AlertUpsertService
     }
 
     /**
+     * Merge the job type into the patterns.
+     *
+     * @param  list<string>  $patterns  The patterns.
+     * @param  string|null  $jobType  The job type.
+     * @return list<string>
+     */
+    public function mergeJobTypeIntoPatterns(array $patterns, ?string $jobType): array
+    {
+        $jt = $jobType !== null ? \trim($jobType) : '';
+        if ($jt === '' || \in_array($jt, $patterns, true)) {
+            return $patterns;
+        }
+        $merged = $patterns;
+        $merged[] = $jt;
+
+        return \array_slice(\array_values(\array_unique($merged)), 0, self::ALERT_PATTERN_LINES_MAX);
+    }
+
+    /**
+     * Sanitize the pattern array.
+     *
+     * @param  mixed  $raw  The raw value to sanitize.
+     * @return list<string>
+     */
+    public function sanitizePatternArray(mixed $raw): array
+    {
+        if (! \is_array($raw)) {
+            return [];
+        }
+        $out = [];
+        foreach ($raw as $v) {
+            if (! \is_string($v)) {
+                continue;
+            }
+            $t = \trim($v);
+            if ($t !== '') {
+                $out[] = $t;
+            }
+        }
+        $out = \array_values(\array_unique($out));
+
+        return \array_slice($out, 0, self::ALERT_PATTERN_LINES_MAX);
+    }
+
+    /**
      * Validate the alert.
      *
      * @param  Request  $request  The request.
@@ -182,50 +227,5 @@ class AlertUpsertService
             'alert' => $alertData,
             'provider_ids' => $validated['provider_ids'],
         ];
-    }
-
-    /**
-     * Sanitize the pattern array.
-     *
-     * @param  mixed  $raw  The raw value to sanitize.
-     * @return list<string>
-     */
-    public function sanitizePatternArray(mixed $raw): array
-    {
-        if (! \is_array($raw)) {
-            return [];
-        }
-        $out = [];
-        foreach ($raw as $v) {
-            if (! \is_string($v)) {
-                continue;
-            }
-            $t = \trim($v);
-            if ($t !== '') {
-                $out[] = $t;
-            }
-        }
-        $out = \array_values(\array_unique($out));
-
-        return \array_slice($out, 0, self::ALERT_PATTERN_LINES_MAX);
-    }
-
-    /**
-     * Merge the job type into the patterns.
-     *
-     * @param  list<string>  $patterns  The patterns.
-     * @param  string|null  $jobType  The job type.
-     * @return list<string>
-     */
-    public function mergeJobTypeIntoPatterns(array $patterns, ?string $jobType): array
-    {
-        $jt = $jobType !== null ? \trim($jobType) : '';
-        if ($jt === '' || \in_array($jt, $patterns, true)) {
-            return $patterns;
-        }
-        $merged = $patterns;
-        $merged[] = $jt;
-
-        return \array_slice(\array_values(\array_unique($merged)), 0, self::ALERT_PATTERN_LINES_MAX);
     }
 }

@@ -35,6 +35,28 @@ class JobCommandDataExtractor
     }
 
     /**
+     * Convert private/protected serialized property names to plain keys.
+     *
+     * @param  string|int  $key  The key.
+     */
+    private static function cleanPropertyKey(string|int $key): string|int
+    {
+        if (! \is_string($key) || $key === '') {
+            return $key;
+        }
+
+        if (\str_contains($key, "\0")) {
+            $parts = \explode("\0", $key);
+            $candidate = \end($parts);
+            if (\is_string($candidate) && $candidate !== '') {
+                return $candidate;
+            }
+        }
+
+        return $key;
+    }
+
+    /**
      * Normalize unserialized data to scalar/array values.
      *
      * @param  mixed  $value  The value.
@@ -69,27 +91,5 @@ class JobCommandDataExtractor
         }
 
         return (string) $value;
-    }
-
-    /**
-     * Convert private/protected serialized property names to plain keys.
-     *
-     * @param  string|int  $key  The key.
-     */
-    private static function cleanPropertyKey(string|int $key): string|int
-    {
-        if (! \is_string($key) || $key === '') {
-            return $key;
-        }
-
-        if (\str_contains($key, "\0")) {
-            $parts = \explode("\0", $key);
-            $candidate = \end($parts);
-            if (\is_string($candidate) && $candidate !== '') {
-                return $candidate;
-            }
-        }
-
-        return $key;
     }
 }

@@ -15,16 +15,16 @@ use App\Services\Alerts\Rules\Strategies\WorkerOfflineAlertRuleStrategy;
 final class AlertRuleStrategyRegistry
 {
     /**
+     * The null strategy.
+     */
+    private NullAlertRuleStrategy $nullStrategy;
+
+    /**
      * The strategies.
      *
      * @var array<string, AlertRuleStrategyInterface>
      */
     private array $strategies;
-
-    /**
-     * The null strategy.
-     */
-    private NullAlertRuleStrategy $nullStrategy;
 
     /**
      * Construct the strategy registry.

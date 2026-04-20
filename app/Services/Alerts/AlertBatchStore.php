@@ -23,40 +23,6 @@ class AlertBatchStore
     private const SENT_AT_CACHE_PREFIX = 'horizonhub_alert_sent_at_';
 
     /**
-     * Get the pending events for the given alert.
-     *
-     * @param  Alert  $alert  The alert.
-     * @return array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>
-     */
-    public function getPending(Alert $alert): array
-    {
-        $key = self::PENDING_CACHE_PREFIX.$alert->id;
-        $raw = Cache::get($key);
-        if (! \is_array($raw)) {
-            return [];
-        }
-
-        return $raw;
-    }
-
-    /**
-     * Set the pending events for the given alert.
-     *
-     * @param  Alert  $alert  The alert.
-     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $pending  The pending events.
-     */
-    public function setPending(Alert $alert, array $pending): void
-    {
-        $key = self::PENDING_CACHE_PREFIX.$alert->id;
-        if (empty($pending)) {
-            Cache::forget($key);
-
-            return;
-        }
-        Cache::put($key, $pending, \now()->addMinutes(config('horizonhub.alerts.pending_ttl_minutes')));
-    }
-
-    /**
      * Clear the pending events for the given alert.
      *
      * @param  Alert  $alert  The alert.
@@ -64,6 +30,20 @@ class AlertBatchStore
     public function clearPending(Alert $alert): void
     {
         $this->setPending($alert, []);
+    }
+
+    /**
+     * Get the interval minutes for the given alert.
+     *
+     * @param  Alert  $alert  The alert.
+     */
+    public function getIntervalMinutes(Alert $alert): int
+    {
+        if ($alert->email_interval_minutes !== null) {
+            return (int) $alert->email_interval_minutes;
+        }
+
+        return 0;
     }
 
     /**
@@ -83,6 +63,23 @@ class AlertBatchStore
     }
 
     /**
+     * Get the pending events for the given alert.
+     *
+     * @param  Alert  $alert  The alert.
+     * @return array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>
+     */
+    public function getPending(Alert $alert): array
+    {
+        $key = self::PENDING_CACHE_PREFIX.$alert->id;
+        $raw = Cache::get($key);
+        if (! \is_array($raw)) {
+            return [];
+        }
+
+        return $raw;
+    }
+
+    /**
      * Set the last sent at time for the given alert.
      *
      * @param  Alert  $alert  The alert.
@@ -96,17 +93,20 @@ class AlertBatchStore
     }
 
     /**
-     * Get the interval minutes for the given alert.
+     * Set the pending events for the given alert.
      *
      * @param  Alert  $alert  The alert.
+     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $pending  The pending events.
      */
-    public function getIntervalMinutes(Alert $alert): int
+    public function setPending(Alert $alert, array $pending): void
     {
-        if ($alert->email_interval_minutes !== null) {
-            return (int) $alert->email_interval_minutes;
-        }
+        $key = self::PENDING_CACHE_PREFIX.$alert->id;
+        if (empty($pending)) {
+            Cache::forget($key);
 
-        return 0;
+            return;
+        }
+        Cache::put($key, $pending, \now()->addMinutes(config('horizonhub.alerts.pending_ttl_minutes')));
     }
 
     /**

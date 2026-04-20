@@ -8,26 +8,18 @@ use Illuminate\Support\Collection;
 class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
 {
     /**
-     * Get the number of jobs processed in the past minute.
+     * Get the number of failed jobs in the past seven days.
      *
      * @param  Service|null  $service  The service.
      */
-    public function getJobsPastMinute(?Service $service = null): int
+    public function getFailedPastSevenDays(?Service $service = null): int
     {
         if ($service !== null && $service->getBaseUrl()) {
             $response = $this->horizonApi->getStats($service);
             $data = $response['data'] ?? null;
 
-            if (($response['success'] ?? false) && \is_array($data)) {
-                $jobs_per_minute = isset($data['jobsPerMinute']) ? (float) $data['jobsPerMinute'] : 0.0;
-                if ($jobs_per_minute > 0) {
-                    return (int) \round($jobs_per_minute);
-                }
-                $recent = isset($data['recentJobs']) ? (int) $data['recentJobs'] : 0;
-                $period = isset($data['periods']['recentJobs']) ? (int) $data['periods']['recentJobs'] : 60;
-                if ($recent >= 0 && $period > 0) {
-                    return (int) \round($recent / $period);
-                }
+            if (($response['success'] ?? false) && \is_array($data) && isset($data['failedJobs'])) {
+                return (int) $data['failedJobs'];
             }
 
             return 0;
@@ -42,7 +34,14 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
 
         $total = 0;
         foreach ($services as $svc) {
-            $total += $this->getJobsPastMinute($svc);
+            $response = $this->horizonApi->getStats($svc);
+            $data = $response['data'] ?? null;
+
+            if (! (($response['success'] ?? false) && \is_array($data) && isset($data['failedJobs']))) {
+                continue;
+            }
+
+            $total += (int) $data['failedJobs'];
         }
 
         return $total;
@@ -89,46 +88,6 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
     }
 
     /**
-     * Get the number of failed jobs in the past seven days.
-     *
-     * @param  Service|null  $service  The service.
-     */
-    public function getFailedPastSevenDays(?Service $service = null): int
-    {
-        if ($service !== null && $service->getBaseUrl()) {
-            $response = $this->horizonApi->getStats($service);
-            $data = $response['data'] ?? null;
-
-            if (($response['success'] ?? false) && \is_array($data) && isset($data['failedJobs'])) {
-                return (int) $data['failedJobs'];
-            }
-
-            return 0;
-        }
-
-        /** @var Collection<int, Service> $services */
-        $services = $this->private__getServicesForMetrics();
-
-        if ($services->isEmpty()) {
-            return 0;
-        }
-
-        $total = 0;
-        foreach ($services as $svc) {
-            $response = $this->horizonApi->getStats($svc);
-            $data = $response['data'] ?? null;
-
-            if (! (($response['success'] ?? false) && \is_array($data) && isset($data['failedJobs']))) {
-                continue;
-            }
-
-            $total += (int) $data['failedJobs'];
-        }
-
-        return $total;
-    }
-
-    /**
      * Get jobs past hour per service using Horizon HTTP API stats.
      *
      * @return array{services: list<string>, jobsPastHour: list<int>}
@@ -159,5 +118,46 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
         }
 
         return ['services' => $names, 'jobsPastHour' => $values];
+    }
+
+    /**
+     * Get the number of jobs processed in the past minute.
+     *
+     * @param  Service|null  $service  The service.
+     */
+    public function getJobsPastMinute(?Service $service = null): int
+    {
+        if ($service !== null && $service->getBaseUrl()) {
+            $response = $this->horizonApi->getStats($service);
+            $data = $response['data'] ?? null;
+
+            if (($response['success'] ?? false) && \is_array($data)) {
+                $jobs_per_minute = isset($data['jobsPerMinute']) ? (float) $data['jobsPerMinute'] : 0.0;
+                if ($jobs_per_minute > 0) {
+                    return (int) \round($jobs_per_minute);
+                }
+                $recent = isset($data['recentJobs']) ? (int) $data['recentJobs'] : 0;
+                $period = isset($data['periods']['recentJobs']) ? (int) $data['periods']['recentJobs'] : 60;
+                if ($recent >= 0 && $period > 0) {
+                    return (int) \round($recent / $period);
+                }
+            }
+
+            return 0;
+        }
+
+        /** @var Collection<int, Service> $services */
+        $services = $this->private__getServicesForMetrics();
+
+        if ($services->isEmpty()) {
+            return 0;
+        }
+
+        $total = 0;
+        foreach ($services as $svc) {
+            $total += $this->getJobsPastMinute($svc);
+        }
+
+        return $total;
     }
 }

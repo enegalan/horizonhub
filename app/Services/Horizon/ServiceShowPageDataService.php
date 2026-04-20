@@ -10,14 +10,14 @@ use Illuminate\Support\Collection;
 class ServiceShowPageDataService
 {
     /**
-     * The Horizon metrics service.
-     */
-    private HorizonMetricsService $metrics;
-
-    /**
      * The Horizon job list service.
      */
     private HorizonJobListService $jobList;
+
+    /**
+     * The Horizon metrics service.
+     */
+    private HorizonMetricsService $metrics;
 
     /**
      * The constructor.

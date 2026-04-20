@@ -44,6 +44,62 @@ class AlertController extends Controller
     }
 
     /**
+     * Show the form to create a new alert.
+     */
+    public function create(): View
+    {
+        return \view('horizon.alerts.form', $this->alertUpsert->buildFormViewVariables(new Alert));
+    }
+
+    /**
+     * Delete an alert.
+     */
+    public function destroy(Alert $alert): RedirectResponse
+    {
+        $name = $alert->name ?: ('Alert #'.$alert->id);
+        $alert->delete();
+
+        return redirect()
+            ->route('horizon.alerts.index')
+            ->with('status', "Alert $name deleted.");
+    }
+
+    /**
+     * Show the form to edit an existing alert.
+     */
+    public function edit(Alert $alert): View
+    {
+        return \view('horizon.alerts.form', $this->alertUpsert->buildFormViewVariables($alert));
+    }
+
+    /**
+     * Evaluate a single alert immediately.
+     */
+    public function evaluateAlert(Alert $alert, AlertEngine $engine): JsonResponse
+    {
+        $alert->loadMissing('notificationProviders');
+        $result = $engine->evaluateAlert($alert);
+
+        return \response()->json($result);
+    }
+
+    /**
+     * Evaluate all enabled alerts using a background batch job.
+     */
+    public function evaluateAllAlerts(): JsonResponse
+    {
+        return \response()->json($this->evaluationBatch->startEvaluateAll());
+    }
+
+    /**
+     * Get evaluation batch status and progress.
+     */
+    public function evaluationStatus(string $evaluationId): JsonResponse
+    {
+        return \response()->json($this->evaluationBatch->getEvaluationStatus($evaluationId));
+    }
+
+    /**
      * Display the list of alerts.
      */
     public function index(): View
@@ -61,47 +117,17 @@ class AlertController extends Controller
     }
 
     /**
-     * Show the form to create a new alert.
+     * Retry a failed alert log delivery.
      */
-    public function create(): View
+    public function retryLog(AlertLog $log, AlertEngine $engine): RedirectResponse
     {
-        return \view('horizon.alerts.form', $this->alertUpsert->buildFormViewVariables(new Alert));
-    }
-
-    /**
-     * Store a new alert.
-     */
-    public function store(Request $request): RedirectResponse
-    {
-        $data = $this->alertUpsert->validateAlert($request);
-        $alert = Alert::create($data['alert']);
-        $alert->notificationProviders()->sync($data['provider_ids']);
+        if ($log->status === 'failed') {
+            $engine->retryAlertLog($log);
+        }
 
         return redirect()
-            ->route('horizon.alerts.index')
-            ->with('status', 'Alert created.');
-    }
-
-    /**
-     * Show the form to edit an existing alert.
-     */
-    public function edit(Alert $alert): View
-    {
-        return \view('horizon.alerts.form', $this->alertUpsert->buildFormViewVariables($alert));
-    }
-
-    /**
-     * Update an existing alert.
-     */
-    public function update(Request $request, Alert $alert): RedirectResponse
-    {
-        $data = $this->alertUpsert->validateAlert($request);
-        $alert->update($data['alert']);
-        $alert->notificationProviders()->sync($data['provider_ids']);
-
-        return redirect()
-            ->route('horizon.alerts.index')
-            ->with('status', 'Alert updated.');
+            ->route('horizon.alerts.show', [$log->alert_id])
+            ->with('status', 'Retry requested for alert delivery.');
     }
 
     /**
@@ -174,56 +200,30 @@ class AlertController extends Controller
     }
 
     /**
-     * Delete an alert.
+     * Store a new alert.
      */
-    public function destroy(Alert $alert): RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
-        $name = $alert->name ?: ('Alert #'.$alert->id);
-        $alert->delete();
+        $data = $this->alertUpsert->validateAlert($request);
+        $alert = Alert::create($data['alert']);
+        $alert->notificationProviders()->sync($data['provider_ids']);
 
         return redirect()
             ->route('horizon.alerts.index')
-            ->with('status', "Alert $name deleted.");
+            ->with('status', 'Alert created.');
     }
 
     /**
-     * Retry a failed alert log delivery.
+     * Update an existing alert.
      */
-    public function retryLog(AlertLog $log, AlertEngine $engine): RedirectResponse
+    public function update(Request $request, Alert $alert): RedirectResponse
     {
-        if ($log->status === 'failed') {
-            $engine->retryAlertLog($log);
-        }
+        $data = $this->alertUpsert->validateAlert($request);
+        $alert->update($data['alert']);
+        $alert->notificationProviders()->sync($data['provider_ids']);
 
         return redirect()
-            ->route('horizon.alerts.show', [$log->alert_id])
-            ->with('status', 'Retry requested for alert delivery.');
-    }
-
-    /**
-     * Evaluate a single alert immediately.
-     */
-    public function evaluateAlert(Alert $alert, AlertEngine $engine): JsonResponse
-    {
-        $alert->loadMissing('notificationProviders');
-        $result = $engine->evaluateAlert($alert);
-
-        return \response()->json($result);
-    }
-
-    /**
-     * Evaluate all enabled alerts using a background batch job.
-     */
-    public function evaluateAllAlerts(): JsonResponse
-    {
-        return \response()->json($this->evaluationBatch->startEvaluateAll());
-    }
-
-    /**
-     * Get evaluation batch status and progress.
-     */
-    public function evaluationStatus(string $evaluationId): JsonResponse
-    {
-        return \response()->json($this->evaluationBatch->getEvaluationStatus($evaluationId));
+            ->route('horizon.alerts.index')
+            ->with('status', 'Alert updated.');
     }
 }

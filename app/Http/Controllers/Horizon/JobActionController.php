@@ -35,34 +35,6 @@ class JobActionController extends Controller
     }
 
     /**
-     * Retry a job.
-     */
-    public function retry(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'uuid' => ['required', 'string'],
-            'service_id' => ['required', 'integer', 'exists:services,id'],
-        ]);
-        $uuid = $validated['uuid'];
-        $serviceId = $validated['service_id'];
-
-        $service = Service::find($serviceId);
-        if (! $service) {
-            return \response()->json(['message' => 'Service not found'], 404);
-        }
-
-        $result = $this->horizonApi->retryJob($service, $uuid);
-        if (! $result['success']) {
-            return \response()->json(
-                ['message' => $result['message'] ?? 'Horizon API request failed'],
-                $result['status'] ?? Response::HTTP_BAD_GATEWAY
-            );
-        }
-
-        return \response()->json(['message' => 'Retry requested']);
-    }
-
-    /**
      * List failed jobs for the retry modal (with filters).
      */
     public function failedList(Request $request): JsonResponse
@@ -164,6 +136,34 @@ class JobActionController extends Controller
         $returnData['meta']['total'] = $pageData['total'];
 
         return \response()->json($returnData);
+    }
+
+    /**
+     * Retry a job.
+     */
+    public function retry(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'uuid' => ['required', 'string'],
+            'service_id' => ['required', 'integer', 'exists:services,id'],
+        ]);
+        $uuid = $validated['uuid'];
+        $serviceId = $validated['service_id'];
+
+        $service = Service::find($serviceId);
+        if (! $service) {
+            return \response()->json(['message' => 'Service not found'], 404);
+        }
+
+        $result = $this->horizonApi->retryJob($service, $uuid);
+        if (! $result['success']) {
+            return \response()->json(
+                ['message' => $result['message'] ?? 'Horizon API request failed'],
+                $result['status'] ?? Response::HTTP_BAD_GATEWAY
+            );
+        }
+
+        return \response()->json(['message' => 'Retry requested']);
     }
 
     /**

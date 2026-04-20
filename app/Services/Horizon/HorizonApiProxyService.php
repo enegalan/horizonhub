@@ -14,77 +14,17 @@ use Illuminate\Support\Facades\Log;
 class HorizonApiProxyService
 {
     /**
-     * Retry a job through the Horizon HTTP API.
+     * Get completed jobs from the Horizon HTTP API for a service.
      *
      * @param  Service  $service  The service.
-     * @param  string  $jobUuid  The job UUID.
-     * @return array{success: bool, message?: string, status?: int}
-     */
-    public function retryJob(Service $service, string $jobUuid): array
-    {
-        $relativePath = \str_replace('{id}', $jobUuid, (string) config('horizonhub.horizon_paths.retry'));
-
-        return $this->private__call($service, $relativePath, 'post', true);
-    }
-
-    /**
-     * Test connectivity with the Horizon HTTP API for a service.
-     *
-     * @param  Service  $service  The service.
-     * @return array{success: bool, message?: string, status?: int}
-     */
-    public function ping(Service $service): array
-    {
-        $relativePath = (string) config('horizonhub.horizon_paths.ping');
-
-        return $this->private__call($service, $relativePath, 'get');
-    }
-
-    /**
-     * Get the queue workload from the Horizon HTTP API for a service.
-     *
-     * @param  Service  $service  The service.
+     * @param  array<string, mixed>  $query
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
-    public function getWorkload(Service $service): array
+    public function getCompletedJobs(Service $service, array $query = []): array
     {
-        $relativePath = (string) config('horizonhub.horizon_paths.workload');
+        $path = (string) config('horizonhub.horizon_paths.completed_jobs');
 
-        $result = $this->private__call($service, $relativePath, 'get');
-        if (! ($result['success'] ?? false) && \in_array($result['status'] ?? 0, [401, 403], true)) {
-            $result = $this->private__call($service, $relativePath, 'get', true);
-        }
-
-        return $result;
-    }
-
-    /**
-     * Get high-level dashboard statistics (including jobs per minute and recent jobs)
-     * from the Horizon HTTP API for a service.
-     *
-     * This proxies the Horizon `/stats` endpoint and returns its decoded payload.
-     *
-     * @param  Service  $service  The service.
-     * @return array{success: bool, message?: string, status?: int, data?: array}
-     */
-    public function getStats(Service $service): array
-    {
-        $relativePath = (string) config('horizonhub.horizon_paths.ping');
-
-        return $this->private__call($service, $relativePath, 'get');
-    }
-
-    /**
-     * Get Horizon masters (and their supervisors) from the Horizon HTTP API for a service.
-     *
-     * @param  Service  $service  The service.
-     * @return array{success: bool, message?: string, status?: int, data?: array}
-     */
-    public function getMasters(Service $service): array
-    {
-        $relativePath = (string) config('horizonhub.horizon_paths.masters');
-
-        return $this->private__call($service, $relativePath, 'get');
+        return $this->private__call($service, "$path?".\http_build_query($this->private__buildJobListQuery($query)), 'get');
     }
 
     /**
@@ -116,17 +56,16 @@ class HorizonApiProxyService
     }
 
     /**
-     * Get completed jobs from the Horizon HTTP API for a service.
+     * Get Horizon masters (and their supervisors) from the Horizon HTTP API for a service.
      *
      * @param  Service  $service  The service.
-     * @param  array<string, mixed>  $query
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
-    public function getCompletedJobs(Service $service, array $query = []): array
+    public function getMasters(Service $service): array
     {
-        $path = (string) config('horizonhub.horizon_paths.completed_jobs');
+        $relativePath = (string) config('horizonhub.horizon_paths.masters');
 
-        return $this->private__call($service, "$path?".\http_build_query($this->private__buildJobListQuery($query)), 'get');
+        return $this->private__call($service, $relativePath, 'get');
     }
 
     /**
@@ -141,6 +80,168 @@ class HorizonApiProxyService
         $path = (string) config('horizonhub.horizon_paths.pending_jobs');
 
         return $this->private__call($service, "$path?".\http_build_query($this->private__buildJobListQuery($query)), 'get');
+    }
+
+    /**
+     * Get high-level dashboard statistics (including jobs per minute and recent jobs)
+     * from the Horizon HTTP API for a service.
+     *
+     * This proxies the Horizon `/stats` endpoint and returns its decoded payload.
+     *
+     * @param  Service  $service  The service.
+     * @return array{success: bool, message?: string, status?: int, data?: array}
+     */
+    public function getStats(Service $service): array
+    {
+        $relativePath = (string) config('horizonhub.horizon_paths.ping');
+
+        return $this->private__call($service, $relativePath, 'get');
+    }
+
+    /**
+     * Get the queue workload from the Horizon HTTP API for a service.
+     *
+     * @param  Service  $service  The service.
+     * @return array{success: bool, message?: string, status?: int, data?: array}
+     */
+    public function getWorkload(Service $service): array
+    {
+        $relativePath = (string) config('horizonhub.horizon_paths.workload');
+
+        $result = $this->private__call($service, $relativePath, 'get');
+        if (! ($result['success'] ?? false) && \in_array($result['status'] ?? 0, [401, 403], true)) {
+            $result = $this->private__call($service, $relativePath, 'get', true);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Test connectivity with the Horizon HTTP API for a service.
+     *
+     * @param  Service  $service  The service.
+     * @return array{success: bool, message?: string, status?: int}
+     */
+    public function ping(Service $service): array
+    {
+        $relativePath = (string) config('horizonhub.horizon_paths.ping');
+
+        return $this->private__call($service, $relativePath, 'get');
+    }
+
+    /**
+     * Retry a job through the Horizon HTTP API.
+     *
+     * @param  Service  $service  The service.
+     * @param  string  $jobUuid  The job UUID.
+     * @return array{success: bool, message?: string, status?: int}
+     */
+    public function retryJob(Service $service, string $jobUuid): array
+    {
+        $relativePath = \str_replace('{id}', $jobUuid, (string) config('horizonhub.horizon_paths.retry'));
+
+        return $this->private__call($service, $relativePath, 'post', true);
+    }
+
+    /**
+     * Bootstrap a Horizon dashboard session and CSRF token.
+     *
+     * This simulates a browser visiting the Horizon dashboard to obtain
+     * a session and CSRF token that can be used to call Horizon's API
+     * endpoints protected by CSRF.
+     *
+     * @param  Service  $service  The service.
+     * @return array{csrf_token: string, cookies: CookieJar}|null
+     */
+    private function private__bootstrapDashboardSession(Service $service): ?array
+    {
+        $serviceBase = $service->getBaseUrl();
+        if ($serviceBase === '') {
+            Log::warning('Horizon Hub: failed to build Horizon dashboard URL', [
+                'service_id' => $service->id ?? null,
+                'error' => 'missing base_url',
+            ]);
+
+            return null;
+        }
+
+        $dashboardUrl = "$serviceBase/".\ltrim((string) config('horizonhub.horizon_paths.dashboard'), '/');
+
+        $cookieJar = new CookieJar;
+
+        try {
+            $response = $this->private__newHorizonPendingRequest()
+                ->withOptions(['cookies' => $cookieJar])
+                ->get($dashboardUrl);
+        } catch (\Throwable $e) {
+            Log::warning('Horizon Hub: failed to bootstrap Horizon dashboard session', [
+                'service_id' => $service->id ?? null,
+                'url' => $dashboardUrl,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        if (! $response->ok()) {
+            Log::warning('Horizon Hub: unexpected status when bootstrapping Horizon dashboard session', [
+                'service_id' => $service->id ?? null,
+                'url' => $dashboardUrl,
+                'status' => $response->status(),
+            ]);
+
+            return null;
+        }
+
+        $html = $response->body();
+        $matches = [];
+
+        if (! \preg_match('/<meta\s+name=["\']csrf-token["\']\s+content=["\']([^"\']+)["\']/', $html, $matches)) {
+            Log::warning('Horizon Hub: unable to extract CSRF token from Horizon dashboard', [
+                'service_id' => $service->id ?? null,
+                'url' => $dashboardUrl,
+            ]);
+
+            return null;
+        }
+
+        $csrfToken = (string) ($matches[1] ?? '');
+        if ($csrfToken === '') {
+            Log::warning('Horizon Hub: empty CSRF token extracted from Horizon dashboard', [
+                'service_id' => $service->id ?? null,
+                'url' => $dashboardUrl,
+            ]);
+
+            return null;
+        }
+
+        return [
+            'csrf_token' => $csrfToken,
+            'cookies' => $cookieJar,
+        ];
+    }
+
+    /**
+     * Build an error message from a response.
+     *
+     * @param  Response  $response  The response.
+     */
+    private function private__buildErrorMessageFromResponse(Response $response): string
+    {
+        $rawBody = $response->body();
+        $decoded = \json_decode($rawBody, true);
+
+        if (\is_array($decoded) && isset($decoded['message']) && (string) $decoded['message'] !== '') {
+            return (string) $decoded['message'];
+        }
+
+        $trimmedBody = \trim((string) $rawBody);
+        $isHtml = $trimmedBody !== \strip_tags($trimmedBody);
+        if (! $isHtml && $trimmedBody !== '') {
+            return \mb_substr($trimmedBody, 0, 200);
+        }
+
+        return "Horizon API returned an HTTP error ({$response->status()}).";
     }
 
     /**
@@ -238,84 +339,6 @@ class HorizonApiProxyService
     }
 
     /**
-     * Bootstrap a Horizon dashboard session and CSRF token.
-     *
-     * This simulates a browser visiting the Horizon dashboard to obtain
-     * a session and CSRF token that can be used to call Horizon's API
-     * endpoints protected by CSRF.
-     *
-     * @param  Service  $service  The service.
-     * @return array{csrf_token: string, cookies: CookieJar}|null
-     */
-    private function private__bootstrapDashboardSession(Service $service): ?array
-    {
-        $serviceBase = $service->getBaseUrl();
-        if ($serviceBase === '') {
-            Log::warning('Horizon Hub: failed to build Horizon dashboard URL', [
-                'service_id' => $service->id ?? null,
-                'error' => 'missing base_url',
-            ]);
-
-            return null;
-        }
-
-        $dashboardUrl = "$serviceBase/".\ltrim((string) config('horizonhub.horizon_paths.dashboard'), '/');
-
-        $cookieJar = new CookieJar;
-
-        try {
-            $response = $this->private__newHorizonPendingRequest()
-                ->withOptions(['cookies' => $cookieJar])
-                ->get($dashboardUrl);
-        } catch (\Throwable $e) {
-            Log::warning('Horizon Hub: failed to bootstrap Horizon dashboard session', [
-                'service_id' => $service->id ?? null,
-                'url' => $dashboardUrl,
-                'error' => $e->getMessage(),
-            ]);
-
-            return null;
-        }
-
-        if (! $response->ok()) {
-            Log::warning('Horizon Hub: unexpected status when bootstrapping Horizon dashboard session', [
-                'service_id' => $service->id ?? null,
-                'url' => $dashboardUrl,
-                'status' => $response->status(),
-            ]);
-
-            return null;
-        }
-
-        $html = $response->body();
-        $matches = [];
-
-        if (! \preg_match('/<meta\s+name=["\']csrf-token["\']\s+content=["\']([^"\']+)["\']/', $html, $matches)) {
-            Log::warning('Horizon Hub: unable to extract CSRF token from Horizon dashboard', [
-                'service_id' => $service->id ?? null,
-                'url' => $dashboardUrl,
-            ]);
-
-            return null;
-        }
-
-        $csrfToken = (string) ($matches[1] ?? '');
-        if ($csrfToken === '') {
-            Log::warning('Horizon Hub: empty CSRF token extracted from Horizon dashboard', [
-                'service_id' => $service->id ?? null,
-                'url' => $dashboardUrl,
-            ]);
-
-            return null;
-        }
-
-        return [
-            'csrf_token' => $csrfToken,
-            'cookies' => $cookieJar,
-        ];
-    }
-
-    /**
      * Build an HTTP client for Horizon calls with unified timeout and optional GET retries.
      *
      * @param  string  $httpMethod  The HTTP method.
@@ -403,28 +426,5 @@ class HorizonApiProxyService
             'message' => $message,
             'status' => $response->status(),
         ];
-    }
-
-    /**
-     * Build an error message from a response.
-     *
-     * @param  Response  $response  The response.
-     */
-    private function private__buildErrorMessageFromResponse(Response $response): string
-    {
-        $rawBody = $response->body();
-        $decoded = \json_decode($rawBody, true);
-
-        if (\is_array($decoded) && isset($decoded['message']) && (string) $decoded['message'] !== '') {
-            return (string) $decoded['message'];
-        }
-
-        $trimmedBody = \trim((string) $rawBody);
-        $isHtml = $trimmedBody !== \strip_tags($trimmedBody);
-        if (! $isHtml && $trimmedBody !== '') {
-            return \mb_substr($trimmedBody, 0, 200);
-        }
-
-        return "Horizon API returned an HTTP error ({$response->status()}).";
     }
 }

@@ -27,14 +27,14 @@ class AlertBatchedMail extends Mailable
     public array $enrichedEvents;
 
     /**
-     * The service.
-     */
-    public ?Service $service;
-
-    /**
      * The mail subject.
      */
     public string $mailSubject;
+
+    /**
+     * The service.
+     */
+    public ?Service $service;
 
     /**
      * Total number of events (may exceed count of enrichedEvents when capped).
@@ -56,16 +56,6 @@ class AlertBatchedMail extends Mailable
     }
 
     /**
-     * Get the envelope for the email.
-     */
-    public function envelope(): Envelope
-    {
-        return new Envelope(
-            subject: $this->mailSubject
-        );
-    }
-
-    /**
      * Get the content for the email.
      */
     public function content(): Content
@@ -73,6 +63,16 @@ class AlertBatchedMail extends Mailable
         return new Content(
             view: 'emails.alert-batched',
             text: 'emails.alert-batched-text'
+        );
+    }
+
+    /**
+     * Get the envelope for the email.
+     */
+    public function envelope(): Envelope
+    {
+        return new Envelope(
+            subject: $this->mailSubject
         );
     }
 }

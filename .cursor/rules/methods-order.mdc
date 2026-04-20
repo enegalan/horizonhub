@@ -1,0 +1,34 @@
+---
+description: Ordering criteria for class methods by visibility and alphabetical order
+alwaysApply: true
+---
+
+# Methods Order
+
+## Ordering criteria
+
+- Declare methods ordered by visibility, from most to least accessible.
+- Top of the class: `public` methods (and exported/framework entrypoints such as controller actions, route handlers, event handlers, and magic methods).
+- Middle: `protected` methods.
+- Bottom: `private` methods.
+
+## Grouping rules
+
+- Keep all methods of the same visibility grouped together; do not interleave visibilities.
+- Within each visibility group, order methods alphabetically by method name (A-Z).
+- For case differences, apply case-insensitive alphabetical ordering.
+- Constructors, `__invoke`, and other lifecycle/magic methods remain at the top of the `public` group.
+- Static methods follow the same visibility ordering and stay grouped with their visibility block.
+
+## Scope
+
+- Applies to PHP classes, traits, and abstract classes across the project.
+- Applies to JavaScript/TypeScript classes: `public` (or unmarked) first, `protected` next, `#private` or `private` last.
+- Does not require reordering unrelated methods when editing a file; only ensure new or modified methods respect this order.
+- Excludes Laravel framework-convention files and folders such as `database/migrations`, `database/seeders`, `database/factories`, `routes`, `config`, `bootstrap`, `app/Providers`, and `app/Console/Commands`.
+
+## Exceptions
+
+- Do not reorder methods if it conflicts with a framework-imposed order (e.g., generated stubs with required positions).
+- Do not reorder methods in files explicitly marked as generated or vendor code.
+- Do not apply this rule to Laravel-convention files where framework readability and conventional order are preferred (for example, `database/migrations`).

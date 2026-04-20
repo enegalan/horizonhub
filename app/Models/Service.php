@@ -8,6 +8,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Service extends Model
 {
     /**
+     * The casts of the service.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'last_seen_at' => 'datetime',
+    ];
+
+    /**
      * The fillable attributes of the service.
      *
      * @var array<int, string>
@@ -18,15 +27,6 @@ class Service extends Model
         'public_url',
         'status',
         'last_seen_at',
-    ];
-
-    /**
-     * The casts of the service.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'last_seen_at' => 'datetime',
     ];
 
     /**

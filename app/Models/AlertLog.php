@@ -8,6 +8,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AlertLog extends Model
 {
     /**
+     * The casts of the alert log.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'sent_at' => 'datetime',
+        'job_uuids' => 'array',
+    ];
+
+    /**
      * The fillable attributes of the alert log.
      *
      * @var array<int, string>
@@ -20,16 +30,6 @@ class AlertLog extends Model
         'status',
         'failure_message',
         'sent_at',
-    ];
-
-    /**
-     * The casts of the alert log.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'sent_at' => 'datetime',
-        'job_uuids' => 'array',
     ];
 
     /**

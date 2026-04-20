@@ -28,40 +28,6 @@ class HorizonJobListService
     }
 
     /**
-     * Build paginators for processing, processed, and failed job lists (aggregated across services).
-     *
-     * @param  Collection<int, Service>  $services
-     * @param  string  $search  The search.
-     * @param  int  $pageProcessing  The page processing.
-     * @param  int  $pageProcessed  The page processed.
-     * @param  int  $pageFailed  The page failed.
-     * @param  int  $perPage  The per page.
-     * @param  string  $path  The path.
-     * @param  array<string, mixed>  $query  The query.
-     * @return array{processing: LengthAwarePaginator, processed: LengthAwarePaginator, failed: LengthAwarePaginator}
-     */
-    public function buildAggregatedStatusPaginators(
-        Collection $services,
-        string $search,
-        int $pageProcessing,
-        int $pageProcessed,
-        int $pageFailed,
-        int $perPage,
-        string $path,
-        array $query,
-    ): array {
-        $jobsProcessing = $this->private__collectAndSortJobsForServices($services, 'processing', $search);
-        $jobsProcessed = $this->private__collectAndSortJobsForServices($services, 'processed', $search);
-        $jobsFailed = $this->private__collectAndSortJobsForServices($services, 'failed', $search);
-
-        return [
-            'processing' => $this->private__makePaginator($jobsProcessing, $perPage, $pageProcessing, $path, $query, 'page_processing'),
-            'processed' => $this->private__makePaginator($jobsProcessed, $perPage, $pageProcessed, $path, $query, 'page_processed'),
-            'failed' => $this->private__makePaginator($jobsFailed, $perPage, $pageFailed, $path, $query, 'page_failed'),
-        ];
-    }
-
-    /**
      * Aggregated jobs index paginators from the current request query.
      *
      * @param  Request  $request  The request.
@@ -113,6 +79,79 @@ class HorizonJobListService
     }
 
     /**
+     * Build paginators for processing, processed, and failed job lists (aggregated across services).
+     *
+     * @param  Collection<int, Service>  $services
+     * @param  string  $search  The search.
+     * @param  int  $pageProcessing  The page processing.
+     * @param  int  $pageProcessed  The page processed.
+     * @param  int  $pageFailed  The page failed.
+     * @param  int  $perPage  The per page.
+     * @param  string  $path  The path.
+     * @param  array<string, mixed>  $query  The query.
+     * @return array{processing: LengthAwarePaginator, processed: LengthAwarePaginator, failed: LengthAwarePaginator}
+     */
+    public function buildAggregatedStatusPaginators(
+        Collection $services,
+        string $search,
+        int $pageProcessing,
+        int $pageProcessed,
+        int $pageFailed,
+        int $perPage,
+        string $path,
+        array $query,
+    ): array {
+        $jobsProcessing = $this->private__collectAndSortJobsForServices($services, 'processing', $search);
+        $jobsProcessed = $this->private__collectAndSortJobsForServices($services, 'processed', $search);
+        $jobsFailed = $this->private__collectAndSortJobsForServices($services, 'failed', $search);
+
+        return [
+            'processing' => $this->private__makePaginator($jobsProcessing, $perPage, $pageProcessing, $path, $query, 'page_processing'),
+            'processed' => $this->private__makePaginator($jobsProcessed, $perPage, $pageProcessed, $path, $query, 'page_processed'),
+            'failed' => $this->private__makePaginator($jobsFailed, $perPage, $pageFailed, $path, $query, 'page_failed'),
+        ];
+    }
+
+    /**
+     * Fetch failed jobs from one or more services, apply filters, sort, and slice for HTTP pagination.
+     *
+     * @param  Collection<int, Service>  $services
+     * @param  string  $search  The search.
+     * @param  mixed  $dateFrom  The date from.
+     * @param  mixed  $dateTo  The date to.
+     * @param  int  $page  The page.
+     * @param  int  $perPage  The per page.
+     * @return array{rows: list<array<string, mixed>>, total: int, last_page: int}
+     */
+    public function buildFailedJobsRetryModalPage(
+        Collection $services,
+        string $search,
+        mixed $dateFrom,
+        mixed $dateTo,
+        int $page,
+        int $perPage,
+    ): array {
+        $rows = $this->private__buildRetryModalFailedRows($services, $search, $dateFrom, $dateTo);
+
+        $total = \count($rows);
+        $lastPage = $perPage > 0 ? (int) \max(1, (int) \ceil($total / $perPage)) : 1;
+        $offset = ($page - 1) * $perPage;
+        $pageRows = $perPage > 0 ? \array_slice($rows, $offset, $perPage) : $rows;
+
+        $data = [];
+        foreach ($pageRows as $row) {
+            unset($row['failed_at']);
+            $data[] = $row;
+        }
+
+        return [
+            'rows' => $data,
+            'total' => $total,
+            'last_page' => $lastPage,
+        ];
+    }
+
+    /**
      * Build paginators for a single service dashboard (same three sections).
      *
      * @param  Service  $service  The service.
@@ -146,6 +185,22 @@ class HorizonJobListService
             'processed' => $this->private__makePaginator($jobsProcessed, $perPage, $pageProcessed, $path, $query, 'page_processed'),
             'failed' => $this->private__makePaginator($jobsFailed, $perPage, $pageFailed, $path, $query, 'page_failed'),
         ];
+    }
+
+    /**
+     * Get the API fetcher for a given status.
+     *
+     * @param  Service  $service  The service.
+     * @param  string  $status  The status.
+     * @return callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>}
+     */
+    private function private__apiFetcherForStatus(Service $service, string $status): callable
+    {
+        return match ($status) {
+            'processing' => fn (array $query): array => $this->horizonApi->getPendingJobs($service, $query),
+            'processed' => fn (array $query): array => $this->horizonApi->getCompletedJobs($service, $query),
+            'failed' => fn (array $query): array => $this->horizonApi->getFailedJobs($service, $query),
+        };
     }
 
     /**
@@ -249,45 +304,6 @@ class HorizonJobListService
     }
 
     /**
-     * Fetch failed jobs from one or more services, apply filters, sort, and slice for HTTP pagination.
-     *
-     * @param  Collection<int, Service>  $services
-     * @param  string  $search  The search.
-     * @param  mixed  $dateFrom  The date from.
-     * @param  mixed  $dateTo  The date to.
-     * @param  int  $page  The page.
-     * @param  int  $perPage  The per page.
-     * @return array{rows: list<array<string, mixed>>, total: int, last_page: int}
-     */
-    public function buildFailedJobsRetryModalPage(
-        Collection $services,
-        string $search,
-        mixed $dateFrom,
-        mixed $dateTo,
-        int $page,
-        int $perPage,
-    ): array {
-        $rows = $this->private__buildRetryModalFailedRows($services, $search, $dateFrom, $dateTo);
-
-        $total = \count($rows);
-        $lastPage = $perPage > 0 ? (int) \max(1, (int) \ceil($total / $perPage)) : 1;
-        $offset = ($page - 1) * $perPage;
-        $pageRows = $perPage > 0 ? \array_slice($rows, $offset, $perPage) : $rows;
-
-        $data = [];
-        foreach ($pageRows as $row) {
-            unset($row['failed_at']);
-            $data[] = $row;
-        }
-
-        return [
-            'rows' => $data,
-            'total' => $total,
-            'last_page' => $lastPage,
-        ];
-    }
-
-    /**
      * Collect and sort jobs for one or more services.
      *
      * @param  Collection<int, Service>  $services  The services.
@@ -365,35 +381,52 @@ class HorizonJobListService
     }
 
     /**
-     * Get the API fetcher for a given status.
+     * Make a paginator for a given collection of items.
      *
-     * @param  Service  $service  The service.
-     * @param  string  $status  The status.
-     * @return callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>}
+     * @param  Collection<int, object>  $items  The items.
+     * @param  int  $perPage  The per page.
+     * @param  int  $page  The page.
+     * @param  string  $path  The path.
+     * @param  array<string, mixed>  $query  The query.
+     * @param  string  $pageName  The page name.
      */
-    private function private__apiFetcherForStatus(Service $service, string $status): callable
-    {
-        return match ($status) {
-            'processing' => fn (array $query): array => $this->horizonApi->getPendingJobs($service, $query),
-            'processed' => fn (array $query): array => $this->horizonApi->getCompletedJobs($service, $query),
-            'failed' => fn (array $query): array => $this->horizonApi->getFailedJobs($service, $query),
-        };
-    }
+    private function private__makePaginator(
+        Collection $items,
+        int $perPage,
+        int $page,
+        string $path,
+        array $query,
+        string $pageName,
+    ): LengthAwarePaginator {
+        $page = \max(1, $page);
+        $total = $items->count();
 
-    /**
-     * Get the next starting at value for the next batch.
-     *
-     * @param  int  $startingAt  The starting at.
-     * @param  list<mixed>  $batch  The batch.
-     */
-    private function private__nextStartingAt(int $startingAt, array $batch): int
-    {
-        $last = $batch[\array_key_last($batch)];
-        if (\is_array($last) && isset($last['index'])) {
-            return (int) $last['index'];
+        if ($perPage <= 0) {
+            $paginator = new LengthAwarePaginator(
+                $items,
+                $total,
+                \max(1, $total > 0 ? $total : 1),
+                1,
+                ['path' => $path, 'query' => $query]
+            );
+            $paginator->setPageName($pageName);
+
+            return $paginator;
         }
 
-        return \max(0, $startingAt + 1) + \count($batch) - 1;
+        $offset = ($page - 1) * $perPage;
+        $slice = $items->slice($offset, $perPage)->values();
+
+        $paginator = new LengthAwarePaginator(
+            $slice,
+            $total,
+            $perPage,
+            $page,
+            ['path' => $path, 'query' => $query]
+        );
+        $paginator->setPageName($pageName);
+
+        return $paginator;
     }
 
     /**
@@ -478,6 +511,22 @@ class HorizonJobListService
     }
 
     /**
+     * Get the next starting at value for the next batch.
+     *
+     * @param  int  $startingAt  The starting at.
+     * @param  list<mixed>  $batch  The batch.
+     */
+    private function private__nextStartingAt(int $startingAt, array $batch): int
+    {
+        $last = $batch[\array_key_last($batch)];
+        if (\is_array($last) && isset($last['index'])) {
+            return (int) $last['index'];
+        }
+
+        return \max(0, $startingAt + 1) + \count($batch) - 1;
+    }
+
+    /**
      * Sort job rows by time for a given status.
      *
      * @param  Collection<int, object>  $rows
@@ -523,54 +572,5 @@ class HorizonJobListService
         }
 
         return 0.0;
-    }
-
-    /**
-     * Make a paginator for a given collection of items.
-     *
-     * @param  Collection<int, object>  $items  The items.
-     * @param  int  $perPage  The per page.
-     * @param  int  $page  The page.
-     * @param  string  $path  The path.
-     * @param  array<string, mixed>  $query  The query.
-     * @param  string  $pageName  The page name.
-     */
-    private function private__makePaginator(
-        Collection $items,
-        int $perPage,
-        int $page,
-        string $path,
-        array $query,
-        string $pageName,
-    ): LengthAwarePaginator {
-        $page = \max(1, $page);
-        $total = $items->count();
-
-        if ($perPage <= 0) {
-            $paginator = new LengthAwarePaginator(
-                $items,
-                $total,
-                \max(1, $total > 0 ? $total : 1),
-                1,
-                ['path' => $path, 'query' => $query]
-            );
-            $paginator->setPageName($pageName);
-
-            return $paginator;
-        }
-
-        $offset = ($page - 1) * $perPage;
-        $slice = $items->slice($offset, $perPage)->values();
-
-        $paginator = new LengthAwarePaginator(
-            $slice,
-            $total,
-            $perPage,
-            $page,
-            ['path' => $path, 'query' => $query]
-        );
-        $paginator->setPageName($pageName);
-
-        return $paginator;
     }
 }

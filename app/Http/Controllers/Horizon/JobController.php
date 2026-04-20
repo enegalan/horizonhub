@@ -13,9 +13,9 @@ use Illuminate\Http\Request;
 class JobController extends Controller
 {
     /**
-     * The job list service.
+     * The Horizon API proxy service.
      */
-    private HorizonJobListService $jobList;
+    private HorizonApiProxyService $horizonApi;
 
     /**
      * The job detail service.
@@ -23,9 +23,9 @@ class JobController extends Controller
     private HorizonJobDetailService $jobDetail;
 
     /**
-     * The Horizon API proxy service.
+     * The job list service.
      */
-    private HorizonApiProxyService $horizonApi;
+    private HorizonJobListService $jobList;
 
     /**
      * The constructor.

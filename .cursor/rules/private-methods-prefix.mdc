@@ -1,0 +1,28 @@
+---
+description: Require private methods to use private__ prefix
+alwaysApply: true
+---
+
+# Private Methods Prefix
+
+## Naming rule
+
+- All `private` methods must start with the exact prefix `private__`.
+- The prefix is mandatory for PHP, JavaScript, and TypeScript private methods.
+- Valid examples: `private__buildPayload`, `private__normalize_metrics`.
+
+## Invalid names
+
+- `buildPayload`
+- `_buildPayload`
+- `private_buildPayload`
+
+## Scope
+
+- Applies to classes, traits, and abstract classes in the project.
+- Applies to newly created or modified private methods.
+
+## Exceptions
+
+- Do not rename methods in generated or vendor code.
+- Do not rename external API/framework methods that require fixed names.

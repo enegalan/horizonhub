@@ -123,11 +123,15 @@ class EvaluateAlertJob implements ShouldQueue
     }
 
     /**
-     * Get the cache key namespace.
+     * Cache the first error message.
      */
-    private function private__cacheKeyNamespace(): string
+    private function private__cacheFirstErrorMessage(string $message): void
     {
-        return "horizonhub.alert_evaluation_batches.$this->evaluationId";
+        $key = $this->private__cacheKeyNamespace().'.first_error_message';
+        if (Cache::get($key) !== null) {
+            return;
+        }
+        Cache::put($key, $message, self::CACHE_TTL_SECONDS);
     }
 
     /**
@@ -136,22 +140,6 @@ class EvaluateAlertJob implements ShouldQueue
     private function private__cacheKeyForAlertResult(): string
     {
         return $this->private__cacheKeyNamespace().'.results.'.$this->alertId;
-    }
-
-    /**
-     * Get the cache key for the evaluated count.
-     */
-    private function private__cacheKeyForEvaluatedCount(): string
-    {
-        return $this->private__cacheKeyNamespace().'.evaluated_count';
-    }
-
-    /**
-     * Get the cache key for the triggered count.
-     */
-    private function private__cacheKeyForTriggeredCount(): string
-    {
-        return $this->private__cacheKeyNamespace().'.triggered_count';
     }
 
     /**
@@ -171,14 +159,26 @@ class EvaluateAlertJob implements ShouldQueue
     }
 
     /**
-     * Cache the first error message.
+     * Get the cache key for the evaluated count.
      */
-    private function private__cacheFirstErrorMessage(string $message): void
+    private function private__cacheKeyForEvaluatedCount(): string
     {
-        $key = $this->private__cacheKeyNamespace().'.first_error_message';
-        if (Cache::get($key) !== null) {
-            return;
-        }
-        Cache::put($key, $message, self::CACHE_TTL_SECONDS);
+        return $this->private__cacheKeyNamespace().'.evaluated_count';
+    }
+
+    /**
+     * Get the cache key for the triggered count.
+     */
+    private function private__cacheKeyForTriggeredCount(): string
+    {
+        return $this->private__cacheKeyNamespace().'.triggered_count';
+    }
+
+    /**
+     * Get the cache key namespace.
+     */
+    private function private__cacheKeyNamespace(): string
+    {
+        return "horizonhub.alert_evaluation_batches.$this->evaluationId";
     }
 }

@@ -19,6 +19,26 @@ class ProviderController extends Controller
     }
 
     /**
+     * Delete a provider.
+     */
+    public function destroy(NotificationProvider $provider): RedirectResponse
+    {
+        $provider->delete();
+
+        return redirect()
+            ->route('horizon.settings', ['tab' => 'providers'])
+            ->with('status', 'Provider deleted.');
+    }
+
+    /**
+     * Show the form to edit an existing provider.
+     */
+    public function edit(NotificationProvider $provider): View
+    {
+        return $this->private__formView($provider);
+    }
+
+    /**
      * Store a new provider.
      */
     public function store(Request $request): RedirectResponse
@@ -32,14 +52,6 @@ class ProviderController extends Controller
     }
 
     /**
-     * Show the form to edit an existing provider.
-     */
-    public function edit(NotificationProvider $provider): View
-    {
-        return $this->private__formView($provider);
-    }
-
-    /**
      * Update an existing provider.
      */
     public function update(Request $request, NotificationProvider $provider): RedirectResponse
@@ -50,18 +62,6 @@ class ProviderController extends Controller
         return redirect()
             ->route('horizon.settings', ['tab' => 'providers'])
             ->with('status', 'Provider updated.');
-    }
-
-    /**
-     * Delete a provider.
-     */
-    public function destroy(NotificationProvider $provider): RedirectResponse
-    {
-        $provider->delete();
-
-        return redirect()
-            ->route('horizon.settings', ['tab' => 'providers'])
-            ->with('status', 'Provider deleted.');
     }
 
     /**
