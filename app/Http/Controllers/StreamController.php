@@ -53,7 +53,7 @@ abstract class StreamController extends Controller
                     break;
                 }
 
-                \sleep($interval);
+                \usleep($interval);
             }
         }, 200, $this->streamHeaders());
     }

@@ -114,7 +114,7 @@ return [
     | This is not a full browser reload interval.
     |
     */
-    'hot_reload_interval' => (int) env('HORIZON_HUB_HOT_RELOAD_INTERVAL', 0.5),
+    'hot_reload_interval' => (float) env('HORIZON_HUB_HOT_RELOAD_INTERVAL', 0.5),
 
     /*
     |--------------------------------------------------------------------------
