@@ -52,6 +52,15 @@
                     <span id="metrics-value-failed-seven" class="text-2xl font-semibold text-foreground">{{ $failedPastSevenDays ?? '—' }}</span>
                 </div>
             </div>
+            <div class="card p-4">
+                <h3 class="label-muted">Failure rate (last 24h)</h3>
+                <div class="mt-1 flex items-center gap-2 min-h-[2.5rem]">
+                    <span id="metrics-loader-failure-rate" style="display:none;"><x-loader class="size-5 shrink-0 text-muted-foreground" /></span>
+                    <p id="metrics-value-failure-rate" class="text-2xl font-semibold text-foreground">
+                        @include('horizon.metrics.partials.failure-rate-value', ['failureRate24h' => $failureRate24h ?? null])
+                    </p>
+                </div>
+            </div>
         </div>
 
         <div class="grid gap-4">
@@ -62,16 +71,6 @@
                         <x-loader class="size-8 text-muted-foreground" />
                     </div>
                     <div id="jobs-volume-last-24h-chart" class="h-56"></div>
-                </div>
-            </div>
-
-            <div class="card p-4">
-                <h3 class="text-section-title text-foreground mb-1">Failure rate (last 24h)</h3>
-                <div class="flex items-center gap-2 min-h-[2rem]">
-                    <span id="metrics-loader-failure-rate" style="display:none;"><x-loader class="size-5 shrink-0 text-muted-foreground" /></span>
-                    <p id="metrics-value-failure-rate" class="text-xl font-semibold text-foreground">
-                        @include('horizon.metrics.partials.failure-rate-value', ['failureRate24h' => $failureRate24h ?? null])
-                    </p>
                 </div>
             </div>
 
