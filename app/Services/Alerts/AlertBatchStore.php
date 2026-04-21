@@ -25,7 +25,7 @@ class AlertBatchStore
     /**
      * Clear the pending events for the given alert.
      *
-     * @param  Alert  $alert  The alert.
+     * @param Alert $alert The alert.
      */
     public function clearPending(Alert $alert): void
     {
@@ -35,7 +35,7 @@ class AlertBatchStore
     /**
      * Get the interval minutes for the given alert.
      *
-     * @param  Alert  $alert  The alert.
+     * @param Alert $alert The alert.
      */
     public function getIntervalMinutes(Alert $alert): int
     {
@@ -49,12 +49,13 @@ class AlertBatchStore
     /**
      * Get the last sent at time for the given alert.
      *
-     * @param  Alert  $alert  The alert.
+     * @param Alert $alert The alert.
      */
     public function getLastSentAt(Alert $alert): ?Carbon
     {
-        $key = self::SENT_AT_CACHE_PREFIX.$alert->id;
+        $key = self::SENT_AT_CACHE_PREFIX . $alert->id;
         $value = Cache::get($key);
+
         if ($value === null) {
             return null;
         }
@@ -65,13 +66,15 @@ class AlertBatchStore
     /**
      * Get the pending events for the given alert.
      *
-     * @param  Alert  $alert  The alert.
+     * @param Alert $alert The alert.
+     *
      * @return array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>
      */
     public function getPending(Alert $alert): array
     {
-        $key = self::PENDING_CACHE_PREFIX.$alert->id;
+        $key = self::PENDING_CACHE_PREFIX . $alert->id;
         $raw = Cache::get($key);
+
         if (! \is_array($raw)) {
             return [];
         }
@@ -82,25 +85,26 @@ class AlertBatchStore
     /**
      * Set the last sent at time for the given alert.
      *
-     * @param  Alert  $alert  The alert.
-     * @param  Carbon|null  $time  The time to set.
+     * @param Alert $alert The alert.
+     * @param Carbon|null $time The time to set.
      */
     public function setLastSentAt(Alert $alert, ?Carbon $time = null): void
     {
         $expiresAt = \now()->addMinutes(config('horizonhub.alerts.pending_ttl_minutes'));
         $value = $time ?: \now();
-        Cache::put(self::SENT_AT_CACHE_PREFIX.$alert->id, $value, $expiresAt);
+        Cache::put(self::SENT_AT_CACHE_PREFIX . $alert->id, $value, $expiresAt);
     }
 
     /**
      * Set the pending events for the given alert.
      *
-     * @param  Alert  $alert  The alert.
-     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $pending  The pending events.
+     * @param Alert $alert The alert.
+     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $pending The pending events.
      */
     public function setPending(Alert $alert, array $pending): void
     {
-        $key = self::PENDING_CACHE_PREFIX.$alert->id;
+        $key = self::PENDING_CACHE_PREFIX . $alert->id;
+
         if (empty($pending)) {
             Cache::forget($key);
 
@@ -112,7 +116,7 @@ class AlertBatchStore
     /**
      * Determine if the alert should send now based on interval and last sent time.
      *
-     * @param  Alert  $alert  The alert.
+     * @param Alert $alert The alert.
      */
     public function shouldSendNow(Alert $alert): bool
     {
@@ -122,6 +126,7 @@ class AlertBatchStore
         if ($intervalMinutes === 0) {
             return true;
         }
+
         if ($lastSentAt === null) {
             return true;
         }

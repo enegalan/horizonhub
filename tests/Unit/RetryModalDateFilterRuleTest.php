@@ -12,12 +12,13 @@ class RetryModalDateFilterRuleTest extends TestCase
     public function allows_null_and_empty(): void
     {
         $rule = new RetryModalDateFilter;
+
         foreach ([null, '', '   '] as $value) {
             $failed = false;
             $rule->validate('date_from', $value, function () use (&$failed): void {
                 $failed = true;
             });
-            $this->assertFalse($failed, 'Expected pass for value: '.\var_export($value, true));
+            $this->assertFalse($failed, 'Expected pass for value: ' . \var_export($value, true));
         }
     }
 

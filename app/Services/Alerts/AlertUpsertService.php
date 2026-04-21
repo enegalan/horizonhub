@@ -14,7 +14,8 @@ class AlertUpsertService
     /**
      * Build the form view variables.
      *
-     * @param  Alert  $alert  The alert.
+     * @param Alert $alert The alert.
+     *
      * @return array<string, mixed>
      */
     public function buildFormViewVariables(Alert $alert): array
@@ -45,13 +46,15 @@ class AlertUpsertService
     /**
      * Merge the job type into the patterns.
      *
-     * @param  list<string>  $patterns  The patterns.
-     * @param  string|null  $jobType  The job type.
+     * @param list<string> $patterns The patterns.
+     * @param string|null $jobType The job type.
+     *
      * @return list<string>
      */
     public function mergeJobTypeIntoPatterns(array $patterns, ?string $jobType): array
     {
         $jt = $jobType !== null ? \trim($jobType) : '';
+
         if ($jt === '' || \in_array($jt, $patterns, true)) {
             return $patterns;
         }
@@ -64,7 +67,8 @@ class AlertUpsertService
     /**
      * Sanitize the pattern array.
      *
-     * @param  mixed  $raw  The raw value to sanitize.
+     * @param mixed $raw The raw value to sanitize.
+     *
      * @return list<string>
      */
     public function sanitizePatternArray(mixed $raw): array
@@ -73,11 +77,13 @@ class AlertUpsertService
             return [];
         }
         $out = [];
+
         foreach ($raw as $v) {
             if (! \is_string($v)) {
                 continue;
             }
             $t = \trim($v);
+
             if ($t !== '') {
                 $out[] = $t;
             }
@@ -89,7 +95,8 @@ class AlertUpsertService
     /**
      * Validate the alert.
      *
-     * @param  Request  $request  The request.
+     * @param Request $request The request.
+     *
      * @return array{alert: array<string, mixed>, provider_ids: array<int>}
      */
     public function validateAlert(Request $request): array
@@ -103,7 +110,7 @@ class AlertUpsertService
             Alert::RULE_HORIZON_OFFLINE,
         ];
         $baseRules = [
-            'rule_type' => 'required|in:'.implode(',', $ruleTypes),
+            'rule_type' => 'required|in:' . implode(',', $ruleTypes),
             'service_ids' => 'nullable|array',
             'service_ids.*' => 'integer|exists:services,id',
             'queue' => 'nullable|string|max:255',
@@ -127,9 +134,11 @@ class AlertUpsertService
         if (\in_array($ruleType, [Alert::RULE_FAILURE_COUNT, Alert::RULE_AVG_EXECUTION_TIME, Alert::RULE_QUEUE_BLOCKED, Alert::RULE_WORKER_OFFLINE, Alert::RULE_SUPERVISOR_OFFLINE, Alert::RULE_HORIZON_OFFLINE], true)) {
             $baseRules['thresholdMinutes'] = 'required|integer|min:1';
         }
+
         if ($ruleType === Alert::RULE_FAILURE_COUNT) {
             $baseRules['thresholdCount'] = 'required|integer|min:1';
         }
+
         if ($ruleType === Alert::RULE_AVG_EXECUTION_TIME) {
             $baseRules['thresholdSeconds'] = 'required|numeric|min:0.1';
         }
@@ -142,6 +151,7 @@ class AlertUpsertService
 
             $jobTypeInput = \trim((string) $request->input('job_type', ''));
             $jobPatternsMerged = $upsert->mergeJobTypeIntoPatterns($jobPatterns, $jobTypeInput !== '' ? $jobTypeInput : null);
+
             foreach ($jobPatternsMerged as $p) {
                 if (\strlen($p) > 255) {
                     $v->errors()->add('job_patterns', 'Each job pattern must be at most 255 characters.');
@@ -149,6 +159,7 @@ class AlertUpsertService
                     break;
                 }
             }
+
             foreach ($queuePatterns as $p) {
                 if (\strlen($p) > 255) {
                     $v->errors()->add('queue_patterns', 'Each queue name must be at most 255 characters.');
@@ -163,32 +174,38 @@ class AlertUpsertService
         $jobPatterns = $this->sanitizePatternArray($request->input('job_patterns'));
         $jobPatterns = $this->mergeJobTypeIntoPatterns(
             $jobPatterns,
-            ! empty($validated['job_type']) ? (string) $validated['job_type'] : null
+            ! empty($validated['job_type']) ? (string) $validated['job_type'] : null,
         );
         $queuePatterns = $this->sanitizePatternArray($request->input('queue_patterns'));
 
         $threshold = [];
+
         if (\in_array($ruleType, [Alert::RULE_FAILURE_COUNT, Alert::RULE_AVG_EXECUTION_TIME, Alert::RULE_QUEUE_BLOCKED, Alert::RULE_WORKER_OFFLINE, Alert::RULE_SUPERVISOR_OFFLINE, Alert::RULE_HORIZON_OFFLINE], true)) {
             $threshold['minutes'] = (int) ($validated['thresholdMinutes'] ?? 0);
         }
+
         if ($ruleType === Alert::RULE_FAILURE_COUNT) {
             $threshold['count'] = (int) ($validated['thresholdCount'] ?? 0);
         }
+
         if ($ruleType === Alert::RULE_AVG_EXECUTION_TIME) {
             $threshold['seconds'] = (float) ($validated['thresholdSeconds'] ?? 0.0);
         }
 
         $patternRuleTypes = [Alert::RULE_FAILURE_COUNT, Alert::RULE_AVG_EXECUTION_TIME];
         $queuePatternRuleTypes = [Alert::RULE_FAILURE_COUNT, Alert::RULE_AVG_EXECUTION_TIME, Alert::RULE_QUEUE_BLOCKED];
+
         if (\in_array($ruleType, $patternRuleTypes, true)) {
             if ($jobPatterns !== []) {
                 $threshold['job_patterns'] = $jobPatterns;
             }
         }
         $queuePatternsMerged = $queuePatterns;
+
         if ($queuePatternsMerged === [] && ! empty($validated['queue'])) {
             $queuePatternsMerged = [(string) $validated['queue']];
         }
+
         if (\in_array($ruleType, $queuePatternRuleTypes, true)) {
             if ($queuePatternsMerged !== []) {
                 $threshold['queue_patterns'] = $queuePatternsMerged;
@@ -196,6 +213,7 @@ class AlertUpsertService
         }
 
         $queueColumn = null;
+
         if (\in_array($ruleType, $queuePatternRuleTypes, true) && $queuePatternsMerged !== []) {
             $queueColumn = $queuePatternsMerged[0];
         } elseif (! empty($validated['queue'])) {

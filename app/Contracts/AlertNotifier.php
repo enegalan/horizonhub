@@ -18,7 +18,7 @@ interface AlertNotifier
     /**
      * Send a batched alert.
      *
-     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $events
+     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events
      */
     public function sendBatched(Alert $alert, array $events, array $config): void;
 }

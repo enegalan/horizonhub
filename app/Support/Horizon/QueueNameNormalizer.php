@@ -28,7 +28,7 @@ class QueueNameNormalizer
      * 2. Otherwise strip one segment if the whole string matches a standard Laravel Horizon
      *    `connection.queue` / `connection:queue` pattern (letter-first connection identifier).
      *
-     * @param  string|null  $queue  The queue.
+     * @param string|null $queue The queue.
      */
     public static function normalize(?string $queue): ?string
     {
@@ -39,6 +39,7 @@ class QueueNameNormalizer
         foreach (self::connectionNamesFromConfig() as $connectionName) {
             foreach (self::CONNECTION_QUEUE_SEPARATORS as $separator) {
                 $fullPrefix = "$connectionName$separator";
+
                 if (! \str_starts_with($queue, $fullPrefix)) {
                     continue;
                 }
@@ -65,8 +66,10 @@ class QueueNameNormalizer
     {
         $fromConfig = \array_keys(config('queue.connections'));
         $names = [];
+
         foreach ($fromConfig as $name) {
             $name = (string) $name;
+
             if (empty($name)) {
                 continue;
             }

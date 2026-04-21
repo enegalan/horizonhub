@@ -25,12 +25,12 @@ class ServiceRequestServiceIdsTest extends TestCase
             'status' => 'online',
         ]);
 
-        $request = Request::create('/x?first%5B%5D='.$s2->id.'&second%5B%5D='.$s1->id, 'GET');
+        $request = Request::create('/x?first%5B%5D=' . $s2->id . '&second%5B%5D=' . $s1->id, 'GET');
 
         $ids = ServiceRequest::existingIdsFromRequest($request, ['first', 'second']);
         $this->assertSame([(int) $s2->id], $ids);
 
-        $request2 = Request::create('/x?second%5B%5D='.$s1->id, 'GET');
+        $request2 = Request::create('/x?second%5B%5D=' . $s1->id, 'GET');
         $ids2 = ServiceRequest::existingIdsFromRequest($request2, ['first', 'second']);
         $this->assertSame([(int) $s1->id], $ids2);
     }

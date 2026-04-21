@@ -56,7 +56,7 @@ class AlertController extends Controller
      */
     public function destroy(Alert $alert): RedirectResponse
     {
-        $name = $alert->name ?: ('Alert #'.$alert->id);
+        $name = $alert->name ?: ('Alert #' . $alert->id);
         $alert->delete();
 
         return redirect()
@@ -138,6 +138,7 @@ class AlertController extends Controller
         $statusFilter = (string) $request->query('status', '');
         $serviceFilter = $request->query('service_id');
         $perPage = (int) $request->query('per_page');
+
         if (! $perPage || $perPage <= 0) {
             $perPage = config('horizonhub.jobs_per_page');
         }
@@ -149,6 +150,7 @@ class AlertController extends Controller
         if ($serviceFilter !== null && $serviceFilter !== '') {
             $logsQuery->where('service_id', (int) $serviceFilter);
         }
+
         if ($statusFilter !== '') {
             $logsQuery->where('status', $statusFilter);
         }
@@ -161,10 +163,11 @@ class AlertController extends Controller
             'chart30d' => $this->chartData->buildChart($alert, 30),
         ];
 
-        $alertName = $alert->name ?: 'Alert #'.$alert->id;
+        $alertName = $alert->name ?: "Alert #{$alert->id}";
 
         $selectedLogId = $request->query('log');
         $selectedLog = null;
+
         if ($selectedLogId !== null) {
             $selectedLog = AlertLog::with('service')
                 ->where('alert_id', $alert->id)

@@ -49,9 +49,10 @@ class AgentProxyServiceTest extends TestCase
             if ($request->method() === 'GET' && \str_contains($request->url(), 'example.test/horizon')) {
                 return Http::response(
                     '<html><head><meta name="csrf-token" content="test-csrf-token"></head></html>',
-                    200
+                    200,
                 );
             }
+
             if ($request->method() === 'POST' && \str_contains($request->url(), 'jobs/retry')) {
                 $capturedRetryRequest = $request;
 

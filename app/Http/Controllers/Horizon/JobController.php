@@ -75,6 +75,7 @@ class JobController extends Controller
 
         $response = $this->horizonApi->getJob($service, $job);
         $jobData = [];
+
         if (($response['success'] ?? false) && isset($response['data']) && \is_array($response['data']) && \count($response['data']) > 0) {
             $jobData = $response['data'];
         } else {
@@ -97,7 +98,7 @@ class JobController extends Controller
             'payload' => $payload,
             'context' => $context,
             'commandData' => $commandData,
-            'header' => 'Job: '.$jobView->name,
+            'header' => "Job: {$jobView->name}",
         ]);
     }
 }

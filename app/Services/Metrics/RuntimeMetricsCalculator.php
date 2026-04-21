@@ -9,7 +9,8 @@ class RuntimeMetricsCalculator extends HorizonMetricsComputation
     /**
      * Per-job runtimes over the rolling last 24 hours (completed and failed), for scatter charts.
      *
-     * @param  array<string, mixed>  $serviceScope  The service scope.
+     * @param array<string, mixed> $serviceScope The service scope.
+     *
      * @return array{points: list<array{endAtMs: int, seconds: float, name: string, service: string, status: string}>}
      */
     public function getJobRuntimesLast24h(array $serviceScope = []): array
@@ -18,6 +19,7 @@ class RuntimeMetricsCalculator extends HorizonMetricsComputation
         $sinceTimestamp = $now->copy()->subHours(24)->getTimestamp();
 
         $services = $this->private__getServicesForMetrics($serviceScope);
+
         if ($services->isEmpty()) {
             return ['points' => []];
         }
@@ -29,6 +31,7 @@ class RuntimeMetricsCalculator extends HorizonMetricsComputation
             $serviceName = (string) $service->name;
 
             $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp);
+
             foreach ($completedJobs as $job) {
                 if (! \is_array($job)) {
                     continue;
@@ -36,12 +39,14 @@ class RuntimeMetricsCalculator extends HorizonMetricsComputation
 
                 $queuedAt = $job['reserved_at'] ?? null;
                 $completedAt = $job['completed_at'] ?? $job['processed_at'] ?? null;
+
                 if (! \is_numeric($queuedAt) || ! \is_numeric($completedAt)) {
                     continue;
                 }
 
                 $start = (int) $queuedAt;
                 $end = (int) $completedAt;
+
                 if ($end < $sinceTimestamp || $end <= $start) {
                     continue;
                 }
@@ -56,6 +61,7 @@ class RuntimeMetricsCalculator extends HorizonMetricsComputation
             }
 
             $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp);
+
             foreach ($failedJobs as $job) {
                 if (! \is_array($job)) {
                     continue;
@@ -63,12 +69,14 @@ class RuntimeMetricsCalculator extends HorizonMetricsComputation
 
                 $queuedAt = $job['reserved_at'] ?? null;
                 $failedAt = $job['failed_at'] ?? null;
+
                 if (! \is_numeric($queuedAt) || ! \is_numeric($failedAt)) {
                     continue;
                 }
 
                 $start = (int) $queuedAt;
                 $end = (int) $failedAt;
+
                 if ($end < $sinceTimestamp || $end <= $start) {
                     continue;
                 }

@@ -35,8 +35,10 @@ class HorizonMetricsServiceTest extends TestCase
             $this->assertInstanceOf(Service::class, $svc);
             $this->assertSame((int) $service->id, (int) $svc->id);
             $startingAt = (int) ($query['starting_at'] ?? -1);
+
             if ($startingAt === -1) {
                 $jobs = [];
+
                 for ($i = 0; $i < 50; $i++) {
                     $jobs[] = [
                         'completed_at' => $completedTs + $i,
@@ -46,6 +48,7 @@ class HorizonMetricsServiceTest extends TestCase
 
                 return ['success' => true, 'data' => ['jobs' => $jobs]];
             }
+
             if ($startingAt === 49) {
                 return ['success' => true, 'data' => ['jobs' => [
                     ['completed_at' => $completedTs + 100, 'index' => 50],
@@ -104,6 +107,7 @@ class HorizonMetricsServiceTest extends TestCase
             'data' => [
                 'jobs' => (function () use ($completedJobsBucket1, $completedJobsBucket2): array {
                     $jobs = $completedJobsBucket1;
+
                     foreach ($completedJobsBucket2 as $job) {
                         $jobs[] = $job;
                     }
@@ -125,7 +129,7 @@ class HorizonMetricsServiceTest extends TestCase
         $endHour = $now->copy()->startOfHour();
         $expectedBucketCount = \min(
             48,
-            ($endHour->getTimestamp() - $since->getTimestamp()) / 3600 + 1
+            ($endHour->getTimestamp() - $since->getTimestamp()) / 3600 + 1,
         );
 
         $this->assertCount((int) $expectedBucketCount, $result['xAxis']);

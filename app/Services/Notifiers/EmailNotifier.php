@@ -23,14 +23,15 @@ class EmailNotifier extends AbstractAlertNotifier implements EmailAlertNotifier
     /**
      * Send a batched alert.
      *
-     * @param  Alert  $alert  The alert.
-     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $events  The events.
-     * @param  array<string, mixed>  $config  The config.
+     * @param Alert $alert The alert.
+     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events The events.
+     * @param array<string, mixed> $config The config.
      */
     public function sendBatched(Alert $alert, array $events, array $config): void
     {
         $to = $config['to'] ?? [];
         $to = \is_array($to) ? \array_values(\array_filter(\array_map('trim', $to))) : [];
+
         if (empty($to)) {
             return;
         }
@@ -42,7 +43,8 @@ class EmailNotifier extends AbstractAlertNotifier implements EmailAlertNotifier
         $serviceId = (int) $first['service_id'];
         $service = Service::find($serviceId);
 
-        $subject = '[Horizon Hub] Alert: '.$alert->rule_type.($service ? " - {$service->name}" : '');
+        $subject = '[Horizon Hub] Alert: ' . $alert->rule_type . ($service ? " - {$service->name}" : '');
+
         if ($count > 1) {
             $subject .= " ($count events)";
         }

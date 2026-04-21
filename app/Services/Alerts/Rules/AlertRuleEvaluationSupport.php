@@ -26,7 +26,8 @@ final class AlertRuleEvaluationSupport
     /**
      * Collect the triggering job UUIDs.
      *
-     * @param  Collection<int, array<string, mixed>>  $jobs
+     * @param Collection<int, array<string, mixed>> $jobs
+     *
      * @return array<int, string>
      */
     public function collectTriggeringJobUuids(Collection $jobs): array
@@ -45,8 +46,8 @@ final class AlertRuleEvaluationSupport
     /**
      * Check if the completed job row matches the alert.
      *
-     * @param  Alert  $alert  The alert.
-     * @param  array<string, mixed>  $job  The job.
+     * @param Alert $alert The alert.
+     * @param array<string, mixed> $job The job.
      */
     public function completedJobRowMatches(Alert $alert, array $job): bool
     {
@@ -57,8 +58,8 @@ final class AlertRuleEvaluationSupport
     /**
      * Check if the failed job row matches the alert.
      *
-     * @param  Alert  $alert  The alert.
-     * @param  array<string, mixed>  $job  The job.
+     * @param Alert $alert The alert.
+     * @param array<string, mixed> $job The job.
      */
     public function failedJobRowMatches(Alert $alert, array $job): bool
     {
@@ -69,8 +70,9 @@ final class AlertRuleEvaluationSupport
     /**
      * Filter the failed jobs in the window.
      *
-     * @param  Collection<int, mixed>  $jobs
-     * @param  Carbon  $cutoff  The cutoff time.
+     * @param Collection<int, mixed> $jobs
+     * @param Carbon $cutoff The cutoff time.
+     *
      * @return Collection<int, array<string, mixed>>
      */
     public function filterFailedJobsInWindow(Collection $jobs, Carbon $cutoff): Collection
@@ -88,11 +90,12 @@ final class AlertRuleEvaluationSupport
     /**
      * Check if the job matches the queue patterns.
      *
-     * @param  array<string, mixed>  $job
+     * @param array<string, mixed> $job
      */
     public function jobMatchesQueuePatterns(Alert $alert, array $job): bool
     {
         $patterns = $this->resolveQueuePatterns($alert);
+
         if ($patterns === []) {
             return true;
         }
@@ -110,15 +113,17 @@ final class AlertRuleEvaluationSupport
     /**
      * Find the matching failed jobs in the window.
      *
-     * @param  Alert  $alert  The alert.
-     * @param  Service  $service  The service.
-     * @param  Carbon  $cutoff  The cutoff time.
+     * @param Alert $alert The alert.
+     * @param Service $service The service.
+     * @param Carbon $cutoff The cutoff time.
+     *
      * @return Collection<int, array<string, mixed>>
      */
     public function matchingFailedJobsInWindow(Alert $alert, Service $service, Carbon $cutoff): Collection
     {
         $response = $this->horizonApi->getFailedJobs($service, ['starting_at' => 0]);
         $data = $response['data'] ?? null;
+
         if (! ($response['success'] ?? false) || ! \is_array($data)) {
             return collect();
         }
@@ -134,22 +139,26 @@ final class AlertRuleEvaluationSupport
     /**
      * Resolve the job patterns from the alert threshold.
      *
-     * @param  Alert  $alert  The alert.
+     * @param Alert $alert The alert.
+     *
      * @return array<int, string>
      */
     public function resolveJobPatterns(Alert $alert): array
     {
         $threshold = $alert->threshold ?? [];
         $fromThreshold = $threshold['job_patterns'] ?? [];
+
         if (! \is_array($fromThreshold)) {
             $fromThreshold = [];
         }
         $patterns = [];
+
         foreach ($fromThreshold as $p) {
             if (\is_string($p) && $p !== '') {
                 $patterns[] = $p;
             }
         }
+
         if ($patterns !== []) {
             return \array_values(\array_unique($patterns));
         }
@@ -170,17 +179,21 @@ final class AlertRuleEvaluationSupport
     {
         $threshold = $alert->threshold ?? [];
         $fromThreshold = $threshold['queue_patterns'] ?? [];
+
         if (! \is_array($fromThreshold)) {
             $fromThreshold = [];
         }
         $patterns = [];
+
         foreach ($fromThreshold as $p) {
             if (\is_string($p) && $p !== '') {
                 $patterns[] = $p;
             }
         }
+
         if (! empty($alert->queue)) {
             $q = (string) $alert->queue;
+
             if (! \in_array($q, $patterns, true)) {
                 $patterns[] = $q;
             }
@@ -192,16 +205,18 @@ final class AlertRuleEvaluationSupport
     /**
      * Check if the job matches the job patterns.
      *
-     * @param  Alert  $alert  The alert.
-     * @param  array<string, mixed>  $job  The job.
+     * @param Alert $alert The alert.
+     * @param array<string, mixed> $job The job.
      */
     private function private__jobMatchesJobPatterns(Alert $alert, array $job): bool
     {
         $patterns = $this->resolveJobPatterns($alert);
+
         if ($patterns === []) {
             return true;
         }
         $haystack = $this->private__jobPayloadHaystack($job);
+
         foreach ($patterns as $pattern) {
             if ($pattern !== '' && \str_contains($haystack, $pattern)) {
                 return true;
@@ -214,11 +229,12 @@ final class AlertRuleEvaluationSupport
     /**
      * Get the job payload haystack.
      *
-     * @param  array<string, mixed>  $job  The job.
+     * @param array<string, mixed> $job The job.
      */
     private function private__jobPayloadHaystack(array $job): string
     {
         $payload = $job['payload'] ?? [];
+
         if (! \is_array($payload)) {
             $payload = [];
         }
@@ -231,23 +247,27 @@ final class AlertRuleEvaluationSupport
     /**
      * Parse the failed at value.
      *
-     * @param  mixed  $value  The value to parse.
+     * @param mixed $value The value to parse.
      */
     private function private__parseFailedAt(mixed $value): ?Carbon
     {
         if ($value === null || $value === '') {
             return null;
         }
+
         try {
             if ($value instanceof Carbon) {
                 return $value;
             }
+
             if ($value instanceof \DateTimeInterface) {
                 return Carbon::instance($value);
             }
+
             if (\is_numeric($value)) {
                 return Carbon::createFromTimestamp((int) $value);
             }
+
             if (\is_string($value)) {
                 return Carbon::parse($value);
             }

@@ -9,7 +9,7 @@ class JobRuntimeHelper
     /**
      * Human-readable runtime in seconds (e.g. "0.08 s", "1.23 s").
      *
-     * @param  float|null  $seconds  The seconds.
+     * @param float|null $seconds The seconds.
      */
     public static function getFormattedRuntime(?float $seconds): ?string
     {
@@ -17,17 +17,17 @@ class JobRuntimeHelper
             return null;
         }
 
-        return \number_format($seconds, 2).' s';
+        return \number_format($seconds, 2) . ' s';
     }
 
     /**
      * Compute the runtime in seconds for a job, using either a precomputed
      * runtime value or the difference between reserved_at and processed/failed_at.
      *
-     * @param  float|null  $runtimeSeconds  The runtime seconds.
-     * @param  Carbon|string|null  $reservedAt  The reserved at.
-     * @param  Carbon|string|null  $processedAt  The processed at.
-     * @param  Carbon|string|null  $failedAt  The failed at.
+     * @param float|null $runtimeSeconds The runtime seconds.
+     * @param Carbon|string|null $reservedAt The reserved at.
+     * @param Carbon|string|null $processedAt The processed at.
+     * @param Carbon|string|null $failedAt The failed at.
      */
     public static function getRuntimeSeconds(?float $runtimeSeconds, Carbon|string|null $reservedAt, Carbon|string|null $processedAt, Carbon|string|null $failedAt): ?float
     {
@@ -54,9 +54,9 @@ class JobRuntimeHelper
      * - For "failed" jobs, processed_at is cleared.
      * - For "processing" jobs, both processed_at and failed_at are cleared.
      *
-     * @param  string|null  $status  The status.
-     * @param  Carbon|string|null  $processedAt  The processed at.
-     * @param  Carbon|string|null  $failedAt  The failed at.
+     * @param string|null $status The status.
+     * @param Carbon|string|null $processedAt The processed at.
+     * @param Carbon|string|null $failedAt The failed at.
      */
     public static function normalizeStatusDates(?string $status, Carbon|string|null &$processedAt, Carbon|string|null &$failedAt): void
     {
@@ -73,7 +73,7 @@ class JobRuntimeHelper
     /**
      * Parse a Horizon timestamp value into Carbon.
      *
-     * @param  mixed  $value  The value.
+     * @param mixed $value The value.
      */
     public static function parseJobTimestamp(mixed $value): ?Carbon
     {
@@ -105,7 +105,7 @@ class JobRuntimeHelper
     /**
      * Normalize a value to a Carbon instance.
      *
-     * @param  Carbon|string|null  $value  The value.
+     * @param Carbon|string|null $value The value.
      */
     private static function private__normalizeToCarbon(Carbon|string|null $value): ?Carbon
     {

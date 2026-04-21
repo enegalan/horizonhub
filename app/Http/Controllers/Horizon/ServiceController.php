@@ -128,7 +128,7 @@ class ServiceController extends Controller
     public function update(Request $request, Service $service): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:services,name,'.(int) $service->id,
+            'name' => 'required|string|max:255|unique:services,name,' . (int) $service->id,
             'base_url' => 'required|url',
             'public_url' => 'nullable|url',
         ]);

@@ -11,13 +11,15 @@ class ServiceRequest extends FormRequest
     /**
      * Read the first non-empty request/query value for the given keys (in order), then parse and restrict to existing services.
      *
-     * @param  list<string>  $keys
+     * @param list<string> $keys
+     *
      * @return list<int>
      */
     public static function existingIdsFromRequest(Request $request, array $keys): array
     {
         $raw = self::private__firstRawValueForKeys($request, $keys);
         $serviceIds = self::parseIds($raw);
+
         if ($serviceIds === []) {
             return [];
         }
@@ -43,9 +45,9 @@ class ServiceRequest extends FormRequest
         $ids = \array_filter(
             \array_map(
                 static fn ($value): int => \is_numeric($value) ? (int) $value : 0,
-                $values
+                $values,
             ),
-            static fn (int $id): bool => $id > 0
+            static fn (int $id): bool => $id > 0,
         );
 
         return \array_values(\array_unique($ids));
@@ -75,12 +77,13 @@ class ServiceRequest extends FormRequest
     /**
      * Get the first non-empty request/query value for the given keys (in order).
      *
-     * @param  list<string>  $keys
+     * @param list<string> $keys
      */
     private static function private__firstRawValueForKeys(Request $request, array $keys): mixed
     {
         foreach ($keys as $key) {
             $candidate = $request->input($key, $request->query($key));
+
             if ($candidate === null || $candidate === '' || (\is_array($candidate) && $candidate === [])) {
                 continue;
             }

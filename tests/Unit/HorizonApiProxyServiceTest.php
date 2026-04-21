@@ -14,11 +14,51 @@ class HorizonApiProxyServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_get_call_enters_failure_cooldown_and_skips_immediate_retry(): void
+    {
+        $calls = 0;
+        Http::fake(function () use (&$calls) {
+            $calls++;
+
+            return Http::response('Gateway Timeout', 504);
+        });
+
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.ping', '/stats');
+        \config()->set('horizonhub.horizon_http_failure_cooldown_seconds', 60);
+        \config()->set('horizonhub.horizon_http_auth_statuses', [401, 403, 419]);
+        \config()->set('horizonhub.horizon_http_retry', [
+            'times' => 1,
+            'sleep_ms' => 0,
+            'retry_on_status' => [429, 502, 503, 504],
+        ]);
+
+        $service = Service::create([
+            'name' => 'svc-cooldown',
+            'base_url' => 'https://service-cooldown.test',
+            'status' => 'online',
+        ]);
+
+        Cache::forget('horizonhub:horizon-api-failure-cooldown:' . $service->id);
+
+        $proxy = new HorizonApiProxyService;
+
+        $first = $proxy->ping($service);
+        $second = $proxy->ping($service);
+
+        $this->assertFalse($first['success']);
+        $this->assertSame(504, $first['status'] ?? null);
+        $this->assertFalse($second['success']);
+        $this->assertSame(503, $second['status'] ?? null);
+        $this->assertSame(1, $calls);
+    }
+
     public function test_get_failed_jobs_retries_on_429_then_succeeds(): void
     {
         $calls = 0;
         Http::fake(function () use (&$calls) {
             $calls++;
+
             if ($calls < 3) {
                 return Http::response(['message' => 'Rate limited'], 429);
             }
@@ -90,6 +130,7 @@ class HorizonApiProxyServiceTest extends TestCase
 
             if ($request->method() === 'GET' && \str_ends_with($request->url(), '/horizon/api/workload')) {
                 $apiCalls++;
+
                 if ($apiCalls === 1) {
                     return Http::response(['message' => 'Unauthorized'], 401);
                 }
@@ -168,45 +209,6 @@ class HorizonApiProxyServiceTest extends TestCase
         $this->assertNotNull($freshService->last_seen_at);
     }
 
-    public function test_get_call_enters_failure_cooldown_and_skips_immediate_retry(): void
-    {
-        $calls = 0;
-        Http::fake(function () use (&$calls) {
-            $calls++;
-
-            return Http::response('Gateway Timeout', 504);
-        });
-
-        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
-        \config()->set('horizonhub.horizon_paths.ping', '/stats');
-        \config()->set('horizonhub.horizon_http_failure_cooldown_seconds', 60);
-        \config()->set('horizonhub.horizon_http_auth_statuses', [401, 403, 419]);
-        \config()->set('horizonhub.horizon_http_retry', [
-            'times' => 1,
-            'sleep_ms' => 0,
-            'retry_on_status' => [429, 502, 503, 504],
-        ]);
-
-        $service = Service::create([
-            'name' => 'svc-cooldown',
-            'base_url' => 'https://service-cooldown.test',
-            'status' => 'online',
-        ]);
-
-        Cache::forget('horizonhub:horizon-api-failure-cooldown:'.$service->id);
-
-        $proxy = new HorizonApiProxyService;
-
-        $first = $proxy->ping($service);
-        $second = $proxy->ping($service);
-
-        $this->assertFalse($first['success']);
-        $this->assertSame(504, $first['status'] ?? null);
-        $this->assertFalse($second['success']);
-        $this->assertSame(503, $second['status'] ?? null);
-        $this->assertSame(1, $calls);
-    }
-
     public function test_retry_job_retries_once_after_419_response(): void
     {
         $retryCalls = 0;
@@ -221,6 +223,7 @@ class HorizonApiProxyServiceTest extends TestCase
 
             if ($request->method() === 'POST' && \str_contains($request->url(), '/jobs/retry/')) {
                 $retryCalls++;
+
                 if ($retryCalls === 1) {
                     return Http::response(['message' => 'Page Expired'], 419);
                 }

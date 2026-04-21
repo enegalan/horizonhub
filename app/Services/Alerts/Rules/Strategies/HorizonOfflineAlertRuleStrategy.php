@@ -41,17 +41,20 @@ final class HorizonOfflineAlertRuleStrategy implements AlertRuleStrategyInterfac
     private function private__evaluateHorizonOffline(int $serviceId): bool
     {
         $service = Service::find($serviceId);
+
         if (! $service || ! $service->getBaseUrl()) {
             return false;
         }
 
         $response = $this->horizonApi->getStats($service);
         $data = $response['data'] ?? null;
+
         if (! ($response['success'] ?? false) || ! \is_array($data)) {
             return true;
         }
 
         $status = \strtolower((string) ($data['status'] ?? ''));
+
         if ($status === 'active' || $status === 'running') {
             return false;
         }

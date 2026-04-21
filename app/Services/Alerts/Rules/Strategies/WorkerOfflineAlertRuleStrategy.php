@@ -30,6 +30,7 @@ final class WorkerOfflineAlertRuleStrategy implements AlertRuleStrategyInterface
         $minutes = (int) ($threshold['minutes'] ?? config('horizonhub.alerts.default_minutes'));
 
         $service = Service::find($serviceId);
+
         if (! $service || ! $service->last_seen_at) {
             return false;
         }

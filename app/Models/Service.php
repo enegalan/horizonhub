@@ -51,6 +51,7 @@ class Service extends Model
     public function getPublicUrl(): string
     {
         $publicUrl = \rtrim($this->public_url ?? '', '/');
+
         if ($publicUrl !== '') {
             return $publicUrl;
         }

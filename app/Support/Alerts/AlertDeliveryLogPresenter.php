@@ -9,7 +9,8 @@ class AlertDeliveryLogPresenter
     /**
      * Get the payload for the delivery log modal.
      *
-     * @param  AlertLog|null  $log  The log.
+     * @param AlertLog|null $log The log.
+     *
      * @return array<string, mixed>|null
      */
     public static function payloadFromLog(?AlertLog $log): ?array
@@ -19,11 +20,13 @@ class AlertDeliveryLogPresenter
         }
 
         $initialTriggerCount = (int) ($log->trigger_count ?? 0);
+
         if ($initialTriggerCount < 1) {
             $initialTriggerCount = 1;
         }
         $initialJobUuids = \is_array($log->job_uuids ?? null) ? $log->job_uuids : [];
         $initialJobTotals = [];
+
         foreach ($initialJobUuids as $initialUuid) {
             $initialJobKey = (string) $initialUuid;
             $initialJobTotals[$initialJobKey] = ($initialJobTotals[$initialJobKey] ?? 0) + 1;
@@ -32,6 +35,7 @@ class AlertDeliveryLogPresenter
         $initialEffectiveJobTypesCount = \min($initialUniqueJobTypesCount, $initialTriggerCount);
         $maxDistinctJobs = (int) config('horizonhub.alerts.delivery_log_max_distinct_jobs', $initialEffectiveJobTypesCount);
         $initialJobItems = [];
+
         foreach (\array_slice(\array_keys($initialJobTotals), 0, $maxDistinctJobs) as $initialJobId) {
             $initialJobItems[] = [
                 'id' => $initialJobId,

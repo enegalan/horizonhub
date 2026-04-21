@@ -10,7 +10,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
     /**
      * Get the number of failed jobs in the past seven days.
      *
-     * @param  Service|null  $service  The service.
+     * @param Service|null $service The service.
      */
     public function getFailedPastSevenDays(?Service $service = null): int
     {
@@ -33,6 +33,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
         }
 
         $total = 0;
+
         foreach ($services as $svc) {
             $response = $this->horizonApi->getStats($svc);
             $data = $response['data'] ?? null;
@@ -50,7 +51,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
     /**
      * Get the number of jobs processed in the past hour.
      *
-     * @param  Service|null  $service  The service.
+     * @param Service|null $service The service.
      */
     public function getJobsPastHour(?Service $service = null): int
     {
@@ -73,6 +74,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
         }
 
         $total = 0;
+
         foreach ($services as $svc) {
             $response = $this->horizonApi->getStats($svc);
             $data = $response['data'] ?? null;
@@ -123,7 +125,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
     /**
      * Get the number of jobs processed in the past minute.
      *
-     * @param  Service|null  $service  The service.
+     * @param Service|null $service The service.
      */
     public function getJobsPastMinute(?Service $service = null): int
     {
@@ -133,11 +135,13 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
 
             if (($response['success'] ?? false) && \is_array($data)) {
                 $jobs_per_minute = isset($data['jobsPerMinute']) ? (float) $data['jobsPerMinute'] : 0.0;
+
                 if ($jobs_per_minute > 0) {
                     return (int) \round($jobs_per_minute);
                 }
                 $recent = isset($data['recentJobs']) ? (int) $data['recentJobs'] : 0;
                 $period = isset($data['periods']['recentJobs']) ? (int) $data['periods']['recentJobs'] : 60;
+
                 if ($recent >= 0 && $period > 0) {
                     return (int) \round($recent / $period);
                 }
@@ -154,6 +158,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
         }
 
         $total = 0;
+
         foreach ($services as $svc) {
             $total += $this->getJobsPastMinute($svc);
         }

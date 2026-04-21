@@ -23,9 +23,10 @@ class AlertRuleEvaluator
     /**
      * Evaluate the alert rule and return whether it triggered plus the list of job UUIDs that triggered it.
      *
-     * @param  Alert  $alert  The alert.
-     * @param  int  $serviceId  The service ID.
-     * @param  string|null  $jobUuid  The job UUID.
+     * @param Alert $alert The alert.
+     * @param int $serviceId The service ID.
+     * @param string|null $jobUuid The job UUID.
+     *
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
     public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array

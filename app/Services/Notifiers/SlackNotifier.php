@@ -35,13 +35,14 @@ class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier
     /**
      * Send a batched alert.
      *
-     * @param  Alert  $alert  The alert.
-     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $events  The events.
-     * @param  array<string, mixed>  $config  The config.
+     * @param Alert $alert The alert.
+     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events The events.
+     * @param array<string, mixed> $config The config.
      */
     public function sendBatched(Alert $alert, array $events, array $config): void
     {
         $webhookUrl = $config['webhook_url'] ?? '';
+
         if ($webhookUrl === '' || empty($events)) {
             return;
         }
@@ -64,7 +65,7 @@ class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier
             $condition = \sprintf(
                 '📌 *Condition:* >= %d failures in last %d minutes',
                 $thresholdCount,
-                $thresholdMinutes
+                $thresholdMinutes,
             );
 
             if ($queueName !== null && $queueName !== '') {
@@ -76,7 +77,7 @@ class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier
 
         if ($alert->rule_type === 'horizon_offline') {
             $lines[] = '📌 *Condition:* Horizon is not running for this service.';
-            $lines[] = '🕐 *Detected at:* '.$first['triggered_at'];
+            $lines[] = '🕐 *Detected at:* ' . $first['triggered_at'];
         } else {
             $lines[] = "📊 *Events:* $count";
 
@@ -121,8 +122,9 @@ class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier
                     $lines[] = "   ⚠️ *exception:* $exception";
                 }
             }
+
             if ($count > self::MAX_EVENTS_IN_SLACK) {
-                $lines[] = '📎 ... and *'.($count - self::MAX_EVENTS_IN_SLACK).'* more';
+                $lines[] = '📎 ... and *' . ($count - self::MAX_EVENTS_IN_SLACK) . '* more';
             }
         }
         $text = \implode("\n", $lines);

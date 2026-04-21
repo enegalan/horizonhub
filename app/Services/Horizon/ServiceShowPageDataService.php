@@ -31,9 +31,10 @@ class ServiceShowPageDataService
     /**
      * Build the service show page data.
      *
-     * @param  Service  $service  The service.
-     * @param  Request  $request  The request.
-     * @param  HorizonApiProxyService  $horizonApi  The horizon API proxy service.
+     * @param Service $service The service.
+     * @param Request $request The request.
+     * @param HorizonApiProxyService $horizonApi The horizon API proxy service.
+     *
      * @return array{
      *     jobsPastMinute: mixed,
      *     jobsPastHour: mixed,
@@ -76,6 +77,7 @@ class ServiceShowPageDataService
             if (isset($statsData['status']) && ! empty((string) $statsData['status'])) {
                 $horizonStatus = (string) $statsData['status'];
             }
+
             if (isset($statsData['processes']) && \is_numeric($statsData['processes'])) {
                 $totalProcesses = (int) $statsData['processes'];
             }
@@ -117,6 +119,7 @@ class ServiceShowPageDataService
                 }
 
                 $supervisorsData = $master['supervisors'] ?? null;
+
                 if (! \is_array($supervisorsData)) {
                     continue;
                 }
@@ -127,6 +130,7 @@ class ServiceShowPageDataService
                     }
 
                     $name = isset($supervisor['name']) ? (string) $supervisor['name'] : '';
+
                     if ($name === '') {
                         continue;
                     }
@@ -137,6 +141,7 @@ class ServiceShowPageDataService
                     $options = isset($supervisor['options']) && \is_array($supervisor['options']) ? $supervisor['options'] : [];
 
                     $connection = '';
+
                     if (isset($options['connection']) && (string) $options['connection'] !== '') {
                         $connection = (string) $options['connection'];
                     } elseif (isset($supervisor['connection']) && (string) $supervisor['connection'] !== '') {
@@ -144,14 +149,17 @@ class ServiceShowPageDataService
                     }
 
                     $queues = '';
+
                     if (isset($options['queue'])) {
                         $queuesRaw = $options['queue'];
                         $queues = \is_array($queuesRaw) ? \implode(', ', \array_map('strval', $queuesRaw)) : (string) $queuesRaw;
                     }
 
                     $processes = null;
+
                     if (isset($supervisor['processes']) && \is_array($supervisor['processes'])) {
                         $sum = 0;
+
                         foreach ($supervisor['processes'] as $value) {
                             if (\is_numeric($value)) {
                                 $sum += (int) $value;
@@ -161,6 +169,7 @@ class ServiceShowPageDataService
                     }
 
                     $balancing = '';
+
                     if (isset($options['balance']) && (string) $options['balance'] !== '') {
                         $balancing = (string) $options['balance'];
                     }
@@ -188,6 +197,7 @@ class ServiceShowPageDataService
         }
 
         $workloadRows = $this->metrics->getWorkloadForService($service);
+
         foreach ($workloadRows as $row) {
             $workloadQueues->push((object) [
                 'queue' => $row['queue'],

@@ -206,7 +206,7 @@ class TurboStreamSseTest extends TestCase
                 ]);
         });
 
-        $response = $this->get('/horizon/streams/horizon/jobs/'.$jobUuid.'?service_id='.$service->id);
+        $response = $this->get('/horizon/streams/horizon/jobs/' . $jobUuid . '?service_id=' . $service->id);
 
         $this->assertStringStartsWith('text/event-stream', $response->headers->get('Content-Type'));
     }

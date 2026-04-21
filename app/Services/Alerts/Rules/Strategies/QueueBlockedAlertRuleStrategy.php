@@ -52,6 +52,7 @@ final class QueueBlockedAlertRuleStrategy implements AlertRuleStrategyInterface
         $minutes = (int) ($threshold['minutes'] ?? 30);
 
         $service = Service::find($serviceId);
+
         if (! $service || ! $service->getBaseUrl()) {
             return false;
         }
@@ -66,6 +67,7 @@ final class QueueBlockedAlertRuleStrategy implements AlertRuleStrategyInterface
         $jobs = collect($data['jobs'] ?? []);
 
         $queuePatterns = $this->support->resolveQueuePatterns($alert);
+
         if ($queuePatterns !== []) {
             $jobs = $jobs->filter(function ($job) use ($alert) {
                 return \is_array($job) && $this->support->jobMatchesQueuePatterns($alert, $job);
@@ -77,9 +79,11 @@ final class QueueBlockedAlertRuleStrategy implements AlertRuleStrategyInterface
                 return null;
             }
             $completedRaw = $job['completed_at'] ?? null;
+
             if (! \is_string($completedRaw) || $completedRaw === '') {
                 return null;
             }
+
             try {
                 return Carbon::parse($completedRaw);
             } catch (\Throwable $e) {

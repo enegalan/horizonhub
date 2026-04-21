@@ -11,8 +11,9 @@ class AlertChartDataService
     /**
      * Build chart data for an alert for a given window.
      *
-     * @param  Alert  $alert  The alert.
-     * @param  int  $days  The number of days to build the chart for.
+     * @param Alert $alert The alert.
+     * @param int $days The number of days to build the chart for.
+     *
      * @return array{xAxis: list<string>, sent: list<int>, failed: list<int>}
      */
     public function buildChart(Alert $alert, int $days): array
@@ -26,6 +27,7 @@ class AlertChartDataService
 
         $buckets = [];
         $totalSlots = $days === 1 ? 24 : $days;
+
         for ($i = 0; $i < $totalSlots; $i++) {
             $key = $days === 1
                 ? \now()->subHours(23 - $i)->format($bucketFormatPhp)
@@ -41,6 +43,7 @@ class AlertChartDataService
 
         foreach ($logs as $row) {
             $key = $row->bucket;
+
             if (! isset($buckets[$key])) {
                 continue;
             }
@@ -51,6 +54,7 @@ class AlertChartDataService
         $xAxis = [];
         $sent = [];
         $failed = [];
+
         foreach ($buckets as $k => $v) {
             $xAxis[] = $days === 1
                 ? Carbon::parse($k)->format('H:i')

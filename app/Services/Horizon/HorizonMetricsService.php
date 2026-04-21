@@ -67,7 +67,8 @@ class HorizonMetricsService
     /**
      * Workload rows as queue list rows for the queues UI and SSE partials.
      *
-     * @param  list<int>  $serviceFilterIds
+     * @param list<int> $serviceFilterIds
+     *
      * @return Collection<int, object{service_id: int, queue: string, job_count: int, service: Service|null}>
      */
     public function buildQueuesCollectionForServiceFilter(array $serviceFilterIds): Collection
@@ -80,13 +81,13 @@ class HorizonMetricsService
                 $workloadRows,
                 static function (array $row) use ($allowedServiceIds): bool {
                     return isset($allowedServiceIds[(int) ($row['service_id'] ?? 0)]);
-                }
+                },
             ));
         }
 
         $serviceIds = \array_values(\array_unique(\array_map(
             static fn (array $row): int => (int) $row['service_id'],
-            $workloadRows
+            $workloadRows,
         )));
 
         $servicesById = $serviceIds === []
@@ -207,7 +208,8 @@ class HorizonMetricsService
     /**
      * Aggregate throughput counters for no filter (all services) or a subset by id.
      *
-     * @param  list<int>  $serviceIds
+     * @param list<int> $serviceIds
+     *
      * @return array{jobsPastMinute: int, jobsPastHour: int, failedPastSevenDays: int}
      */
     public function getThroughputTotalsForServiceIds(array $serviceIds): array
@@ -225,6 +227,7 @@ class HorizonMetricsService
         $failed = 0;
 
         $services = Service::query()->whereIn('id', $serviceIds)->orderBy('name')->get();
+
         /** @var Service $service */
         foreach ($services as $service) {
             $minute += $this->getJobsPastMinute($service);
@@ -242,31 +245,38 @@ class HorizonMetricsService
     /**
      * Build wait-by-queue bar chart data from workload rows (top 12 queues by max wait).
      *
-     * @param  array<int, array<string, mixed>>  $workloadRows
+     * @param array<int, array<string, mixed>> $workloadRows
+     *
      * @return array{queues: list<string>, wait: list<float>}|null
      */
     public function getWaitByQueueChartData(array $workloadRows): ?array
     {
         $waits = [];
+
         foreach ($workloadRows as $row) {
             if (! \is_array($row)) {
                 continue;
             }
             $queue = $row['queue'] ?? null;
+
             if (! \is_string($queue) || $queue === '') {
                 continue;
             }
+
             if (! \array_key_exists('wait', $row) || $row['wait'] === null) {
                 continue;
             }
             $w = (float) $row['wait'];
+
             if (! \is_finite($w)) {
                 continue;
             }
+
             if (! isset($waits[$queue]) || $w > $waits[$queue]) {
                 $waits[$queue] = $w;
             }
         }
+
         if ($waits === []) {
             return null;
         }
