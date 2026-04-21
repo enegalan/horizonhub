@@ -77,7 +77,7 @@ class TurboStreamSseTest extends TestCase
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="horizon-job-detail-meta"', $result);
-        $this->assertStringContainsString('target="horizon-job-detail-actions"', $result);
+        $this->assertStringContainsString('target="horizon-job-detail-actions-stream"', $result);
         $this->assertStringContainsString('action="update"', $result);
     }
 

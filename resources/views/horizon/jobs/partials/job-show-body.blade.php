@@ -1,7 +1,11 @@
 @include('horizon.jobs.partials.job-show-breadcrumbs')
 <div class="card space-y-4 p-4">
     <div id="horizon-job-detail-actions">
-        @include('horizon.jobs.partials.job-show-stream-actions')
+        <div class="flex flex-wrap gap-2" x-bind:class="{ 'pointer-events-none opacity-50': retrying }">
+            <div id="horizon-job-detail-actions-stream">
+                @include('horizon.jobs.partials.job-show-stream-actions')
+            </div>
+        </div>
     </div>
     <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2" id="horizon-job-detail-meta">
         @include('horizon.jobs.partials.job-show-stream-meta')

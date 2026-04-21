@@ -215,7 +215,7 @@ class HorizonStreamsController extends StreamController
         ];
 
         $views = [
-            'horizon-job-detail-actions' => ['view' => 'horizon.jobs.partials.job-show-stream-actions', 'data' => $vars],
+            'horizon-job-detail-actions-stream' => ['view' => 'horizon.jobs.partials.job-show-stream-actions', 'data' => $vars],
             'horizon-job-detail-meta' => ['view' => 'horizon.jobs.partials.job-show-stream-meta', 'data' => $vars],
             'horizon-job-detail-exception' => ['view' => 'horizon.jobs.partials.job-show-stream-exception', 'data' => $vars],
             'horizon-job-detail-context' => ['view' => 'horizon.jobs.partials.job-show-stream-context', 'data' => $vars],
