@@ -28,7 +28,7 @@
         <x-button variant="ghost" type="button" @click="drawerOpen = !drawerOpen" class="h-8 w-8 p-0" aria-label="Open menu">
             <x-heroicon-o-bars-3 class="size-6" />
         </x-button>
-        <a href="{{ route('horizon.index') }}" class="flex min-w-0 items-center gap-2.5" @click="drawerOpen = false" data-turbo-action="replace">
+        <a href="{{ route('horizon.index') }}" class="flex min-w-0 items-center gap-2.5" @click="drawerOpen = false">
             <img src="{{ asset('logo.svg') }}" alt="Horizon Hub" class="h-6 w-6 shrink-0 rounded-md object-contain">
             <span class="truncate text-sm font-semibold text-foreground">Horizon Hub</span>
         </a>
@@ -38,33 +38,33 @@
         :class="(isLg ? sidebarOpen : drawerOpen) ? 'translate-x-0' : '-translate-x-full hidden'"
         style="will-change: transform;">
         <div class="flex h-12 min-h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
-            <a href="{{ route('horizon.index') }}" class="flex min-w-0 items-center gap-2.5" @click="drawerOpen = false" data-turbo-action="replace">
+            <a href="{{ route('horizon.index') }}" class="flex min-w-0 items-center gap-2.5" @click="drawerOpen = false">
                 <img src="{{ asset('logo.svg') }}" alt="Horizon Hub" class="h-6 w-6 shrink-0 rounded-md object-contain">
                 <span class="truncate text-sm font-semibold text-foreground">Horizon Hub</span>
             </a>
         </div>
         <nav class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden p-2">
-            <a href="{{ route('horizon.index') }}" class="nav-side-link {{ request()->routeIs('horizon.index') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false" data-turbo-action="replace">
+            <a href="{{ route('horizon.index') }}" class="nav-side-link {{ request()->routeIs('horizon.index') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-squares-2x2 class="h-4 w-4 shrink-0" />
                 Dashboard
             </a>
-            <a href="{{ route('horizon.jobs.index') }}" class="nav-side-link {{ request()->routeIs('horizon.jobs.index') || request()->routeIs('horizon.jobs.show') || request()->routeIs('horizon.jobs.failed') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false" data-turbo-action="replace">
+            <a href="{{ route('horizon.jobs.index') }}" class="nav-side-link {{ request()->routeIs('horizon.jobs.index') || request()->routeIs('horizon.jobs.show') || request()->routeIs('horizon.jobs.failed') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-clipboard-document-list class="h-4 w-4 shrink-0" />
                 Jobs
             </a>
-            <a href="{{ route('horizon.queues.index') }}" class="nav-side-link {{ request()->routeIs('horizon.queues.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false" data-turbo-action="replace">
+            <a href="{{ route('horizon.queues.index') }}" class="nav-side-link {{ request()->routeIs('horizon.queues.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-queue-list class="h-4 w-4 shrink-0" />
                 Queues
             </a>
-            <a href="{{ route('horizon.services.index') }}" class="nav-side-link {{ request()->routeIs('horizon.services.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false" data-turbo-action="replace">
+            <a href="{{ route('horizon.services.index') }}" class="nav-side-link {{ request()->routeIs('horizon.services.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-server-stack class="h-4 w-4 shrink-0" />
                 Services
             </a>
-            <a href="{{ route('horizon.metrics') }}" class="nav-side-link {{ request()->routeIs('horizon.metrics') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false" data-turbo-action="replace">
+            <a href="{{ route('horizon.metrics') }}" class="nav-side-link {{ request()->routeIs('horizon.metrics') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-chart-bar class="h-4 w-4 shrink-0" />
                 Metrics
             </a>
-            <a href="{{ route('horizon.alerts.index') }}" class="nav-side-link {{ request()->routeIs('horizon.alerts.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false" data-turbo-action="replace">
+            <a href="{{ route('horizon.alerts.index') }}" class="nav-side-link {{ request()->routeIs('horizon.alerts.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-bell class="h-4 w-4 shrink-0" />
                 Alerts
             </a>
@@ -94,7 +94,7 @@
                         :class="enabled ? 'translate-x-4' : 'translate-x-0.5'"></span>
                 </x-button>
             </div>
-            <a href="{{ route('horizon.settings') }}" class="nav-side-link {{ request()->routeIs('horizon.settings') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false" data-turbo-action="replace">
+            <a href="{{ route('horizon.settings') }}" class="nav-side-link {{ request()->routeIs('horizon.settings') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-cog-6-tooth class="h-4 w-4 shrink-0" />
                 Settings
             </a>
