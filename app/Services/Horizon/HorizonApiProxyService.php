@@ -4,10 +4,12 @@ namespace App\Services\Horizon;
 
 use App\Models\Service;
 use GuzzleHttp\Cookie\CookieJar;
+use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -109,7 +111,7 @@ class HorizonApiProxyService
         $relativePath = (string) config('horizonhub.horizon_paths.workload');
 
         $result = $this->private__call($service, $relativePath, 'get');
-        if (! ($result['success'] ?? false) && \in_array($result['status'] ?? 0, [401, 403], true)) {
+        if (! ($result['success'] ?? false) && \in_array((int) ($result['status'] ?? 0), config('horizonhub.horizon_http_auth_statuses'), true)) {
             $result = $this->private__call($service, $relativePath, 'get', true);
         }
 
@@ -155,17 +157,7 @@ class HorizonApiProxyService
      */
     private function private__bootstrapDashboardSession(Service $service): ?array
     {
-        $serviceBase = $service->getBaseUrl();
-        if ($serviceBase === '') {
-            Log::warning('Horizon Hub: failed to build Horizon dashboard URL', [
-                'service_id' => $service->id ?? null,
-                'error' => 'missing base_url',
-            ]);
-
-            return null;
-        }
-
-        $dashboardUrl = $serviceBase.(string) config('horizonhub.horizon_paths.dashboard');
+        $dashboardUrl = $service->getBaseUrl().(string) config('horizonhub.horizon_paths.dashboard');
 
         $cookieJar = new CookieJar;
 
@@ -266,16 +258,15 @@ class HorizonApiProxyService
      */
     private function private__call(Service $service, string $path, string $method = 'post', bool $withDashboardSession = false): array
     {
-        $serviceBase = $service->getBaseUrl();
-        if ($serviceBase === '') {
+        if (Cache::has($this->private__failureCooldownCacheKey($service))) {
             return [
                 'success' => false,
-                'message' => 'Service has no base_url configured.',
-                'status' => 400,
+                'message' => 'Service temporarily in cooldown after recent upstream failures.',
+                'status' => 503,
             ];
         }
 
-        $base = $serviceBase.(string) config('horizonhub.horizon_paths.api');
+        $base = $service->getBaseUrl().(string) config('horizonhub.horizon_paths.api');
 
         $url = "$base/".\ltrim($path, '/');
 
@@ -316,26 +307,59 @@ class HorizonApiProxyService
                 }
             }
 
-            return $this->private__processHttpResponse(
+            $result = $this->private__processHttpResponse(
                 $response,
                 $service,
                 $url,
                 ! $withDashboardSession,
                 $withDashboardSession ? ' (with dashboard session)' : '',
             );
+            if ($result['success'] === true) {
+                Cache::forget($this->private__failureCooldownCacheKey($service));
+
+                return $result;
+            }
+
+            if (! \in_array($result['status'], config('horizonhub.horizon_http_auth_statuses'))) {
+                $this->private__putFailureCooldown($service);
+            }
+
+            return $result;
         } catch (\Throwable $e) {
             Log::error('Horizon Hub: Horizon API call exception'.($withDashboardSession ? ' (with dashboard session)' : ''), [
                 'service_id' => $service->id ?? null,
                 'url' => $url ?? null,
                 'error' => $e->getMessage(),
+                'exception' => $e::class,
             ]);
+            $this->private__putFailureCooldown($service);
+
+            $statusCode = $e->getCode();
+            // Default exceptions have status code 0, we want to separate network errors from other exceptions and return the appropiate status code
+            if ($statusCode === 0) {
+                $statusCode = $e instanceof ConnectionException
+                    || $e instanceof RequestException
+                    || $e instanceof GuzzleException
+                    ? 502
+                    : 500;
+            }
 
             return [
                 'success' => false,
                 'message' => $e->getMessage(),
-                'status' => 502,
+                'status' => $statusCode,
             ];
         }
+    }
+
+    /**
+     * Get the cache key for the failure cooldown.
+     *
+     * @param  Service  $service  The service.
+     */
+    private function private__failureCooldownCacheKey(Service $service): string
+    {
+        return "horizonhub:horizon-api-failure-cooldown:{$service->id}";
     }
 
     /**
@@ -426,5 +450,18 @@ class HorizonApiProxyService
             'message' => $message,
             'status' => $response->status(),
         ];
+    }
+
+    /**
+     * Store failure cooldown when Horizon API calls fail.
+     *
+     * @param  Service  $service  The service.
+     */
+    private function private__putFailureCooldown(Service $service): void
+    {
+        $seconds = (int) config('horizonhub.horizon_http_failure_cooldown_seconds');
+        if ($seconds > 0) {
+            Cache::put($this->private__failureCooldownCacheKey($service), true, \now()->addSeconds($seconds));
+        }
     }
 }

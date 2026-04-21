@@ -41,26 +41,6 @@ class AgentProxyServiceTest extends TestCase
         $this->assertSame('Rate limited', $result['message'] ?? null);
     }
 
-    public function test_ping_returns_error_when_service_has_no_base_url(): void
-    {
-        Http::fake();
-
-        $service = Service::create([
-            'name' => 'no-base',
-            'base_url' => '',
-            'status' => 'online',
-        ]);
-
-        \config()->set('horizonhub.horizon_paths.ping', '/stats');
-
-        $proxy = new HorizonApiProxyService;
-        $result = $proxy->ping($service);
-
-        $this->assertFalse($result['success']);
-        $this->assertSame(400, $result['status'] ?? null);
-        $this->assertStringContainsString('base_url', (string) ($result['message'] ?? ''));
-    }
-
     public function test_retry_job_calls_horizon_api_and_returns_success(): void
     {
         $capturedRetryRequest = null;

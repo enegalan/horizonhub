@@ -72,7 +72,7 @@ return [
     | POST/DELETE (e.g. job retry) are not retried here; session flow still handles 419.
     |
     | times: total attempts (1 = no retry). sleep_ms: base backoff in milliseconds (exponential).
-    | retry_on_status: HTTP statuses to retry after a response is received.
+    | retry_on_status: HTTP status codes to retry after a response is received.
     |
     */
     'horizon_http_retry' => [
@@ -80,6 +80,29 @@ return [
         'sleep_ms' => (int) env('HORIZON_HUB_HTTP_RETRY_SLEEP_MS', 100),
         'retry_on_status' => [429, 502, 503, 504],
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Horizon HTTP auth/session code statuses
+    |--------------------------------------------------------------------------
+    |
+    | HTTP status codes that represent missing auth/session/CSRF context.
+    | These statuses can trigger a dashboard-session retry flow and are
+    | excluded from failure cooldown in order to prevent performing the mentioned flow.
+    |
+    */
+    'horizon_http_auth_statuses' => [401, 403, 419],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Horizon HTTP failure cooldown
+    |--------------------------------------------------------------------------
+    |
+    | Temporary cooldown for HTTP calls to services that are
+    | currently unreachable or timing out.
+    |
+    */
+    'horizon_http_failure_cooldown_seconds' => (int) env('HORIZON_HUB_HTTP_FAILURE_COOLDOWN_SECONDS', 20),
 
     /*
     |--------------------------------------------------------------------------

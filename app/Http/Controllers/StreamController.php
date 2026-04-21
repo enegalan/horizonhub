@@ -16,9 +16,10 @@ abstract class StreamController extends Controller
      */
     protected function runStream(callable $turboStreamCallback): StreamedResponse
     {
-        $interval = (int) config('horizonhub.hot_reload_interval');
+        $intervalSeconds = (float) config('horizonhub.hot_reload_interval');
+        $intervalMicroseconds = (int) ($intervalSeconds * 1_000_000);
 
-        return \response()->stream(function () use ($interval, $turboStreamCallback): void {
+        return \response()->stream(function () use ($intervalMicroseconds, $turboStreamCallback): void {
             echo ": stream-open\n\n";
             if (\function_exists('ob_flush')) {
                 @\ob_flush();
@@ -53,7 +54,7 @@ abstract class StreamController extends Controller
                     break;
                 }
 
-                \usleep($interval);
+                \usleep($intervalMicroseconds);
             }
         }, 200, $this->streamHeaders());
     }
