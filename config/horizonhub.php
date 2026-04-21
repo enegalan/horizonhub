@@ -102,7 +102,7 @@ return [
     | currently unreachable or timing out.
     |
     */
-    'horizon_http_failure_cooldown_seconds' => (int) env('HORIZON_HUB_HTTP_FAILURE_COOLDOWN_SECONDS', 20),
+    'horizon_http_failure_cooldown_seconds' => (int) env('HORIZON_HUB_HTTP_FAILURE_COOLDOWN_SECONDS', 60),
 
     /*
     |--------------------------------------------------------------------------
