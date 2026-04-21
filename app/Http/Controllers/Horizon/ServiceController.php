@@ -81,7 +81,7 @@ class ServiceController extends Controller
             'name' => $validated['name'],
             'base_url' => \rtrim($validated['base_url'], '/'),
             'public_url' => ! empty($validated['public_url']) ? \rtrim($validated['public_url'], '/') : null,
-            'status' => 'online',
+            'status' => 'offline',
         ]);
 
         return redirect()
