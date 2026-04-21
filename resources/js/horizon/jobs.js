@@ -413,10 +413,34 @@ export function horizonJobDetail(config) {
          */
         retrying: false,
         /**
-         * Show all exception lines.
+         * Show all exception lines on the job detail page.
          * @type {boolean}
          */
         showAllExceptionLines: false,
+        /**
+         * Initialize the job detail.
+         * @returns {void}
+         */
+        init() {
+            this.restorePersistedUiState();
+            initJsonTrees();
+            var root = this.$el;
+            if (!root || root.dataset.jobDetailRetryDelegated === '1') {
+                return;
+            }
+            root.dataset.jobDetailRetryDelegated = '1';
+            root.addEventListener('click', function (e) {
+                var btn = e.target.closest('[data-job-detail-retry]');
+                if (!btn || !root.contains(btn)) {
+                    return;
+                }
+                var data = window.Alpine && typeof window.Alpine.$data === 'function' ? window.Alpine.$data(root) : null;
+                if (data && typeof data.retry === 'function') {
+                    e.preventDefault();
+                    data.retry();
+                }
+            });
+        },
         /**
          * Build the localStorage key for exception toggle state.
          * @returns {string|null}
@@ -428,21 +452,6 @@ export function horizonJobDetail(config) {
 
             if (!jobUuid) return null;
             return 'horizonhub:job-detail:' + jobUuid + ':exceptions:show-all';
-        },
-        /**
-         * Restore persisted UI state (exceptions toggle).
-         * @returns {void}
-         */
-        restorePersistedUiState() {
-            if (typeof window === 'undefined' || !window.localStorage) return;
-            var key = this.getExceptionStorageKey();
-            if (!key) return;
-            try {
-                var raw = window.localStorage.getItem(key);
-                if (raw === null) return;
-                this.showAllExceptionLines = raw === '1' || raw === 'true';
-            } catch (e) {
-            }
         },
         /**
          * Persist UI state (exceptions toggle).
@@ -458,12 +467,19 @@ export function horizonJobDetail(config) {
             }
         },
         /**
-         * Initialize the job detail.
+         * Restore persisted UI state (exceptions toggle).
          * @returns {void}
          */
-        init() {
-            this.restorePersistedUiState();
-            initJsonTrees();
+        restorePersistedUiState() {
+            if (typeof window === 'undefined' || !window.localStorage) return;
+            var key = this.getExceptionStorageKey();
+            if (!key) return;
+            try {
+                var raw = window.localStorage.getItem(key);
+                if (raw === null) return;
+                this.showAllExceptionLines = raw === '1' || raw === 'true';
+            } catch (e) {
+            }
         },
         /**
          * Retry the job.
