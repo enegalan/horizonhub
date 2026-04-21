@@ -1,6 +1,3 @@
-@php
-    /** @var \Illuminate\Support\Collection<int, \App\Models\Service>|iterable $services */
-@endphp
 @forelse($services as $service)
     <a
         href="{{ route('horizon.services.show', $service) }}"
@@ -17,26 +14,20 @@
                         if ($svcSt === 'online') {
                             $svcDot = 'bg-emerald-500';
                             $svcLabel = 'Online';
-                        } elseif ($svcSt === 'offline') {
-                            $svcDot = 'bg-red-500';
-                            $svcLabel = 'Offline';
                         } elseif ($svcSt === 'stand_by') {
                             $svcDot = 'bg-amber-500';
                             $svcLabel = 'Stand-by';
                         } else {
-                            $svcDot = 'bg-slate-400';
-                            $svcLabel = 'Unknown';
+                            $svcDot = 'bg-red-500';
+                            $svcLabel = 'Offline';
                         }
                         $hz = isset($service->horizon_status) ? \strtolower((string) $service->horizon_status) : '';
                         if ($hz === 'active' || $hz === 'running') {
                             $hzDot = 'bg-emerald-500';
                             $hzLabel = 'Horizon active';
-                        } elseif ($hz === 'inactive') {
+                        } else {
                             $hzDot = 'bg-amber-500';
                             $hzLabel = 'Horizon inactive';
-                        } else {
-                            $hzDot = 'bg-slate-400';
-                            $hzLabel = $hz !== '' ? 'Horizon '.(string) $service->horizon_status : 'Horizon unknown';
                         }
                     @endphp
                     <span class="inline-flex items-center gap-1">

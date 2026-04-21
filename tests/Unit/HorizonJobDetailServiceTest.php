@@ -21,18 +21,19 @@ class HorizonJobDetailServiceTest extends TestCase
         ]);
 
         $jobData = [
-            'uuid' => 'job-failed-runtime-derived',
+            'id' => 'job-failed-runtime-derived',
             'name' => 'App\\Jobs\\FailingJob',
             'queue' => 'default',
+            'connection' => 'database',
             'status' => 'failed',
             'reserved_at' => '1711111111.100',
             'failed_at' => '1711111111.140',
         ];
 
         $serviceUnderTest = new HorizonJobDetailService;
-        $result = $serviceUnderTest->buildShowViewData($service, $jobData, 'job-failed-runtime-derived');
+        $result = $serviceUnderTest->buildShowViewData($service, $jobData);
 
-        $this->assertSame('0.04 s', $result['job']->runtime);
+        $this->assertSame('0.04 s', $result->runtime);
     }
 
     #[Test]
@@ -48,9 +49,10 @@ class HorizonJobDetailServiceTest extends TestCase
         $job->delay(300);
 
         $jobData = [
-            'uuid' => 'job-serialized-delay',
+            'id' => 'job-serialized-delay',
             'name' => EvaluateAlertJob::class,
             'queue' => 'default',
+            'connection' => 'database',
             'status' => 'pending',
             'payload' => [
                 'pushedAt' => '1711111111.000',
@@ -63,9 +65,9 @@ class HorizonJobDetailServiceTest extends TestCase
         ];
 
         $serviceUnderTest = new HorizonJobDetailService;
-        $result = $serviceUnderTest->buildShowViewData($service, $jobData, 'job-serialized-delay');
+        $result = $serviceUnderTest->buildShowViewData($service, $jobData);
 
-        $this->assertNull($result['job']->available_at);
+        $this->assertNull($result->available_at);
     }
 
     #[Test]
@@ -78,9 +80,10 @@ class HorizonJobDetailServiceTest extends TestCase
         ]);
 
         $jobData = [
-            'uuid' => 'job-failed-runtime-missing',
+            'id' => 'job-failed-runtime-missing',
             'name' => 'App\\Jobs\\FailingJob',
             'queue' => 'default',
+            'connection' => 'database',
             'status' => 'failed',
             'payload' => [
                 'pushedAt' => '1711111111.123',
@@ -89,9 +92,9 @@ class HorizonJobDetailServiceTest extends TestCase
         ];
 
         $serviceUnderTest = new HorizonJobDetailService;
-        $result = $serviceUnderTest->buildShowViewData($service, $jobData, 'job-failed-runtime-missing');
+        $result = $serviceUnderTest->buildShowViewData($service, $jobData);
 
-        $this->assertNull($result['job']->runtime);
+        $this->assertNull($result->runtime);
     }
 
     #[Test]
@@ -108,9 +111,10 @@ class HorizonJobDetailServiceTest extends TestCase
         $job->delay($delayAt);
 
         $jobData = [
-            'uuid' => 'job-delayed',
+            'id' => 'job-delayed',
             'name' => EvaluateAlertJob::class,
             'queue' => 'default',
+            'connection' => 'database',
             'status' => 'pending',
             'payload' => [
                 'pushedAt' => '1711111111.000',
@@ -122,10 +126,10 @@ class HorizonJobDetailServiceTest extends TestCase
         ];
 
         $serviceUnderTest = new HorizonJobDetailService;
-        $result = $serviceUnderTest->buildShowViewData($service, $jobData, 'job-delayed');
+        $result = $serviceUnderTest->buildShowViewData($service, $jobData);
 
-        $this->assertInstanceOf(Carbon::class, $result['job']->available_at);
-        $this->assertSame($delayAt->toIso8601String(), $result['job']->available_at->toIso8601String());
+        $this->assertInstanceOf(Carbon::class, $result->available_at);
+        $this->assertSame($delayAt->toIso8601String(), $result->available_at->toIso8601String());
     }
 
     #[Test]
@@ -138,9 +142,10 @@ class HorizonJobDetailServiceTest extends TestCase
         ]);
 
         $jobData = [
-            'uuid' => 'job-failed-123',
+            'id' => 'job-failed-123',
             'name' => 'App\\Jobs\\FailingJob',
             'queue' => 'default',
+            'connection' => 'database',
             'status' => 'failed',
             'retried_by' => [
                 [
@@ -166,9 +171,9 @@ class HorizonJobDetailServiceTest extends TestCase
         ];
 
         $serviceUnderTest = new HorizonJobDetailService;
-        $result = $serviceUnderTest->buildShowViewData($service, $jobData, 'job-failed-123');
+        $result = $serviceUnderTest->buildShowViewData($service, $jobData);
 
-        $this->assertSame(2, $result['horizonJob']['retries']);
+        $this->assertSame(2, $result->retries);
         $this->assertSame([
             [
                 'id' => 'retry-1',
@@ -180,11 +185,11 @@ class HorizonJobDetailServiceTest extends TestCase
                 'status' => null,
                 'retried_at' => 1774532534,
             ],
-        ], $result['horizonJob']['retriedBy']);
+        ], $result->retried_by);
         $this->assertSame([
             'tenant_id' => 25,
             'job' => 'App\\Jobs\\FailingJob',
-        ], $result['horizonJob']['context']);
+        ], $result->context);
     }
 
     #[Test]
@@ -205,9 +210,10 @@ class HorizonJobDetailServiceTest extends TestCase
         ];
 
         $jobData = [
-            'uuid' => 'job-command-123',
+            'id' => 'job-command-123',
             'name' => 'App\\Jobs\\DispatchMail',
             'queue' => 'default',
+            'connection' => 'database',
             'status' => 'failed',
             'payload' => [
                 'data' => [
@@ -218,7 +224,7 @@ class HorizonJobDetailServiceTest extends TestCase
         ];
 
         $serviceUnderTest = new HorizonJobDetailService;
-        $result = $serviceUnderTest->buildShowViewData($service, $jobData, 'job-command-123');
+        $result = $serviceUnderTest->buildShowViewData($service, $jobData);
 
         $this->assertSame([
             'sender' => [
@@ -226,7 +232,7 @@ class HorizonJobDetailServiceTest extends TestCase
                 'to' => ['address' => 'to@example.test'],
             ],
             'retries' => 3,
-        ], $result['horizonJob']['commandData']);
+        ], $result->command_data);
     }
 
     #[Test]
@@ -239,10 +245,11 @@ class HorizonJobDetailServiceTest extends TestCase
         ]);
 
         $jobData = [
-            'uuid' => 'job-123',
+            'id' => 'job-123',
             'name' => 'App\\Jobs\\ProcessOrder',
             'queue' => 'default',
             'status' => 'completed',
+            'connection' => 'database',
             'failed_at' => false,
             'completed_at' => '2026-03-24T10:10:00+00:00',
             'payload' => [
@@ -251,17 +258,16 @@ class HorizonJobDetailServiceTest extends TestCase
         ];
 
         $serviceUnderTest = new HorizonJobDetailService;
-        $result = $serviceUnderTest->buildShowViewData($service, $jobData, 'job-123');
+        $result = $serviceUnderTest->buildShowViewData($service, $jobData);
 
-        $this->assertArrayHasKey('job', $result);
-        $this->assertSame('processed', $result['job']->status);
-        $this->assertInstanceOf(Carbon::class, $result['job']->queued_at);
+        $this->assertSame('processed', $result->status);
+        $this->assertInstanceOf(Carbon::class, $result->queued_at);
         $this->assertSame(
             Carbon::createFromTimestampMs(1711111111123)->toIso8601String(),
-            $result['job']->queued_at->toIso8601String()
+            $result->queued_at->toIso8601String()
         );
-        $this->assertInstanceOf(Carbon::class, $result['job']->processed_at);
-        $this->assertNull($result['job']->failed_at);
+        $this->assertInstanceOf(Carbon::class, $result->processed_at);
+        $this->assertNull($result->failed_at);
     }
 
     #[Test]
@@ -274,9 +280,10 @@ class HorizonJobDetailServiceTest extends TestCase
         ]);
 
         $jobData = [
-            'uuid' => 'job-no-delay',
+            'id' => 'job-no-delay',
             'name' => 'App\\Jobs\\ImmediateJob',
             'queue' => 'default',
+            'connection' => 'database',
             'status' => 'completed',
             'completed_at' => '2026-03-24T10:10:00+00:00',
             'payload' => [
@@ -285,9 +292,9 @@ class HorizonJobDetailServiceTest extends TestCase
         ];
 
         $serviceUnderTest = new HorizonJobDetailService;
-        $result = $serviceUnderTest->buildShowViewData($service, $jobData, 'job-no-delay');
+        $result = $serviceUnderTest->buildShowViewData($service, $jobData);
 
-        $this->assertNull($result['job']->available_at);
+        $this->assertNull($result->available_at);
     }
 
     #[Test]
@@ -304,9 +311,10 @@ class HorizonJobDetailServiceTest extends TestCase
         $job->delay($delayAt);
 
         $jobData = [
-            'uuid' => 'job-serialized-absolute-delay',
+            'id' => 'job-serialized-absolute-delay',
             'name' => EvaluateAlertJob::class,
             'queue' => 'default',
+            'connection' => 'database',
             'status' => 'pending',
             'payload' => [
                 'pushedAt' => '1711111111.000',
@@ -319,9 +327,9 @@ class HorizonJobDetailServiceTest extends TestCase
         ];
 
         $serviceUnderTest = new HorizonJobDetailService;
-        $result = $serviceUnderTest->buildShowViewData($service, $jobData, 'job-serialized-absolute-delay');
+        $result = $serviceUnderTest->buildShowViewData($service, $jobData);
 
-        $this->assertInstanceOf(Carbon::class, $result['job']->available_at);
-        $this->assertSame($delayAt->toIso8601String(), $result['job']->available_at->toIso8601String());
+        $this->assertInstanceOf(Carbon::class, $result->available_at);
+        $this->assertSame($delayAt->toIso8601String(), $result->available_at->toIso8601String());
     }
 }

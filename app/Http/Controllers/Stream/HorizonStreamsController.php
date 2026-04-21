@@ -196,20 +196,18 @@ class HorizonStreamsController extends StreamController
             return null;
         }
 
-        $viewData = $this->jobDetail->buildShowViewData($service, $jobData, $routeJobUuid);
-        $jobView = $viewData['job'];
+        $jobView = $this->jobDetail->buildShowViewData($service, $jobData);
 
-        $exception = $viewData['exception'] ? html_entity_decode($viewData['exception'], ENT_QUOTES | ENT_HTML401, 'UTF-8') : null;
+        $exception = ($jobView->exception ?? null) ? html_entity_decode((string) $jobView->exception, ENT_QUOTES | ENT_HTML401, 'UTF-8') : null;
         $exceptionTrace = $exception ? (\preg_split("/\r\n|\n|\r/", $exception) ?: []) : [];
-        $retryHistory = isset($viewData['horizonJob']['retriedBy']) && \is_array($viewData['horizonJob']['retriedBy']) ? $viewData['horizonJob']['retriedBy'] : [];
+        $retryHistory = \is_array($jobView->retried_by ?? null) ? $jobView->retried_by : [];
         $payload = $jobView->payload ? json_encode($jobView->payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
-        $context = $viewData['horizonJob']['context'] ? json_encode($viewData['horizonJob']['context'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
-        $commandData = $viewData['horizonJob']['commandData'] ? json_encode($viewData['horizonJob']['commandData'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
+        $context = ($jobView->context ?? null) ? json_encode($jobView->context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
+        $commandData = ($jobView->command_data ?? null) ? json_encode($jobView->command_data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
 
         $vars = [
             'job' => $jobView,
             'exception' => $exceptionTrace,
-            'horizonJob' => $viewData['horizonJob'],
             'retryHistory' => $retryHistory,
             'payload' => $payload,
             'context' => $context,

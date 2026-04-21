@@ -13,41 +13,11 @@ class HorizonJobDetailService
      *
      * @param  Service  $service  The service.
      * @param  array<string, mixed>  $jobData  The job data.
-     * @param  string  $routeUuid  The route UUID.
-     * @return array{
-     *     job: object,
-     *     exception: string|null,
-     *     horizonJob: array{
-     *         attempts: int|null,
-     *         connection: string|null,
-     *         retries: int|null,
-     *         tags: array<int, string>,
-     *         uuid: string,
-     *         exception: string|null,
-     *         retriedBy: array<int, array{id: string, status: string|null, retried_at: int|null}>,
-     *         context: array<string, mixed>|string|null,
-     *         commandData: array<string, mixed>|null
-     *     }
-     * }
+     * @return object
      */
-    public function buildShowViewData(Service $service, array $jobData, string $routeUuid): array
+    public function buildShowViewData(Service $service, array $jobData): object
     {
         $payload = isset($jobData['payload']) && \is_array($jobData['payload']) ? $jobData['payload'] : [];
-
-        $attemptsRaw = $jobData['attempts'] ?? null;
-        if ($attemptsRaw === null) {
-            $attemptsRaw = $payload['attempts'] ?? null;
-        }
-
-        $attempts = null;
-        if ($attemptsRaw !== null) {
-            $attemptsInt = (int) $attemptsRaw;
-            if ($attemptsInt > 0) {
-                $attempts = $attemptsInt;
-            }
-        }
-
-        $connection = isset($jobData['connection']) ? (string) $jobData['connection'] : null;
 
         $tags = [];
         if (isset($jobData['tags']) && \is_array($jobData['tags'])) {
@@ -86,10 +56,6 @@ class HorizonJobDetailService
             }
         }
         $retries = $retriedBy !== [] ? \count($retriedBy) : null;
-        if ($attemptsRaw === null && $retries !== null) {
-            $attemptsRaw = $retries + 1;
-            $attempts = $attemptsRaw;
-        }
 
         $context = null;
         if (isset($jobData['context']) && (\is_array($jobData['context']) || \is_string($jobData['context']))) {
@@ -100,15 +66,11 @@ class HorizonJobDetailService
         $rawStatus = (string) ($jobData['status'] ?? 'failed');
         $status = $rawStatus === 'completed' ? 'processed' : $rawStatus;
 
-        $queuedAtRaw = $payload['pushedAt'] ?? $jobData['pushedAt'] ?? null;
-        $reservedAtRaw = $jobData['reserved_at'] ?? $jobData['reservedAt'] ?? $payload['reserved_at'] ?? $payload['reservedAt'] ?? null;
-        $processedAtRaw = $jobData['completed_at'] ?? null;
-        $failedAtRaw = $jobData['failed_at'] ?? null;
 
-        $queuedAt = JobRuntimeHelper::parseJobTimestamp($queuedAtRaw);
-        $reservedAt = JobRuntimeHelper::parseJobTimestamp($reservedAtRaw);
-        $processedAt = JobRuntimeHelper::parseJobTimestamp($processedAtRaw);
-        $failedAt = JobRuntimeHelper::parseJobTimestamp($failedAtRaw);
+        $queuedAt = JobRuntimeHelper::parseJobTimestamp($payload['pushedAt'] ?? null);
+        $reservedAt = JobRuntimeHelper::parseJobTimestamp($jobData['reserved_at'] ?? null);
+        $processedAt = JobRuntimeHelper::parseJobTimestamp($jobData['completed_at'] ?? null);
+        $failedAt = JobRuntimeHelper::parseJobTimestamp($jobData['failed_at'] ?? null);
         JobRuntimeHelper::normalizeStatusDates($status, $processedAt, $failedAt);
 
         $availableAt = isset($commandData['delay']) && isset($commandData['delay']['date']) ? JobRuntimeHelper::parseJobTimestamp($commandData['delay']['date']) : null;
@@ -121,36 +83,27 @@ class HorizonJobDetailService
         );
 
         $jobView = (object) [
-            'uuid' => $jobData['uuid'] ?? $routeUuid,
-            'name' => $jobData['name'] ?? ($jobData['displayName'] ?? null),
-            'queue' => $jobData['queue'] ?? null,
+            'uuid' => $jobData['id'],
+            'name' => $jobData['name'],
+            'queue' => $jobData['queue'],
             'status' => $status,
-            'attempts' => $attempts,
+            'attempts' => (int) ($jobData['attempts'] ?? 0),
+            'connection' => $jobData['connection'],
+            'retries' => $retries,
+            'tags' => $tags,
+            'retried_by' => $retriedBy,
             'queued_at' => $queuedAt,
             'processed_at' => $processedAt,
             'failed_at' => $failedAt,
             'runtime' => $runtime,
             'available_at' => $availableAt,
-            'payload' => $jobData['payload'] ?? null,
+            'exception' => $exception,
+            'context' => $context,
+            'command_data' => $commandData,
+            'payload' => $payload,
             'service' => $service,
         ];
 
-        $horizonJob = [
-            'attempts' => $attempts,
-            'connection' => $connection,
-            'retries' => $retries,
-            'tags' => $tags,
-            'uuid' => $jobView->uuid,
-            'exception' => $exception,
-            'retriedBy' => $retriedBy,
-            'context' => $context,
-            'commandData' => $commandData,
-        ];
-
-        return [
-            'job' => $jobView,
-            'exception' => $exception,
-            'horizonJob' => $horizonJob,
-        ];
+        return $jobView;
     }
 }

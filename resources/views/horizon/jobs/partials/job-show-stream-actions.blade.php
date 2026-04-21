@@ -17,13 +17,10 @@
         </x-button>
     @endif
     @php
-        $serviceForDashboard = $job->service ?? null;
-        $jobUuidForDashboard = $job->uuid ?? ($horizonJob['uuid'] ?? null);
-        $jobStatusForDashboard = (string) ($job->status ?? '');
         $horizonJobUrl = \App\Support\Horizon\JobDashboardUrlBuilder::build(
-            $serviceForDashboard,
-            $jobUuidForDashboard,
-            $jobStatusForDashboard
+            $job->service,
+            $job->uuid,
+            $job->status
         );
     @endphp
     @if($horizonJobUrl)

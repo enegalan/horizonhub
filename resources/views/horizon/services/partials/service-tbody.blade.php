@@ -32,7 +32,7 @@
                 @endphp
                 <span class="{{ $badgeClass }}">{{ $service->horizon_status }}</span>
             @else
-                <span class="text-xs text-muted-foreground">–</span>
+                <span class="badge-danger">offline</span>
             @endif
         </td>
         <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="jobs">{{ $service->horizon_jobs_count ?? 0 }}</td>

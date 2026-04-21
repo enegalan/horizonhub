@@ -1,24 +1,21 @@
 <div>
     <dt class="label-muted">Command</dt>
-    <dd class="mt-0.5 font-mono text-foreground">{{ $job->name ?? $job->uuid }}</dd>
+    <dd class="mt-0.5 font-mono text-foreground">{{ $job->name ?? '–' }}</dd>
 </div>
 <div>
     <dt class="label-muted">UUID</dt>
     <dd class="mt-0.5 font-mono text-foreground">
-        @php
-            $uuid = $job->uuid ?? ($horizonJob['uuid'] ?? null ?? null);
-        @endphp
-        {{ $uuid ?? '–' }}
+        {{ $job->uuid ?? '–' }}
     </dd>
 </div>
 <div>
     <dt class="label-muted">Queue</dt>
-    <dd class="mt-0.5 font-mono text-foreground">{{ $job->queue }}</dd>
+    <dd class="mt-0.5 font-mono text-foreground">{{ $job->queue ?? '–' }}</dd>
 </div>
 <div>
     <dt class="label-muted">Connection</dt>
     <dd class="mt-0.5 font-mono text-foreground">
-        {{ $horizonJob['connection'] ?? '–' }}
+        {{ $job->connection ?? '–' }}
     </dd>
 </div>
 <div>
@@ -37,10 +34,7 @@
     <dt class="label-muted">Attempts</dt>
     <dd class="mt-0.5 text-foreground">
         @php
-            $attemptsSource = isset($horizonJob['attempts']) && $horizonJob['attempts'] !== null
-                ? $horizonJob['attempts']
-                : $job->attempts;
-            $attemptsDisplay = ($attemptsSource !== null && $attemptsSource > 0) ? $attemptsSource : '–';
+            $attemptsDisplay = $job->attempts !== null ? $job->attempts : 0;
         @endphp
         {{ $attemptsDisplay }}
     </dd>
@@ -48,10 +42,7 @@
 <div>
     <dt class="label-muted">Retries</dt>
     <dd class="mt-0.5 text-foreground">
-        @php
-            $retries = $horizonJob['retries'] ?? null;
-        @endphp
-        {{ $retries !== null ? $retries : '–' }}
+        {{ $job->retries !== null ? $job->retries : 0 }}
     </dd>
 </div>
 <div>
@@ -80,14 +71,11 @@
         <dd class="mt-0.5 text-foreground">{{ $job->failed_at?->format('Y-m-d H:i:s') ?? '–' }}</dd>
     </div>
 @endif
-@php
-    $tags = $horizonJob['tags'] ?? [];
-@endphp
-@if(!empty($tags))
+@if(!empty($job->tags))
     <div class="sm:col-span-2">
         <dt class="label-muted">Tags</dt>
         <dd class="mt-0.5 text-foreground">
-            {{ implode(', ', $tags) }}
+            {{ implode(', ', $job->tags) }}
         </dd>
     </div>
 @endif

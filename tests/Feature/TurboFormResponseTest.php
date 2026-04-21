@@ -36,19 +36,27 @@ class TurboFormResponseTest extends TestCase
 
     public function test_service_store_returns_302_for_non_turbo_request(): void
     {
+        $serviceName = 'Test Service Non-Turbo';
+
         $response = $this->post(route('horizon.services.store'), [
-            'name' => 'Test Service Non-Turbo',
+            'name' => $serviceName,
             'base_url' => 'https://example.com',
         ]);
 
         $response->assertStatus(302);
         $response->assertRedirect(route('horizon.services.index'));
+        $this->assertDatabaseHas('services', [
+            'name' => $serviceName,
+            'status' => 'offline',
+        ]);
     }
 
     public function test_service_store_returns_303_for_turbo_request(): void
     {
+        $serviceName = 'Test Service';
+
         $response = $this->post(route('horizon.services.store'), [
-            'name' => 'Test Service',
+            'name' => $serviceName,
             'base_url' => 'https://example.com',
         ], [
             'Accept' => Turbo::TURBO_STREAM_FORMAT,
@@ -56,5 +64,9 @@ class TurboFormResponseTest extends TestCase
 
         $response->assertStatus(303);
         $response->assertRedirect(route('horizon.services.index'));
+        $this->assertDatabaseHas('services', [
+            'name' => $serviceName,
+            'status' => 'offline',
+        ]);
     }
 }

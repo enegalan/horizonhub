@@ -58,11 +58,12 @@ class TurboStreamSseTest extends TestCase
                 ->andReturn([
                     'success' => true,
                     'data' => [
-                        'uuid' => $jobUuid,
+                        'id' => $jobUuid,
                         'name' => 'App\\Jobs\\Demo',
                         'queue' => 'default',
                         'status' => 'failed',
                         'payload' => [],
+                        'connection' => 'database',
                     ],
                 ]);
         });
@@ -196,7 +197,7 @@ class TurboStreamSseTest extends TestCase
                 ->andReturn([
                     'success' => true,
                     'data' => [
-                        'uuid' => $jobUuid,
+                        'id' => $jobUuid,
                         'name' => 'App\\Jobs\\Demo',
                         'queue' => 'default',
                         'status' => 'failed',
