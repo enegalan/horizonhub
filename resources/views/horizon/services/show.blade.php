@@ -25,16 +25,15 @@
 
         <div class="mb-4 flex flex-wrap items-center gap-2">
             @php
-                $serviceStatus = $service->status ?? null;
-                if ($serviceStatus === 'online') {
+                if ($service->status === 'online') {
                     $serviceStatusColor = 'bg-emerald-500';
                     $serviceStatusLabel = 'Online';
-                } elseif ($serviceStatus === 'offline') {
+                } elseif ($service->status === 'stand_by') {
+                    $serviceStatusColor = 'bg-amber-500';
+                    $serviceStatusLabel = 'Stand-by';
+                } else {
                     $serviceStatusColor = 'bg-red-500';
                     $serviceStatusLabel = 'Offline';
-                } else {
-                    $serviceStatusColor = 'bg-slate-400';
-                    $serviceStatusLabel = 'Unknown';
                 }
             @endphp
             <div class="mr-4 inline-flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-1.5">
@@ -44,7 +43,7 @@
                 </span>
             </div>
             @php
-                $dashboardUrl = $service->getPublicUrl().'/'.config('horizonhub.horizon_paths.dashboard');
+                $dashboardUrl = $service->getPublicUrl().config('horizonhub.horizon_paths.dashboard');
             @endphp
             <x-button
                 variant="ghost"
