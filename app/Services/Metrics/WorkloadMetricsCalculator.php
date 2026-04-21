@@ -10,7 +10,8 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
     /**
      * Get supervisors aggregated across services (optionally filtered by service).
      *
-     * @param  array<string, mixed>  $serviceScope  The service scope.
+     * @param array<string, mixed> $serviceScope The service scope.
+     *
      * @return array<int, array{
      *     service_id: int,
      *     service: string,
@@ -23,6 +24,7 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
     public function getSupervisorsData(array $serviceScope = []): array
     {
         $services = $this->private__getServicesForMetrics($serviceScope);
+
         if ($services->isEmpty()) {
             return [];
         }
@@ -33,6 +35,7 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
         foreach ($services as $service) {
             $workloadRows = $this->getWorkloadForService($service);
             $jobsByQueue = [];
+
             foreach ($workloadRows as $wr) {
                 $jobsByQueue[$wr['queue']] = ($jobsByQueue[$wr['queue']] ?? 0) + $wr['jobs'];
             }
@@ -50,6 +53,7 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
                 }
 
                 $supervisors = $master['supervisors'] ?? null;
+
                 if (! \is_array($supervisors)) {
                     continue;
                 }
@@ -60,13 +64,16 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
                     }
 
                     $name = isset($supervisor['name']) ? (string) $supervisor['name'] : '';
+
                     if ($name === '') {
                         continue;
                     }
 
                     $processes = null;
+
                     if (isset($supervisor['processes']) && \is_array($supervisor['processes'])) {
                         $sum = 0;
+
                         foreach ($supervisor['processes'] as $value) {
                             if (\is_numeric($value)) {
                                 $sum += (int) $value;
@@ -97,7 +104,8 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
     /**
      * Get current workload aggregated across services (optionally filtered by service).
      *
-     * @param  array<string, mixed>  $serviceScope  The service scope.
+     * @param array<string, mixed> $serviceScope The service scope.
+     *
      * @return array<int, array{
      *     service_id: int,
      *     service: string,
@@ -110,6 +118,7 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
     public function getWorkloadData(array $serviceScope = []): array
     {
         $services = $this->private__getServicesForMetrics($serviceScope, true);
+
         if ($services->isEmpty()) {
             return [];
         }
@@ -119,6 +128,7 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
         /** @var Service $service */
         foreach ($services as $service) {
             $rows = $this->getWorkloadForService($service);
+
             if ($rows === []) {
                 $rows = $this->private__getWorkloadFallbackFromMasters($service);
             }
@@ -141,7 +151,8 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
     /**
      * Get the current workload rows for a single service.
      *
-     * @param  Service  $service  The service.
+     * @param Service $service The service.
+     *
      * @return array<int, array{queue: string, jobs: int, processes: int|null, wait: float|null}>
      */
     public function getWorkloadForService(Service $service): array
@@ -158,6 +169,7 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
         }
 
         $data = $payload['data'] ?? $payload['workload'] ?? null;
+
         if ($data === null || ! \is_array($data)) {
             if (\is_array($payload) && isset($payload[0]) && \is_array($payload[0]) && isset($payload[0]['name'])) {
                 $data = $payload;
@@ -165,22 +177,26 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
                 return [];
             }
         }
+
         if ($data === []) {
             return [];
         }
 
         $rows = [];
+
         foreach ($data as $row) {
             if (! \is_array($row)) {
                 continue;
             }
 
             $queueName = '';
+
             if (isset($row['name']) && (string) $row['name'] !== '') {
                 $queueName = (string) $row['name'];
             }
 
             $queueName = QueueNameNormalizer::normalize($queueName) ?? $queueName;
+
             if ($queueName === '') {
                 continue;
             }
@@ -188,11 +204,13 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
             $jobs = $row['length'] ?? $row['size'] ?? $row['pending'] ?? $row['jobs'] ?? 0;
 
             $processes = null;
+
             if (isset($row['processes']) && \is_numeric($row['processes'])) {
                 $processes = (int) $row['processes'];
             }
 
             $wait = null;
+
             if (isset($row['wait']) && \is_numeric($row['wait'])) {
                 $wait = (float) $row['wait'];
             }

@@ -10,7 +10,8 @@ class FailureMetricsCalculator extends HorizonMetricsComputation
     /**
      * Get the failure rate from 00:00 of the previous day until now.
      *
-     * @param  array<string, mixed>  $serviceScope  The service scope.
+     * @param array<string, mixed> $serviceScope The service scope.
+     *
      * @return array{rate: float, processed: int, failed: int}
      */
     public function getFailureRate24h(array $serviceScope = []): array
@@ -19,6 +20,7 @@ class FailureMetricsCalculator extends HorizonMetricsComputation
         $sinceTimestamp = $since->getTimestamp();
 
         $services = $this->private__getServicesForMetrics($serviceScope);
+
         if ($services->isEmpty()) {
             return [
                 'rate' => 0.0,
@@ -29,6 +31,7 @@ class FailureMetricsCalculator extends HorizonMetricsComputation
 
         $processed = 0;
         $failed = 0;
+
         /** @var Service $service */
         foreach ($services as $service) {
             $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp);
@@ -51,7 +54,8 @@ class FailureMetricsCalculator extends HorizonMetricsComputation
     /**
      * Get the failure rate over time from 00:00 of the previous day until now.
      *
-     * @param  array<string, mixed>  $serviceScope  The service scope.
+     * @param array<string, mixed> $serviceScope The service scope.
+     *
      * @return array{xAxis: list<string>, rate: list<float|null>}
      */
     public function getFailureRateOverTime(array $serviceScope = []): array
@@ -73,6 +77,7 @@ class FailureMetricsCalculator extends HorizonMetricsComputation
         );
 
         $services = $this->private__getServicesForMetrics($serviceScope);
+
         if ($services->isEmpty()) {
             return ['xAxis' => [], 'rate' => []];
         }
@@ -80,28 +85,34 @@ class FailureMetricsCalculator extends HorizonMetricsComputation
         /** @var Service $service */
         foreach ($services as $service) {
             $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp);
+
             foreach ($completedJobs as $job) {
                 $completedAt = $job['completed_at'] ?? $job['processed_at'] ?? null;
+
                 if (! \is_numeric($completedAt)) {
                     continue;
                 }
 
                 $ts = (int) $completedAt;
                 $bucket = Carbon::createFromTimestamp($ts)->format($bucketFormat);
+
                 if (isset($buckets[$bucket])) {
                     $buckets[$bucket]['processed']++;
                 }
             }
 
             $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp);
+
             foreach ($failedJobs as $job) {
                 $failedAt = $job['failed_at'] ?? null;
+
                 if (! \is_numeric($failedAt)) {
                     continue;
                 }
 
                 $ts = (int) $failedAt;
                 $bucket = Carbon::createFromTimestamp($ts)->format($bucketFormat);
+
                 if (isset($buckets[$bucket])) {
                     $buckets[$bucket]['failed']++;
                 }
@@ -114,6 +125,7 @@ class FailureMetricsCalculator extends HorizonMetricsComputation
         foreach ($buckets as $k => $v) {
             $xAxis[] = Carbon::parse($k)->format('d/m H:i');
             $total = $v['processed'] + $v['failed'];
+
             if ($total > 0) {
                 $series[] = \round(100 * $v['failed'] / $total, 1);
             } else {

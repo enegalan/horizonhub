@@ -20,7 +20,8 @@ class MetricsDashboardDataService
     /**
      * Build the metrics dashboard data.
      *
-     * @param  list<int>  $serviceIds  The service IDs.
+     * @param list<int> $serviceIds The service IDs.
+     *
      * @return array{
      *     metricsChartData: array<string, mixed>,
      *     jobsPastMinute: mixed,
@@ -57,6 +58,7 @@ class MetricsDashboardDataService
 
         $totalQueues = \is_array($workloadRows) ? \count($workloadRows) : 0;
         $totalJobs = 0;
+
         if (\is_array($workloadRows)) {
             foreach ($workloadRows as $row) {
                 if (! \is_array($row)) {
@@ -70,11 +72,13 @@ class MetricsDashboardDataService
 
         $totalSupervisors = \is_array($supervisorsRows) ? \count($supervisorsRows) : 0;
         $onlineSupervisors = 0;
+
         if (\is_array($supervisorsRows)) {
             foreach ($supervisorsRows as $row) {
                 if (! \is_array($row)) {
                     continue;
                 }
+
                 if (($row['status'] ?? null) === 'online') {
                     $onlineSupervisors++;
                 }

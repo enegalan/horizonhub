@@ -29,7 +29,8 @@ class DashboardDataService
     /**
      * Build the dashboard data.
      *
-     * @param  HorizonApiProxyService  $horizonApi  The horizon API proxy service.
+     * @param HorizonApiProxyService $horizonApi The horizon API proxy service.
+     *
      * @return array<string, mixed>
      */
     public function build(HorizonApiProxyService $horizonApi): array
@@ -42,13 +43,16 @@ class DashboardDataService
         $onlineCount = 0;
         $anyOffline = false;
         $anyStandBy = false;
+
         foreach ($services as $service) {
             if ($service->status === 'online') {
                 $onlineCount++;
             }
+
             if ($service->status === 'offline') {
                 $anyOffline = true;
             }
+
             if ($service->status === 'stand_by') {
                 $anyStandBy = true;
             }

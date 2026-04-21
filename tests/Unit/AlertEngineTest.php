@@ -89,7 +89,7 @@ class AlertEngineTest extends TestCase
             ->with(
                 $this->isInstanceOf(Alert::class),
                 $this->callback(static fn (int $sid): bool => $sid > 0),
-                'job-uuid'
+                'job-uuid',
             )
             ->willReturn(['triggered' => false, 'job_uuids' => []]);
 

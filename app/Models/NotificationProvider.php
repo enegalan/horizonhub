@@ -52,9 +52,11 @@ class NotificationProvider extends Model
         }
 
         $to = $this->config['to'] ?? [];
+
         if (\is_array($to)) {
             return \array_values(\array_filter(\array_map('trim', $to)));
         }
+
         if (\is_string($to) && \trim($to) !== '') {
             return [\trim($to)];
         }

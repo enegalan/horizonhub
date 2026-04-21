@@ -34,9 +34,9 @@ class AlertNotificationDispatcher
     /**
      * Send alert notifications for the given log using notification providers.
      *
-     * @param  Alert  $alert  The alert.
-     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}>  $events  The events.
-     * @param  AlertLog  $log  The alert log.
+     * @param Alert $alert The alert.
+     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events The events.
+     * @param AlertLog $log The alert log.
      */
     public function dispatch(Alert $alert, array $events, AlertLog $log): void
     {
@@ -51,12 +51,15 @@ class AlertNotificationDispatcher
             try {
                 if ($provider->type === NotificationProvider::TYPE_SLACK) {
                     $webhookUrl = $provider->getWebhookUrl();
+
                     if (! empty($webhookUrl)) {
                         $this->slackNotifier->sendBatched($alert, $events, ['webhook_url' => $webhookUrl]);
                     }
                 }
+
                 if ($provider->type === NotificationProvider::TYPE_EMAIL) {
                     $to = $provider->getToEmails();
+
                     if (! empty($to)) {
                         $this->emailNotifier->sendBatched($alert, $events, ['to' => $to]);
                     } else {

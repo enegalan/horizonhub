@@ -69,6 +69,7 @@ class Alert extends Model
     public function appliesToServiceId(int $serviceId): bool
     {
         $scopedIds = $this->scopedServiceIds();
+
         if ($scopedIds === []) {
             return true;
         }
@@ -93,6 +94,7 @@ class Alert extends Model
     public function scopedServiceIds(): array
     {
         $ids = [];
+
         if (\is_array($this->service_ids)) {
             foreach ($this->service_ids as $id) {
                 if (! \is_numeric($id) || (int) $id <= 0) {
@@ -114,6 +116,7 @@ class Alert extends Model
     public function scopedServiceNames(): array
     {
         $scopedIds = $this->scopedServiceIds();
+
         if ($scopedIds === []) {
             return [];
         }
@@ -127,8 +130,10 @@ class Alert extends Model
         }
 
         $labels = [];
+
         foreach ($scopedIds as $serviceId) {
             $name = self::$cachedServiceNamesById[$serviceId] ?? null;
+
             if (! empty($name)) {
                 $labels[] = $name;
             }

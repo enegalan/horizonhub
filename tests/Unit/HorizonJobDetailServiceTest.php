@@ -264,7 +264,7 @@ class HorizonJobDetailServiceTest extends TestCase
         $this->assertInstanceOf(Carbon::class, $result->queued_at);
         $this->assertSame(
             Carbon::createFromTimestampMs(1711111111123)->toIso8601String(),
-            $result->queued_at->toIso8601String()
+            $result->queued_at->toIso8601String(),
         );
         $this->assertInstanceOf(Carbon::class, $result->processed_at);
         $this->assertNull($result->failed_at);

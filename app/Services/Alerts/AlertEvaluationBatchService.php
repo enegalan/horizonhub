@@ -14,7 +14,8 @@ class AlertEvaluationBatchService
     /**
      * Get the evaluation status.
      *
-     * @param  string  $evaluationId  The evaluation ID.
+     * @param string $evaluationId The evaluation ID.
+     *
      * @return array<string, mixed>
      */
     public function getEvaluationStatus(string $evaluationId): array
@@ -82,6 +83,7 @@ class AlertEvaluationBatchService
         Cache::forget("$namespace.first_error_message");
 
         $jobs = [];
+
         foreach ($alertIds as $alertId) {
             $jobs[] = new EvaluateAlertJob((int) $alertId, $evaluationId);
         }

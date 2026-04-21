@@ -41,12 +41,14 @@ final class FailureCountAlertRuleStrategy implements AlertRuleStrategyInterface
         $minutes = (int) ($threshold['minutes'] ?? config('horizonhub.alerts.default_minutes'));
 
         $service = Service::find($serviceId);
+
         if (! $service || ! $service->getBaseUrl()) {
             return ['triggered' => false, 'job_uuids' => []];
         }
 
         $response = $this->horizonApi->getFailedJobs($service, ['starting_at' => 0]);
         $data = $response['data'] ?? null;
+
         if (! ($response['success'] ?? false) || ! \is_array($data)) {
             return ['triggered' => false, 'job_uuids' => []];
         }
@@ -62,6 +64,7 @@ final class FailureCountAlertRuleStrategy implements AlertRuleStrategyInterface
         $triggered = $inWindow->count() >= $count;
 
         $jobUuids = [];
+
         if ($triggered) {
             $jobUuids = $this->support->collectTriggeringJobUuids($inWindow);
         }

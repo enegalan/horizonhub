@@ -190,6 +190,7 @@ class HorizonStreamsController extends StreamController
 
         $response = $this->horizonApi->getJob($service, $routeJobUuid);
         $jobData = [];
+
         if (($response['success'] ?? false) && isset($response['data']) && \is_array($response['data']) && \count($response['data']) > 0) {
             $jobData = $response['data'];
         } else {
@@ -237,6 +238,7 @@ class HorizonStreamsController extends StreamController
     private function private__buildJobsIndexStreams(string $query): ?string
     {
         $url = \route('horizon.jobs.index', [], true);
+
         if ($query !== '') {
             $url .= "?$query";
         }
@@ -281,7 +283,7 @@ class HorizonStreamsController extends StreamController
         $streams[] = $this->private__turboStreamTag('update', 'metrics-value-failure-rate', $failureRateHtml);
 
         $chartJson = \json_encode($d['metricsChartData'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        $streams[] = $this->private__turboStreamTag('replace', 'metrics-chart-data', '<script type="application/json" id="metrics-chart-data">'.$chartJson.'</script>');
+        $streams[] = $this->private__turboStreamTag('replace', 'metrics-chart-data', '<script type="application/json" id="metrics-chart-data">' . $chartJson . '</script>');
 
         $views = [
             'metrics-workload-body' => ['view' => 'horizon.metrics.partials.workload-tbody', 'data' => ['workloadRows' => $d['workloadRows']]],
@@ -314,6 +316,7 @@ class HorizonStreamsController extends StreamController
     {
         $url = \route('horizon.services.show', ['service' => $service->id], true);
         $queryParams = [];
+
         if ($query !== '') {
             \parse_str($query, $queryParams);
         }
@@ -332,7 +335,7 @@ class HorizonStreamsController extends StreamController
 
         $workloadCount = $d['workloadQueues']->count();
         $this->private__pushStreamUpdates($streams, [
-            'service-show-workload-count' => e($workloadCount > 0 ? $workloadCount.' queue(s)' : ''),
+            'service-show-workload-count' => e($workloadCount > 0 ? $workloadCount . ' queue(s)' : ''),
         ]);
 
         $viewsMorph = [
@@ -396,6 +399,7 @@ class HorizonStreamsController extends StreamController
     private function private__pushViewStreams(array &$streams, array $views, ?string $streamMethod = null): void
     {
         $updates = [];
+
         foreach ($views as $target => $viewData) {
             $updates[$target] = \view($viewData['view'], $viewData['data'] ?? [])->render();
         }
@@ -405,12 +409,14 @@ class HorizonStreamsController extends StreamController
     /**
      * Turbo streams for the three job list section tbodies, badge counts, and pagination (no thead replace).
      *
-     * @param  array{processing: LengthAwarePaginator, processed: LengthAwarePaginator, failed: LengthAwarePaginator}  $jobsIndex
+     * @param array{processing: LengthAwarePaginator, processed: LengthAwarePaginator, failed: LengthAwarePaginator} $jobsIndex
+     *
      * @return list<string>
      */
     private function private__streamsForJobListSections(array $jobsIndex, string $resizablePrefix, bool $showServiceColumn, ?Service $pageService): array
     {
         $streams = [];
+
         foreach (['processing', 'processed', 'failed'] as $kind) {
             $paginator = $jobsIndex[$kind];
             $bodyKey = "$resizablePrefix-$kind";
@@ -437,9 +443,10 @@ class HorizonStreamsController extends StreamController
 
     private function private__turboStreamTag(string $action, string $target, string $content, ?string $streamMethod = null): string
     {
-        $open = '<turbo-stream action="'.e($action).'" target="'.e($target).'"';
+        $open = '<turbo-stream action="' . e($action) . '" target="' . e($target) . '"';
+
         if ($streamMethod !== null && $streamMethod !== '') {
-            $open .= ' method="'.e($streamMethod).'"';
+            $open .= ' method="' . e($streamMethod) . '"';
         }
 
         return "$open><template>$content</template></turbo-stream>";

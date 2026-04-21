@@ -18,36 +18,39 @@ class HorizonApiProxyService
     /**
      * Get completed jobs from the Horizon HTTP API for a service.
      *
-     * @param  Service  $service  The service.
-     * @param  array<string, mixed>  $query
+     * @param Service $service The service.
+     * @param array<string, mixed> $query
+     *
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     public function getCompletedJobs(Service $service, array $query = []): array
     {
         $path = (string) config('horizonhub.horizon_paths.completed_jobs');
 
-        return $this->private__call($service, "$path?".\http_build_query($this->private__buildJobListQuery($query)), 'get');
+        return $this->private__call($service, "$path?" . \http_build_query($this->private__buildJobListQuery($query)), 'get');
     }
 
     /**
      * Get failed jobs from the Horizon HTTP API for a service.
      *
-     * @param  Service  $service  The service.
-     * @param  array<string, mixed>  $query
+     * @param Service $service The service.
+     * @param array<string, mixed> $query
+     *
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     public function getFailedJobs(Service $service, array $query = []): array
     {
         $path = (string) config('horizonhub.horizon_paths.failed_jobs');
 
-        return $this->private__call($service, "$path?".\http_build_query($this->private__buildJobListQuery($query)), 'get');
+        return $this->private__call($service, "$path?" . \http_build_query($this->private__buildJobListQuery($query)), 'get');
     }
 
     /**
      * Get a single job by UUID from the Horizon HTTP API for a service.
      *
-     * @param  Service  $service  The service.
-     * @param  string  $jobUuid  The job UUID.
+     * @param Service $service The service.
+     * @param string $jobUuid The job UUID.
+     *
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     public function getJob(Service $service, string $jobUuid): array
@@ -60,7 +63,8 @@ class HorizonApiProxyService
     /**
      * Get Horizon masters (and their supervisors) from the Horizon HTTP API for a service.
      *
-     * @param  Service  $service  The service.
+     * @param Service $service The service.
+     *
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     public function getMasters(Service $service): array
@@ -73,15 +77,16 @@ class HorizonApiProxyService
     /**
      * Get pending/processing jobs from the Horizon HTTP API for a service.
      *
-     * @param  Service  $service  The service.
-     * @param  array<string, mixed>  $query
+     * @param Service $service The service.
+     * @param array<string, mixed> $query
+     *
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     public function getPendingJobs(Service $service, array $query = []): array
     {
         $path = (string) config('horizonhub.horizon_paths.pending_jobs');
 
-        return $this->private__call($service, "$path?".\http_build_query($this->private__buildJobListQuery($query)), 'get');
+        return $this->private__call($service, "$path?" . \http_build_query($this->private__buildJobListQuery($query)), 'get');
     }
 
     /**
@@ -90,7 +95,8 @@ class HorizonApiProxyService
      *
      * This proxies the Horizon `/stats` endpoint and returns its decoded payload.
      *
-     * @param  Service  $service  The service.
+     * @param Service $service The service.
+     *
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     public function getStats(Service $service): array
@@ -103,7 +109,8 @@ class HorizonApiProxyService
     /**
      * Get the queue workload from the Horizon HTTP API for a service.
      *
-     * @param  Service  $service  The service.
+     * @param Service $service The service.
+     *
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     public function getWorkload(Service $service): array
@@ -111,6 +118,7 @@ class HorizonApiProxyService
         $relativePath = (string) config('horizonhub.horizon_paths.workload');
 
         $result = $this->private__call($service, $relativePath, 'get');
+
         if (! ($result['success'] ?? false) && \in_array((int) ($result['status'] ?? 0), config('horizonhub.horizon_http_auth_statuses'), true)) {
             $result = $this->private__call($service, $relativePath, 'get', true);
         }
@@ -121,7 +129,8 @@ class HorizonApiProxyService
     /**
      * Test connectivity with the Horizon HTTP API for a service.
      *
-     * @param  Service  $service  The service.
+     * @param Service $service The service.
+     *
      * @return array{success: bool, message?: string, status?: int}
      */
     public function ping(Service $service): array
@@ -134,8 +143,9 @@ class HorizonApiProxyService
     /**
      * Retry a job through the Horizon HTTP API.
      *
-     * @param  Service  $service  The service.
-     * @param  string  $jobUuid  The job UUID.
+     * @param Service $service The service.
+     * @param string $jobUuid The job UUID.
+     *
      * @return array{success: bool, message?: string, status?: int}
      */
     public function retryJob(Service $service, string $jobUuid): array
@@ -152,12 +162,13 @@ class HorizonApiProxyService
      * a session and CSRF token that can be used to call Horizon's API
      * endpoints protected by CSRF.
      *
-     * @param  Service  $service  The service.
+     * @param Service $service The service.
+     *
      * @return array{csrf_token: string, cookies: CookieJar}|null
      */
     private function private__bootstrapDashboardSession(Service $service): ?array
     {
-        $dashboardUrl = $service->getBaseUrl().(string) config('horizonhub.horizon_paths.dashboard');
+        $dashboardUrl = $service->getBaseUrl() . (string) config('horizonhub.horizon_paths.dashboard');
 
         $cookieJar = new CookieJar;
 
@@ -198,6 +209,7 @@ class HorizonApiProxyService
         }
 
         $csrfToken = (string) ($matches[1] ?? '');
+
         if ($csrfToken === '') {
             Log::warning('Horizon Hub: empty CSRF token extracted from Horizon dashboard', [
                 'service_id' => $service->id ?? null,
@@ -216,7 +228,7 @@ class HorizonApiProxyService
     /**
      * Build an error message from a response.
      *
-     * @param  Response  $response  The response.
+     * @param Response $response The response.
      */
     private function private__buildErrorMessageFromResponse(Response $response): string
     {
@@ -229,6 +241,7 @@ class HorizonApiProxyService
 
         $trimmedBody = \trim((string) $rawBody);
         $isHtml = $trimmedBody !== \strip_tags($trimmedBody);
+
         if (! $isHtml && $trimmedBody !== '') {
             return \mb_substr($trimmedBody, 0, 200);
         }
@@ -239,7 +252,8 @@ class HorizonApiProxyService
     /**
      * Build query parameters for job list endpoints.
      *
-     * @param  array<string, mixed>  $overrides  The overrides.
+     * @param array<string, mixed> $overrides The overrides.
+     *
      * @return array{starting_at: int, limit: int}
      */
     private function private__buildJobListQuery(array $overrides = []): array
@@ -253,7 +267,8 @@ class HorizonApiProxyService
     /**
      * Call the Horizon HTTP API for a given service.
      *
-     * @param  bool  $withDashboardSession  When true, bootstrap Horizon dashboard session and CSRF token.
+     * @param bool $withDashboardSession When true, bootstrap Horizon dashboard session and CSRF token.
+     *
      * @return array{success: bool, message?: string, status?: int}
      */
     private function private__call(Service $service, string $path, string $method = 'post', bool $withDashboardSession = false): array
@@ -266,9 +281,9 @@ class HorizonApiProxyService
             ];
         }
 
-        $base = $service->getBaseUrl().(string) config('horizonhub.horizon_paths.api');
+        $base = $service->getBaseUrl() . (string) config('horizonhub.horizon_paths.api');
 
-        $url = "$base/".\ltrim($path, '/');
+        $url = "$base/" . \ltrim($path, '/');
 
         $httpMethod = \strtolower($method);
         $attempt = function () use ($service, $url, $httpMethod, $withDashboardSession): ?Response {
@@ -276,6 +291,7 @@ class HorizonApiProxyService
 
             if ($withDashboardSession) {
                 $bootstrap = $this->private__bootstrapDashboardSession($service);
+
                 if ($bootstrap === null) {
                     return null;
                 }
@@ -293,6 +309,7 @@ class HorizonApiProxyService
 
         try {
             $response = $attempt();
+
             if ($response === null) {
                 return [
                     'success' => false,
@@ -300,8 +317,10 @@ class HorizonApiProxyService
                     'status' => 502,
                 ];
             }
+
             if ($withDashboardSession && $response->status() === 419) {
                 $retryResponse = $attempt();
+
                 if ($retryResponse !== null) {
                     $response = $retryResponse;
                 }
@@ -314,6 +333,7 @@ class HorizonApiProxyService
                 ! $withDashboardSession,
                 $withDashboardSession ? ' (with dashboard session)' : '',
             );
+
             if ($result['success'] === true) {
                 Cache::forget($this->private__failureCooldownCacheKey($service));
 
@@ -326,7 +346,7 @@ class HorizonApiProxyService
 
             return $result;
         } catch (\Throwable $e) {
-            Log::error('Horizon Hub: Horizon API call exception'.($withDashboardSession ? ' (with dashboard session)' : ''), [
+            Log::error('Horizon Hub: Horizon API call exception' . ($withDashboardSession ? ' (with dashboard session)' : ''), [
                 'service_id' => $service->id ?? null,
                 'url' => $url ?? null,
                 'error' => $e->getMessage(),
@@ -335,6 +355,7 @@ class HorizonApiProxyService
             $this->private__putFailureCooldown($service);
 
             $statusCode = $e->getCode();
+
             // Default exceptions have status code 0, we want to separate network errors from other exceptions and return the appropiate status code
             if ($statusCode === 0) {
                 $statusCode = $e instanceof ConnectionException
@@ -355,7 +376,7 @@ class HorizonApiProxyService
     /**
      * Get the cache key for the failure cooldown.
      *
-     * @param  Service  $service  The service.
+     * @param Service $service The service.
      */
     private function private__failureCooldownCacheKey(Service $service): string
     {
@@ -365,7 +386,7 @@ class HorizonApiProxyService
     /**
      * Build an HTTP client for Horizon calls with unified timeout and optional GET retries.
      *
-     * @param  string  $httpMethod  The HTTP method.
+     * @param string $httpMethod The HTTP method.
      */
     private function private__newHorizonPendingRequest(string $httpMethod = 'get'): PendingRequest
     {
@@ -374,6 +395,7 @@ class HorizonApiProxyService
         $request = Http::timeout($timeoutSeconds);
 
         $connectTimeout = config('horizonhub.horizon_http_connect_timeout');
+
         if ($connectTimeout !== null && (float) $connectTimeout > 0) {
             $request->connectTimeout((float) $connectTimeout);
         }
@@ -414,17 +436,19 @@ class HorizonApiProxyService
     /**
      * Process the HTTP response.
      *
-     * @param  Response  $response  The response.
-     * @param  Service  $service  The service.
-     * @param  string  $url  The URL.
-     * @param  bool  $updateHeartbeat  Whether to update the heartbeat.
-     * @param  string  $logContext  The log context.
+     * @param Response $response The response.
+     * @param Service $service The service.
+     * @param string $url The URL.
+     * @param bool $updateHeartbeat Whether to update the heartbeat.
+     * @param string $logContext The log context.
+     *
      * @return array{success: bool, message?: string, status?: int, data?: array}
      */
     private function private__processHttpResponse(Response $response, Service $service, string $url, bool $updateHeartbeat = false, string $logContext = ''): array
     {
         if ($response->successful()) {
             $data = \json_decode($response->body(), true);
+
             if ($updateHeartbeat) {
                 $service->forceFill([
                     'last_seen_at' => \now(),
@@ -455,11 +479,12 @@ class HorizonApiProxyService
     /**
      * Store failure cooldown when Horizon API calls fail.
      *
-     * @param  Service  $service  The service.
+     * @param Service $service The service.
      */
     private function private__putFailureCooldown(Service $service): void
     {
         $seconds = (int) config('horizonhub.horizon_http_failure_cooldown_seconds');
+
         if ($seconds > 0) {
             Cache::put($this->private__failureCooldownCacheKey($service), true, \now()->addSeconds($seconds));
         }

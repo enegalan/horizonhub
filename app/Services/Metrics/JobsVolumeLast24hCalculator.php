@@ -10,7 +10,8 @@ class JobsVolumeLast24hCalculator extends HorizonMetricsComputation
     /**
      * Hourly completed and failed job counts over the rolling last 24 hours.
      *
-     * @param  array<string, mixed>  $serviceScope  The service scope.
+     * @param array<string, mixed> $serviceScope The service scope.
+     *
      * @return array{xAxis: list<string>, completed: list<int>, failed: list<int>}
      */
     public function getJobsVolumeLast24h(array $serviceScope = []): array
@@ -32,6 +33,7 @@ class JobsVolumeLast24hCalculator extends HorizonMetricsComputation
         );
 
         $services = $this->private__getServicesForMetrics($serviceScope);
+
         if ($services->isEmpty()) {
             return ['xAxis' => [], 'completed' => [], 'failed' => []];
         }
@@ -39,36 +41,44 @@ class JobsVolumeLast24hCalculator extends HorizonMetricsComputation
         /** @var Service $service */
         foreach ($services as $service) {
             $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp);
+
             foreach ($completedJobs as $job) {
                 $completedAt = $job['completed_at'] ?? $job['processed_at'] ?? null;
+
                 if (! \is_numeric($completedAt)) {
                     continue;
                 }
 
                 $ts = (int) $completedAt;
+
                 if ($ts < $sinceTimestamp) {
                     continue;
                 }
 
                 $bucket = Carbon::createFromTimestamp($ts)->format($bucketFormat);
+
                 if (isset($buckets[$bucket])) {
                     $buckets[$bucket]['completed']++;
                 }
             }
 
             $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp);
+
             foreach ($failedJobs as $job) {
                 $failedAt = $job['failed_at'] ?? null;
+
                 if (! \is_numeric($failedAt)) {
                     continue;
                 }
 
                 $ts = (int) $failedAt;
+
                 if ($ts < $sinceTimestamp) {
                     continue;
                 }
 
                 $bucket = Carbon::createFromTimestamp($ts)->format($bucketFormat);
+
                 if (isset($buckets[$bucket])) {
                     $buckets[$bucket]['failed']++;
                 }

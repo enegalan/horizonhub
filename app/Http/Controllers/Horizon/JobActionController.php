@@ -55,6 +55,7 @@ class JobActionController extends Controller
 
         $perPage = (int) ($validated['per_page'] ?? config('horizonhub.jobs_per_page'));
         $page = (int) ($validated['page'] ?? 1);
+
         if ($page < 1) {
             $page = 1;
         }
@@ -70,6 +71,7 @@ class JobActionController extends Controller
         ];
 
         $serviceIds = [];
+
         if (! empty($validated['service_ids']) && \is_array($validated['service_ids'])) {
             $serviceIds = \array_values(\array_unique(\array_map('intval', $validated['service_ids'])));
         } elseif (isset($validated['service_id']) && $validated['service_id'] !== null && $validated['service_id'] !== '') {
@@ -77,6 +79,7 @@ class JobActionController extends Controller
         }
 
         $servicesQuery = Service::query()->whereNotNull('base_url');
+
         if (\count($serviceIds) > 0) {
             $servicesQuery->whereIn('id', $serviceIds);
         }
@@ -109,6 +112,7 @@ class JobActionController extends Controller
                 \PHP_INT_MAX,
             );
             $jobs = [];
+
             foreach ($pageData['rows'] as $row) {
                 $jobs[] = [
                     'id' => (string) $row['uuid'],
@@ -151,15 +155,17 @@ class JobActionController extends Controller
         $serviceId = $validated['service_id'];
 
         $service = Service::find($serviceId);
+
         if (! $service) {
             return \response()->json(['message' => 'Service not found'], 404);
         }
 
         $result = $this->horizonApi->retryJob($service, $uuid);
+
         if (! $result['success']) {
             return \response()->json(
                 ['message' => $result['message'] ?? 'Horizon API request failed'],
-                $result['status'] ?? Response::HTTP_BAD_GATEWAY
+                $result['status'] ?? Response::HTTP_BAD_GATEWAY,
             );
         }
 
@@ -190,6 +196,7 @@ class JobActionController extends Controller
         foreach ($jobs as $item) {
             $id = (string) $item['id'];
             $service = $servicesById->get((int) $item['service_id']);
+
             if (! $service) {
                 $results[] = ['id' => $id, 'success' => false, 'message' => 'Service not found'];
                 $failed++;
@@ -197,6 +204,7 @@ class JobActionController extends Controller
                 continue;
             }
             $result = $this->horizonApi->retryJob($service, $id);
+
             if ($result['success']) {
                 $results[] = ['id' => $id, 'success' => true];
                 $succeeded++;

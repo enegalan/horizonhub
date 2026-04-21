@@ -42,12 +42,14 @@ final class AvgExecutionTimeAlertRuleStrategy implements AlertRuleStrategyInterf
         $minutes = (int) ($threshold['minutes'] ?? config('horizonhub.alerts.default_minutes'));
 
         $service = Service::find($serviceId);
+
         if (! $service || ! $service->getBaseUrl()) {
             return ['triggered' => false, 'job_uuids' => []];
         }
 
         $response = $this->horizonApi->getCompletedJobs($service, ['starting_at' => 0]);
         $data = $response['data'] ?? null;
+
         if (! ($response['success'] ?? false) || ! \is_array($data)) {
             return ['triggered' => false, 'job_uuids' => []];
         }
@@ -63,15 +65,18 @@ final class AvgExecutionTimeAlertRuleStrategy implements AlertRuleStrategyInterf
             }
             $completedRaw = $job['completed_at'] ?? null;
             $queuedRaw = $job['pushedAt'] ?? null;
+
             if (! \is_string($completedRaw) || $completedRaw === '' || ! \is_string($queuedRaw) || $queuedRaw === '') {
                 return null;
             }
+
             try {
                 $completed = Carbon::parse($completedRaw);
                 $queued = Carbon::parse($queuedRaw);
             } catch (\Throwable $e) {
                 return null;
             }
+
             if ($completed->lt($cutoff)) {
                 return null;
             }

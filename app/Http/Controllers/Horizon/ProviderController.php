@@ -72,6 +72,7 @@ class ProviderController extends Controller
         $config = $provider->config ?? [];
         $webhookUrl = $provider->type === NotificationProvider::TYPE_SLACK ? (string) ($config['webhook_url'] ?? '') : '';
         $emailTo = '';
+
         if ($provider->type === NotificationProvider::TYPE_EMAIL) {
             $to = $config['to'] ?? [];
             $emailTo = \is_array($to) ? \implode(', ', $to) : (string) $to;
@@ -101,11 +102,13 @@ class ProviderController extends Controller
 
         if ($validated['type'] === NotificationProvider::TYPE_EMAIL) {
             $emails = \array_values(\array_filter(\array_map('trim', \explode(',', (string) ($validated['email_to'] ?? '')))));
+
             foreach ($emails as $e) {
                 if (! \filter_var($e, FILTER_VALIDATE_EMAIL)) {
                     \abort(422, 'One or more email addresses are invalid.');
                 }
             }
+
             if ($emails === []) {
                 \abort(422, 'Email recipients are required.');
             }

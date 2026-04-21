@@ -45,7 +45,7 @@ final class AlertRuleStrategyRegistry
     /**
      * Resolve the strategy for the given rule type.
      *
-     * @param  string  $ruleType  The rule type.
+     * @param string $ruleType The rule type.
      */
     public function resolve(string $ruleType): AlertRuleStrategyInterface
     {

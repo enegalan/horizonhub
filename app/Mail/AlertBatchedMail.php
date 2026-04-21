@@ -44,7 +44,7 @@ class AlertBatchedMail extends Mailable
     /**
      * Construct the alert batched mail.
      *
-     * @param  array<int, array{service_id: int, job_uuid: string|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}>  $enrichedEvents
+     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}> $enrichedEvents
      */
     public function __construct(Alert $alert, array $enrichedEvents, ?Service $service, string $mailSubject, int $totalEventCount)
     {
@@ -62,7 +62,7 @@ class AlertBatchedMail extends Mailable
     {
         return new Content(
             view: 'emails.alert-batched',
-            text: 'emails.alert-batched-text'
+            text: 'emails.alert-batched-text',
         );
     }
 
@@ -72,7 +72,7 @@ class AlertBatchedMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: $this->mailSubject
+            subject: $this->mailSubject,
         );
     }
 }

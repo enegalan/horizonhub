@@ -69,7 +69,7 @@ class EvaluateAlertJob implements ShouldQueue
                         'delivered' => false,
                         'pending_flush_error_message' => null,
                     ],
-                    self::CACHE_TTL_SECONDS
+                    self::CACHE_TTL_SECONDS,
                 );
                 Cache::increment($this->private__cacheKeyForEvaluatedCount(), 1);
                 Cache::increment($this->private__cacheKeyForErrorCount(), 1);
@@ -82,16 +82,19 @@ class EvaluateAlertJob implements ShouldQueue
             Cache::put(
                 $this->private__cacheKeyForAlertResult(),
                 $result,
-                self::CACHE_TTL_SECONDS
+                self::CACHE_TTL_SECONDS,
             );
 
             Cache::increment($this->private__cacheKeyForEvaluatedCount(), 1);
+
             if (! empty($result['triggered'])) {
                 Cache::increment($this->private__cacheKeyForTriggeredCount(), 1);
             }
+
             if (! empty($result['delivered'])) {
                 Cache::increment($this->private__cacheKeyForDeliveredCount(), 1);
             }
+
             if (! empty($result['error_message'])) {
                 Cache::increment($this->private__cacheKeyForErrorCount(), 1);
                 $this->private__cacheFirstErrorMessage($result['error_message']);
@@ -117,7 +120,7 @@ class EvaluateAlertJob implements ShouldQueue
                     'delivered' => false,
                     'pending_flush_error_message' => null,
                 ],
-                self::CACHE_TTL_SECONDS
+                self::CACHE_TTL_SECONDS,
             );
         }
     }
@@ -127,7 +130,8 @@ class EvaluateAlertJob implements ShouldQueue
      */
     private function private__cacheFirstErrorMessage(string $message): void
     {
-        $key = $this->private__cacheKeyNamespace().'.first_error_message';
+        $key = $this->private__cacheKeyNamespace() . '.first_error_message';
+
         if (Cache::get($key) !== null) {
             return;
         }
@@ -139,7 +143,7 @@ class EvaluateAlertJob implements ShouldQueue
      */
     private function private__cacheKeyForAlertResult(): string
     {
-        return $this->private__cacheKeyNamespace().'.results.'.$this->alertId;
+        return $this->private__cacheKeyNamespace() . '.results.' . $this->alertId;
     }
 
     /**
@@ -147,7 +151,7 @@ class EvaluateAlertJob implements ShouldQueue
      */
     private function private__cacheKeyForDeliveredCount(): string
     {
-        return $this->private__cacheKeyNamespace().'.delivered_count';
+        return $this->private__cacheKeyNamespace() . '.delivered_count';
     }
 
     /**
@@ -155,7 +159,7 @@ class EvaluateAlertJob implements ShouldQueue
      */
     private function private__cacheKeyForErrorCount(): string
     {
-        return $this->private__cacheKeyNamespace().'.error_count';
+        return $this->private__cacheKeyNamespace() . '.error_count';
     }
 
     /**
@@ -163,7 +167,7 @@ class EvaluateAlertJob implements ShouldQueue
      */
     private function private__cacheKeyForEvaluatedCount(): string
     {
-        return $this->private__cacheKeyNamespace().'.evaluated_count';
+        return $this->private__cacheKeyNamespace() . '.evaluated_count';
     }
 
     /**
@@ -171,7 +175,7 @@ class EvaluateAlertJob implements ShouldQueue
      */
     private function private__cacheKeyForTriggeredCount(): string
     {
-        return $this->private__cacheKeyNamespace().'.triggered_count';
+        return $this->private__cacheKeyNamespace() . '.triggered_count';
     }
 
     /**

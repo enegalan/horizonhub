@@ -12,7 +12,7 @@ abstract class StreamController extends Controller
      * The callback must return a Turbo Stream HTML string (one or more
      * <turbo-stream> elements) or null when there is nothing to push.
      *
-     * @param  callable(): ?string  $turboStreamCallback
+     * @param callable(): ?string $turboStreamCallback
      */
     protected function runStream(callable $turboStreamCallback): StreamedResponse
     {
@@ -21,9 +21,11 @@ abstract class StreamController extends Controller
 
         return \response()->stream(function () use ($intervalMicroseconds, $turboStreamCallback): void {
             echo ": stream-open\n\n";
+
             if (\function_exists('ob_flush')) {
                 @\ob_flush();
             }
+
             if (\function_exists('flush')) {
                 @\flush();
             }
@@ -37,6 +39,7 @@ abstract class StreamController extends Controller
 
                 if ($turboHtml !== null && $turboHtml !== '') {
                     $lines = \explode("\n", $turboHtml);
+
                     foreach ($lines as $line) {
                         echo "data: $line\n";
                     }
@@ -45,6 +48,7 @@ abstract class StreamController extends Controller
                     if (\function_exists('ob_flush')) {
                         @\ob_flush();
                     }
+
                     if (\function_exists('flush')) {
                         @\flush();
                     }

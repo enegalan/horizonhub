@@ -15,6 +15,7 @@ class SettingsController extends Controller
     public function index(Request $request): View
     {
         $tab = (string) $request->query('tab', 'appearance');
+
         if (! \in_array($tab, ['appearance', 'providers'], true)) {
             $tab = 'appearance';
         }

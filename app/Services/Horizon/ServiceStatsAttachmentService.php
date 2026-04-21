@@ -10,8 +10,8 @@ class ServiceStatsAttachmentService
     /**
      * Attach the Horizon stats to the services.
      *
-     * @param  iterable<int, Service>|Collection<int, Service>  $services  The services.
-     * @param  HorizonApiProxyService  $horizonApi  The horizon API proxy service.
+     * @param iterable<int, Service>|Collection<int, Service> $services The services.
+     * @param HorizonApiProxyService $horizonApi The horizon API proxy service.
      */
     public function attachHorizonStats(iterable $services, HorizonApiProxyService $horizonApi): void
     {
@@ -31,6 +31,7 @@ class ServiceStatsAttachmentService
             $response = $horizonApi->getStats($service);
 
             $data = null;
+
             if (($response['success'] ?? false) && isset($response['data']) && \is_array($response['data'])) {
                 $data = $response['data'];
             }

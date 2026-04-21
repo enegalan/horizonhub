@@ -45,6 +45,7 @@ final class SupervisorOfflineAlertRuleStrategy implements AlertRuleStrategyInter
         $minutes = (int) ($threshold['minutes'] ?? config('horizonhub.alerts.default_minutes'));
 
         $service = Service::find($serviceId);
+
         if (! $service || ! $service->getBaseUrl()) {
             return false;
         }
@@ -63,19 +64,23 @@ final class SupervisorOfflineAlertRuleStrategy implements AlertRuleStrategyInter
             if (! \is_array($master) || ! isset($master['supervisors']) || ! \is_array($master['supervisors'])) {
                 continue;
             }
+
             foreach ($master['supervisors'] as $supervisor) {
                 if (! \is_array($supervisor)) {
                     continue;
                 }
                 $lastSeenRaw = $supervisor['last_heartbeat_at'] ?? ($supervisor['lastSeen'] ?? null);
+
                 if (! \is_string($lastSeenRaw) || $lastSeenRaw === '') {
                     continue;
                 }
+
                 try {
                     $lastSeen = Carbon::parse($lastSeenRaw);
                 } catch (\Throwable $e) {
                     continue;
                 }
+
                 if ($lastSeen->lt($staleAt)) {
                     $staleFound = true;
                     break 2;

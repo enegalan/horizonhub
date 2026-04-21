@@ -9,7 +9,8 @@ class QueueFailureCountersCalculator extends HorizonMetricsComputation
     /**
      * Get the processed vs failed data by queue.
      *
-     * @param  array<string, mixed>  $serviceScope  The service scope.
+     * @param array<string, mixed> $serviceScope The service scope.
+     *
      * @return array{queues: list<string>, processed: list<int>, failed: list<int>}
      */
     public function getProcessedFailedByQueue(array $serviceScope = []): array
@@ -18,6 +19,7 @@ class QueueFailureCountersCalculator extends HorizonMetricsComputation
         $sinceTimestamp = $since->getTimestamp();
 
         $services = $this->private__getServicesForMetrics($serviceScope);
+
         if ($services->isEmpty()) {
             return ['queues' => [], 'processed' => [], 'failed' => []];
         }
@@ -50,6 +52,7 @@ class QueueFailureCountersCalculator extends HorizonMetricsComputation
 
         $allQueues = \array_unique(\array_merge(\array_keys($normalizedProcessed), \array_keys($normalizedFailed)));
         $agg = [];
+
         foreach ($allQueues as $q) {
             $agg[$q] = [
                 'processed' => $normalizedProcessed[$q] ?? 0,
@@ -62,6 +65,7 @@ class QueueFailureCountersCalculator extends HorizonMetricsComputation
 
         $processed = [];
         $failed = [];
+
         foreach ($agg as $v) {
             $processed[] = $v['processed'];
             $failed[] = $v['failed'];
