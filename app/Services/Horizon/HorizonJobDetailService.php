@@ -13,7 +13,6 @@ class HorizonJobDetailService
      *
      * @param  Service  $service  The service.
      * @param  array<string, mixed>  $jobData  The job data.
-     * @return object
      */
     public function buildShowViewData(Service $service, array $jobData): object
     {
@@ -65,7 +64,6 @@ class HorizonJobDetailService
 
         $rawStatus = (string) ($jobData['status'] ?? 'failed');
         $status = $rawStatus === 'completed' ? 'processed' : $rawStatus;
-
 
         $queuedAt = JobRuntimeHelper::parseJobTimestamp($payload['pushedAt'] ?? null);
         $reservedAt = JobRuntimeHelper::parseJobTimestamp($jobData['reserved_at'] ?? null);
