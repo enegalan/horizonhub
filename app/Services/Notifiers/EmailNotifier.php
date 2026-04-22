@@ -2,7 +2,6 @@
 
 namespace App\Services\Notifiers;
 
-use App\Contracts\EmailAlertNotifier;
 use App\Mail\AlertBatchedMail;
 use App\Models\Alert;
 use App\Models\Service;
@@ -10,7 +9,7 @@ use App\Services\Horizon\HorizonApiProxyService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
-class EmailNotifier extends AbstractAlertNotifier implements EmailAlertNotifier
+class EmailNotifier extends AbstractAlertNotifier
 {
     /**
      * Construct the email notifier.

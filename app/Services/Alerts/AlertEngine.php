@@ -5,6 +5,7 @@ namespace App\Services\Alerts;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\Service;
+use App\Services\Alerts\Rules\AlertRuleStrategyRegistry;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 
@@ -13,26 +14,26 @@ class AlertEngine
     /**
      * The batch store.
      */
-    private AlertBatchStore $batchStore;
+    private AlertBatchStoreService $batchStore;
 
     /**
      * The notification dispatcher.
      */
-    private AlertNotificationDispatcher $notificationDispatcher;
+    private AlertNotificationDispatcherService $notificationDispatcher;
 
     /**
-     * The rule evaluator.
+     * The rule strategy registry.
      */
-    private AlertRuleEvaluator $ruleEvaluator;
+    private AlertRuleStrategyRegistry $ruleStrategyRegistry;
 
     /**
      * Construct the alert engine.
      */
-    public function __construct(AlertRuleEvaluator $ruleEvaluator, AlertBatchStore $batchStore, AlertNotificationDispatcher $notificationDispatcher)
+    public function __construct(AlertBatchStoreService $batchStore, AlertNotificationDispatcherService $notificationDispatcher, AlertRuleStrategyRegistry $ruleStrategyRegistry)
     {
-        $this->ruleEvaluator = $ruleEvaluator;
         $this->batchStore = $batchStore;
         $this->notificationDispatcher = $notificationDispatcher;
+        $this->ruleStrategyRegistry = $ruleStrategyRegistry;
     }
 
     /**
@@ -57,7 +58,7 @@ class AlertEngine
             if (! $this->private__shouldEvaluate($alert, $eventType)) {
                 continue;
             }
-            $result = $this->ruleEvaluator->evaluateWithTriggeringJobs($alert, $serviceId, $jobUuid);
+            $result = $this->evaluateWithTriggeringJobs($alert, $serviceId, $jobUuid);
 
             if ($result['triggered']) {
                 $this->private__triggerAlert($alert, $serviceId, $jobUuid, $result['job_uuids']);
@@ -82,7 +83,6 @@ class AlertEngine
      */
     public function evaluateAlert(Alert $alert): array
     {
-        $alertId = (int) $alert->id;
         $pendingFlushed = false;
         $triggered = false;
         $triggeredServiceId = null;
@@ -107,7 +107,7 @@ class AlertEngine
             }
         } catch (\Throwable $e) {
             Log::error('Horizon Hub: evaluate alert failed while flushing pending', [
-                'alert_id' => $alertId,
+                'alert_id' => $alert->id,
                 'error' => $e->getMessage(),
             ]);
             $pendingFlushErrorMessage = $e->getMessage();
@@ -125,7 +125,7 @@ class AlertEngine
                 $errorMessage ??= 'No services to evaluate alert (add at least one service).';
 
                 return [
-                    'alert_id' => $alertId,
+                    'alert_id' => $alert->id,
                     'pending_flushed' => $pendingFlushed,
                     'triggered' => false,
                     'triggered_service_id' => null,
@@ -136,7 +136,7 @@ class AlertEngine
             }
 
             foreach ($serviceIds as $serviceId) {
-                $result = $this->ruleEvaluator->evaluateWithTriggeringJobs($alert, (int) $serviceId, null);
+                $result = $this->evaluateWithTriggeringJobs($alert, (int) $serviceId, null);
 
                 if ($result['triggered']) {
                     $this->private__triggerAlert($alert, (int) $serviceId, null, $result['job_uuids']);
@@ -147,7 +147,7 @@ class AlertEngine
             }
         } catch (\Throwable $e) {
             Log::error('Horizon Hub: evaluate alert failed', [
-                'alert_id' => $alertId,
+                'alert_id' => $alert->id,
                 'error' => $e->getMessage(),
             ]);
             $errorMessage = $e->getMessage();
@@ -160,7 +160,7 @@ class AlertEngine
         }
 
         return [
-            'alert_id' => $alertId,
+            'alert_id' => $alert->id,
             'pending_flushed' => $pendingFlushed,
             'triggered' => $triggered,
             'triggered_service_id' => $triggered ? $triggeredServiceId : null,
@@ -198,7 +198,7 @@ class AlertEngine
                 }
 
                 foreach ($serviceIds as $serviceId) {
-                    $result = $this->ruleEvaluator->evaluateWithTriggeringJobs($alert, $serviceId, null);
+                    $result = $this->evaluateWithTriggeringJobs($alert, $serviceId, null);
 
                     if ($result['triggered']) {
                         $this->private__triggerAlert($alert, $serviceId, null, $result['job_uuids']);
@@ -209,6 +209,22 @@ class AlertEngine
                 Log::error('Horizon Hub: evaluate scheduled alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
             }
         }
+    }
+
+    /**
+     * Evaluate the alert rule and return whether it triggered plus the list of job UUIDs that triggered it.
+     *
+     * @param Alert $alert The alert.
+     * @param int $serviceId The service ID.
+     * @param string|null $jobUuid The job UUID.
+     *
+     * @return array{triggered: bool, job_uuids: array<int, string>}
+     */
+    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array
+    {
+        $strategy = $this->ruleStrategyRegistry->resolve((string) $alert->rule_type);
+
+        return $strategy->evaluateWithTriggeringJobs($alert, $serviceId, $jobUuid);
     }
 
     /**

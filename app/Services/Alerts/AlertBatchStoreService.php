@@ -6,7 +6,7 @@ use App\Models\Alert;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 
-class AlertBatchStore
+class AlertBatchStoreService
 {
     /**
      * The cache prefix for pending alerts.
@@ -33,28 +33,13 @@ class AlertBatchStore
     }
 
     /**
-     * Get the interval minutes for the given alert.
-     *
-     * @param Alert $alert The alert.
-     */
-    public function getIntervalMinutes(Alert $alert): int
-    {
-        if ($alert->email_interval_minutes !== null) {
-            return (int) $alert->email_interval_minutes;
-        }
-
-        return 0;
-    }
-
-    /**
      * Get the last sent at time for the given alert.
      *
      * @param Alert $alert The alert.
      */
     public function getLastSentAt(Alert $alert): ?Carbon
     {
-        $key = self::SENT_AT_CACHE_PREFIX . $alert->id;
-        $value = Cache::get($key);
+        $value = Cache::get(self::SENT_AT_CACHE_PREFIX . $alert->id);
 
         if ($value === null) {
             return null;
@@ -91,8 +76,7 @@ class AlertBatchStore
     public function setLastSentAt(Alert $alert, ?Carbon $time = null): void
     {
         $expiresAt = \now()->addMinutes(config('horizonhub.alerts.pending_ttl_minutes'));
-        $value = $time ?: \now();
-        Cache::put(self::SENT_AT_CACHE_PREFIX . $alert->id, $value, $expiresAt);
+        Cache::put(self::SENT_AT_CACHE_PREFIX . $alert->id, $time ?: \now(), $expiresAt);
     }
 
     /**
@@ -120,7 +104,7 @@ class AlertBatchStore
      */
     public function shouldSendNow(Alert $alert): bool
     {
-        $intervalMinutes = $this->getIntervalMinutes($alert);
+        $intervalMinutes = $alert->email_interval_minutes !== null ? (int) $alert->email_interval_minutes : 0;
         $lastSentAt = $this->getLastSentAt($alert);
 
         if ($intervalMinutes === 0) {

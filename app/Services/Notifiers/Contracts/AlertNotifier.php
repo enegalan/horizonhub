@@ -4,10 +4,6 @@ namespace App\Contracts;
 
 use App\Models\Alert;
 
-/**
- * Contract for alert notifications.
- * Implementations are bound in the container for AlertEngine injection.
- */
 interface AlertNotifier
 {
     /**

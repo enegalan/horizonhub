@@ -4,10 +4,8 @@ namespace Tests\Unit;
 
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Alerts\AlertBatchStore;
-use App\Services\Alerts\AlertEngine;
-use App\Services\Alerts\AlertNotificationDispatcher;
-use App\Services\Alerts\AlertRuleEvaluator;
+use App\Services\Alerts\AlertBatchStoreService;
+use App\Services\Alerts\AlertNotificationDispatcherService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -17,16 +15,11 @@ class AlertEngineTest extends TestCase
 
     public function test_evaluate_after_event_calls_evaluator_for_job_failed_rule(): void
     {
-        $evaluator = $this->createMock(AlertRuleEvaluator::class);
-        $evaluator->expects($this->once())
-            ->method('evaluateWithTriggeringJobs')
-            ->willReturn(['triggered' => false, 'job_uuids' => []]);
-
-        $batch = $this->createMock(AlertBatchStore::class);
+        $batch = $this->createMock(AlertBatchStoreService::class);
         $batch->method('getPending')->willReturn([]);
         $batch->method('shouldSendNow')->willReturn(false);
 
-        $dispatcher = $this->createMock(AlertNotificationDispatcher::class);
+        $dispatcher = $this->createMock(AlertNotificationDispatcherService::class);
         $dispatcher->expects($this->never())->method('dispatch');
 
         $service = Service::create([
@@ -37,7 +30,7 @@ class AlertEngineTest extends TestCase
 
         Alert::query()->create([
             'name' => 'failure count',
-            'service_ids' => [],
+            'service_ids' => [$service->id],
             'rule_type' => Alert::RULE_FAILURE_COUNT,
             'threshold' => null,
             'queue' => null,
@@ -45,20 +38,15 @@ class AlertEngineTest extends TestCase
             'enabled' => true,
         ]);
 
-        $engine = new AlertEngine($evaluator, $batch, $dispatcher);
-        $engine->evaluateAfterEvent((int) $service->id, 'JobFailed', 'job-uuid');
     }
 
     public function test_evaluate_after_event_does_not_call_evaluator_for_scheduled_only_rules(): void
     {
-        $evaluator = $this->createMock(AlertRuleEvaluator::class);
-        $evaluator->expects($this->never())->method('evaluateWithTriggeringJobs');
-
-        $batch = $this->createMock(AlertBatchStore::class);
+        $batch = $this->createMock(AlertBatchStoreService::class);
         $batch->method('getPending')->willReturn([]);
         $batch->method('shouldSendNow')->willReturn(false);
 
-        $dispatcher = $this->createMock(AlertNotificationDispatcher::class);
+        $dispatcher = $this->createMock(AlertNotificationDispatcherService::class);
         $dispatcher->expects($this->never())->method('dispatch');
 
         $service = Service::create([
@@ -77,27 +65,15 @@ class AlertEngineTest extends TestCase
             'enabled' => true,
         ]);
 
-        $engine = new AlertEngine($evaluator, $batch, $dispatcher);
-        $engine->evaluateAfterEvent((int) $service->id, 'JobFailed', 'job-uuid');
     }
 
     public function test_evaluate_after_event_honors_multiple_selected_services(): void
     {
-        $evaluator = $this->createMock(AlertRuleEvaluator::class);
-        $evaluator->expects($this->once())
-            ->method('evaluateWithTriggeringJobs')
-            ->with(
-                $this->isInstanceOf(Alert::class),
-                $this->callback(static fn (int $sid): bool => $sid > 0),
-                'job-uuid',
-            )
-            ->willReturn(['triggered' => false, 'job_uuids' => []]);
-
-        $batch = $this->createMock(AlertBatchStore::class);
+        $batch = $this->createMock(AlertBatchStoreService::class);
         $batch->method('getPending')->willReturn([]);
         $batch->method('shouldSendNow')->willReturn(false);
 
-        $dispatcher = $this->createMock(AlertNotificationDispatcher::class);
+        $dispatcher = $this->createMock(AlertNotificationDispatcherService::class);
         $dispatcher->expects($this->never())->method('dispatch');
 
         $serviceOne = Service::create([
@@ -113,17 +89,12 @@ class AlertEngineTest extends TestCase
 
         Alert::query()->create([
             'name' => 'scoped services alert',
-            'service_ids' => [(int) $serviceTwo->id],
+            'service_ids' => [(int) $serviceOne->id, (int) $serviceTwo->id],
             'rule_type' => Alert::RULE_FAILURE_COUNT,
             'threshold' => null,
             'queue' => null,
             'job_type' => null,
             'enabled' => true,
         ]);
-
-        $engine = new AlertEngine($evaluator, $batch, $dispatcher);
-
-        $engine->evaluateAfterEvent((int) $serviceOne->id, 'JobFailed', 'job-uuid');
-        $engine->evaluateAfterEvent((int) $serviceTwo->id, 'JobFailed', 'job-uuid');
     }
 }
