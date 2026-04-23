@@ -6,6 +6,7 @@ use App\Http\Controllers\StreamController;
 use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Alert;
 use App\Models\Service;
+use App\Services\Alerts\AlertChartDataService;
 use App\Services\Horizon\DashboardDataService;
 use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\HorizonJobDetailService;
@@ -20,6 +21,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HorizonStreamsController extends StreamController
 {
+    /**
+     * The alert chart data service.
+     */
+    private AlertChartDataService $alertChartData;
+
     /**
      * The dashboard data service.
      */
@@ -63,7 +69,7 @@ class HorizonStreamsController extends StreamController
     /**
      * The constructor.
      */
-    public function __construct(MetricsDashboardDataService $metricsDashboard, DashboardDataService $dashboardData, HorizonMetricsService $metrics, HorizonApiProxyService $horizonApi, HorizonJobListService $jobList, HorizonJobDetailService $jobDetail, ServiceShowPageDataService $serviceShowPageData, ServiceStatsAttachmentService $serviceStats)
+    public function __construct(MetricsDashboardDataService $metricsDashboard, DashboardDataService $dashboardData, HorizonMetricsService $metrics, HorizonApiProxyService $horizonApi, HorizonJobListService $jobList, HorizonJobDetailService $jobDetail, ServiceShowPageDataService $serviceShowPageData, ServiceStatsAttachmentService $serviceStats, AlertChartDataService $alertChartData)
     {
         $this->metricsDashboard = $metricsDashboard;
         $this->dashboardData = $dashboardData;
@@ -73,11 +79,17 @@ class HorizonStreamsController extends StreamController
         $this->jobDetail = $jobDetail;
         $this->serviceShowPageData = $serviceShowPageData;
         $this->serviceStats = $serviceStats;
+        $this->alertChartData = $alertChartData;
     }
 
     public function alerts(): StreamedResponse
     {
         return $this->runStream(fn (): ?string => $this->private__buildAlertsStreams());
+    }
+
+    public function alertShow(Alert $alert): StreamedResponse
+    {
+        return $this->runStream(fn (): ?string => $this->private__buildAlertShowStreams($alert));
     }
 
     public function dashboard(): StreamedResponse
@@ -123,6 +135,27 @@ class HorizonStreamsController extends StreamController
         $query = $request->getQueryString() ?? '';
 
         return $this->runStream(fn (): ?string => $this->private__buildServiceShowStreams($service, $query));
+    }
+
+    private function private__buildAlertShowStreams(Alert $alert): ?string
+    {
+        $chartData = [
+            'chart24h' => $this->alertChartData->buildChart($alert, 1),
+            'chart7d' => $this->alertChartData->buildChart($alert, 7),
+            'chart30d' => $this->alertChartData->buildChart($alert, 30),
+        ];
+
+        $streams = [];
+
+        $statsHtml = \view('horizon.alerts.partials.detail-stats', [
+            'chartData' => $chartData,
+        ])->render();
+        $streams[] = $this->private__turboStreamTag('update', 'alert-detail-stats', $statsHtml, 'morph');
+
+        $chartJson = \json_encode($chartData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $streams[] = $this->private__turboStreamTag('replace', 'alert-detail-chart-data', '<div id="alert-detail-chart-data"><script type="application/json" id="alert-detail-chart-data-json">' . $chartJson . '</script></div>');
+
+        return \implode("\n", $streams);
     }
 
     // ------------------------------------------------------------------

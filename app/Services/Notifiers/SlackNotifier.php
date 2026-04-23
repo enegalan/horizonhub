@@ -2,13 +2,12 @@
 
 namespace App\Services\Notifiers;
 
-use App\Contracts\SlackAlertNotifier;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
 use Illuminate\Support\Facades\Http;
 
-class SlackNotifier extends AbstractAlertNotifier implements SlackAlertNotifier
+class SlackNotifier extends AbstractAlertNotifier
 {
     /**
      * Maximum number of events to include in the Slack message.

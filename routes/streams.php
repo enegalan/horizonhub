@@ -27,4 +27,5 @@ Route::group(['prefix' => 'streams/horizon'], function () {
 
     // Alerts
     Route::get('/alerts', [HorizonStreamsController::class, 'alerts'])->name('streams.alerts');
+    Route::get('/alerts/{alert}', [HorizonStreamsController::class, 'alertShow'])->name('streams.alerts.show');
 });

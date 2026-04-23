@@ -19,14 +19,14 @@ use Illuminate\Http\Request;
 class AlertController extends Controller
 {
     /**
+     * The alert chart data service.
+     */
+    private AlertChartDataService $alertChartData;
+
+    /**
      * The alert upsert service.
      */
     private AlertUpsertService $alertUpsert;
-
-    /**
-     * The alert chart data service.
-     */
-    private AlertChartDataService $chartData;
 
     /**
      * The alert evaluation batch service.
@@ -36,10 +36,10 @@ class AlertController extends Controller
     /**
      * The constructor.
      */
-    public function __construct(AlertUpsertService $alertUpsert, AlertChartDataService $chartData, AlertEvaluationBatchService $evaluationBatch)
+    public function __construct(AlertChartDataService $alertChartData, AlertEvaluationBatchService $evaluationBatch, AlertUpsertService $alertUpsert)
     {
         $this->alertUpsert = $alertUpsert;
-        $this->chartData = $chartData;
+        $this->alertChartData = $alertChartData;
         $this->evaluationBatch = $evaluationBatch;
     }
 
@@ -158,9 +158,9 @@ class AlertController extends Controller
         $logs = $logsQuery->paginate($perPage)->withQueryString();
 
         $chartData = [
-            'chart24h' => $this->chartData->buildChart($alert, 1),
-            'chart7d' => $this->chartData->buildChart($alert, 7),
-            'chart30d' => $this->chartData->buildChart($alert, 30),
+            'chart24h' => $this->alertChartData->buildChart($alert, 1),
+            'chart7d' => $this->alertChartData->buildChart($alert, 7),
+            'chart30d' => $this->alertChartData->buildChart($alert, 30),
         ];
 
         $alertName = $alert->name ?: "Alert #{$alert->id}";
