@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\Stream\HorizonStreamsController;
+use App\Models\Alert;
 use App\Models\Service;
+use App\Services\Alerts\AlertChartDataService;
 use App\Services\Horizon\HorizonApiProxyService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -24,6 +26,38 @@ class TurboStreamSseTest extends TestCase
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="turbo-tbody-horizon-alerts-list" method="morph"', $result);
         $this->assertStringContainsString('action="update"', $result);
+    }
+
+    public function test_build_alert_show_streams_returns_chart_targets(): void
+    {
+        $alert = Alert::create([
+            'name' => 'stream-alert-detail',
+            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'threshold' => ['count' => 1, 'minutes' => 5],
+            'enabled' => true,
+        ]);
+
+        $this->mock(AlertChartDataService::class, function ($mock): void {
+            $mock->shouldReceive('buildChart')
+                ->times(3)
+                ->andReturn([
+                    'xAxis' => [],
+                    'sent' => [],
+                    'failed' => [],
+                ]);
+        });
+
+        $controller = $this->app->make(HorizonStreamsController::class);
+
+        $reflection = new \ReflectionMethod($controller, 'private__buildAlertShowStreams');
+        $reflection->setAccessible(true);
+
+        $result = $reflection->invoke($controller, $alert);
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('target="alert-detail-stats" method="morph"', $result);
+        $this->assertStringContainsString('target="alert-detail-chart-data"', $result);
+        $this->assertStringContainsString('action="replace"', $result);
     }
 
     public function test_build_dashboard_streams_returns_expected_targets(): void
@@ -177,6 +211,20 @@ class TurboStreamSseTest extends TestCase
     public function test_streams_dashboard_returns_sse_content_type(): void
     {
         $response = $this->get(route('horizon.streams.dashboard'));
+
+        $this->assertStringStartsWith('text/event-stream', $response->headers->get('Content-Type'));
+    }
+
+    public function test_streams_alert_show_returns_sse_content_type(): void
+    {
+        $alert = Alert::create([
+            'name' => 'stream-alert-detail-sse',
+            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'threshold' => ['count' => 1, 'minutes' => 5],
+            'enabled' => true,
+        ]);
+
+        $response = $this->get(route('horizon.streams.alerts.show', ['alert' => $alert->id]));
 
         $this->assertStringStartsWith('text/event-stream', $response->headers->get('Content-Type'));
     }

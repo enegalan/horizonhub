@@ -335,7 +335,7 @@ export function horizonAlertDetail(config) {
  */
 function initAlertDetailCharts() {
     if (typeof window.echarts === 'undefined') return;
-    var data = parseJsonFromElement('alert-detail-chart-data');
+    var data = parseJsonFromElement('alert-detail-chart-data-json');
     if (!data) return;
 
     var c = getChartColors();
