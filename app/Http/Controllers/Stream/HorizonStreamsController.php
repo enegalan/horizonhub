@@ -137,23 +137,6 @@ class HorizonStreamsController extends StreamController
         return $this->runStream(fn (): ?string => $this->private__buildServiceShowStreams($service, $query));
     }
 
-    // ------------------------------------------------------------------
-    //  Alerts index
-    // ------------------------------------------------------------------
-
-    private function private__buildAlertsStreams(): ?string
-    {
-        $alerts = Alert::query()
-            ->withCount('alertLogs')
-            ->withMax('alertLogs', 'sent_at')
-            ->orderByDesc('created_at')
-            ->get();
-
-        $html = \view('horizon.alerts.partials.alert-tbody', ['alerts' => $alerts])->render();
-
-        return $this->private__turboStreamTag('update', 'turbo-tbody-horizon-alerts-list', $html, 'morph');
-    }
-
     private function private__buildAlertShowStreams(Alert $alert): ?string
     {
         $chartData = [
@@ -173,6 +156,23 @@ class HorizonStreamsController extends StreamController
         $streams[] = $this->private__turboStreamTag('replace', 'alert-detail-chart-data', '<div id="alert-detail-chart-data"><script type="application/json" id="alert-detail-chart-data-json">' . $chartJson . '</script></div>');
 
         return \implode("\n", $streams);
+    }
+
+    // ------------------------------------------------------------------
+    //  Alerts index
+    // ------------------------------------------------------------------
+
+    private function private__buildAlertsStreams(): ?string
+    {
+        $alerts = Alert::query()
+            ->withCount('alertLogs')
+            ->withMax('alertLogs', 'sent_at')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $html = \view('horizon.alerts.partials.alert-tbody', ['alerts' => $alerts])->render();
+
+        return $this->private__turboStreamTag('update', 'turbo-tbody-horizon-alerts-list', $html, 'morph');
     }
 
     // ------------------------------------------------------------------

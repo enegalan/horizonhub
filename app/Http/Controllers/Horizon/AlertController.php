@@ -19,13 +19,14 @@ use Illuminate\Http\Request;
 class AlertController extends Controller
 {
     /**
-     * The alert upsert service.
-     */
-    private AlertUpsertService $alertUpsert;
-    /**
      * The alert chart data service.
      */
     private AlertChartDataService $alertChartData;
+
+    /**
+     * The alert upsert service.
+     */
+    private AlertUpsertService $alertUpsert;
 
     /**
      * The alert evaluation batch service.

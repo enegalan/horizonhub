@@ -14,20 +14,6 @@ class TurboStreamSseTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_build_alerts_streams_returns_tbody_update(): void
-    {
-        $controller = $this->app->make(HorizonStreamsController::class);
-
-        $reflection = new \ReflectionMethod($controller, 'private__buildAlertsStreams');
-        $reflection->setAccessible(true);
-
-        $result = $reflection->invoke($controller);
-
-        $this->assertNotNull($result);
-        $this->assertStringContainsString('target="turbo-tbody-horizon-alerts-list" method="morph"', $result);
-        $this->assertStringContainsString('action="update"', $result);
-    }
-
     public function test_build_alert_show_streams_returns_chart_targets(): void
     {
         $alert = Alert::create([
@@ -58,6 +44,20 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('target="alert-detail-stats" method="morph"', $result);
         $this->assertStringContainsString('target="alert-detail-chart-data"', $result);
         $this->assertStringContainsString('action="replace"', $result);
+    }
+
+    public function test_build_alerts_streams_returns_tbody_update(): void
+    {
+        $controller = $this->app->make(HorizonStreamsController::class);
+
+        $reflection = new \ReflectionMethod($controller, 'private__buildAlertsStreams');
+        $reflection->setAccessible(true);
+
+        $result = $reflection->invoke($controller);
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('target="turbo-tbody-horizon-alerts-list" method="morph"', $result);
+        $this->assertStringContainsString('action="update"', $result);
     }
 
     public function test_build_dashboard_streams_returns_expected_targets(): void
@@ -208,13 +208,6 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('data-stream-row-id="svc-', $html);
     }
 
-    public function test_streams_dashboard_returns_sse_content_type(): void
-    {
-        $response = $this->get(route('horizon.streams.dashboard'));
-
-        $this->assertStringStartsWith('text/event-stream', $response->headers->get('Content-Type'));
-    }
-
     public function test_streams_alert_show_returns_sse_content_type(): void
     {
         $alert = Alert::create([
@@ -225,6 +218,13 @@ class TurboStreamSseTest extends TestCase
         ]);
 
         $response = $this->get(route('horizon.streams.alerts.show', ['alert' => $alert->id]));
+
+        $this->assertStringStartsWith('text/event-stream', $response->headers->get('Content-Type'));
+    }
+
+    public function test_streams_dashboard_returns_sse_content_type(): void
+    {
+        $response = $this->get(route('horizon.streams.dashboard'));
 
         $this->assertStringStartsWith('text/event-stream', $response->headers->get('Content-Type'));
     }
