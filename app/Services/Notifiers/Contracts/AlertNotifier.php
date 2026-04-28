@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Contracts;
+namespace App\Services\Notifiers\Contracts;
 
 use App\Models\Alert;
 

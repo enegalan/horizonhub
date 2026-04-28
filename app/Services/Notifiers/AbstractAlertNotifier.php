@@ -2,10 +2,10 @@
 
 namespace App\Services\Notifiers;
 
-use App\Contracts\AlertNotifier;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
+use App\Services\Notifiers\Contracts\AlertNotifier;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
