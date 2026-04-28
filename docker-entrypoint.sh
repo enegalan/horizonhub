@@ -7,6 +7,7 @@ mkdir -p storage/framework/cache/data storage/framework/sessions storage/framewo
 chown -R nobody:nobody storage bootstrap/cache
 chmod -R 775 storage bootstrap/cache
 
+npm update
 npm ci
 npm run build
 
