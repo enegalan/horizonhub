@@ -12,11 +12,10 @@ Centralized dashboard for monitoring Laravel Horizon jobs across multiple servic
 
 ## Features
 
-- **Parity with Horizon** per service: view jobs, failed jobs, queues
-- **Centralized monitoring** across unlimited services
-- **Live UI** via server-sent events (SSE)
-- **Alerting** for failures and performance
+- **Everything in one place**: monitor all your Horizon services from a single dashboard
 - **HTTP-based integration**: configure each service's Horizon HTTP API endpoint in Horizon Hub
+- **Act fast under pressure**: retry, inspect, and manage jobs without switching tools
+- **Stay informed proactively**: receive timely alerts when reliability or performance drops
 
 ## Requirements
 
