@@ -2,6 +2,37 @@ import { applyChartOptions, buildJobsVolumeLast24hOptions, getChartColors } from
 import { parseJsonFromElement } from "../lib/parse";
 import { isHotReloadEnabled } from "../lib/sse";
 
+/**
+ * Alpine component for the metrics page.
+ * @returns {object}
+ */
+export function horizonMetricsPage() {
+    return {
+        /**
+         * Initialize the metrics page.
+         * @returns {void}
+         */
+        init: function () {
+            if (typeof window === "undefined" || typeof document === "undefined") return;
+
+            // Initial hydration to initially show metrics charts and format elements
+            initMetricsCharts();
+
+            var filterEl = document.getElementById("metrics-service-filter");
+            if (filterEl) {
+                filterEl.addEventListener("change", function (e) {
+                    var ids = e.detail.values.map(String).filter(Boolean).sort();
+                    var url = new URL(window.location.href);
+                    refreshServiceIdSearchParams(ids, url);
+                    window.history.replaceState({}, "", url.toString());
+                    if (isHotReloadEnabled() && typeof window.__horizonHubRefreshStreamReconnect === "function") {
+                        window.__horizonHubRefreshStreamReconnect();
+                    }
+                });
+            }
+        },
+    };
+}
 
 /**
  * Refresh the service_id / service_id[] search params in a URL object.
@@ -233,52 +264,4 @@ function initMetricsCharts() {
             ]
         });
     }
-}
-
-/**
- * Read selected service ids from the metrics multiselect (hidden inputs).
- * @param {HTMLElement|null} filterEl
- * @returns {string[]}
- */
-function getMetricsServiceIdsFromDom(filterEl) {
-    if (!filterEl) return [];
-    var inputs = filterEl.querySelectorAll('input[type="hidden"][name="service_id[]"]');
-    var out = [];
-    inputs.forEach(function (inp) {
-        if (inp && inp.value) out.push(String(inp.value));
-    });
-    out.sort();
-    return out;
-}
-
-/**
- * Alpine component for the metrics page.
- * @returns {object}
- */
-export function horizonMetricsPage() {
-    return {
-        /**
-         * Initialize the metrics page.
-         * @returns {void}
-         */
-        init: function () {
-            if (typeof window === "undefined" || typeof document === "undefined") return;
-
-            // Initial hydration to initially show metrics charts and format elements
-            initMetricsCharts();
-
-            var filterEl = document.getElementById("metrics-service-filter");
-            if (filterEl) {
-                filterEl.addEventListener("change", function (e) {
-                    var ids = e.detail.values.map(String).filter(Boolean).sort();
-                    var url = new URL(window.location.href);
-                    refreshServiceIdSearchParams(ids, url);
-                    window.history.replaceState({}, "", url.toString());
-                    if (isHotReloadEnabled() && typeof window.__horizonHubRefreshStreamReconnect === "function") {
-                        window.__horizonHubRefreshStreamReconnect();
-                    }
-                });
-            }
-        },
-    };
 }

@@ -38,7 +38,7 @@ export function parseFailedAtRange(rangeValue) {
     if (!v) {
         return { dateFrom: '', dateTo: '' };
     }
-    var parts = v.split(/\s+to\s+/i).map(function (s) {
+    var parts = v.split(/\s*(?:\s+to\s+|–|—)\s*/i).map(function (s) {
         return s.trim();
     }).filter(Boolean);
     if (parts.length === 0) {

@@ -17,6 +17,42 @@ var jsonTreeSourceCache = new WeakMap();
 var jsonTreeLastRenderedSource = new WeakMap();
 
 /**
+ * Render JSON tree inside a target element.
+ * @param {HTMLElement} target
+ * @param {{ storageKey?: string }=} options
+ * @returns {void}
+ */
+export function renderJsonTree(target, options) {
+    if (!target || !target.getAttribute) return;
+
+    var source = getJsonTreeSource(target);
+    var parsed = null;
+    if (typeof source === 'string' && source !== '') {
+        parsed = parseJsonSource(source);
+    }
+
+    var state = null;
+    if (options && typeof options.storageKey === 'string' && options.storageKey) {
+        state = createJsonTreeStateStore(options.storageKey);
+    }
+
+    var previousRenderedSource = jsonTreeLastRenderedSource.get(target);
+    var existingRoot = target.firstElementChild;
+    if (
+        previousRenderedSource === source &&
+        existingRoot &&
+        existingRoot.classList.contains('horizon-json-node')
+    ) {
+        return;
+    }
+
+    var jsonTree = buildJsonNode(null, parsed, [], state, true);
+    target.innerHTML = '';
+    target.appendChild(jsonTree);
+    jsonTreeLastRenderedSource.set(target, source);
+}
+
+/**
  * Read JSON source from data-json-source or the last cached value for this element.
  * @param {HTMLElement} target
  * @returns {string}
@@ -386,40 +422,4 @@ function createJsonTreeStateStore(storageKey) {
             persist();
         },
     };
-}
-
-/**
- * Render JSON tree inside a target element.
- * @param {HTMLElement} target
- * @param {{ storageKey?: string }=} options
- * @returns {void}
- */
-export function renderJsonTree(target, options) {
-    if (!target || !target.getAttribute) return;
-
-    var source = getJsonTreeSource(target);
-    var parsed = null;
-    if (typeof source === 'string' && source !== '') {
-        parsed = parseJsonSource(source);
-    }
-
-    var state = null;
-    if (options && typeof options.storageKey === 'string' && options.storageKey) {
-        state = createJsonTreeStateStore(options.storageKey);
-    }
-
-    var previousRenderedSource = jsonTreeLastRenderedSource.get(target);
-    var existingRoot = target.firstElementChild;
-    if (
-        previousRenderedSource === source &&
-        existingRoot &&
-        existingRoot.classList.contains('horizon-json-node')
-    ) {
-        return;
-    }
-
-    var jsonTree = buildJsonNode(null, parsed, [], state, true);
-    target.innerHTML = '';
-    target.appendChild(jsonTree);
-    jsonTreeLastRenderedSource.set(target, source);
 }

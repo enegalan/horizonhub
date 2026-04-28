@@ -2,67 +2,6 @@ import { renderJsonTree } from '../lib/json-tree';
 import { parseFailedAtRange } from '../lib/parse';
 
 /**
- * POST retry URL, toast, and dispatch refresh (single job flows).
- * @param {string} retryUrl
- * @param {{ retrying: boolean }} component
- * @param {string} toastMessage
- * @returns {void}
- */
-function postSingleJobRetry(retryUrl, component, toastMessage) {
-    if (!window.horizon || !window.horizon.http) return;
-    component.retrying = true;
-    window.horizon.http.post(retryUrl, {}).then(function () {
-        if (window.toast && window.toast.success) {
-            window.toast.success(toastMessage);
-        }
-    }).catch(function () {
-    }).finally(function () {
-        component.retrying = false;
-    });
-}
-
-/**
- * Page number window for pagination nav.
- * @param {number} current
- * @param {number} last
- * @param {number} onEachSide
- * @returns {(number|string)[]}
- */
-function buildRetryPaginationSlider(current, last, onEachSide) {
-    var w = onEachSide;
-    var slider = [];
-    var i;
-    if (last <= (w * 2 + 3)) {
-        for (i = 1; i <= last; i++) {
-            slider.push(i);
-        }
-    } else if (current <= w + 2) {
-        var end = Math.min(w * 2 + 2, last);
-        for (i = 1; i <= end; i++) {
-            slider.push(i);
-        }
-        slider.push('...');
-        slider.push(last);
-    } else if (current >= last - w - 1) {
-        slider.push(1);
-        slider.push('...');
-        var start = Math.max(1, last - w * 2 - 1);
-        for (i = start; i <= last; i++) {
-            slider.push(i);
-        }
-    } else {
-        slider.push(1);
-        slider.push('...');
-        for (i = current - w; i <= current + w; i++) {
-            slider.push(i);
-        }
-        slider.push('...');
-        slider.push(last);
-    }
-    return slider;
-}
-
-/**
  * Initialize JSON trees on the job detail page.
  * @returns {void}
  */
@@ -498,4 +437,65 @@ export function horizonJobDetail(config) {
             this.persistUiState();
         },
     };
+}
+
+/**
+ * POST retry URL, toast, and dispatch refresh (single job flows).
+ * @param {string} retryUrl
+ * @param {{ retrying: boolean }} component
+ * @param {string} toastMessage
+ * @returns {void}
+ */
+function postSingleJobRetry(retryUrl, component, toastMessage) {
+    if (!window.horizon || !window.horizon.http) return;
+    component.retrying = true;
+    window.horizon.http.post(retryUrl, {}).then(function () {
+        if (window.toast && window.toast.success) {
+            window.toast.success(toastMessage);
+        }
+    }).catch(function () {
+    }).finally(function () {
+        component.retrying = false;
+    });
+}
+
+/**
+ * Page number window for pagination nav.
+ * @param {number} current
+ * @param {number} last
+ * @param {number} onEachSide
+ * @returns {(number|string)[]}
+ */
+function buildRetryPaginationSlider(current, last, onEachSide) {
+    var w = onEachSide;
+    var slider = [];
+    var i;
+    if (last <= (w * 2 + 3)) {
+        for (i = 1; i <= last; i++) {
+            slider.push(i);
+        }
+    } else if (current <= w + 2) {
+        var end = Math.min(w * 2 + 2, last);
+        for (i = 1; i <= end; i++) {
+            slider.push(i);
+        }
+        slider.push('...');
+        slider.push(last);
+    } else if (current >= last - w - 1) {
+        slider.push(1);
+        slider.push('...');
+        var start = Math.max(1, last - w * 2 - 1);
+        for (i = start; i <= last; i++) {
+            slider.push(i);
+        }
+    } else {
+        slider.push(1);
+        slider.push('...');
+        for (i = current - w; i <= current + w; i++) {
+            slider.push(i);
+        }
+        slider.push('...');
+        slider.push(last);
+    }
+    return slider;
 }

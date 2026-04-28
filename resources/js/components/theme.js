@@ -1,15 +1,33 @@
 var THEME_KEY = 'horizonhub_theme';
 
+/**
+ * Initialize theme functionality.
+ * @returns {Object}
+ */
 export function initTheme() {
     return {
         getStoredTheme: getStoredTheme,
         resolveDark: resolveDark,
+        /**
+         * Apply theme from preference.
+         * @param {'light'|'dark'|'system'} theme
+         * @returns {void}
+         */
         applyFromPreference: function (theme) {
             document.documentElement.classList.toggle('dark', resolveDark(theme));
         },
+        /**
+         * Apply theme.
+         * @returns {void}
+         */
         applyTheme: function () {
             document.documentElement.classList.toggle('dark', resolveDark(getStoredTheme()));
         },
+        /**
+         * Set theme.
+         * @param {'light'|'dark'|'system'} theme
+         * @returns {void}
+         */
         setTheme: function (theme) {
             localStorage.setItem(THEME_KEY, theme);
             window.dispatchEvent(new CustomEvent('apply-theme'));

@@ -1,28 +1,3 @@
-/**
- * CSRF token and HTTP helpers for horizon API.
- * @returns {string}
- */
-function getCsrfToken() {
-    var token = document.querySelector('meta[name="csrf-token"]');
-    return token ? token.getAttribute('content') : '';
-}
-
-/**
- * Default API error handler.
- * @param {Error} error
- * @returns {void}
- */
-function defaultApiErrorHandler(error) {
-    var message = 'Request failed';
-    if (error && error.response && error.response.data && error.response.data.message) {
-        message = error.response.data.message;
-    }
-    if (window.toast && window.toast.error) {
-        window.toast.error(message);
-    } else {
-        alert(message);
-    }
-}
 
 /**
  * Create HTTP helpers.
@@ -62,4 +37,30 @@ export function createHttpHelpers() {
         post: function (url, data, config) { return request('post', url, data, config); },
         delete: function (url, config) { return request('delete', url, null, config); },
     };
+}
+
+/**
+ * CSRF token and HTTP helpers for horizon API.
+ * @returns {string}
+ */
+function getCsrfToken() {
+    var token = document.querySelector('meta[name="csrf-token"]');
+    return token ? token.getAttribute('content') : '';
+}
+
+/**
+ * Default API error handler.
+ * @param {Error} error
+ * @returns {void}
+ */
+function defaultApiErrorHandler(error) {
+    var message = 'Request failed';
+    if (error && error.response && error.response.data && error.response.data.message) {
+        message = error.response.data.message;
+    }
+    if (window.toast && window.toast.error) {
+        window.toast.error(message);
+    } else {
+        alert(message);
+    }
 }

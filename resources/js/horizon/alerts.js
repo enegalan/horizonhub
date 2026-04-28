@@ -51,6 +51,12 @@ export function horizonAlertsList() {
             }
         },
 
+        /**
+         * Set evaluate button loading state.
+         * @param {HTMLElement} buttonEl
+         * @param {boolean} isLoading
+         * @returns {void}
+         */
         private__setEvaluateButtonLoading(buttonEl, isLoading) {
             if (!buttonEl) return;
             var iconEl = buttonEl.querySelector('.alert-evaluate-btn-icon');
@@ -66,6 +72,11 @@ export function horizonAlertsList() {
             }
         },
 
+        /**
+         * Set all evaluate buttons disabled state.
+         * @param {boolean} disabled
+         * @returns {void}
+         */
         private__setAllEvaluateButtonsDisabled(disabled) {
             if (typeof document === 'undefined') return;
             var buttons = document.querySelectorAll('[data-alert-evaluate-button="1"], [data-alert-evaluate-all-button="1"]');
@@ -82,6 +93,11 @@ export function horizonAlertsList() {
             });
         },
 
+        /**
+         * Handle evaluate alert click.
+         * @param {HTMLElement} btnEl
+         * @returns {void}
+         */
         private__handleEvaluateAlertClick(btnEl) {
             var self = this;
             if (!window.horizon || !window.horizon.http || !btnEl) return;
@@ -127,6 +143,11 @@ export function horizonAlertsList() {
             });
         },
 
+        /**
+         * Handle evaluate all click.
+         * @param {HTMLElement} bulkBtnEl
+         * @returns {void}
+         */
         private__handleEvaluateAllClick(bulkBtnEl) {
             var self = this;
             if (!window.horizon || !window.horizon.http || !bulkBtnEl) return;
@@ -170,6 +191,11 @@ export function horizonAlertsList() {
             });
         },
 
+        /**
+         * Poll evaluation status.
+         * @param {object} params
+         * @returns {void}
+         */
         private__pollEvaluationStatus(params) {
             var self = this;
             if (!params || !params.evaluationId || !params.statusUrlTemplate) return;
@@ -268,6 +294,11 @@ export function horizonAlertDetail(config) {
         showDeliveryLogModal: false,
         deliveryLogModalMounted: false,
         deliveryLog: null,
+        /**
+         * Normalize delivery log data.
+         * @param {object} logData
+         * @returns {object}
+         */
         normalizeDeliveryLog(logData) {
             if (!logData || typeof logData !== 'object') {
                 return null;
@@ -304,6 +335,11 @@ export function horizonAlertDetail(config) {
             // Initial hydration to initially show alert detail charts
             initAlertDetailCharts();
         },
+        /**
+         * Open delivery log modal.
+         * @param {object} logData
+         * @returns {void}
+         */
         openDeliveryLogModal(logData) {
             if (logData) {
                 this.deliveryLog = this.normalizeDeliveryLog(logData);
@@ -317,6 +353,10 @@ export function horizonAlertDetail(config) {
                 this.showDeliveryLogModal = true;
             });
         },
+        /**
+         * Close delivery log modal.
+         * @returns {void}
+         */
         closeDeliveryLogModal() {
             this.showDeliveryLogModal = false;
             window.setTimeout(() => {

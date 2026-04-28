@@ -11,6 +11,49 @@
 import { parseJson } from "./parse";
 
 /**
+ * DOM node addressed by a turbo-stream's `target` attribute.
+ * @param {Element} streamElement
+ * @returns {Element|null}
+ */
+export function getTurboStreamTargetElement(streamElement) {
+    var targetAttr = String(streamElement.getAttribute('target') || '').trim();
+    if (!targetAttr) {
+        return null;
+    }
+
+    var raw = String(targetAttr).trim();
+    if (!raw) {
+        return null;
+    }
+    var targetId = raw.charAt(0) === '#' ? raw.slice(1) : raw;
+    var byId = document.getElementById(targetId);
+    if (byId) {
+        return byId;
+    }
+
+    return document.querySelector(targetId);
+}
+
+/**
+ * Render turbo stream with guards.
+ * @param {Element} streamElement
+ * @param {function(Element): void} originalRender
+ * @returns {'incremental-changed'|'incremental-unchanged'|'skipped'|'rendered'}
+ */
+export function renderTurboStreamWithGuards(streamElement, originalRender) {
+    preserveJobsSectionsOpenState(streamElement);
+    var patchOutcome = tryApplyIncrementalStreamPatch(streamElement);
+    if (patchOutcome === 'incremental-changed' || patchOutcome === 'incremental-unchanged') {
+        return patchOutcome;
+    }
+    if (isStreamUpdateRedundant(streamElement)) {
+        return 'skipped';
+    }
+    originalRender(streamElement);
+    return 'rendered';
+}
+
+/**
  * Preserve open/closed state for jobs stack sections across replace/update streams.
  * @param {Element} streamElement
  * @returns {void}
@@ -165,30 +208,6 @@ function isRedundantReplace(targetEl, templateEl) {
         incoming += cloneNormalizedForStreamCompare(children[i]).outerHTML;
     }
     return cloneNormalizedForStreamCompare(targetEl).outerHTML === incoming;
-}
-
-/**
- * DOM node addressed by a turbo-stream's `target` attribute.
- * @param {Element} streamElement
- * @returns {Element|null}
- */
-export function getTurboStreamTargetElement(streamElement) {
-    var targetAttr = String(streamElement.getAttribute('target') || '').trim();
-    if (!targetAttr) {
-        return null;
-    }
-
-    var raw = String(targetAttr).trim();
-    if (!raw) {
-        return null;
-    }
-    var targetId = raw.charAt(0) === '#' ? raw.slice(1) : raw;
-    var byId = document.getElementById(targetId);
-    if (byId) {
-        return byId;
-    }
-
-    return document.querySelector(targetId);
 }
 
 /**
@@ -492,23 +511,4 @@ function tryApplyIncrementalStreamPatch(streamElement) {
     }
 
     return anyChanged ? 'incremental-changed' : 'incremental-unchanged';
-}
-
-/**
- * Render turbo stream with guards.
- * @param {Element} streamElement
- * @param {function(Element): void} originalRender
- * @returns {'incremental-changed'|'incremental-unchanged'|'skipped'|'rendered'}
- */
-export function renderTurboStreamWithGuards(streamElement, originalRender) {
-    preserveJobsSectionsOpenState(streamElement);
-    var patchOutcome = tryApplyIncrementalStreamPatch(streamElement);
-    if (patchOutcome === 'incremental-changed' || patchOutcome === 'incremental-unchanged') {
-        return patchOutcome;
-    }
-    if (isStreamUpdateRedundant(streamElement)) {
-        return 'skipped';
-    }
-    originalRender(streamElement);
-    return 'rendered';
 }

@@ -1,22 +1,15 @@
 import { Notyf } from 'notyf';
 import 'notyf/notyf.min.css';
 
+/**
+ * Toast duration in milliseconds.
+ */
 var TOAST_DURATION_MS = 4500;
 
-var DEFAULT_TOAST_MESSAGE = 'Done.';
-
 /**
- * Remove Notyf DOM nodes.
- * @returns {void}
+ * Default toast message.
  */
-function removeNotyfDom() {
-    document.querySelectorAll('.notyf-announcer').forEach(function (el) {
-        el.remove();
-    });
-    document.querySelectorAll('.notyf').forEach(function (el) {
-        el.remove();
-    });
-}
+var DEFAULT_TOAST_MESSAGE = 'Done.';
 
 /**
  * Mount Notyf and expose toast on window.
@@ -79,4 +72,17 @@ export function mountToaster() {
             notyf.open({ type: 'warning', message: typeof message === 'string' && message ? message : DEFAULT_TOAST_MESSAGE });
         },
     };
+}
+
+/**
+ * Remove Notyf DOM nodes.
+ * @returns {void}
+ */
+function removeNotyfDom() {
+    document.querySelectorAll('.notyf-announcer').forEach(function (el) {
+        el.remove();
+    });
+    document.querySelectorAll('.notyf').forEach(function (el) {
+        el.remove();
+    });
 }

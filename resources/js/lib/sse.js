@@ -8,6 +8,35 @@ export function isHotReloadEnabled() {
     return localStorage.getItem('horizonhub_hotreload') !== 'false';
 }
 
+
+/**
+ * Initialize the Turbo Stream SSE connection.
+ * @returns {void}
+ */
+export function initTurboStream() {
+    window.addEventListener('horizonhub-hotreload-changed', onHotReloadChanged);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    window.__horizonHubRefreshStreamClose = closeStream;
+    window.__horizonHubRefreshStreamReconnect = function () {
+        closeStream();
+        if (isHotReloadEnabled()) {
+            openStream();
+        }
+    };
+
+    document.addEventListener('turbo:before-visit', function () {
+        closeStream();
+    });
+    document.addEventListener('turbo:load', function () {
+        if (typeof window.__horizonHubRefreshStreamReconnect === 'function') {
+            window.__horizonHubRefreshStreamReconnect();
+        }
+    });
+
+    openStream();
+}
+
 /**
  * @type {number}
  */
@@ -154,32 +183,4 @@ function onVisibilityChange() {
             }
         }, VISIBILITY_RECONNECT_DELAY_MS);
     }
-}
-
-/**
- * Initialize the Turbo Stream SSE connection.
- * @returns {void}
- */
-export function initTurboStream() {
-    window.addEventListener('horizonhub-hotreload-changed', onHotReloadChanged);
-    document.addEventListener('visibilitychange', onVisibilityChange);
-
-    window.__horizonHubRefreshStreamClose = closeStream;
-    window.__horizonHubRefreshStreamReconnect = function () {
-        closeStream();
-        if (isHotReloadEnabled()) {
-            openStream();
-        }
-    };
-
-    document.addEventListener('turbo:before-visit', function () {
-        closeStream();
-    });
-    document.addEventListener('turbo:load', function () {
-        if (typeof window.__horizonHubRefreshStreamReconnect === 'function') {
-            window.__horizonHubRefreshStreamReconnect();
-        }
-    });
-
-    openStream();
 }
