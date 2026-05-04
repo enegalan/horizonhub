@@ -50,4 +50,20 @@ class JobDashboardUrlBuilderTest extends TestCase
 
         $this->assertSame('http://public.test/horizon/failed/abc-123', $url);
     }
+
+    #[Test]
+    public function it_builds_pending_and_default_paths_and_encodes_uuid(): void
+    {
+        $service = new Service;
+        $service->forceFill([
+            'base_url' => 'http://example.test/',
+            'public_url' => null,
+        ]);
+
+        $pending = JobDashboardUrlBuilder::build($service, 'abc 123', 'pending');
+        $unknown = JobDashboardUrlBuilder::build($service, 'abc 123', 'unknown');
+
+        $this->assertSame('http://example.test/horizon/jobs/pending/abc+123', $pending);
+        $this->assertSame('http://example.test/horizon/jobs/pending/abc+123', $unknown);
+    }
 }

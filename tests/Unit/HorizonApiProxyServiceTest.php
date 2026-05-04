@@ -251,4 +251,112 @@ class HorizonApiProxyServiceTest extends TestCase
         $this->assertSame(2, $retryCalls);
         $this->assertSame(2, $dashboardCalls);
     }
+
+    public function test_public_get_wrappers_build_expected_paths_and_queries(): void
+    {
+        Http::fake([
+            '*' => Http::response(['ok' => true], 200),
+        ]);
+
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.completed_jobs', '/jobs/completed');
+        \config()->set('horizonhub.horizon_paths.pending_jobs', '/jobs/pending');
+        \config()->set('horizonhub.horizon_paths.failed_jobs', '/jobs/failed');
+        \config()->set('horizonhub.horizon_paths.job', '/jobs/{id}');
+        \config()->set('horizonhub.horizon_paths.masters', '/masters');
+        \config()->set('horizonhub.horizon_paths.ping', '/stats');
+        \config()->set('horizonhub.horizon_api_job_list_page_size', 25);
+
+        $service = Service::create([
+            'name' => 'svc-wrappers',
+            'base_url' => 'https://service-wrappers.test',
+            'status' => 'online',
+        ]);
+
+        $proxy = new HorizonApiProxyService;
+        $this->assertTrue($proxy->getCompletedJobs($service)['success']);
+        $this->assertTrue($proxy->getPendingJobs($service, ['starting_at' => 5])['success']);
+        $this->assertTrue($proxy->getFailedJobs($service)['success']);
+        $this->assertTrue($proxy->getJob($service, 'uuid-1')['success']);
+        $this->assertTrue($proxy->getMasters($service)['success']);
+        $this->assertTrue($proxy->getStats($service)['success']);
+    }
+
+    public function test_failed_response_prefers_json_message_and_html_fallback_message(): void
+    {
+        Http::fake(function ($request) {
+            if (\str_contains($request->url(), 'json-message')) {
+                return Http::response(['message' => 'json boom'], 500);
+            }
+
+            return Http::response('<html><body>Error</body></html>', 500);
+        });
+
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.ping', '/json-message');
+
+        $service = Service::create([
+            'name' => 'svc-error-msg',
+            'base_url' => 'https://service-errors.test',
+            'status' => 'online',
+        ]);
+
+        $proxy = new HorizonApiProxyService;
+        $jsonResult = $proxy->ping($service);
+        $this->assertFalse($jsonResult['success']);
+        $this->assertSame('json boom', $jsonResult['message']);
+
+        \config()->set('horizonhub.horizon_paths.ping', '/html-message');
+        Cache::forget('horizonhub:horizon-api-failure-cooldown:' . $service->id);
+        $htmlResult = $proxy->ping($service);
+        $this->assertFalse($htmlResult['success']);
+        $this->assertStringContainsString('Horizon API returned an HTTP error', (string) $htmlResult['message']);
+    }
+
+    public function test_retry_job_returns_502_when_dashboard_bootstrap_fails(): void
+    {
+        Http::fake([
+            '*' => Http::response('<html><head></head><body>no csrf</body></html>', 200),
+        ]);
+
+        \config()->set('horizonhub.horizon_paths.dashboard', '/horizon');
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.retry', '/jobs/retry/{id}');
+
+        $service = Service::create([
+            'name' => 'svc-bootstrap-fail',
+            'base_url' => 'https://service-bootstrap-fail.test',
+            'status' => 'online',
+        ]);
+
+        $proxy = new HorizonApiProxyService;
+        $result = $proxy->retryJob($service, 'uuid-bootstrap');
+
+        $this->assertFalse($result['success']);
+        $this->assertSame(502, $result['status'] ?? null);
+        $this->assertStringContainsString('Unable to bootstrap Horizon dashboard session', (string) $result['message']);
+    }
+
+    public function test_ping_returns_500_for_generic_runtime_exception(): void
+    {
+        Http::fake(function () {
+            throw new \RuntimeException('generic fail');
+        });
+
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.ping', '/stats');
+
+        $service = Service::create([
+            'name' => 'svc-runtime-exception',
+            'base_url' => 'https://service-runtime-exception.test',
+            'status' => 'offline',
+        ]);
+
+        $proxy = new HorizonApiProxyService;
+        $result = $proxy->ping($service);
+
+        $this->assertFalse($result['success']);
+        $this->assertSame(500, $result['status'] ?? null);
+        $this->assertSame('generic fail', $result['message'] ?? null);
+    }
 }
