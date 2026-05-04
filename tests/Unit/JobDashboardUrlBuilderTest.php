@@ -24,6 +24,22 @@ class JobDashboardUrlBuilderTest extends TestCase
     }
 
     #[Test]
+    public function it_builds_pending_and_default_paths_and_encodes_uuid(): void
+    {
+        $service = new Service;
+        $service->forceFill([
+            'base_url' => 'http://example.test/',
+            'public_url' => null,
+        ]);
+
+        $pending = JobDashboardUrlBuilder::build($service, 'abc 123', 'pending');
+        $unknown = JobDashboardUrlBuilder::build($service, 'abc 123', 'unknown');
+
+        $this->assertSame('http://example.test/horizon/jobs/pending/abc+123', $pending);
+        $this->assertSame('http://example.test/horizon/jobs/pending/abc+123', $unknown);
+    }
+
+    #[Test]
     public function it_returns_null_when_required_values_are_missing(): void
     {
         $service = new Service;
@@ -49,21 +65,5 @@ class JobDashboardUrlBuilderTest extends TestCase
         $url = JobDashboardUrlBuilder::build($service, 'abc-123', 'failed');
 
         $this->assertSame('http://public.test/horizon/failed/abc-123', $url);
-    }
-
-    #[Test]
-    public function it_builds_pending_and_default_paths_and_encodes_uuid(): void
-    {
-        $service = new Service;
-        $service->forceFill([
-            'base_url' => 'http://example.test/',
-            'public_url' => null,
-        ]);
-
-        $pending = JobDashboardUrlBuilder::build($service, 'abc 123', 'pending');
-        $unknown = JobDashboardUrlBuilder::build($service, 'abc 123', 'unknown');
-
-        $this->assertSame('http://example.test/horizon/jobs/pending/abc+123', $pending);
-        $this->assertSame('http://example.test/horizon/jobs/pending/abc+123', $unknown);
     }
 }

@@ -6,6 +6,7 @@ use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\Service;
 use App\Services\Alerts\AlertChartDataService;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -35,7 +36,7 @@ class AlertChartDataServiceTest extends TestCase
         ]);
 
         if (DB::getDriverName() === 'sqlite') {
-            $this->expectException(\Illuminate\Database\QueryException::class);
+            $this->expectException(QueryException::class);
         }
 
         $serviceObj = new AlertChartDataService;

@@ -10,7 +10,8 @@ class StreamControllerTest extends TestCase
 {
     public function test_stream_headers_and_response_type_from_run_stream(): void
     {
-        $controller = new class extends StreamController {
+        $controller = new class extends StreamController
+        {
             public function public__headers(): array
             {
                 return $this->streamHeaders();

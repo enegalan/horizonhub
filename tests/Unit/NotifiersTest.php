@@ -33,22 +33,6 @@ class NotifiersTest extends TestCase
         Mail::assertSent(AlertBatchedMail::class);
     }
 
-    public function test_slack_notifier_skips_without_webhook_and_posts_payload_when_present(): void
-    {
-        Http::fake();
-        $api = $this->createMock(HorizonApiProxyService::class);
-        $notifier = new SlackNotifier($api);
-        $alert = Alert::query()->create(['name' => 's', 'rule_type' => Alert::RULE_HORIZON_OFFLINE, 'enabled' => true]);
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
-        $events = [['service_id' => $service->id, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]];
-
-        $notifier->sendBatched($alert, $events, ['webhook_url' => '']);
-        Http::assertNothingSent();
-
-        $notifier->sendBatched($alert, $events, ['webhook_url' => 'https://hooks.slack.test/abc']);
-        Http::assertSentCount(1);
-    }
-
     public function test_slack_notifier_builds_failure_count_payload_with_enriched_event_details(): void
     {
         Http::fake();
@@ -87,5 +71,21 @@ class NotifiersTest extends TestCase
                 && str_contains($text, 'attempts')
                 && str_contains($text, 'exception');
         });
+    }
+
+    public function test_slack_notifier_skips_without_webhook_and_posts_payload_when_present(): void
+    {
+        Http::fake();
+        $api = $this->createMock(HorizonApiProxyService::class);
+        $notifier = new SlackNotifier($api);
+        $alert = Alert::query()->create(['name' => 's', 'rule_type' => Alert::RULE_HORIZON_OFFLINE, 'enabled' => true]);
+        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
+        $events = [['service_id' => $service->id, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]];
+
+        $notifier->sendBatched($alert, $events, ['webhook_url' => '']);
+        Http::assertNothingSent();
+
+        $notifier->sendBatched($alert, $events, ['webhook_url' => 'https://hooks.slack.test/abc']);
+        Http::assertSentCount(1);
     }
 }

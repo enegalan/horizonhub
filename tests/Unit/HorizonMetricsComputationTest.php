@@ -6,6 +6,7 @@ use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Metrics\HorizonMetricsComputation;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,7 +17,8 @@ class HorizonMetricsComputationTest extends TestCase
     public function test_fetch_jobs_window_and_helpers_cover_edge_branches(): void
     {
         $api = $this->createMock(HorizonApiProxyService::class);
-        $probe = new class($api) extends HorizonMetricsComputation {
+        $probe = new class($api) extends HorizonMetricsComputation
+        {
             public function public__fetchJobs(int $since, callable $fetcher, callable $extractor): array
             {
                 return $this->private__fetchJobsInWindow($since, $fetcher, $extractor);
@@ -50,13 +52,14 @@ class HorizonMetricsComputationTest extends TestCase
             100,
             function () use (&$calls): array {
                 $calls++;
+
                 if ($calls === 1) {
                     return ['success' => true, 'data' => ['jobs' => [['index' => 0, 'ts' => 120], ['index' => 1, 'ts' => 100]]]];
                 }
 
                 return ['success' => true, 'data' => ['jobs' => []]];
             },
-            static fn (array $job): ?int => isset($job['ts']) ? (int) $job['ts'] : null
+            static fn (array $job): ?int => isset($job['ts']) ? (int) $job['ts'] : null,
         );
 
         $this->assertCount(2, $jobs);
@@ -68,11 +71,50 @@ class HorizonMetricsComputationTest extends TestCase
         $this->assertCount(2, $probe->public__initHourly(Carbon::parse('2026-01-01 00:00:00'), Carbon::parse('2026-01-01 01:00:00')));
     }
 
+    public function test_fetch_jobs_window_breaks_on_unsuccessful_or_invalid_batches(): void
+    {
+        $api = $this->createMock(HorizonApiProxyService::class);
+        $probe = new class($api) extends HorizonMetricsComputation
+        {
+            public function public__fetchJobs(int $since, callable $fetcher, callable $extractor): array
+            {
+                return $this->private__fetchJobsInWindow($since, $fetcher, $extractor);
+            }
+
+            public function public__fallback(Service $service): array
+            {
+                return $this->private__getWorkloadFallbackFromMasters($service);
+            }
+        };
+
+        config()->set('horizonhub.horizon_api_job_list_page_size', 3);
+        config()->set('horizonhub.max_horizon_pages', 2);
+
+        $failed = $probe->public__fetchJobs(
+            100,
+            static fn (): array => ['success' => false],
+            static fn (array $job): ?int => $job['ts'] ?? null,
+        );
+        $this->assertSame([], $failed);
+
+        $invalidBatch = $probe->public__fetchJobs(
+            100,
+            static fn (): array => ['success' => true, 'data' => ['jobs' => [null, 'x']]],
+            static fn (array $job): ?int => $job['ts'] ?? null,
+        );
+        $this->assertSame([], $invalidBatch);
+
+        $service = Service::query()->create(['name' => 'svc-no-masters', 'base_url' => 'https://x.test', 'status' => 'online']);
+        $api->method('getMasters')->willReturn(['success' => false]);
+        $this->assertSame([], $probe->public__fallback($service));
+    }
+
     public function test_get_services_for_metrics_and_workload_fallback_from_masters(): void
     {
         $api = $this->createMock(HorizonApiProxyService::class);
-        $probe = new class($api) extends HorizonMetricsComputation {
-            public function public__services(array $scope): \Illuminate\Database\Eloquent\Collection
+        $probe = new class($api) extends HorizonMetricsComputation
+        {
+            public function public__services(array $scope): Collection
             {
                 return $this->private__getServicesForMetrics($scope, true, ['id', 'name', 'base_url']);
             }
@@ -99,42 +141,5 @@ class HorizonMetricsComputationTest extends TestCase
         $this->assertCount(1, $fallback);
         $this->assertSame('alpha', $fallback[0]['queue']);
         $this->assertSame(0, $fallback[0]['jobs']);
-    }
-
-    public function test_fetch_jobs_window_breaks_on_unsuccessful_or_invalid_batches(): void
-    {
-        $api = $this->createMock(HorizonApiProxyService::class);
-        $probe = new class($api) extends HorizonMetricsComputation {
-            public function public__fetchJobs(int $since, callable $fetcher, callable $extractor): array
-            {
-                return $this->private__fetchJobsInWindow($since, $fetcher, $extractor);
-            }
-
-            public function public__fallback(Service $service): array
-            {
-                return $this->private__getWorkloadFallbackFromMasters($service);
-            }
-        };
-
-        config()->set('horizonhub.horizon_api_job_list_page_size', 3);
-        config()->set('horizonhub.max_horizon_pages', 2);
-
-        $failed = $probe->public__fetchJobs(
-            100,
-            static fn (): array => ['success' => false],
-            static fn (array $job): ?int => $job['ts'] ?? null
-        );
-        $this->assertSame([], $failed);
-
-        $invalidBatch = $probe->public__fetchJobs(
-            100,
-            static fn (): array => ['success' => true, 'data' => ['jobs' => [null, 'x']]],
-            static fn (array $job): ?int => $job['ts'] ?? null
-        );
-        $this->assertSame([], $invalidBatch);
-
-        $service = Service::query()->create(['name' => 'svc-no-masters', 'base_url' => 'https://x.test', 'status' => 'online']);
-        $api->method('getMasters')->willReturn(['success' => false]);
-        $this->assertSame([], $probe->public__fallback($service));
     }
 }

@@ -17,6 +17,13 @@ class DatetimeBoundaryParserTest extends TestCase
     }
 
     #[Test]
+    public function invalid_values_return_null(): void
+    {
+        $this->assertNull(DatetimeBoundaryParser::parseLower('not-a-date'));
+        $this->assertNull(DatetimeBoundaryParser::parseUpper('2026-99-99'));
+    }
+
+    #[Test]
     public function parse_lower_date_only_is_start_of_day(): void
     {
         $c = DatetimeBoundaryParser::parseLower('2026-01-10');
@@ -46,12 +53,5 @@ class DatetimeBoundaryParserTest extends TestCase
         $c = DatetimeBoundaryParser::parseUpper('2026-01-10T14:30');
         $this->assertNotNull($c);
         $this->assertSame('2026-01-10 14:30:00', $c->format('Y-m-d H:i:s'));
-    }
-
-    #[Test]
-    public function invalid_values_return_null(): void
-    {
-        $this->assertNull(DatetimeBoundaryParser::parseLower('not-a-date'));
-        $this->assertNull(DatetimeBoundaryParser::parseUpper('2026-99-99'));
     }
 }

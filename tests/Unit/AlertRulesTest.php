@@ -21,25 +21,6 @@ class AlertRulesTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_registry_resolves_known_and_unknown_rules(): void
-    {
-        $api = $this->createMock(HorizonApiProxyService::class);
-        $support = new AlertRuleEvaluationSupport($api);
-        $null = new NullAlertRuleStrategy;
-        $registry = new AlertRuleStrategyRegistry(
-            $null,
-            new FailureCountAlertRuleStrategy($support, $api),
-            new AvgExecutionTimeAlertRuleStrategy($support, $api),
-            new QueueBlockedAlertRuleStrategy($support, $api),
-            new WorkerOfflineAlertRuleStrategy,
-            new SupervisorOfflineAlertRuleStrategy($api),
-            new HorizonOfflineAlertRuleStrategy($api),
-        );
-
-        $this->assertInstanceOf(FailureCountAlertRuleStrategy::class, $registry->resolve(Alert::RULE_FAILURE_COUNT));
-        $this->assertSame($null, $registry->resolve('unknown-rule'));
-    }
-
     public function test_evaluation_support_resolves_patterns_and_filters_jobs(): void
     {
         $api = $this->createMock(HorizonApiProxyService::class);
@@ -187,5 +168,24 @@ class AlertRulesTest extends TestCase
 
         $null = new NullAlertRuleStrategy;
         $this->assertFalse($null->evaluateWithTriggeringJobs($horizonAlert, $service->id, null)['triggered']);
+    }
+
+    public function test_registry_resolves_known_and_unknown_rules(): void
+    {
+        $api = $this->createMock(HorizonApiProxyService::class);
+        $support = new AlertRuleEvaluationSupport($api);
+        $null = new NullAlertRuleStrategy;
+        $registry = new AlertRuleStrategyRegistry(
+            $null,
+            new FailureCountAlertRuleStrategy($support, $api),
+            new AvgExecutionTimeAlertRuleStrategy($support, $api),
+            new QueueBlockedAlertRuleStrategy($support, $api),
+            new WorkerOfflineAlertRuleStrategy,
+            new SupervisorOfflineAlertRuleStrategy($api),
+            new HorizonOfflineAlertRuleStrategy($api),
+        );
+
+        $this->assertInstanceOf(FailureCountAlertRuleStrategy::class, $registry->resolve(Alert::RULE_FAILURE_COUNT));
+        $this->assertSame($null, $registry->resolve('unknown-rule'));
     }
 }

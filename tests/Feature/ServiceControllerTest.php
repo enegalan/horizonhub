@@ -7,6 +7,7 @@ use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\ServiceShowPageDataService;
 use App\Services\Horizon\ServiceStatsAttachmentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Tests\TestCase;
 
 class ServiceControllerTest extends TestCase
@@ -39,9 +40,9 @@ class ServiceControllerTest extends TestCase
             'supervisorGroups' => collect(),
             'supervisors' => collect(),
             'workloadQueues' => collect(),
-            'jobsProcessing' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15, 1),
-            'jobsProcessed' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15, 1),
-            'jobsFailed' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15, 1),
+            'jobsProcessing' => new LengthAwarePaginator([], 0, 15, 1),
+            'jobsProcessed' => new LengthAwarePaginator([], 0, 15, 1),
+            'jobsFailed' => new LengthAwarePaginator([], 0, 15, 1),
             'filters' => ['search' => ''],
         ]);
         $this->app->instance(ServiceShowPageDataService::class, $showData);
@@ -49,7 +50,7 @@ class ServiceControllerTest extends TestCase
         $api = $this->createMock(HorizonApiProxyService::class);
         $api->method('ping')->willReturnOnConsecutiveCalls(
             ['success' => true],
-            ['success' => false, 'message' => 'failed ping']
+            ['success' => false, 'message' => 'failed ping'],
         );
         $this->app->instance(HorizonApiProxyService::class, $api);
 

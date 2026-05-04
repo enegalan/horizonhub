@@ -23,6 +23,24 @@ class RetryModalDateFilterRuleTest extends TestCase
     }
 
     #[Test]
+    public function fails_for_non_string_and_invalid_calendar_date(): void
+    {
+        $rule = new RetryModalDateFilter;
+
+        $failedNonString = false;
+        $rule->validate('date_from', 123, function () use (&$failedNonString): void {
+            $failedNonString = true;
+        });
+        $this->assertTrue($failedNonString);
+
+        $failedInvalidDate = false;
+        $rule->validate('date_from', '2026-01-01T99:99', function () use (&$failedInvalidDate): void {
+            $failedInvalidDate = true;
+        });
+        $this->assertTrue($failedInvalidDate);
+    }
+
+    #[Test]
     public function fails_for_placeholder_like_strings(): void
     {
         $rule = new RetryModalDateFilter;
@@ -47,23 +65,5 @@ class RetryModalDateFilterRuleTest extends TestCase
             $failed = true;
         });
         $this->assertFalse($failed);
-    }
-
-    #[Test]
-    public function fails_for_non_string_and_invalid_calendar_date(): void
-    {
-        $rule = new RetryModalDateFilter;
-
-        $failedNonString = false;
-        $rule->validate('date_from', 123, function () use (&$failedNonString): void {
-            $failedNonString = true;
-        });
-        $this->assertTrue($failedNonString);
-
-        $failedInvalidDate = false;
-        $rule->validate('date_from', '2026-01-01T99:99', function () use (&$failedInvalidDate): void {
-            $failedInvalidDate = true;
-        });
-        $this->assertTrue($failedInvalidDate);
     }
 }

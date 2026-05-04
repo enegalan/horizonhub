@@ -21,7 +21,7 @@ class AlertBatchedMailTest extends TestCase
             [['service_id' => $service->id, 'job_uuid' => 'u1', 'triggered_at' => now()->toIso8601String(), 'job_class' => null, 'queue' => null, 'failed_at' => null, 'exception' => null, 'attempts' => null]],
             $service,
             'Subject test',
-            1
+            1,
         );
 
         $this->assertSame('Subject test', $mail->envelope()->subject);

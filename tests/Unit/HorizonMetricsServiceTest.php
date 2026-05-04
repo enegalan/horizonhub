@@ -14,6 +14,29 @@ class HorizonMetricsServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_build_queues_collection_for_service_filter_maps_and_sorts_rows(): void
+    {
+        $api = $this->createMock(HorizonApiProxyService::class);
+        $serviceA = Service::create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
+        $serviceB = Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
+
+        $metrics = $this->getMockBuilder(HorizonMetricsService::class)
+            ->setConstructorArgs([$api])
+            ->onlyMethods(['getWorkloadData'])
+            ->getMock();
+        $metrics->method('getWorkloadData')->willReturn([
+            ['service_id' => $serviceA->id, 'queue' => 'redis.zeta', 'jobs' => 1],
+            ['service_id' => $serviceB->id, 'queue' => 'redis.alpha', 'jobs' => 2],
+        ]);
+
+        $rows = $metrics->buildQueuesCollectionForServiceFilter([$serviceB->id]);
+
+        $this->assertCount(1, $rows);
+        $this->assertSame('alpha', $rows[0]->queue);
+        $this->assertSame(2, $rows[0]->job_count);
+        $this->assertSame($serviceB->id, $rows[0]->service_id);
+    }
+
     public function test_get_failure_rate_24h_fetches_multiple_horizon_pages_using_index_cursor(): void
     {
         $api = $this->createMock(HorizonApiProxyService::class);
@@ -333,6 +356,49 @@ class HorizonMetricsServiceTest extends TestCase
         $this->assertNull($rows[1]['processes']);
     }
 
+    public function test_get_throughput_totals_for_service_ids_handles_all_and_scoped_modes(): void
+    {
+        $api = $this->createMock(HorizonApiProxyService::class);
+        $api->method('getCompletedJobs')->willReturn(['success' => true, 'data' => ['jobs' => []]]);
+        $api->method('getFailedJobs')->willReturn(['success' => true, 'data' => ['jobs' => []]]);
+
+        $serviceA = Service::create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
+        $serviceB = Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
+
+        $metrics = $this->getMockBuilder(HorizonMetricsService::class)
+            ->setConstructorArgs([$api])
+            ->onlyMethods(['getJobsPastMinute', 'getJobsPastHour', 'getFailedPastSevenDays'])
+            ->getMock();
+
+        $metrics->method('getJobsPastMinute')->willReturnCallback(function ($service = null): int {
+            if ($service === null) {
+                return 10;
+            }
+
+            return $service->name === 'svc-a' ? 1 : 2;
+        });
+        $metrics->method('getJobsPastHour')->willReturnCallback(function ($service = null): int {
+            if ($service === null) {
+                return 20;
+            }
+
+            return $service->name === 'svc-a' ? 3 : 4;
+        });
+        $metrics->method('getFailedPastSevenDays')->willReturnCallback(function ($service = null): int {
+            if ($service === null) {
+                return 30;
+            }
+
+            return $service->name === 'svc-a' ? 5 : 6;
+        });
+
+        $all = $metrics->getThroughputTotalsForServiceIds([]);
+        $this->assertSame(['jobsPastMinute' => 10, 'jobsPastHour' => 20, 'failedPastSevenDays' => 30], $all);
+
+        $scoped = $metrics->getThroughputTotalsForServiceIds([$serviceA->id, $serviceB->id]);
+        $this->assertSame(['jobsPastMinute' => 3, 'jobsPastHour' => 7, 'failedPastSevenDays' => 11], $scoped);
+    }
+
     public function test_get_wait_by_queue_chart_data_picks_top_queues_by_max_wait(): void
     {
         $api = $this->createMock(HorizonApiProxyService::class);
@@ -481,71 +547,5 @@ class HorizonMetricsServiceTest extends TestCase
         $this->assertSame('notifications', QueueNameNormalizer::normalize('sqs:notifications'));
         $this->assertSame('redis.', QueueNameNormalizer::normalize('redis.'));
         $this->assertSame('alpha', QueueNameNormalizer::normalize('alpha'));
-    }
-
-    public function test_get_throughput_totals_for_service_ids_handles_all_and_scoped_modes(): void
-    {
-        $api = $this->createMock(HorizonApiProxyService::class);
-        $api->method('getCompletedJobs')->willReturn(['success' => true, 'data' => ['jobs' => []]]);
-        $api->method('getFailedJobs')->willReturn(['success' => true, 'data' => ['jobs' => []]]);
-
-        $serviceA = Service::create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
-        $serviceB = Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
-
-        $metrics = $this->getMockBuilder(HorizonMetricsService::class)
-            ->setConstructorArgs([$api])
-            ->onlyMethods(['getJobsPastMinute', 'getJobsPastHour', 'getFailedPastSevenDays'])
-            ->getMock();
-
-        $metrics->method('getJobsPastMinute')->willReturnCallback(function ($service = null): int {
-            if ($service === null) {
-                return 10;
-            }
-
-            return $service->name === 'svc-a' ? 1 : 2;
-        });
-        $metrics->method('getJobsPastHour')->willReturnCallback(function ($service = null): int {
-            if ($service === null) {
-                return 20;
-            }
-
-            return $service->name === 'svc-a' ? 3 : 4;
-        });
-        $metrics->method('getFailedPastSevenDays')->willReturnCallback(function ($service = null): int {
-            if ($service === null) {
-                return 30;
-            }
-
-            return $service->name === 'svc-a' ? 5 : 6;
-        });
-
-        $all = $metrics->getThroughputTotalsForServiceIds([]);
-        $this->assertSame(['jobsPastMinute' => 10, 'jobsPastHour' => 20, 'failedPastSevenDays' => 30], $all);
-
-        $scoped = $metrics->getThroughputTotalsForServiceIds([$serviceA->id, $serviceB->id]);
-        $this->assertSame(['jobsPastMinute' => 3, 'jobsPastHour' => 7, 'failedPastSevenDays' => 11], $scoped);
-    }
-
-    public function test_build_queues_collection_for_service_filter_maps_and_sorts_rows(): void
-    {
-        $api = $this->createMock(HorizonApiProxyService::class);
-        $serviceA = Service::create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
-        $serviceB = Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
-
-        $metrics = $this->getMockBuilder(HorizonMetricsService::class)
-            ->setConstructorArgs([$api])
-            ->onlyMethods(['getWorkloadData'])
-            ->getMock();
-        $metrics->method('getWorkloadData')->willReturn([
-            ['service_id' => $serviceA->id, 'queue' => 'redis.zeta', 'jobs' => 1],
-            ['service_id' => $serviceB->id, 'queue' => 'redis.alpha', 'jobs' => 2],
-        ]);
-
-        $rows = $metrics->buildQueuesCollectionForServiceFilter([$serviceB->id]);
-
-        $this->assertCount(1, $rows);
-        $this->assertSame('alpha', $rows[0]->queue);
-        $this->assertSame(2, $rows[0]->job_count);
-        $this->assertSame($serviceB->id, $rows[0]->service_id);
     }
 }

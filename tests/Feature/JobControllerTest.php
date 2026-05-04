@@ -7,6 +7,7 @@ use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\HorizonJobDetailService;
 use App\Services\Horizon\HorizonJobListService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Tests\TestCase;
 
 class JobControllerTest extends TestCase
@@ -16,7 +17,7 @@ class JobControllerTest extends TestCase
     public function test_index_renders_with_aggregated_data_and_filters(): void
     {
         $service = Service::query()->create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
-        $paginator = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15, 1);
+        $paginator = new LengthAwarePaginator([], 0, 15, 1);
 
         $jobList = $this->createMock(HorizonJobListService::class);
         $jobList->method('buildAggregatedJobsIndexFromRequest')->willReturn([
@@ -39,7 +40,7 @@ class JobControllerTest extends TestCase
         $api = $this->createMock(HorizonApiProxyService::class);
         $api->method('getJob')->willReturnOnConsecutiveCalls(
             ['success' => false],
-            ['success' => true, 'data' => ['id' => 'job-1', 'name' => 'App\\Jobs\\Demo', 'payload' => ['foo' => 'bar']]]
+            ['success' => true, 'data' => ['id' => 'job-1', 'name' => 'App\\Jobs\\Demo', 'payload' => ['foo' => 'bar']]],
         );
         $this->app->instance(HorizonApiProxyService::class, $api);
 

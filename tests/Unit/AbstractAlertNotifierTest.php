@@ -30,7 +30,8 @@ class AbstractAlertNotifierTest extends TestCase
             ],
         ]);
 
-        $notifier = new class($api) extends AbstractAlertNotifier {
+        $notifier = new class($api) extends AbstractAlertNotifier
+        {
             public array $captured = [];
 
             public function sendBatched(Alert $alert, array $events, array $config): void

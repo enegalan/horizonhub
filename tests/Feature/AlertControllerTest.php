@@ -17,75 +17,6 @@ class AlertControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_index_and_create_pages_render(): void
-    {
-        Alert::query()->create([
-            'name' => 'a1',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
-            'enabled' => true,
-        ]);
-
-        $this->get(route('horizon.alerts.index'))->assertOk();
-        $this->get(route('horizon.alerts.create'))->assertOk();
-    }
-
-    public function test_evaluate_all_and_status_return_json_from_batch_service(): void
-    {
-        $batch = $this->createMock(AlertEvaluationBatchService::class);
-        $batch->method('startEvaluateAll')->willReturn([
-            'evaluation_id' => 'ev-x',
-            'status' => 'running',
-            'total_alerts' => 2,
-        ]);
-        $batch->method('getEvaluationStatus')->willReturn([
-            'evaluation_id' => 'ev-x',
-            'status' => 'completed',
-            'total_alerts' => 2,
-            'evaluated_count' => 2,
-            'triggered_count' => 1,
-            'delivered_count' => 1,
-            'error_count' => 0,
-            'first_error_message' => null,
-            'error_message' => null,
-        ]);
-        $this->app->instance(AlertEvaluationBatchService::class, $batch);
-
-        $this->post(route('horizon.alerts.evaluate-all'))
-            ->assertOk()
-            ->assertJsonPath('evaluation_id', 'ev-x');
-
-        $this->get(route('horizon.alerts.evaluations.status', ['evaluationId' => 'ev-x']))
-            ->assertOk()
-            ->assertJsonPath('status', 'completed');
-    }
-
-    public function test_retry_log_calls_engine_only_for_failed_logs(): void
-    {
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
-        $alert = Alert::query()->create(['name' => 'a1', 'rule_type' => Alert::RULE_FAILURE_COUNT, 'enabled' => true]);
-        $failedLog = AlertLog::query()->create([
-            'alert_id' => $alert->id,
-            'service_id' => $service->id,
-            'status' => 'failed',
-            'trigger_count' => 1,
-            'sent_at' => now(),
-        ]);
-        $sentLog = AlertLog::query()->create([
-            'alert_id' => $alert->id,
-            'service_id' => $service->id,
-            'status' => 'sent',
-            'trigger_count' => 1,
-            'sent_at' => now(),
-        ]);
-
-        $engine = $this->createMock(AlertEngine::class);
-        $engine->expects($this->once())->method('retryAlertLog');
-        $this->app->instance(AlertEngine::class, $engine);
-
-        $this->post(route('horizon.alerts.logs.retry', ['log' => $sentLog]))->assertRedirect();
-        $this->post(route('horizon.alerts.logs.retry', ['log' => $failedLog]))->assertRedirect();
-    }
-
     public function test_destroy_evaluate_single_show_store_and_update_paths(): void
     {
         $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
@@ -165,5 +96,74 @@ class AlertControllerTest extends TestCase
 
         $this->delete(route('horizon.alerts.destroy', ['alert' => $alert]))->assertRedirect(route('horizon.alerts.index'));
         $this->assertDatabaseMissing('alerts', ['id' => $alert->id]);
+    }
+
+    public function test_evaluate_all_and_status_return_json_from_batch_service(): void
+    {
+        $batch = $this->createMock(AlertEvaluationBatchService::class);
+        $batch->method('startEvaluateAll')->willReturn([
+            'evaluation_id' => 'ev-x',
+            'status' => 'running',
+            'total_alerts' => 2,
+        ]);
+        $batch->method('getEvaluationStatus')->willReturn([
+            'evaluation_id' => 'ev-x',
+            'status' => 'completed',
+            'total_alerts' => 2,
+            'evaluated_count' => 2,
+            'triggered_count' => 1,
+            'delivered_count' => 1,
+            'error_count' => 0,
+            'first_error_message' => null,
+            'error_message' => null,
+        ]);
+        $this->app->instance(AlertEvaluationBatchService::class, $batch);
+
+        $this->post(route('horizon.alerts.evaluate-all'))
+            ->assertOk()
+            ->assertJsonPath('evaluation_id', 'ev-x');
+
+        $this->get(route('horizon.alerts.evaluations.status', ['evaluationId' => 'ev-x']))
+            ->assertOk()
+            ->assertJsonPath('status', 'completed');
+    }
+
+    public function test_index_and_create_pages_render(): void
+    {
+        Alert::query()->create([
+            'name' => 'a1',
+            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'enabled' => true,
+        ]);
+
+        $this->get(route('horizon.alerts.index'))->assertOk();
+        $this->get(route('horizon.alerts.create'))->assertOk();
+    }
+
+    public function test_retry_log_calls_engine_only_for_failed_logs(): void
+    {
+        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
+        $alert = Alert::query()->create(['name' => 'a1', 'rule_type' => Alert::RULE_FAILURE_COUNT, 'enabled' => true]);
+        $failedLog = AlertLog::query()->create([
+            'alert_id' => $alert->id,
+            'service_id' => $service->id,
+            'status' => 'failed',
+            'trigger_count' => 1,
+            'sent_at' => now(),
+        ]);
+        $sentLog = AlertLog::query()->create([
+            'alert_id' => $alert->id,
+            'service_id' => $service->id,
+            'status' => 'sent',
+            'trigger_count' => 1,
+            'sent_at' => now(),
+        ]);
+
+        $engine = $this->createMock(AlertEngine::class);
+        $engine->expects($this->once())->method('retryAlertLog');
+        $this->app->instance(AlertEngine::class, $engine);
+
+        $this->post(route('horizon.alerts.logs.retry', ['log' => $sentLog]))->assertRedirect();
+        $this->post(route('horizon.alerts.logs.retry', ['log' => $failedLog]))->assertRedirect();
     }
 }

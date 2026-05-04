@@ -13,6 +13,24 @@ class EvaluateAlertJobTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_job_catches_engine_exceptions_and_writes_error_result(): void
+    {
+        Cache::flush();
+        $alert = Alert::query()->create([
+            'name' => 'x2',
+            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'enabled' => true,
+        ]);
+        $engine = $this->createMock(AlertEngine::class);
+        $engine->method('evaluateAlert')->willThrowException(new \RuntimeException('engine-fail'));
+
+        (new EvaluateAlertJob($alert->id, 'eval-c'))->handle($engine);
+
+        $result = Cache::get('horizonhub.alert_evaluation_batches.eval-c.results.' . $alert->id);
+        $this->assertSame('engine-fail', $result['error_message']);
+        $this->assertSame(1, Cache::get('horizonhub.alert_evaluation_batches.eval-c.error_count'));
+    }
+
     public function test_job_stores_not_found_result_and_error_counters(): void
     {
         Cache::flush();
@@ -54,23 +72,5 @@ class EvaluateAlertJobTest extends TestCase
         Cache::put('horizonhub.alert_evaluation_batches.eval-b.first_error_message', 'locked', 1800);
         (new EvaluateAlertJob($alert->id, 'eval-b'))->handle($engine);
         $this->assertSame('locked', Cache::get('horizonhub.alert_evaluation_batches.eval-b.first_error_message'));
-    }
-
-    public function test_job_catches_engine_exceptions_and_writes_error_result(): void
-    {
-        Cache::flush();
-        $alert = Alert::query()->create([
-            'name' => 'x2',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
-            'enabled' => true,
-        ]);
-        $engine = $this->createMock(AlertEngine::class);
-        $engine->method('evaluateAlert')->willThrowException(new \RuntimeException('engine-fail'));
-
-        (new EvaluateAlertJob($alert->id, 'eval-c'))->handle($engine);
-
-        $result = Cache::get('horizonhub.alert_evaluation_batches.eval-c.results.' . $alert->id);
-        $this->assertSame('engine-fail', $result['error_message']);
-        $this->assertSame(1, Cache::get('horizonhub.alert_evaluation_batches.eval-c.error_count'));
     }
 }
