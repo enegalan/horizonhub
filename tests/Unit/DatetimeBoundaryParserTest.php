@@ -47,4 +47,11 @@ class DatetimeBoundaryParserTest extends TestCase
         $this->assertNotNull($c);
         $this->assertSame('2026-01-10 14:30:00', $c->format('Y-m-d H:i:s'));
     }
+
+    #[Test]
+    public function invalid_values_return_null(): void
+    {
+        $this->assertNull(DatetimeBoundaryParser::parseLower('not-a-date'));
+        $this->assertNull(DatetimeBoundaryParser::parseUpper('2026-99-99'));
+    }
 }

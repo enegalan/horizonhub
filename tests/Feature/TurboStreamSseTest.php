@@ -278,4 +278,84 @@ class TurboStreamSseTest extends TestCase
 
         $this->assertStringStartsWith('text/event-stream', $response->headers->get('Content-Type'));
     }
+
+    public function test_build_job_show_streams_returns_null_for_missing_service_or_api_failure(): void
+    {
+        $controller = $this->app->make(HorizonStreamsController::class);
+        $reflection = new \ReflectionMethod($controller, 'private__buildJobShowStreams');
+        $reflection->setAccessible(true);
+
+        $this->assertNull($reflection->invoke($controller, 'uuid-x', 999999));
+
+        $service = Service::create([
+            'name' => 'stream-job-null',
+            'base_url' => 'https://horizon-api-stream-null.test',
+            'status' => 'online',
+        ]);
+        $this->mock(HorizonApiProxyService::class, function ($mock): void {
+            $mock->shouldReceive('getJob')->andReturn(['success' => false]);
+        });
+        $controller = $this->app->make(HorizonStreamsController::class);
+        $reflection = new \ReflectionMethod($controller, 'private__buildJobShowStreams');
+        $reflection->setAccessible(true);
+
+        $this->assertNull($reflection->invoke($controller, 'uuid-y', $service->id));
+    }
+
+    public function test_parse_service_ids_and_turbo_stream_tag_helper_branches(): void
+    {
+        $controller = $this->app->make(HorizonStreamsController::class);
+
+        $parse = new \ReflectionMethod($controller, 'private__parseServiceIdsFromQuery');
+        $parse->setAccessible(true);
+        $this->assertSame([], $parse->invoke($controller, ''));
+        $this->assertSame([], $parse->invoke($controller, 'service_id=abc'));
+
+        $service = Service::create([
+            'name' => 'parse-svc',
+            'base_url' => 'https://parse.test',
+            'status' => 'online',
+        ]);
+        $this->assertSame([$service->id], $parse->invoke($controller, 'queue_services[]=' . $service->id, 'queue_services'));
+
+        $tag = new \ReflectionMethod($controller, 'private__turboStreamTag');
+        $tag->setAccessible(true);
+        $withoutMethod = $tag->invoke($controller, 'update', 'x', '<div>a</div>');
+        $withMethod = $tag->invoke($controller, 'update', 'x', '<div>a</div>', 'morph');
+
+        $this->assertStringNotContainsString('method="', $withoutMethod);
+        $this->assertStringContainsString('method="morph"', $withMethod);
+    }
+
+    public function test_build_jobs_index_streams_with_query_preserves_section_updates(): void
+    {
+        $controller = $this->app->make(HorizonStreamsController::class);
+        $reflection = new \ReflectionMethod($controller, 'private__buildJobsIndexStreams');
+        $reflection->setAccessible(true);
+
+        $result = $reflection->invoke($controller, 'search=abc');
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('target="turbo-tbody-horizon-job-list-failed"', $result);
+        $this->assertStringContainsString('target="job-pagination-horizon-job-list-processed"', $result);
+    }
+
+    public function test_build_service_show_streams_returns_expected_targets(): void
+    {
+        $service = Service::create([
+            'name' => 'svc-stream-show',
+            'base_url' => 'https://svc-stream-show.test',
+            'status' => 'online',
+        ]);
+
+        $controller = $this->app->make(HorizonStreamsController::class);
+        $reflection = new \ReflectionMethod($controller, 'private__buildServiceShowStreams');
+        $reflection->setAccessible(true);
+        $result = $reflection->invoke($controller, $service, '');
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('target="service-show-stats-row-1"', $result);
+        $this->assertStringContainsString('target="service-show-workload-body" method="morph"', $result);
+        $this->assertStringContainsString('target="job-count-horizon-service-dashboard-jobs-processing"', $result);
+    }
 }

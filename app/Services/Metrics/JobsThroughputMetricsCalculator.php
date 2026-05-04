@@ -97,7 +97,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
     public function getJobsPastHourByService(): array
     {
         /** @var Collection<int, Service> $services */
-        $services = $this->private__getServicesForMetrics(null, true, ['id', 'name', 'base_url']);
+        $services = $this->private__getServicesForMetrics([], true, ['id', 'name', 'base_url']);
 
         if ($services->isEmpty()) {
             return ['services' => [], 'jobsPastHour' => []];
