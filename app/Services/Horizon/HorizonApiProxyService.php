@@ -137,7 +137,7 @@ class HorizonApiProxyService
     {
         $relativePath = (string) config('horizonhub.horizon_paths.ping');
 
-        return $this->private__call($service, $relativePath, 'get');
+        return $this->private__call($service, $relativePath, 'get', false, true);
     }
 
     /**
@@ -268,12 +268,13 @@ class HorizonApiProxyService
      * Call the Horizon HTTP API for a given service.
      *
      * @param bool $withDashboardSession When true, bootstrap Horizon dashboard session and CSRF token.
+     * @param bool $bypassFailureCooldown When true, ignore existing failure cooldown before call.
      *
      * @return array{success: bool, message?: string, status?: int}
      */
-    private function private__call(Service $service, string $path, string $method = 'post', bool $withDashboardSession = false): array
+    private function private__call(Service $service, string $path, string $method = 'post', bool $withDashboardSession = false, bool $bypassFailureCooldown = false): array
     {
-        if (Cache::has($this->private__failureCooldownCacheKey($service))) {
+        if (! $bypassFailureCooldown && Cache::has($this->private__failureCooldownCacheKey($service))) {
             return [
                 'success' => false,
                 'message' => 'Service temporarily in cooldown after recent upstream failures.',

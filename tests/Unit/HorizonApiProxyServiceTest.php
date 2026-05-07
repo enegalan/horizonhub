@@ -74,14 +74,50 @@ class HorizonApiProxyServiceTest extends TestCase
 
         $proxy = new HorizonApiProxyService;
 
-        $first = $proxy->ping($service);
-        $second = $proxy->ping($service);
+        $first = $proxy->getStats($service);
+        $second = $proxy->getStats($service);
 
         $this->assertFalse($first['success']);
         $this->assertSame(504, $first['status'] ?? null);
         $this->assertFalse($second['success']);
         $this->assertSame(503, $second['status'] ?? null);
         $this->assertSame(1, $calls);
+    }
+
+    public function test_ping_always_bypasses_failure_cooldown_and_hits_upstream_for_diagnostics(): void
+    {
+        $calls = 0;
+        Http::fake(function () use (&$calls) {
+            $calls++;
+
+            return Http::response('Gateway Timeout', 504);
+        });
+
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.ping', '/stats');
+        \config()->set('horizonhub.horizon_http_failure_cooldown_seconds', 60);
+        \config()->set('horizonhub.horizon_http_retry', [
+            'times' => 1,
+            'sleep_ms' => 0,
+            'retry_on_status' => [429, 502, 503, 504],
+        ]);
+
+        $service = Service::create([
+            'name' => 'svc-cooldown-bypass',
+            'base_url' => 'https://service-cooldown-bypass.test',
+            'status' => 'online',
+        ]);
+
+        $cacheKey = 'horizonhub:horizon-api-failure-cooldown:' . $service->id;
+        Cache::put($cacheKey, true, \now()->addMinutes(1));
+
+        $proxy = new HorizonApiProxyService;
+
+        $pingResult = $proxy->ping($service);
+
+        $this->assertFalse($pingResult['success']);
+        $this->assertSame(504, $pingResult['status'] ?? null);
+        $this->assertGreaterThan(0, $calls);
     }
 
     public function test_get_failed_jobs_retries_on_429_then_succeeds(): void
