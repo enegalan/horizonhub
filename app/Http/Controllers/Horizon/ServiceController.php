@@ -125,7 +125,7 @@ class ServiceController extends Controller
     /**
      * Update an existing service.
      */
-    public function update(Request $request, Service $service): RedirectResponse
+    public function update(Request $request, Service $service, HorizonApiProxyService $horizonApi): RedirectResponse
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:services,name,' . (int) $service->id,
@@ -138,6 +138,7 @@ class ServiceController extends Controller
             'base_url' => \rtrim($validated['base_url'], '/'),
             'public_url' => ! empty($validated['public_url']) ? \rtrim($validated['public_url'], '/') : null,
         ]);
+        $horizonApi->resetFailureCooldown($service);
 
         return redirect()
             ->route('horizon.services.index')
