@@ -7,7 +7,7 @@ use Illuminate\Console\Command;
 
 class MarkStaleServicesOfflineCommand extends Command
 {
-    protected $signature = 'horizonhub:mark-stale-services-offline';
+    protected $signature = 'hh:mark-stale-services-offline';
 
     protected $description = 'Mark services stand-by/offline and remove dead supervisors by last_seen_at thresholds';
 
