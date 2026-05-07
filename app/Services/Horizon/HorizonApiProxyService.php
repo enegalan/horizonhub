@@ -141,6 +141,16 @@ class HorizonApiProxyService
     }
 
     /**
+     * Reset the failure cooldown for a service.
+     *
+     * @param Service $service The service.
+     */
+    public function resetFailureCooldown(Service $service): void
+    {
+        Cache::forget($this->private__failureCooldownCacheKey($service));
+    }
+
+    /**
      * Retry a job through the Horizon HTTP API.
      *
      * @param Service $service The service.

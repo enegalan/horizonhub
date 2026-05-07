@@ -52,6 +52,11 @@ class ServiceControllerTest extends TestCase
             ['success' => true],
             ['success' => false, 'message' => 'failed ping'],
         );
+        $api->expects($this->once())
+            ->method('resetFailureCooldown')
+            ->with($this->callback(function (Service $cooldownService) use ($service): bool {
+                return $cooldownService->id === $service->id;
+            }));
         $this->app->instance(HorizonApiProxyService::class, $api);
 
         $this->get(route('horizon.services.index'))->assertOk();
