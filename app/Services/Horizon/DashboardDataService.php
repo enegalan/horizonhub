@@ -59,7 +59,7 @@ class DashboardDataService
         }
 
         $servicesHealthDotClass = $services->isEmpty() ? 'bg-slate-400' :
-            ($anyOffline ? 'bg-red-500' :
+            ($anyOffline ? 'bg-orange-500' :
                 ($anyStandBy ? 'bg-amber-500' : 'bg-emerald-500'));
 
         $recentAlertLogs = AlertLog::query()
