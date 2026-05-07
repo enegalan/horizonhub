@@ -7,7 +7,7 @@ use Illuminate\Console\Command;
 
 class EvaluateAlertsCommand extends Command
 {
-    protected $signature = 'horizonhub:evaluate-alerts';
+    protected $signature = 'hh:evaluate-alerts';
 
     protected $description = 'Evaluate Horizon Hub alert rules (worker offline, queue blocked, etc.)';
 

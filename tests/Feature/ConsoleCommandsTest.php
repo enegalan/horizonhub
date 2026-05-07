@@ -17,7 +17,7 @@ class ConsoleCommandsTest extends TestCase
         $engine->expects($this->once())->method('evaluateScheduled');
         $this->app->instance(AlertEngine::class, $engine);
 
-        $this->artisan('horizonhub:evaluate-alerts')->assertSuccessful();
+        $this->artisan('hh:evaluate-alerts')->assertSuccessful();
     }
 
     public function test_mark_stale_services_offline_command_updates_status_by_thresholds(): void
@@ -38,7 +38,7 @@ class ConsoleCommandsTest extends TestCase
             'last_seen_at' => now()->subMinutes(70),
         ]);
 
-        $this->artisan('horizonhub:mark-stale-services-offline')->assertSuccessful();
+        $this->artisan('hh:mark-stale-services-offline')->assertSuccessful();
 
         $standBy->refresh();
         $offline->refresh();
