@@ -79,7 +79,7 @@
                     variant="ghost"
                     type="button"
                     class="h-9 text-sm"
-                    onclick="window.location.href='{{ route('horizon.settings', ['tab' => 'providers']) }}'"
+                    onclick="window.location.href='{{ route('horizon.providers.index') }}'"
                 >
                     Cancel
                 </x-button>

@@ -68,6 +68,14 @@
                 <x-heroicon-o-bell class="h-4 w-4 shrink-0" />
                 Alerts
             </a>
+            <a href="{{ route('horizon.theme') }}" class="nav-side-link {{ request()->routeIs('horizon.theme') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
+                <x-heroicon-o-adjustments-horizontal class="h-4 w-4 shrink-0" />
+                Theme
+            </a>
+            <a href="{{ route('horizon.providers.index') }}" class="nav-side-link {{ request()->routeIs('horizon.providers.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
+                <x-heroicon-o-link class="h-4 w-4 shrink-0" />
+                Providers
+            </a>
         </nav>
         <div class="shrink-0 border-t border-border p-2 space-y-1"
             x-data="{
@@ -94,10 +102,6 @@
                         :class="enabled ? 'translate-x-4' : 'translate-x-0.5'"></span>
                 </x-button>
             </div>
-            <a href="{{ route('horizon.settings') }}" class="nav-side-link {{ request()->routeIs('horizon.settings') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
-                <x-heroicon-o-cog-6-tooth class="h-4 w-4 shrink-0" />
-                Settings
-            </a>
         </div>
     </aside>
 
