@@ -40,6 +40,16 @@
         if ($queuePatternsForForm === []) {
             $queuePatternsForForm = [''];
         }
+        $queueOptionalSectionOpenDefault = \count(\array_filter(
+            $queuePatternsForForm,
+            static fn ($x) => \is_string($x) && \trim($x) !== ''
+        )) > 0 || $errors->has('queue_patterns');
+        $jobOptionalSectionOpenDefault = \count(\array_filter(
+            $jobPatternsForForm,
+            static fn ($x) => \is_string($x) && \trim($x) !== ''
+        )) > 0 || $errors->has('job_patterns');
+        $jobTypeOptionalSectionOpenDefault = (\is_string($jobTypeValueForForm) ? \trim($jobTypeValueForForm) : '') !== ''
+            || $errors->has('job_type');
     @endphp
 
     <div
@@ -48,6 +58,9 @@
             ruleType: {!! \Illuminate\Support\Js::from(old('rule_type', $alert->rule_type ?? 'failure_count')) !!},
             jobPatterns: {!! \Illuminate\Support\Js::from($jobPatternsForForm) !!},
             queuePatterns: {!! \Illuminate\Support\Js::from($queuePatternsForForm) !!},
+            queueOptionalSectionOpen: {!! \Illuminate\Support\Js::from($queueOptionalSectionOpenDefault) !!},
+            jobOptionalSectionOpen: {!! \Illuminate\Support\Js::from($jobOptionalSectionOpenDefault) !!},
+            jobTypeOptionalSectionOpen: {!! \Illuminate\Support\Js::from($jobTypeOptionalSectionOpenDefault) !!},
             addJobPattern() {
                 this.jobPatterns.push('');
             },
@@ -148,95 +161,169 @@
                         @error('rule_type') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
                     <div
-                        class="space-y-2"
+                        class="overflow-hidden rounded-lg border border-border"
                         x-show="['failure_count','avg_execution_time','queue_blocked'].includes(ruleType)"
                         x-cloak
                     >
-                        <x-input-label>Queue (optional)</x-input-label>
-                        <p class="text-xs text-muted-foreground">Exact queue names. Use one row for a single queue, or add rows for several (OR). Leave empty to include all queues.</p>
-                        <div class="space-y-2">
-                            <template x-for="(val, index) in queuePatterns" :key="'qp-' + index">
-                                <div class="flex gap-2 items-center">
-                                    <input
-                                        type="text"
-                                        name="queue_patterns[]"
-                                        x-model="queuePatterns[index]"
-                                        placeholder="default"
-                                        class="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm font-mono text-foreground shadow-sm"
-                                    />
-                                    <x-button
-                                        type="button"
-                                        variant="ghost"
-                                        class="h-9 shrink-0 text-xs"
-                                        @click="removeQueuePattern(index)"
-                                        x-show="queuePatterns.length > 1"
-                                    >
-                                        Remove
-                                    </x-button>
-                                </div>
-                            </template>
-                            <x-button
-                                type="button"
-                                variant="secondary"
-                                class="h-9 text-sm"
-                                @click="addQueuePattern()"
+                        <button
+                            type="button"
+                            class="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-muted/50"
+                            @click="queueOptionalSectionOpen = !queueOptionalSectionOpen"
+                            :aria-expanded="queueOptionalSectionOpen"
+                        >
+                            <span>Queue (optional)</span>
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                class="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200"
+                                :class="{ 'rotate-180': queueOptionalSectionOpen }"
+                                aria-hidden="true"
                             >
-                                Add queue
-                            </x-button>
+                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <div
+                            x-show="queueOptionalSectionOpen"
+                            x-transition
+                            class="space-y-2 border-t border-border px-3 py-3"
+                        >
+                            <p class="text-xs text-muted-foreground">Exact queue names. Use one row for a single queue, or add rows for several (OR). Leave empty to include all queues.</p>
+                            <div class="space-y-2">
+                                <template x-for="(val, index) in queuePatterns" :key="'qp-' + index">
+                                    <div class="flex gap-2 items-center">
+                                        <input
+                                            type="text"
+                                            name="queue_patterns[]"
+                                            x-model="queuePatterns[index]"
+                                            placeholder="default"
+                                            class="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm font-mono text-foreground shadow-sm"
+                                        />
+                                        <x-button
+                                            type="button"
+                                            variant="ghost"
+                                            class="h-9 shrink-0 text-xs"
+                                            @click="removeQueuePattern(index)"
+                                            x-show="queuePatterns.length > 1"
+                                        >
+                                            Remove
+                                        </x-button>
+                                    </div>
+                                </template>
+                                <x-button
+                                    type="button"
+                                    variant="secondary"
+                                    class="h-9 text-sm"
+                                    @click="addQueuePattern()"
+                                >
+                                    Add queue
+                                </x-button>
+                            </div>
+                            @error('queue_patterns') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                         </div>
-                        @error('queue_patterns') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
                     <div
-                        class="space-y-2"
+                        class="overflow-hidden rounded-lg border border-border"
                         x-show="['failure_count','avg_execution_time'].includes(ruleType)"
                         x-cloak
                     >
-                        <x-input-label>Job (optional)</x-input-label>
-                        <p class="text-xs text-muted-foreground">Substring match on Horizon job class / display name. Multiple patterns match any (OR). Leave all rows empty to include every job type where the rule allows.</p>
-                        <div class="space-y-2">
-                            <template x-for="(val, index) in jobPatterns" :key="'jp-' + index">
-                                <div class="flex gap-2 items-center">
-                                    <input
-                                        type="text"
-                                        name="job_patterns[]"
-                                        x-model="jobPatterns[index]"
-                                        placeholder="App\Jobs\SendEmail"
-                                        class="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm font-mono text-foreground shadow-sm"
-                                    />
-                                    <x-button
-                                        type="button"
-                                        variant="ghost"
-                                        class="h-9 shrink-0 text-xs"
-                                        @click="removeJobPattern(index)"
-                                        x-show="jobPatterns.length > 1"
-                                    >
-                                        Remove
-                                    </x-button>
-                                </div>
-                            </template>
-                            <x-button
-                                type="button"
-                                variant="secondary"
-                                class="h-9 text-sm"
-                                @click="addJobPattern()"
+                        <button
+                            type="button"
+                            class="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-muted/50"
+                            @click="jobOptionalSectionOpen = !jobOptionalSectionOpen"
+                            :aria-expanded="jobOptionalSectionOpen"
+                        >
+                            <span>Job (optional)</span>
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                class="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200"
+                                :class="{ 'rotate-180': jobOptionalSectionOpen }"
+                                aria-hidden="true"
                             >
-                                Add pattern
-                            </x-button>
+                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <div
+                            x-show="jobOptionalSectionOpen"
+                            x-transition
+                            class="space-y-2 border-t border-border px-3 py-3"
+                        >
+                            <p class="text-xs text-muted-foreground">Substring match on Horizon job class / display name. Multiple patterns match any (OR). Leave all rows empty to include every job type where the rule allows.</p>
+                            <div class="space-y-2">
+                                <template x-for="(val, index) in jobPatterns" :key="'jp-' + index">
+                                    <div class="flex gap-2 items-center">
+                                        <input
+                                            type="text"
+                                            name="job_patterns[]"
+                                            x-model="jobPatterns[index]"
+                                            placeholder="App\Jobs\SendEmail"
+                                            class="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm font-mono text-foreground shadow-sm"
+                                        />
+                                        <x-button
+                                            type="button"
+                                            variant="ghost"
+                                            class="h-9 shrink-0 text-xs"
+                                            @click="removeJobPattern(index)"
+                                            x-show="jobPatterns.length > 1"
+                                        >
+                                            Remove
+                                        </x-button>
+                                    </div>
+                                </template>
+                                <x-button
+                                    type="button"
+                                    variant="secondary"
+                                    class="h-9 text-sm"
+                                    @click="addJobPattern()"
+                                >
+                                    Add pattern
+                                </x-button>
+                            </div>
+                            @error('job_patterns') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                         </div>
-                        @error('job_patterns') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
-                    <div class="space-y-2" x-show="['failure_count','avg_execution_time'].includes(ruleType)" x-cloak>
-                        <x-input-label for="job_type">Job type (optional single substring)</x-input-label>
-                        <x-text-input
-                            type="text"
-                            id="job_type"
-                            name="job_type"
-                            value="{{ $jobTypeValueForForm }}"
-                            placeholder="App\Jobs\ProcessOrder"
-                            class="w-full font-mono text-sm"
-                        />
-                        <p class="text-xs text-muted-foreground">Merged with job patterns above when saved (same substring rules).</p>
-                        @error('job_type') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                    <div
+                        class="overflow-hidden rounded-lg border border-border"
+                        x-show="['failure_count','avg_execution_time'].includes(ruleType)"
+                        x-cloak
+                    >
+                        <button
+                            type="button"
+                            class="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-muted/50"
+                            @click="jobTypeOptionalSectionOpen = !jobTypeOptionalSectionOpen"
+                            :aria-expanded="jobTypeOptionalSectionOpen"
+                        >
+                            <span>Job type (optional)</span>
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                class="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200"
+                                :class="{ 'rotate-180': jobTypeOptionalSectionOpen }"
+                                aria-hidden="true"
+                            >
+                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <div
+                            x-show="jobTypeOptionalSectionOpen"
+                            x-transition
+                            class="space-y-2 border-t border-border px-3 py-3"
+                        >
+                            <x-input-label for="job_type">Job type (optional single substring)</x-input-label>
+                            <x-text-input
+                                type="text"
+                                id="job_type"
+                                name="job_type"
+                                value="{{ $jobTypeValueForForm }}"
+                                placeholder="App\Jobs\ProcessOrder"
+                                class="w-full font-mono text-sm"
+                            />
+                            <p class="text-xs text-muted-foreground">Merged with job patterns above when saved (same substring rules).</p>
+                            @error('job_type') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                        </div>
                     </div>
 
                     <template x-if="['failure_count','avg_execution_time','queue_blocked','worker_offline','supervisor_offline','horizon_offline'].includes(ruleType)">

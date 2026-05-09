@@ -127,6 +127,14 @@
     .nav-sidebar-column {
         transition: width 0.2s ease;
     }
+    html[data-aside-prefers-hidden] .aside-drawer {
+        transform: translateX(-100%);
+        pointer-events: none;
+    }
+    html.sidebar-bootstrapping .aside-drawer,
+    html.sidebar-bootstrapping .nav-sidebar-column {
+        transition: none !important;
+    }
     @media (min-width: 1024px) {
         body.sidebar-collapsed .nav-sidebar-column {
             @apply min-w-0 overflow-hidden w-0;

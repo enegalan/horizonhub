@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="sidebar-bootstrapping"
         x-data="{
             theme: window.horizonHubTheme.getStoredTheme(),
         }"
@@ -37,6 +37,18 @@
         x-init="document.body.classList.toggle('sidebar-collapsed', !sidebarOpen)"
         x-effect="localStorage.setItem('horizon_sidebar_open', sidebarOpen); document.body.classList.toggle('sidebar-collapsed', !sidebarOpen)"
         @toggle-sidebar.window="sidebarOpen = !sidebarOpen; window.dispatchEvent(new CustomEvent('sidebar-open-changed', { detail: sidebarOpen }))">
+        <script>
+            (function () {
+                try {
+                    var sidebarOpen = localStorage.getItem('horizon_sidebar_open') !== 'false';
+                    var lg = window.matchMedia('(min-width: 1024px)').matches;
+                    document.body.classList.toggle('sidebar-collapsed', !sidebarOpen);
+                    if (lg ? !sidebarOpen : true) {
+                        document.documentElement.setAttribute('data-aside-prefers-hidden', '');
+                    }
+                } catch (e) {}
+            })();
+        </script>
         <div class="app-layout flex min-h-screen flex-1 flex-row lg:flex-row">
             @include('partials.navigation')
             <div class="flex min-h-0 min-w-0 flex-1 flex-col pt-12 lg:pt-0">

@@ -5,11 +5,16 @@
     x-data="{
         drawerOpen: false,
         sidebarOpen: localStorage.getItem('{{ $sidebarStorageKey }}') !== 'false',
-        isLg: false
+        isLg: typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
     }"
     x-init="
-        isLg = window.innerWidth >= 1024;
-        window.addEventListener('resize', () => { isLg = window.innerWidth >= 1024 });
+        document.documentElement.removeAttribute('data-aside-prefers-hidden');
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                document.documentElement.classList.remove('sidebar-bootstrapping');
+            });
+        });
+        window.addEventListener('resize', () => { isLg = window.matchMedia('(min-width: 1024px)').matches });
         window.addEventListener('sidebar-open-changed', e => { sidebarOpen = e.detail });
     "
     @keydown.escape.window="drawerOpen = false">
