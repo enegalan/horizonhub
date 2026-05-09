@@ -26,7 +26,7 @@ class ProviderController extends Controller
         $provider->delete();
 
         return redirect()
-            ->route('horizon.settings', ['tab' => 'providers'])
+            ->route('horizon.providers.index')
             ->with('status', 'Provider deleted.');
     }
 
@@ -39,6 +39,19 @@ class ProviderController extends Controller
     }
 
     /**
+     * List notification providers.
+     */
+    public function index(): View
+    {
+        $providers = NotificationProvider::orderBy('type')->orderBy('name')->get();
+
+        return \view('horizon.providers.index', [
+            'providers' => $providers,
+            'header' => 'Providers',
+        ]);
+    }
+
+    /**
      * Store a new provider.
      */
     public function store(Request $request): RedirectResponse
@@ -47,7 +60,7 @@ class ProviderController extends Controller
         NotificationProvider::create($data);
 
         return redirect()
-            ->route('horizon.settings', ['tab' => 'providers'])
+            ->route('horizon.providers.index')
             ->with('status', 'Provider created.');
     }
 
@@ -60,7 +73,7 @@ class ProviderController extends Controller
         $provider->update($data);
 
         return redirect()
-            ->route('horizon.settings', ['tab' => 'providers'])
+            ->route('horizon.providers.index')
             ->with('status', 'Provider updated.');
     }
 
