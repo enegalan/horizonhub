@@ -18,6 +18,7 @@
                         class="w-56"
                         :selected="$filters['serviceIds'] ?? []"
                         placeholder="All services"
+                        empty-message="No services found"
                     >
                         @foreach($services as $s)
                             <option value="{{ $s->id }}">{{ $s->name }} ({{ $s->status }})</option>
@@ -85,6 +86,7 @@
                                             class="w-56"
                                             :selected="[]"
                                             placeholder="All services"
+                                            empty-message="No services found"
                                             @change="retryFilters.service_ids = $event.detail.values"
                                         >
                                             @foreach($services as $s)

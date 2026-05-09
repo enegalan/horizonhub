@@ -18,6 +18,7 @@
                         class="w-64"
                         :selected="$serviceIds ?? []"
                         placeholder="All services"
+                        empty-message="No services found"
                     >
                         @foreach($services as $service)
                             <option value="{{ $service->id }}">{{ $service->name }}</option>

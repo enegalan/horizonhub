@@ -34,8 +34,8 @@
         </a>
     </div>
 
-    <aside class="aside-drawer fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card transition-transform duration-300 ease-in-out lg:inset-auto lg:h-full lg:min-h-0 lg:translate-x-0 w-[inherit]"
-        :class="(isLg ? sidebarOpen : drawerOpen) ? 'translate-x-0' : '-translate-x-full hidden'"
+    <aside class="aside-drawer fixed inset-y-0 left-0 z-50 flex w-[min(248px,100vw)] flex-col border-r border-border bg-card transition-[transform] duration-[380ms] ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none lg:inset-auto lg:h-full lg:min-h-0 lg:w-[248px]"
+        :class="(isLg ? sidebarOpen : drawerOpen) ? 'translate-x-0' : '-translate-x-full pointer-events-none'"
         style="will-change: transform;">
         <div class="flex h-12 min-h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-7">
             <a href="{{ route('horizon.index') }}" class="flex min-w-0 items-center gap-2.5" @click="drawerOpen = false">

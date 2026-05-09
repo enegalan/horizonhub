@@ -1,4 +1,4 @@
-@props(['options' => [], 'placeholder' => '', 'selected' => null])
+@props(['options' => [], 'placeholder' => '', 'selected' => null, 'emptyMessage' => 'No results'])
 
 @php
     $wrapperClass = $attributes->get('class', '');
@@ -15,11 +15,16 @@
                 return { value: o.value, label: o.textContent.trim() };
             });
         },
+        get dataOptions() {
+            return this.options.filter(o => o.value !== '');
+        },
         get selectedLabel() {
+            if (this.dataOptions.length === 0) return this.emptyMessage;
             var opt = this.options.find(o => o.value === this.selectedValue);
             return opt ? opt.label : (this.placeholder || '');
         },
         placeholder: {{ json_encode($placeholder) }},
+        emptyMessage: {{ json_encode($emptyMessage) }},
         choose(opt) {
             this.selectedValue = opt.value;
             this.hiddenSelect.value = opt.value;
@@ -67,8 +72,15 @@
         x-transition:leave-end="opacity-0 scale-95"
         class="absolute z-50 mt-1 max-h-60 min-w-[8rem] overflow-auto rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"
         role="listbox">
+        <div
+            x-show="dataOptions.length === 0"
+            class="px-2 py-1.5 text-sm text-muted-foreground select-none"
+            x-text="emptyMessage"
+            role="presentation"
+        ></div>
         <template x-for="opt in options" :key="opt.value">
             <button type="button"
+                x-show="dataOptions.length > 0"
                 @click="choose(opt)"
                 :class="opt.value === selectedValue ? 'text-accent-foreground' : ''"
                 class="btn-ghost relative flex w-full cursor-default select-none items-center justify-start rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"

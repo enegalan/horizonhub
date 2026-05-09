@@ -3,6 +3,7 @@
     'placeholder' => '',
     'selected' => [],
     'submitOnChange' => false,
+    'emptyMessage' => 'No results',
 ])
 
 @php
@@ -47,6 +48,7 @@
             }).filter(function (o) { return o.value !== ''; });
         },
         get summaryLabel() {
+            if (this.options.length === 0) return this.emptyMessage;
             if (this.selectedValues.length === 0) return this.placeholder || 'All';
             if (this.selectedValues.length === 1) {
                 var self = this;
@@ -56,6 +58,7 @@
             return this.selectedValues.length + ' selected';
         },
         placeholder: {{ json_encode($placeholder) }},
+        emptyMessage: {{ json_encode($emptyMessage) }},
         toggle(optValue) {
             var v = String(optValue);
             var i = this.selectedValues.indexOf(v);
@@ -115,6 +118,12 @@
         class="absolute z-50 mt-1 max-h-60 min-w-[12rem] overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
         role="listbox"
     >
+        <div
+            x-show="options.length === 0"
+            class="px-2 py-1.5 text-sm text-muted-foreground select-none"
+            x-text="emptyMessage"
+            role="presentation"
+        ></div>
         <template x-for="opt in options" :key="opt.value">
             <button
                 type="button"

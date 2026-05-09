@@ -13,6 +13,7 @@
                             :submit-on-change="true"
                             :selected="$serviceIds ?? []"
                             placeholder="All services"
+                            empty-message="No services found"
                         >
                             @foreach($services as $s)
                                 <option value="{{ $s->id }}">{{ $s->name }}</option>
