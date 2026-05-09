@@ -9,11 +9,11 @@ class NotFoundRedirectsToDashboardTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_unknown_json_request_stays_not_found(): void
+    public function test_unknown_json_request_redirects_to_dashboard(): void
     {
         $response = $this->getJson('/path-that-does-not-exist-json');
 
-        $response->assertNotFound();
+        $response->assertRedirect(route('horizon.index'));
     }
 
     public function test_unknown_web_path_redirects_to_dashboard(): void
