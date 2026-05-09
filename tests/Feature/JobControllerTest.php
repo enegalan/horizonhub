@@ -33,7 +33,7 @@ class JobControllerTest extends TestCase
         $response->assertOk();
     }
 
-    public function test_show_returns_404_when_service_or_job_is_missing_and_renders_when_present(): void
+    public function test_show_redirects_to_dashboard_when_service_or_job_is_missing_and_renders_when_present(): void
     {
         $service = Service::query()->create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
@@ -67,8 +67,8 @@ class JobControllerTest extends TestCase
         $this->app->instance(HorizonJobDetailService::class, $jobDetail);
         $this->app->instance(HorizonJobListService::class, $this->createMock(HorizonJobListService::class));
 
-        $this->get(route('horizon.jobs.show', ['job' => 'x', 'service_id' => 99999]))->assertNotFound();
-        $this->get(route('horizon.jobs.show', ['job' => 'x', 'service_id' => $service->id]))->assertNotFound();
+        $this->get(route('horizon.jobs.show', ['job' => 'x', 'service_id' => 99999]))->assertRedirect(route('horizon.index'));
+        $this->get(route('horizon.jobs.show', ['job' => 'x', 'service_id' => $service->id]))->assertRedirect(route('horizon.index'));
         $this->get(route('horizon.jobs.show', ['job' => 'job-1', 'service_id' => $service->id]))->assertOk();
     }
 }
