@@ -1,4 +1,4 @@
-import { applyChartOptions, buildJobsVolumeLast24hOptions, getChartColors } from "../charts/metrics-charts";
+import { applyChartOptions, buildJobsVolumeLast24hOptions, getAxisTooltipViewportOptions, getChartColors } from "../charts/metrics-charts";
 import { parseJsonFromElement } from "../lib/parse";
 import { isHotReloadEnabled } from "../lib/sse";
 
@@ -23,7 +23,11 @@ export function horizonMetricsPage() {
                 filterEl.addEventListener("change", function (e) {
                     var ids = e.detail.values.map(String).filter(Boolean).sort();
                     var url = new URL(window.location.href);
-                    refreshServiceIdSearchParams(ids, url);
+                    url.searchParams.delete("service_id");
+                    url.searchParams.delete("service_id[]");
+                    ids.forEach(function (id) {
+                        url.searchParams.append("service_id[]", id);
+                    });
                     window.history.replaceState({}, "", url.toString());
                     if (isHotReloadEnabled() && typeof window.__horizonHubRefreshStreamReconnect === "function") {
                         window.__horizonHubRefreshStreamReconnect();
@@ -32,20 +36,6 @@ export function horizonMetricsPage() {
             }
         },
     };
-}
-
-/**
- * Refresh the service_id / service_id[] search params in a URL object.
- * @param {string[]} ids
- * @param {URL} url
- * @returns {void}
- */
-function refreshServiceIdSearchParams(ids, url) {
-    url.searchParams.delete("service_id");
-    url.searchParams.delete("service_id[]");
-    ids.forEach(function (id) {
-        url.searchParams.append("service_id[]", id);
-    });
 }
 
 /**
@@ -68,14 +58,14 @@ function initMetricsCharts() {
         applyChartOptions(processedFailedEl, {
             animation: false,
             color: [c.processed],
-            tooltip: {
+            tooltip: Object.assign({}, getAxisTooltipViewportOptions(), {
                 trigger: 'axis',
                 formatter: function (params) {
                     if (!params || !params.length) return '';
                     var p = params[0];
                     return p.name + ': ' + p.value + ' job(s)';
                 }
-            },
+            }),
             legend: {
                 data: ['Jobs past hour'],
                 bottom: 0,
@@ -113,7 +103,7 @@ function initMetricsCharts() {
         applyChartOptions(failureRateEl, {
             animation: false,
             color: [c.failed],
-            tooltip: { trigger: 'axis', formatter: '{b}: {c}%' },
+            tooltip: Object.assign({}, getAxisTooltipViewportOptions(), { trigger: 'axis', formatter: '{b}: {c}%' }),
             grid: { left: 48, right: 24, top: 16, bottom: 32 },
             xAxis: { type: 'category', data: data.failureRateOverTime.xAxis, axisLine: { lineStyle: { color: c.axis } }, axisLabel: { color: c.axis, fontSize: 10 } },
             yAxis: { type: 'value', name: '%', min: 0, axisLine: { show: false }, splitLine: { lineStyle: { color: c.axis, opacity: 0.3 } }, axisLabel: { color: c.axis, fontSize: 10 } },
@@ -174,7 +164,7 @@ function initMetricsCharts() {
             if (series.length) {
                 applyChartOptions(runtimeEl, {
                     animation: false,
-                    tooltip: {
+                    tooltip: Object.assign({}, getAxisTooltipViewportOptions(), {
                         trigger: 'axis',
                         axisPointer: {
                             type: 'line',
@@ -203,7 +193,7 @@ function initMetricsCharts() {
                             }
                             return blocks.length ? blocks.join('<br/><br/>') : '';
                         }
-                    },
+                    }),
                     legend: {
                         data: series.map(function (s) { return s.name; }),
                         bottom: 0,
@@ -236,14 +226,14 @@ function initMetricsCharts() {
         applyChartOptions(serviceEl, {
             animation: false,
             color: [c.line],
-            tooltip: {
+            tooltip: Object.assign({}, getAxisTooltipViewportOptions(), {
                 trigger: 'axis',
                 formatter: function (params) {
                     if (!params || !params.length) return '';
                     var p = params[0];
                     return p.name + ': ' + p.value.toFixed(2) + ' s';
                 }
-            },
+            }),
             legend: { data: [], bottom: 0, textStyle: { color: c.axis, fontSize: 10 } },
             grid: { left: 120, right: 48, top: 16, bottom: 36 },
             xAxis: {
