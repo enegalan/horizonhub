@@ -37,7 +37,7 @@
     <aside class="aside-drawer fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card transition-transform duration-300 ease-in-out lg:inset-auto lg:h-full lg:min-h-0 lg:translate-x-0 w-[inherit]"
         :class="(isLg ? sidebarOpen : drawerOpen) ? 'translate-x-0' : '-translate-x-full hidden'"
         style="will-change: transform;">
-        <div class="flex h-12 min-h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
+        <div class="flex h-12 min-h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-7">
             <a href="{{ route('horizon.index') }}" class="flex min-w-0 items-center gap-2.5" @click="drawerOpen = false">
                 <img src="{{ asset('logo.svg') }}" alt="Horizon Hub" class="h-6 w-6 shrink-0 rounded-md object-contain">
                 <span class="truncate text-sm font-semibold text-foreground">Horizon Hub</span>
