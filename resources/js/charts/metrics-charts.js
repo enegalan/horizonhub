@@ -1,4 +1,16 @@
 /**
+ * Shared ECharts axis tooltip options: stay in viewport and allow scroll when content is tall.
+ * @returns {object}
+ */
+export function getAxisTooltipViewportOptions() {
+    return {
+        confine: true,
+        enterable: true,
+        extraCssText: 'max-width:min(96vw, 440px);max-height:min(55vh, 400px);overflow:auto;padding:8px 10px;',
+    };
+}
+
+/**
  * Get the chart colors.
  * @returns {object}
  */
@@ -43,7 +55,7 @@ export function buildJobsVolumeLast24hOptions(jobsVolumeLast24h, c) {
     return {
         animation: false,
         color: [c.processed, c.failed],
-        tooltip: { trigger: 'axis' },
+        tooltip: Object.assign({}, getAxisTooltipViewportOptions(), { trigger: 'axis' }),
         legend: {
             data: ['Completed', 'Failed'],
             bottom: 0,
