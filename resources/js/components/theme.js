@@ -33,6 +33,16 @@ export function initTheme() {
             window.dispatchEvent(new CustomEvent('apply-theme'));
             return theme;
         },
+        /**
+         * Advance stored preference: light → dark → system → light.
+         * @returns {'light'|'dark'|'system'}
+         */
+        cycleTheme: function () {
+            var current = getStoredTheme();
+            var next = current === 'light' ? 'dark' : current === 'dark' ? 'system' : 'light';
+
+            return this.setTheme(next);
+        },
     };
 }
 
@@ -41,7 +51,13 @@ export function initTheme() {
  * @returns {'light'|'dark'|'system'}
  */
 function getStoredTheme() {
-    return localStorage.getItem(THEME_KEY);
+    var raw = localStorage.getItem(THEME_KEY);
+
+    if (raw === 'light' || raw === 'dark' || raw === 'system') {
+        return raw;
+    }
+
+    return 'light';
 }
 
 /**

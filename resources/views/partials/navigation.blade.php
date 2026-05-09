@@ -68,41 +68,11 @@
                 <x-heroicon-o-bell class="h-4 w-4 shrink-0" />
                 Alerts
             </a>
-            <a href="{{ route('horizon.theme') }}" class="nav-side-link {{ request()->routeIs('horizon.theme') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
-                <x-heroicon-o-adjustments-horizontal class="h-4 w-4 shrink-0" />
-                Theme
-            </a>
             <a href="{{ route('horizon.providers.index') }}" class="nav-side-link {{ request()->routeIs('horizon.providers.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
-                <x-heroicon-o-link class="h-4 w-4 shrink-0" />
+                <x-heroicon-o-megaphone class="h-4 w-4 shrink-0" />
                 Providers
             </a>
         </nav>
-        <div class="shrink-0 border-t border-border p-2 space-y-1"
-            x-data="{
-                enabled: localStorage.getItem('horizonhub_hotreload') !== 'false',
-                toggle() {
-                    this.enabled = !this.enabled;
-                    localStorage.setItem('horizonhub_hotreload', this.enabled);
-                    window.dispatchEvent(new CustomEvent('horizonhub-hotreload-changed', { detail: { enabled: this.enabled } }));
-                }
-            }"
-            >
-            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5">
-                <span class="label-muted">Hot reload</span>
-                <x-button
-                    variant="none"
-                    type="button"
-                    @click="toggle()"
-                    class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors"
-                    x-bind:class="enabled ? 'bg-primary' : 'bg-muted'"
-                    x-bind:aria-pressed="enabled"
-                    aria-label="Toggle hot reload"
-                >
-                    <span class="inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform"
-                        :class="enabled ? 'translate-x-4' : 'translate-x-0.5'"></span>
-                </x-button>
-            </div>
-        </div>
     </aside>
 
     <div class="fixed left-4 top-4 z-40 hidden lg:block" x-show="isLg && !sidebarOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">

@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="max-w-3xl space-y-6"
+    <div class="space-y-4"
         x-data="{
             showDeleteProviderModal: false,
             deleteProviderName: '',
@@ -100,7 +100,7 @@
                             <tr>
                                 <td colspan="4" data-column-id="name">
                                     <div class="empty-state">
-                                        <x-heroicon-o-bell class="empty-state-icon" />
+                                        <x-heroicon-o-megaphone class="empty-state-icon" />
                                         <p class="empty-state-title">No providers</p>
                                         <p class="empty-state-description">Create Slack or Email providers, then select them when creating alerts.</p>
                                         <x-button
@@ -117,6 +117,6 @@
             </x-table>
         </div>
 
-        @include('horizon.settings.partials.delete-provider-confirm-modal')
+        @include('horizon.providers.partials.delete-provider-confirm-modal')
     </div>
 @endsection
