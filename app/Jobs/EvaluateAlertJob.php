@@ -100,7 +100,7 @@ class EvaluateAlertJob implements ShouldQueue
                 $this->private__cacheFirstErrorMessage($result['error_message']);
             }
         } catch (\Throwable $e) {
-            Log::error('Horizon Hub: alert evaluation job failed', [
+            Log::error(config('app.name') . ': alert evaluation job failed', [
                 'alert_id' => $this->alertId,
                 'evaluation_id' => $this->evaluationId,
                 'error' => $e->getMessage(),

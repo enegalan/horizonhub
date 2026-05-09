@@ -23,7 +23,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Show the Horizon Hub dashboard.
+     * Show the dashboard.
      */
     public function index(HorizonApiProxyService $horizonApi): View
     {

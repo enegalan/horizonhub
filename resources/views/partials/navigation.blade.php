@@ -29,8 +29,8 @@
             <x-heroicon-o-bars-3 class="size-6" />
         </x-button>
         <a href="{{ route('horizon.index') }}" class="flex min-w-0 items-center gap-2.5" @click="drawerOpen = false">
-            <img src="{{ asset('logo.svg') }}" alt="Horizon Hub" class="h-6 w-6 shrink-0 rounded-md object-contain">
-            <span class="truncate text-sm font-semibold text-foreground">Horizon Hub</span>
+            <img src="{{ asset('logo.svg') }}" alt="{{ config('app.name') }}" class="h-6 w-6 shrink-0 rounded-md object-contain">
+            <span class="truncate text-sm font-semibold text-foreground">{{ config('app.name') }}</span>
         </a>
     </div>
 
@@ -39,8 +39,8 @@
         style="will-change: transform;">
         <div class="flex h-12 min-h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-7">
             <a href="{{ route('horizon.index') }}" class="flex min-w-0 items-center gap-2.5" @click="drawerOpen = false">
-                <img src="{{ asset('logo.svg') }}" alt="Horizon Hub" class="h-6 w-6 shrink-0 rounded-md object-contain">
-                <span class="truncate text-sm font-semibold text-foreground">Horizon Hub</span>
+                <img src="{{ asset('logo.svg') }}" alt="{{ config('app.name') }}" class="h-6 w-6 shrink-0 rounded-md object-contain">
+                <span class="truncate text-sm font-semibold text-foreground">{{ config('app.name') }}</span>
             </a>
         </div>
         <nav class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden p-2">

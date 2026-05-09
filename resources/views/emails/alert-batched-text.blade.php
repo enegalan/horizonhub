@@ -1,4 +1,4 @@
-Horizon Hub Alert
+{{ config('app.name') }} Alert
 
 {{ $alert->rule_type }}
 @if($service)
