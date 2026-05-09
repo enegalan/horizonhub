@@ -8,7 +8,6 @@ use App\Http\Controllers\Horizon\MetricsController;
 use App\Http\Controllers\Horizon\ProviderController;
 use App\Http\Controllers\Horizon\QueueController;
 use App\Http\Controllers\Horizon\ServiceController;
-use App\Http\Controllers\Horizon\ThemeController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/horizon');
@@ -62,7 +61,4 @@ Route::prefix('horizon')->name('horizon.')->middleware(['throttle:60,1'])->group
     Route::get('/providers/{provider}/edit', [ProviderController::class, 'edit'])->name('providers.edit');
     Route::put('/providers/{provider}', [ProviderController::class, 'update'])->name('providers.update');
     Route::delete('/providers/{provider}', [ProviderController::class, 'destroy'])->name('providers.destroy');
-
-    // Theme
-    Route::get('/theme', [ThemeController::class, 'theme'])->name('theme');
 });
