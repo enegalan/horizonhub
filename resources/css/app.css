@@ -130,6 +130,10 @@
     .nav-sidebar-column {
         transition: width 0.2s ease;
     }
+    .aside-drawer-header-expand-btn,
+    .aside-drawer-header-collapse-btn {
+        @apply hidden;
+    }
     html[data-aside-prefers-hidden] .aside-drawer {
         transform: translateX(-100%);
         pointer-events: none;
@@ -147,6 +151,24 @@
         }
         body.sidebar-collapsed .aside-drawer-header-brand-text {
             @apply hidden;
+        }
+        body.sidebar-collapsed .nav-sidebar-column {
+            @apply w-16;
+        }
+        body:not(.sidebar-collapsed) .nav-sidebar-column {
+            @apply w-60;
+        }
+        body.sidebar-collapsed .aside-drawer-header {
+            @apply justify-center px-2;
+        }
+        body.sidebar-collapsed .aside-drawer-header-brand-link {
+            @apply hidden;
+        }
+        body.sidebar-collapsed .aside-drawer-header-expand-btn {
+            display: inline-flex;
+        }
+        body:not(.sidebar-collapsed) .aside-drawer-header-collapse-btn {
+            display: inline-flex;
         }
     }
     .card {
