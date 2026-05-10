@@ -43,7 +43,7 @@
                     var sidebarOpen = localStorage.getItem('horizon_sidebar_open') !== 'false';
                     var lg = window.matchMedia('(min-width: 1024px)').matches;
                     document.body.classList.toggle('sidebar-collapsed', !sidebarOpen);
-                    if (lg ? !sidebarOpen : true) {
+                    if (!lg) {
                         document.documentElement.setAttribute('data-aside-prefers-hidden', '');
                     }
                 } catch (e) {}

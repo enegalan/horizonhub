@@ -79,6 +79,9 @@
     body {
         @apply bg-background text-foreground antialiased min-h-screen;
     }
+    [x-cloak] {
+        display: none !important;
+    }
     input[type="text"],
     input[type="url"],
     input[type="email"],
@@ -136,8 +139,14 @@
         transition: none !important;
     }
     @media (min-width: 1024px) {
-        body.sidebar-collapsed .nav-sidebar-column {
-            @apply min-w-0 overflow-hidden w-0;
+        body.sidebar-collapsed .nav-side-link-label {
+            @apply hidden;
+        }
+        body.sidebar-collapsed .nav-side-link {
+            @apply justify-center gap-0 px-2;
+        }
+        body.sidebar-collapsed .aside-drawer-header-brand-text {
+            @apply hidden;
         }
     }
     .card {

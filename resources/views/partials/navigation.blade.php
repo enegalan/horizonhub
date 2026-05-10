@@ -1,7 +1,8 @@
 @php
     $sidebarStorageKey = 'horizon_sidebar_open';
 @endphp
-<div class="nav-sidebar-column shrink-0 lg:flex lg:min-h-screen lg:w-[248px] lg:flex-col"
+<div class="nav-sidebar-column shrink-0 lg:flex lg:min-h-screen lg:flex-col"
+    :class="isLg && !sidebarOpen ? 'lg:w-16' : 'lg:w-60'"
     x-data="{
         drawerOpen: false,
         sidebarOpen: localStorage.getItem('{{ $sidebarStorageKey }}') !== 'false',
@@ -39,51 +40,62 @@
         </a>
     </div>
 
-    <aside class="aside-drawer fixed inset-y-0 left-0 z-50 flex w-[min(248px,100vw)] flex-col border-r border-border bg-card transition-[transform] duration-[380ms] ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none lg:inset-auto lg:h-full lg:min-h-0 lg:w-[248px]"
-        :class="(isLg ? sidebarOpen : drawerOpen) ? 'translate-x-0' : '-translate-x-full pointer-events-none'"
+    <aside class="aside-drawer w-[inherit] fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card transition-[transform,width] duration-[380ms] ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none lg:inset-auto lg:h-full lg:min-h-0"
+        :class="!isLg && !drawerOpen ? '-translate-x-full pointer-events-none' : 'translate-x-0'"
         style="will-change: transform;">
-        <div class="flex h-12 min-h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-7">
-            <a href="{{ route('horizon.index') }}" class="flex min-w-0 items-center gap-2.5" @click="drawerOpen = false">
+        <div class="aside-drawer-header flex h-12 min-h-12 shrink-0 items-center gap-8 border-b border-border"
+            :class="isLg && !sidebarOpen ? 'justify-center px-2' : 'justify-between px-5'">
+            <a href="{{ route('horizon.index') }}" class="flex min-w-0 items-center gap-2.5" x-show="!isLg || sidebarOpen" x-cloak @click="drawerOpen = false">
                 <img src="{{ asset('logo.svg') }}" alt="{{ config('app.name') }}" class="h-6 w-6 shrink-0 rounded-md object-contain">
-                <span class="truncate text-sm font-semibold text-foreground">{{ config('app.name') }}</span>
+                <span class="aside-drawer-header-brand-text truncate text-sm font-semibold text-foreground">{{ config('app.name') }}</span>
             </a>
+            <button type="button" class="group relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md p-0 outline-none ring-offset-background transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" x-show="isLg && !sidebarOpen" x-cloak @click="$dispatch('toggle-sidebar')" aria-label="Expand sidebar">
+                <img src="{{ asset('logo.svg') }}" alt="" class="h-6 w-6 rounded-md object-contain transition-opacity duration-150 group-hover:opacity-0" width="24" height="24">
+                <span class="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 text-muted-foreground" aria-hidden="true">
+                    <svg class="h-5 w-5" width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 3V21M7.8 3H16.2C17.8802 3 18.7202 3 19.362 3.32698C19.9265 3.6146 20.3854 4.07354 20.673 4.63803C21 5.27976 21 6.11984 21 7.8V16.2C21 17.8802 21 18.7202 20.673 19.362C20.3854 19.9265 19.9265 20.3854 19.362 20.673C18.7202 21 17.8802 21 16.2 21H7.8C6.11984 21 5.27976 21 4.63803 20.673C4.07354 20.3854 3.6146 19.9265 3.32698 19.362C3 18.7202 3 17.8802 3 16.2V7.8C3 6.11984 3 5.27976 3.32698 4.63803C3.6146 4.07354 4.07354 3.6146 4.63803 3.32698C5.27976 3 6.11984 3 7.8 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </span>
+            </button>
+            <button type="button" class="inline-flex h-9 w-9 shrink-0 cursor-w-resize items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" x-show="isLg && sidebarOpen" x-cloak @click="$dispatch('toggle-sidebar')" aria-label="Collapse sidebar">
+                <svg class="h-5 w-5" width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M9 3V21M7.8 3H16.2C17.8802 3 18.7202 3 19.362 3.32698C19.9265 3.6146 20.3854 4.07354 20.673 4.63803C21 5.27976 21 6.11984 21 7.8V16.2C21 17.8802 21 18.7202 20.673 19.362C20.3854 19.9265 19.9265 20.3854 19.362 20.673C18.7202 21 17.8802 21 16.2 21H7.8C6.11984 21 5.27976 21 4.63803 20.673C4.07354 20.3854 3.6146 19.9265 3.32698 19.362C3 18.7202 3 17.8802 3 16.2V7.8C3 6.11984 3 5.27976 3.32698 4.63803C3.6146 4.07354 4.07354 3.6146 4.63803 3.32698C5.27976 3 6.11984 3 7.8 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
         </div>
-        <nav class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden p-2">
+        <nav
+            class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden p-2"
+            :class="isLg && !sidebarOpen ? 'items-center' : ''"
+        >
             <a href="{{ route('horizon.index') }}" class="nav-side-link {{ request()->routeIs('horizon.index') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-squares-2x2 class="h-4 w-4 shrink-0" />
-                Dashboard
+                <span class="nav-side-link-label truncate">Dashboard</span>
             </a>
             <a href="{{ route('horizon.jobs.index') }}" class="nav-side-link {{ request()->routeIs('horizon.jobs.index') || request()->routeIs('horizon.jobs.show') || request()->routeIs('horizon.jobs.failed') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-clipboard-document-list class="h-4 w-4 shrink-0" />
-                Jobs
+                <span class="nav-side-link-label truncate">Jobs</span>
             </a>
             <a href="{{ route('horizon.queues.index') }}" class="nav-side-link {{ request()->routeIs('horizon.queues.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-queue-list class="h-4 w-4 shrink-0" />
-                Queues
+                <span class="nav-side-link-label truncate">Queues</span>
             </a>
             <a href="{{ route('horizon.services.index') }}" class="nav-side-link {{ request()->routeIs('horizon.services.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-server-stack class="h-4 w-4 shrink-0" />
-                Services
+                <span class="nav-side-link-label truncate">Services</span>
             </a>
             <a href="{{ route('horizon.metrics') }}" class="nav-side-link {{ request()->routeIs('horizon.metrics') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-chart-bar class="h-4 w-4 shrink-0" />
-                Metrics
+                <span class="nav-side-link-label truncate">Metrics</span>
             </a>
             <a href="{{ route('horizon.alerts.index') }}" class="nav-side-link {{ request()->routeIs('horizon.alerts.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-bell class="h-4 w-4 shrink-0" />
-                Alerts
+                <span class="nav-side-link-label truncate">Alerts</span>
             </a>
             <a href="{{ route('horizon.providers.index') }}" class="nav-side-link {{ request()->routeIs('horizon.providers.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-megaphone class="h-4 w-4 shrink-0" />
-                Providers
+                <span class="nav-side-link-label truncate">Providers</span>
             </a>
         </nav>
     </aside>
-
-    <div class="fixed left-4 top-4 z-40 hidden lg:block" x-show="isLg && !sidebarOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
-        <x-button variant="secondary" type="button" @click="$dispatch('toggle-sidebar')" class="h-9 w-9 p-0" aria-label="Open sidebar">
-            <x-heroicon-o-bars-3 class="size-6" />
-        </x-button>
-    </div>
 
 </div>
