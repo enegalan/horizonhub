@@ -333,7 +333,7 @@ export function horizonAlertDetail(config) {
             }
 
             // Initial hydration to initially show alert detail charts
-            initAlertDetailCharts();
+            renderAlertDetailCharts();
         },
         /**
          * Open delivery log modal.
@@ -370,13 +370,26 @@ export function horizonAlertDetail(config) {
 }
 
 /**
- * Initialize the alert detail charts.
+ * Render the alert detail charts.
  * @returns {void}
  */
-function initAlertDetailCharts() {
+export function renderAlertDetailCharts() {
     if (typeof window.echarts === 'undefined') return;
     var data = parseJsonFromElement('alert-detail-chart-data-json');
-    if (!data) return;
+    var ready = data && typeof data === 'object' && !Array.isArray(data) && data.chart24h && data.chart24h.xAxis && data.chart24h.xAxis.length;
+    var loader24h = document.getElementById('alert-detail-loader-chart-24h');
+    if (loader24h) {
+        loader24h.style.display = !ready ? 'flex' : 'none';
+    }
+    var loader7d = document.getElementById('alert-detail-loader-chart-7d');
+    if (loader7d) {
+        loader7d.style.display = !ready ? 'flex' : 'none';
+    }
+    var loader30d = document.getElementById('alert-detail-loader-chart-30d');
+    if (loader30d) {
+        loader30d.style.display = !ready ? 'flex' : 'none';
+    }
+    if (!data || !ready) return;
 
     var c = getChartColors();
 

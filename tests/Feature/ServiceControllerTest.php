@@ -4,10 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
-use App\Services\Horizon\ServiceShowPageDataService;
-use App\Services\Horizon\ServiceStatsAttachmentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Tests\TestCase;
 
 class ServiceControllerTest extends TestCase
@@ -23,31 +20,15 @@ class ServiceControllerTest extends TestCase
             'status' => 'offline',
         ]);
 
-        $stats = $this->createMock(ServiceStatsAttachmentService::class);
-        $stats->expects($this->once())->method('attachHorizonStats');
-        $this->app->instance(ServiceStatsAttachmentService::class, $stats);
-
-        $showData = $this->createMock(ServiceShowPageDataService::class);
-        $showData->method('build')->willReturn([
-            'jobsPastMinute' => 0,
-            'jobsPastHour' => 0,
-            'failedPastSevenDays' => 0,
-            'totalProcesses' => null,
-            'maxWaitTimeSeconds' => null,
-            'queueWithMaxRuntime' => null,
-            'queueWithMaxThroughput' => null,
-            'horizonStatus' => null,
-            'supervisorGroups' => collect(),
-            'supervisors' => collect(),
-            'workloadQueues' => collect(),
-            'jobsProcessing' => new LengthAwarePaginator([], 0, 15, 1),
-            'jobsProcessed' => new LengthAwarePaginator([], 0, 15, 1),
-            'jobsFailed' => new LengthAwarePaginator([], 0, 15, 1),
-            'filters' => ['search' => ''],
-        ]);
-        $this->app->instance(ServiceShowPageDataService::class, $showData);
-
         $api = $this->createMock(HorizonApiProxyService::class);
+        $api->method('getStats')->willReturn([
+            'success' => true,
+            'data' => [
+                'failedJobs' => 0,
+                'recentJobs' => 0,
+                'status' => 'running',
+            ],
+        ]);
         $api->method('ping')->willReturnOnConsecutiveCalls(
             ['success' => true],
             ['success' => false, 'message' => 'failed ping'],
@@ -61,7 +42,10 @@ class ServiceControllerTest extends TestCase
 
         $this->get(route('horizon.services.index'))->assertOk();
         $this->get(route('horizon.services.edit', ['service' => $service]))->assertOk();
-        $this->get(route('horizon.services.show', ['service' => $service]))->assertOk();
+        $this->get(route('horizon.services.show', ['service' => $service]))
+            ->assertOk()
+            ->assertDontSee('Supervisor data is not available', false)
+            ->assertDontSee('No queues for this service yet', false);
 
         $this->post(route('horizon.services.store'), [
             'name' => 'svc-b',

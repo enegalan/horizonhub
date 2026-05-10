@@ -6,7 +6,7 @@
         x-data="window.horizonMetricsPage ? window.horizonMetricsPage() : {}"
         x-init="typeof init === 'function' ? init() : null"
     >
-        <script type="application/json" id="metrics-chart-data">@json($metricsChartData)</script>
+        <script type="application/json" id="metrics-chart-data">@json($metricsChartData ?? [])</script>
 
         <form method="GET" action="{{ route('horizon.metrics') }}" class="mb-4 flex flex-wrap items-end gap-3" data-turbo-frame="_top">
             <div class="space-y-2">
@@ -20,7 +20,7 @@
                         placeholder="All services"
                         empty-message="No services found"
                     >
-                        @foreach($services as $service)
+                        @foreach(($services ?? collect()) as $service)
                             <option value="{{ $service->id }}">{{ $service->name }}</option>
                         @endforeach
                     </x-multiselect>
@@ -35,30 +35,48 @@
             <div class="card p-4">
                 <h3 class="label-muted">Jobs past minute</h3>
                 <div class="mt-1 flex items-center gap-2 min-h-[2.5rem]">
-                    <span id="metrics-loader-jobs-minute" style="display:none;"><x-loader class="size-5 shrink-0 text-muted-foreground" /></span>
-                    <span id="metrics-value-jobs-minute" class="text-2xl font-semibold text-foreground">{{ $jobsPastMinute ?? '—' }}</span>
+                    <span id="metrics-value-jobs-minute" class="text-2xl font-semibold text-foreground">
+                        @if(!empty($defer))
+                            <x-skeleton.text class="h-8 w-16" />
+                        @else
+                            {{ $jobsPastMinute ?? '—' }}
+                        @endif
+                    </span>
                 </div>
             </div>
             <div class="card p-4">
                 <h3 class="label-muted">Jobs past hour</h3>
                 <div class="mt-1 flex items-center gap-2 min-h-[2.5rem]">
-                    <span id="metrics-loader-jobs-hour" style="display:none;"><x-loader class="size-5 shrink-0 text-muted-foreground" /></span>
-                    <span id="metrics-value-jobs-hour" class="text-2xl font-semibold text-foreground">{{ $jobsPastHour ?? '—' }}</span>
+                    <span id="metrics-value-jobs-hour" class="text-2xl font-semibold text-foreground">
+                        @if(!empty($defer))
+                            <x-skeleton.text class="h-8 w-16" />
+                        @else
+                            {{ $jobsPastHour ?? '—' }}
+                        @endif
+                    </span>
                 </div>
             </div>
             <div class="card p-4">
                 <h3 class="label-muted">Failed jobs (past 7 days)</h3>
                 <div class="mt-1 flex items-center gap-2 min-h-[2.5rem]">
-                    <span id="metrics-loader-failed-seven" style="display:none;"><x-loader class="size-5 shrink-0 text-muted-foreground" /></span>
-                    <span id="metrics-value-failed-seven" class="text-2xl font-semibold text-foreground">{{ $failedPastSevenDays ?? '—' }}</span>
+                    <span id="metrics-value-failed-seven" class="text-2xl font-semibold text-foreground">
+                        @if(!empty($defer))
+                            <x-skeleton.text class="h-8 w-16" />
+                        @else
+                            {{ $failedPastSevenDays ?? '—' }}
+                        @endif
+                    </span>
                 </div>
             </div>
             <div class="card p-4">
                 <h3 class="label-muted">Failure rate (last 24h)</h3>
                 <div class="mt-1 flex items-center gap-2 min-h-[2.5rem]">
-                    <span id="metrics-loader-failure-rate" style="display:none;"><x-loader class="size-5 shrink-0 text-muted-foreground" /></span>
                     <p id="metrics-value-failure-rate" class="text-2xl font-semibold text-foreground">
-                        @include('horizon.metrics.partials.failure-rate-value', ['failureRate24h' => $failureRate24h ?? null])
+                        @if(!empty($defer))
+                            <x-skeleton.text class="h-8 w-24" />
+                        @else
+                            @include('horizon.metrics.partials.failure-rate-value', ['failureRate24h' => $failureRate24h ?? null])
+                        @endif
                     </p>
                 </div>
             </div>
@@ -68,7 +86,7 @@
             <div class="card p-4">
                 <h3 class="text-section-title text-foreground mb-2">Jobs per hour (last 24 hours)</h3>
                 <div class="relative h-56">
-                    <div id="metrics-loader-jobs-volume-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ $hasJobsVolumeChart ? 'display:none;' : '' }}">
+                    <div id="metrics-loader-jobs-volume-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasJobsVolumeChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
                         <x-loader class="size-8 text-muted-foreground" />
                     </div>
                     <div id="jobs-volume-last-24h-chart" class="h-56"></div>
@@ -78,7 +96,7 @@
             <div class="card p-4">
                 <h3 class="text-section-title text-foreground mb-2">Failure rate over time (last 24h, %)</h3>
                 <div class="relative h-56">
-                    <div id="metrics-loader-failure-rate-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ $hasFailureRateChart ? 'display:none;' : '' }}">
+                    <div id="metrics-loader-failure-rate-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasFailureRateChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
                         <x-loader class="size-8 text-muted-foreground" />
                     </div>
                     <div id="failure-rate-chart" class="h-56"></div>
@@ -89,7 +107,7 @@
                 <h3 class="text-section-title text-foreground mb-2">Job runtimes (last 24 hours, seconds)</h3>
                 <p class="text-xs text-muted-foreground mb-2">Each vertex is one job (finish time vs duration), connected in time order within Completed vs Failed.</p>
                 <div class="relative h-56">
-                    <div id="metrics-loader-runtime-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ $hasRuntimeChart ? 'display:none;' : '' }}">
+                    <div id="metrics-loader-runtime-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasRuntimeChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
                         <x-loader class="size-8 text-muted-foreground" />
                     </div>
                     <div id="runtime-chart" class="h-56"></div>
@@ -99,7 +117,7 @@
             <div class="card p-4">
                 <h3 class="text-section-title text-foreground mb-2">Queue wait by queue (max wait, top 12)</h3>
                 <div class="relative h-56">
-                    <div id="metrics-loader-service-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ $hasServiceChart ? 'display:none;' : '' }}">
+                    <div id="metrics-loader-service-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasServiceChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
                         <x-loader class="size-8 text-muted-foreground" />
                     </div>
                     <div id="service-distribution-chart" class="h-56"></div>
@@ -127,7 +145,11 @@
                             <th class="table-header px-4 py-2.5" data-column-id="wait">Wait</th>
                         </tr>
                     </x-slot:head>
-                            @include('horizon.metrics.partials.workload-tbody', ['workloadRows' => $workloadRows ?? []])
+                    @if(!empty($defer))
+                        <x-skeleton.table-rows rows="5" columns="5" />
+                    @else
+                        @include('horizon.metrics.partials.workload-tbody', ['workloadRows' => $workloadRows ?? []])
+                    @endif
                 </x-table>
             </div>
 
@@ -152,7 +174,11 @@
                             <th class="table-header px-4 py-2.5 min-w-[80px]" data-column-id="status">Status</th>
                         </tr>
                     </x-slot:head>
-                            @include('horizon.metrics.partials.supervisors-tbody', ['supervisorsRows' => $supervisorsRows ?? []])
+                    @if(!empty($defer))
+                        <x-skeleton.table-rows rows="4" columns="5" />
+                    @else
+                        @include('horizon.metrics.partials.supervisors-tbody', ['supervisorsRows' => $supervisorsRows ?? []])
+                    @endif
                 </x-table>
             </div>
         </div>

@@ -1,6 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
+    @php
+        $workloadQueues ??= collect();
+        $filters ??= ['search' => ''];
+    @endphp
     <div
         id="horizon-service-dashboard"
         x-data="{
@@ -89,22 +93,34 @@
             </x-button>
         </div>
 
-        <div id="service-show-stats-row-1" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-            @include('horizon.services.partials.show-stats-row-1-inner')
+        <div id="service-show-stats-row-1" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6 @if(!empty($defer)) motion-safe:animate-pulse @endif">
+            @if(!empty($defer))
+                @include('horizon.services.partials.show-stats-row-1-skeleton')
+            @else
+                @include('horizon.services.partials.show-stats-row-1-inner')
+            @endif
         </div>
 
-        <div id="service-show-stats-row-2" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-            @include('horizon.services.partials.show-stats-row-2-inner')
+        <div id="service-show-stats-row-2" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6 @if(!empty($defer)) motion-safe:animate-pulse @endif">
+            @if(!empty($defer))
+                @include('horizon.services.partials.show-stats-row-2-skeleton')
+            @else
+                @include('horizon.services.partials.show-stats-row-2-inner')
+            @endif
         </div>
 
-        <div class="card mb-4 p-4">
+        <div class="card mb-4 p-4 @if(!empty($defer)) motion-safe:animate-pulse @endif">
             <h3 class="text-section-title text-foreground mb-2">Supervisors</h3>
             <div id="service-show-supervisors-panel">
-                @include('horizon.services.partials.show-supervisors-panel-inner')
+                @if(!empty($defer))
+                    @include('horizon.services.partials.show-supervisors-panel-skeleton')
+                @else
+                    @include('horizon.services.partials.show-supervisors-panel-inner')
+                @endif
             </div>
         </div>
 
-        <div class="card mb-4">
+        <div class="card mb-4 @if(!empty($defer)) motion-safe:animate-pulse @endif">
             <div class="flex items-center justify-between border-b border-border px-4 py-3">
                 <h3 class="text-section-title text-foreground">Current workload</h3>
                 <p id="service-show-workload-count" class="text-xs text-muted-foreground">
@@ -128,12 +144,20 @@
                         <th class="table-header px-4 py-2.5" data-column-id="wait">Wait</th>
                     </tr>
                 </x-slot:head>
-                @include('horizon.services.partials.show-workload-tbody', ['workloadQueues' => $workloadQueues])
+                @if(!empty($defer))
+                    <x-skeleton.table-rows rows="5" columns="4" />
+                @else
+                    @include('horizon.services.partials.show-workload-tbody', ['workloadQueues' => $workloadQueues])
+                @endif
             </x-table>
         </div>
 
-        <div id="service-show-supervisor-groups">
-            @include('horizon.services.partials.show-supervisor-groups')
+        <div id="service-show-supervisor-groups" class="@if(!empty($defer)) motion-safe:animate-pulse @endif">
+            @if(!empty($defer))
+                @include('horizon.services.partials.show-supervisor-groups-skeleton')
+            @else
+                @include('horizon.services.partials.show-supervisor-groups')
+            @endif
         </div>
 
         <x-turbo::frame id="service-jobs">
@@ -161,6 +185,7 @@
                 'pageService' => $service,
                 'columnIds' => 'uuid,queue,job,attempts,queued_at,delayed_until,processed,failed_at,runtime,actions',
                 'resizablePrefix' => 'horizon-service-dashboard-jobs',
+                'defer' => $defer ?? false,
             ])
         </div>
         </x-turbo::frame>

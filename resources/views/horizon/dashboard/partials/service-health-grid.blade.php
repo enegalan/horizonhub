@@ -21,7 +21,9 @@
                             $svcDot = 'bg-red-500';
                             $svcLabel = 'Offline';
                         }
-                        $hz = isset($service->horizon_status) ? \strtolower((string) $service->horizon_status) : '';
+                        $hz = isset($service->horizon_status) && (string) $service->horizon_status !== ''
+                            ? \strtolower((string) $service->horizon_status)
+                            : '';
                         if ($hz === 'active' || $hz === 'running') {
                             $hzDot = 'bg-emerald-500';
                             $hzLabel = 'Horizon active';

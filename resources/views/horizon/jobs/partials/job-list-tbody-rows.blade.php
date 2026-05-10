@@ -8,8 +8,17 @@
         'processed' => ['title' => 'No processed jobs', 'description' => 'Completed jobs will appear here.'],
         'failed' => ['title' => 'No failed jobs', 'description' => 'Failed jobs will appear here.'],
     ];
+    $skeletonColumns = match ($kind) {
+        'processing' => $showServiceColumn ? 8 : 7,
+        'processed', 'failed' => $showServiceColumn ? 9 : 8,
+        default => 8,
+    };
+    $paginatorTotal = isset($paginator) && $paginator instanceof \Illuminate\Pagination\LengthAwarePaginator ? $paginator->total() : 0;
 @endphp
-@forelse($paginator as $job)
+@if(! empty($defer) && $paginatorTotal === 0)
+    <x-skeleton.table-rows rows="6" :columns="$skeletonColumns" />
+@else
+@forelse($paginator ?? [] as $job)
     <tr class="transition-colors hover:bg-muted/30" data-stream-row-id="{{ $job->uuid }}">
         <td class="px-4 py-2.5 text-sm text-primary cursor-pointer truncate max-w-[180px]" data-column-id="uuid">
             <a
@@ -68,3 +77,4 @@
         </td>
     </tr>
 @endforelse
+@endif

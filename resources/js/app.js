@@ -3,17 +3,17 @@ import './components/resizable-table';
 import * as echarts from 'echarts';
 import * as Turbo from '@hotwired/turbo';
 import { horizonJobsPage, horizonJobDetail, horizonJobRowRetry, initJsonTrees } from './horizon/jobs';
-import { horizonAlertsList, horizonAlertDetail } from './horizon/alerts';
-import { horizonMetricsPage } from './horizon/metrics';
+import { horizonAlertsList, horizonAlertDetail, renderAlertDetailCharts } from './horizon/alerts';
+import { horizonMetricsPage, renderMetricsCharts } from './horizon/metrics';
 import { initTurboStream } from './lib/sse';
 import { createHttpHelpers } from './lib/http';
 import { formatQueueWaitElements } from './lib/datetime-format';
 import { getTurboStreamTargetElement, renderTurboStreamWithGuards } from './lib/stream-guard';
 import { mountToaster } from './components/toaster';
 import { registerInputDatePicker } from './components/input-date-picker';
+import { initTheme } from './components/theme';
 import Alpine from 'alpinejs';
 import moment from 'moment';
-import { initTheme } from './components/theme';
 
 window.Turbo = Turbo;
 window.echarts = echarts;
@@ -63,7 +63,7 @@ onDocumentReady(function () {
 document.addEventListener('turbo:before-stream-render', function (e) {
     var original = e.detail.render;
     e.detail.render = function (streamElement) {
-        if (!streamElement || !streamElement.getAttribute) return;
+        if (!streamElement || !streamElement.getAttribute || (typeof document !== 'undefined' && document.visibilityState !== 'visible')) return;
         var outcome = renderTurboStreamWithGuards(streamElement, original);
         if (outcome === 'skipped') {
             return;
@@ -79,6 +79,11 @@ document.addEventListener('turbo:before-stream-render', function (e) {
                 }
             }
             initJsonTrees();
+            document.querySelectorAll('.motion-safe\\:animate-pulse').forEach(function (el) {
+                el.classList.remove('motion-safe:animate-pulse');
+            });
+            renderMetricsCharts();
+            renderAlertDetailCharts();
         });
     };
 });

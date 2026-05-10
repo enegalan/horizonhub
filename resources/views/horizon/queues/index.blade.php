@@ -39,7 +39,10 @@
                         <th class="table-header px-4 py-2.5" data-column-id="job_count">Pending Jobs</th>
                     </tr>
                 </x-slot:head>
-                @include('horizon.queues.partials.queue-tbody', ['queues' => $queues])
+                @include('horizon.queues.partials.queue-tbody', [
+                    'queues' => $queues,
+                    'defer' => $defer ?? false,
+                ])
             </x-table>
         </div>
     </div>

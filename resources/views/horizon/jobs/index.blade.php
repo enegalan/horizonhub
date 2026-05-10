@@ -55,6 +55,7 @@
             'pageService' => null,
             'columnIds' => 'uuid,service,queue,job,attempts,queued_at,delayed_until,processed,failed_at,runtime,actions',
             'resizablePrefix' => 'horizon-job-list',
+            'defer' => $defer ?? false,
         ])
         {{-- Retry jobs modal --}}
         <template x-if="retryModalMounted">

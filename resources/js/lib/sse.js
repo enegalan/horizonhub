@@ -8,6 +8,10 @@ export function isHotReloadEnabled() {
     return localStorage.getItem('horizonhub_hotreload') !== 'false';
 }
 
+/**
+ * @type {number|null}
+ */
+var _reconnectDebounceTimer = null;
 
 /**
  * Initialize the Turbo Stream SSE connection.
@@ -15,26 +19,19 @@ export function isHotReloadEnabled() {
  */
 export function initTurboStream() {
     window.addEventListener('horizonhub-hotreload-changed', onHotReloadChanged);
-    document.addEventListener('visibilitychange', onVisibilityChange);
 
-    window.__horizonHubRefreshStreamClose = closeStream;
     window.__horizonHubRefreshStreamReconnect = function () {
-        closeStream();
-        if (isHotReloadEnabled()) {
-            openStream();
-        }
+        scheduleStreamReconnect();
     };
 
     document.addEventListener('turbo:before-visit', function () {
         closeStream();
     });
     document.addEventListener('turbo:load', function () {
-        if (typeof window.__horizonHubRefreshStreamReconnect === 'function') {
-            window.__horizonHubRefreshStreamReconnect();
-        }
+        scheduleStreamReconnect();
     });
 
-    openStream();
+    scheduleStreamReconnect();
 }
 
 /**
@@ -53,11 +50,6 @@ var SSE_BACKOFF_MAX_MS = 30000;
 var SSE_BACKOFF_MULTIPLIER = 2;
 
 /**
- * @type {number}
- */
-var VISIBILITY_RECONNECT_DELAY_MS = 200;
-
-/**
  * @type {EventSource|null}
  */
 var _eventSource = null;
@@ -68,9 +60,14 @@ var _eventSource = null;
 var _reconnectTimeout = null;
 
 /**
+ * @type {number|null}
+ */
+var _oneShotSafetyTimer = null;
+
+/**
  * @type {number}
  */
-var _maxReconnectAttempts = 2;
+var _maxReconnectAttempts = 12;
 
 /**
  * @type {number}
@@ -81,11 +78,6 @@ var _reconnectAttempts = 0;
  * @type {number}
  */
 var _backoffMs = SSE_BACKOFF_INITIAL_MS;
-
-/**
- * @type {number|null}
- */
-var _visibilityTimeout = null;
 
 /**
  * Build the SSE URL for the current page path and query params.
@@ -112,6 +104,10 @@ function closeStream() {
         clearTimeout(_reconnectTimeout);
         _reconnectTimeout = null;
     }
+    if (_oneShotSafetyTimer) {
+        clearTimeout(_oneShotSafetyTimer);
+        _oneShotSafetyTimer = null;
+    }
     if (_eventSource) {
         disconnectStreamSource(_eventSource);
         _eventSource.close();
@@ -120,12 +116,29 @@ function closeStream() {
 }
 
 /**
+ * Debounce reconnect so turbo:load + init do not open duplicate SSE sockets.
+ * @returns {void}
+ */
+function scheduleStreamReconnect() {
+    if (_reconnectDebounceTimer) {
+        clearTimeout(_reconnectDebounceTimer);
+    }
+    _reconnectDebounceTimer = window.setTimeout(function () {
+        _reconnectDebounceTimer = null;
+        closeStream();
+        if (isHotReloadEnabled()) {
+            openStream();
+        } else {
+            openStreamOneShot();
+        }
+    }, 50);
+}
+
+/**
  * Open an SSE connection and register it with Turbo for automatic stream processing.
  * @returns {void}
  */
 function openStream() {
-    if (!isHotReloadEnabled()) return;
-    closeStream();
     var url = buildStreamUrl();
     if (!url) return;
     _eventSource = new EventSource(url);
@@ -137,7 +150,7 @@ function openStream() {
         if (_reconnectAttempts >= _maxReconnectAttempts) {
             return;
         }
-        _reconnectTimeout = setTimeout(function () {
+        _reconnectTimeout = window.setTimeout(function () {
             openStream();
             if (_backoffMs < SSE_BACKOFF_MAX_MS) _backoffMs *= SSE_BACKOFF_MULTIPLIER;
         }, _backoffMs);
@@ -150,37 +163,43 @@ function openStream() {
 }
 
 /**
+ * One SSE connection: apply the first turbo-stream payload, then close (hot reload off).
+ * @returns {void}
+ */
+function openStreamOneShot() {
+    var url = buildStreamUrl();
+    if (!url) return;
+
+    var finished = false;
+
+    function cleanupOneShot() {
+        if (finished) return;
+        finished = true;
+        closeStream();
+    }
+
+    _eventSource = new EventSource(url);
+    connectStreamSource(_eventSource);
+
+    _eventSource.onmessage = function () {
+        cleanupOneShot();
+    };
+
+    _eventSource.onerror = function () {
+        cleanupOneShot();
+    };
+
+    _oneShotSafetyTimer = window.setTimeout(cleanupOneShot, SSE_BACKOFF_MAX_MS);
+}
+
+/**
  * Handle hot-reload toggle from sidebar switch.
  * @param {CustomEvent} e
  * @returns {void}
  */
 function onHotReloadChanged(e) {
+    closeStream();
     if (e.detail && e.detail.enabled === true) {
         openStream();
-    } else {
-        closeStream();
-    }
-}
-
-/**
- * Pause/resume stream based on tab visibility.
- * @returns {void}
- */
-function onVisibilityChange() {
-    if (typeof document === 'undefined') return;
-    if (document.visibilityState === 'hidden') {
-        closeStream();
-        if (_visibilityTimeout) {
-            clearTimeout(_visibilityTimeout);
-            _visibilityTimeout = null;
-        }
-    } else if (document.visibilityState === 'visible') {
-        if (_visibilityTimeout) return;
-        _visibilityTimeout = setTimeout(function () {
-            _visibilityTimeout = null;
-            if (typeof document !== 'undefined' && document.visibilityState === 'visible' && isHotReloadEnabled()) {
-                openStream();
-            }
-        }, VISIBILITY_RECONNECT_DELAY_MS);
     }
 }

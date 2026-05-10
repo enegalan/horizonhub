@@ -5,24 +5,10 @@ namespace App\Http\Controllers\Horizon;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
-use App\Services\Horizon\MetricsDashboardDataService;
 use Illuminate\Contracts\View\View;
 
 class MetricsController extends Controller
 {
-    /**
-     * The metrics dashboard data service.
-     */
-    private MetricsDashboardDataService $metricsDashboard;
-
-    /**
-     * The constructor.
-     */
-    public function __construct(MetricsDashboardDataService $metricsDashboard)
-    {
-        $this->metricsDashboard = $metricsDashboard;
-    }
-
     /**
      * Show the metrics dashboard.
      */
@@ -31,10 +17,12 @@ class MetricsController extends Controller
         $services = Service::orderBy('name')->get(['id', 'name']);
         $serviceIds = ServiceRequest::existingIdsFromRequest($request, ['service_id']);
 
-        return \view('horizon.metrics.index', \array_merge($this->metricsDashboard->build($serviceIds), [
+        return \view('horizon.metrics.index', [
             'services' => $services,
             'serviceIds' => $serviceIds,
             'header' => 'Metrics',
-        ]));
+            'defer' => true,
+            'metricsChartData' => [],
+        ]);
     }
 }

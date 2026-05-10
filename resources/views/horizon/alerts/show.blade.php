@@ -14,7 +14,10 @@
         </p>
 
         <div id="alert-detail-stats" data-alert-detail-stats>
-            @include('horizon.alerts.partials.detail-stats', ['chartData' => $chartData])
+            @include('horizon.alerts.partials.detail-stats', [
+                'chartData' => $chartData ?? [],
+                'defer' => $defer ?? false,
+            ])
         </div>
 
         @if(!empty($ruleConfig))
@@ -99,15 +102,30 @@
         <div class="grid gap-4 mb-6" data-alert-detail-charts>
             <div class="card p-4">
                 <h3 class="text-section-title text-foreground mb-2">Sends in the last 24h (by hour)</h3>
-                <div id="alert-detail-chart-24h" class="h-56"></div>
+                <div class="relative h-56">
+                    <div id="alert-detail-loader-chart-24h" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ empty($defer) ? 'display:none;' : '' }}">
+                        <x-loader class="size-8 text-muted-foreground" />
+                    </div>
+                    <div id="alert-detail-chart-24h" class="h-56"></div>
+                </div>
             </div>
             <div class="card p-4">
                 <h3 class="text-section-title text-foreground mb-2">Sends in the last 7 days (by day)</h3>
-                <div id="alert-detail-chart-7d" class="h-56"></div>
+                <div class="relative h-56">
+                    <div id="alert-detail-loader-chart-7d" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ empty($defer) ? 'display:none;' : '' }}">
+                        <x-loader class="size-8 text-muted-foreground" />
+                    </div>
+                    <div id="alert-detail-chart-7d" class="h-56"></div>
+                </div>
             </div>
             <div class="card p-4">
                 <h3 class="text-section-title text-foreground mb-2">Sends in the last 30 days (by day)</h3>
-                <div id="alert-detail-chart-30d" class="h-56"></div>
+                <div class="relative h-56">
+                    <div id="alert-detail-loader-chart-30d" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ empty($defer) ? 'display:none;' : '' }}">
+                        <x-loader class="size-8 text-muted-foreground" />
+                    </div>
+                    <div id="alert-detail-chart-30d" class="h-56"></div>
+                </div>
             </div>
         </div>
 

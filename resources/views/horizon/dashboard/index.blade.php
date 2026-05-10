@@ -9,30 +9,49 @@
             <div class="card p-4">
                 <h3 class="label-muted">Jobs past minute</h3>
                 <div class="mt-1 flex items-center gap-2 min-h-[2.5rem]">
-                    <span id="dashboard-loader-jobs-minute" style="display:none;"><x-loader class="size-5 shrink-0 text-muted-foreground" /></span>
-                    <span id="dashboard-value-jobs-minute" class="text-2xl font-semibold text-foreground">{{ $jobsPastMinute ?? '—' }}</span>
+                    <span id="dashboard-value-jobs-minute" class="text-2xl font-semibold text-foreground">
+                        @if(!empty($defer))
+                            <x-skeleton.text class="h-8 w-16" />
+                        @else
+                            {{ $jobsPastMinute ?? '—' }}
+                        @endif
+                    </span>
                 </div>
             </div>
             <div class="card p-4">
                 <h3 class="label-muted">Jobs past hour</h3>
                 <div class="mt-1 flex items-center gap-2 min-h-[2.5rem]">
-                    <span id="dashboard-loader-jobs-hour" style="display:none;"><x-loader class="size-5 shrink-0 text-muted-foreground" /></span>
-                    <span id="dashboard-value-jobs-hour" class="text-2xl font-semibold text-foreground">{{ $jobsPastHour ?? '—' }}</span>
+                    <span id="dashboard-value-jobs-hour" class="text-2xl font-semibold text-foreground">
+                        @if(!empty($defer))
+                            <x-skeleton.text class="h-8 w-16" />
+                        @else
+                            {{ $jobsPastHour ?? '—' }}
+                        @endif
+                    </span>
                 </div>
             </div>
             <div class="card p-4">
                 <h3 class="label-muted">Failed jobs (past 7 days)</h3>
                 <div class="mt-1 flex items-center gap-2 min-h-[2.5rem]">
-                    <span id="dashboard-loader-failed-seven" style="display:none;"><x-loader class="size-5 shrink-0 text-muted-foreground" /></span>
-                    <span id="dashboard-value-failed-seven" class="text-2xl font-semibold text-foreground">{{ $failedPastSevenDays ?? '—' }}</span>
+                    <span id="dashboard-value-failed-seven" class="text-2xl font-semibold text-foreground">
+                        @if(!empty($defer))
+                            <x-skeleton.text class="h-8 w-16" />
+                        @else
+                            {{ $failedPastSevenDays ?? '—' }}
+                        @endif
+                    </span>
                 </div>
             </div>
             <div class="card p-4">
                 <h3 class="label-muted">Services online</h3>
                 <div class="mt-1 flex items-center gap-2 min-h-[2.5rem]">
-                    <span id="dashboard-loader-services-online" style="display:none;"><x-loader class="size-5 shrink-0 text-muted-foreground" /></span>
                     <div id="dashboard-services-kpi-inner" class="flex items-center gap-2 min-h-[2.5rem]">
-                        @include('horizon.dashboard.partials.kpi-services-online-inner')
+                        @if(!empty($defer))
+                            <x-skeleton.text class="size-4 shrink-0 rounded-full" />
+                            <x-skeleton.text class="h-8 w-20" />
+                        @else
+                            @include('horizon.dashboard.partials.kpi-services-online-inner')
+                        @endif
                     </div>
                 </div>
             </div>
@@ -44,7 +63,19 @@
                 <a href="{{ route('horizon.services.index') }}" class="link text-sm" data-turbo-action="replace">Manage services</a>
             </div>
             <div id="dashboard-service-health-grid" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                @include('horizon.dashboard.partials.service-health-grid', ['services' => $services ?? collect()])
+                @if(!empty($defer))
+                    @for ($i = 0; $i < 6; $i++)
+                        <div class="card block animate-pulse p-3">
+                            <div class="h-4 max-w-[220px] rounded-md bg-muted"></div>
+                            <div class="mt-3 space-y-2">
+                                <div class="h-3 w-1/2 rounded-md bg-muted"></div>
+                                <div class="h-3 w-2/3 rounded-md bg-muted"></div>
+                            </div>
+                        </div>
+                    @endfor
+                @else
+                    @include('horizon.dashboard.partials.service-health-grid', ['services' => $services ?? collect()])
+                @endif
             </div>
         </div>
 
@@ -69,7 +100,11 @@
                             <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="sent">Sent</th>
                         </tr>
                     </x-slot:head>
-                    @include('horizon.dashboard.partials.recent-alerts-tbody', ['recentAlertLogs' => $recentAlertLogs ?? collect()])
+                    @if(!empty($defer))
+                        <x-skeleton.table-rows rows="5" columns="4" />
+                    @else
+                        @include('horizon.dashboard.partials.recent-alerts-tbody', ['recentAlertLogs' => $recentAlertLogs ?? collect()])
+                    @endif
                 </x-table>
             </div>
 
@@ -94,7 +129,11 @@
                             <th class="table-header px-4 py-2.5" data-column-id="wait">Wait</th>
                         </tr>
                     </x-slot:head>
-                    @include('horizon.dashboard.partials.workload-summary-tbody', ['workloadRows' => $workloadRows ?? []])
+                    @if(!empty($defer))
+                        <x-skeleton.table-rows rows="5" columns="5" />
+                    @else
+                        @include('horizon.dashboard.partials.workload-summary-tbody', ['workloadRows' => $workloadRows ?? []])
+                    @endif
                 </x-table>
             </div>
         </div>

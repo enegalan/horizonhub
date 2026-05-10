@@ -1,6 +1,6 @@
 @props(['paginator' => null, 'onEachSide' => 2])
 
-@if (isset($paginator))
+@if (isset($paginator) && $paginator instanceof \Illuminate\Pagination\LengthAwarePaginator)
     @php
         $total = $paginator->total();
         $firstItem = $paginator->firstItem();

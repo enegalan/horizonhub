@@ -38,6 +38,7 @@
         'resizableKey' => "$resizablePrefix-processing",
         'bodyKey' => "$resizablePrefix-processing",
         'columnIds' => $columnIds,
+        'defer' => $defer,
     ])
     @include('horizon.jobs.partials.job-list-one-collapsible', [
         'kind' => 'processed',
@@ -47,6 +48,7 @@
         'resizableKey' => "$resizablePrefix-processed",
         'bodyKey' => "$resizablePrefix-processed",
         'columnIds' => $columnIds,
+        'defer' => $defer,
     ])
     @include('horizon.jobs.partials.job-list-one-collapsible', [
         'kind' => 'failed',
@@ -56,5 +58,6 @@
         'resizableKey' => "$resizablePrefix-failed",
         'bodyKey' => "$resizablePrefix-failed",
         'columnIds' => $columnIds,
+        'defer' => $defer,
     ])
 </div>

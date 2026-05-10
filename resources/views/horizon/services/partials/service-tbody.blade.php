@@ -18,13 +18,15 @@
                 <span class="badge-danger">offline</span>
             @endif
         </td>
-        <td class="px-4 py-2.5" data-column-id="horizon_status">
-            @if(isset($service->horizon_status) && $service->horizon_status)
+        <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="horizon_status">
+            @if(isset($service->horizon_status) && $service->horizon_status !== '')
                 @php
                     $hs = \strtolower((string) $service->horizon_status);
                     if ($hs === 'active' || $hs === 'running') {
                         $badgeClass = 'badge-success';
                     } elseif ($hs === 'inactive') {
+                        $badgeClass = 'badge-danger';
+                    } elseif ($hs === 'paused') {
                         $badgeClass = 'badge-warning';
                     } else {
                         $badgeClass = 'badge-muted';

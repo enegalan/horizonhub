@@ -16,7 +16,7 @@ export function horizonMetricsPage() {
             if (typeof window === "undefined" || typeof document === "undefined") return;
 
             // Initial hydration to initially show metrics charts and format elements
-            initMetricsCharts();
+            renderMetricsCharts();
 
             var filterEl = document.getElementById("metrics-service-filter");
             if (filterEl) {
@@ -36,6 +36,31 @@ export function horizonMetricsPage() {
             }
         },
     };
+}
+
+/**
+ * Render the metrics charts.
+ * @returns {void}
+ */
+export function renderMetricsCharts() {
+    initMetricsCharts();
+    var data = parseJsonFromElement('metrics-chart-data');
+    var loaderJobs = document.getElementById('metrics-loader-jobs-volume-chart');
+    if (loaderJobs) {
+        loaderJobs.style.display = !(data && data.jobsVolumeLast24h && data.jobsVolumeLast24h.xAxis && data.jobsVolumeLast24h.xAxis.length) ? 'flex' : 'none';
+    }
+    var loaderFailure = document.getElementById('metrics-loader-failure-rate-chart');
+    if (loaderFailure) {
+        loaderFailure.style.display = !(data && data.failureRateOverTime && data.failureRateOverTime.xAxis && data.failureRateOverTime.xAxis.length) ? 'flex' : 'none';
+    }
+    var loaderRuntime = document.getElementById('metrics-loader-runtime-chart');
+    if (loaderRuntime) {
+        loaderRuntime.style.display = (data && data.jobRuntimesLast24h && data.jobRuntimesLast24h.points ? data.jobRuntimesLast24h.points : []).length === 0 ? 'flex' : 'none';
+    }
+    var loaderService = document.getElementById('metrics-loader-service-chart');
+    if (loaderService) {
+        loaderService.style.display = !(data && data.waitByQueue && data.waitByQueue.queues && data.waitByQueue.queues.length) ? 'flex' : 'none';
+    }
 }
 
 /**

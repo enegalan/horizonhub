@@ -5,6 +5,7 @@
     /** @var string $resizableKey */
     /** @var string $bodyKey */
     /** @var string $columnIds */
+    /** @var bool $defer */
     /** @var string $kind processing|processed|failed */
     $sectionKey = $kind;
     $titles = [
@@ -39,7 +40,7 @@
     >
         <x-heroicon-o-chevron-down class="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
         <span>{{ $titles[$kind] }}</span>
-        <span id="job-count-{{ $bodyKey }}" class="{{ $badgeClasses[$kind] }}">{{ $paginator->total() }}</span>
+        <span id="job-count-{{ $bodyKey }}" class="{{ $badgeClasses[$kind] }}">{{ isset($paginator) && $paginator instanceof \Illuminate\Pagination\LengthAwarePaginator ? $paginator->total() : 0 }}</span>
     </summary>
     <div class="pt-2">
         <x-table
@@ -76,6 +77,7 @@
                 'paginator' => $paginator,
                 'showServiceColumn' => $showServiceColumn,
                 'pageService' => $pageService,
+                'defer' => $defer,
             ])
         </x-table>
         <div id="job-pagination-{{ $bodyKey }}" class="px-4 py-2 mt-2">

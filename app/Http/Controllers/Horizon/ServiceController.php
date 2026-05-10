@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Horizon;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
-use App\Services\Horizon\ServiceShowPageDataService;
 use App\Services\Horizon\ServiceStatsAttachmentService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -39,7 +38,7 @@ class ServiceController extends Controller
     /**
      * Display the list of services and registration form.
      */
-    public function index(HorizonApiProxyService $horizonApi, ServiceStatsAttachmentService $serviceStats): View
+    public function index(ServiceStatsAttachmentService $serviceStats, HorizonApiProxyService $horizonApi): View
     {
         $services = Service::query()
             ->orderBy('name')
@@ -56,14 +55,32 @@ class ServiceController extends Controller
     /**
      * Show the service dashboard.
      */
-    public function show(Request $request, Service $service, HorizonApiProxyService $horizonApi, ServiceShowPageDataService $serviceShowPageData): View
+    public function show(Request $request, Service $service): View
     {
-        $data = $serviceShowPageData->build($service, $request, $horizonApi);
+        $search = (string) $request->query('search', '');
 
-        return \view('horizon.services.show', \array_merge($data, [
+        return \view('horizon.services.show', [
             'service' => $service,
             'header' => $service->name,
-        ]));
+            'jobsPastMinute' => 0,
+            'jobsPastHour' => 0,
+            'failedPastSevenDays' => 0,
+            'totalProcesses' => null,
+            'maxWaitTimeSeconds' => null,
+            'queueWithMaxRuntime' => null,
+            'queueWithMaxThroughput' => null,
+            'horizonStatus' => null,
+            'supervisorGroups' => \collect(),
+            'supervisors' => \collect(),
+            'workloadQueues' => \collect(),
+            'jobsProcessing' => [],
+            'jobsProcessed' => [],
+            'jobsFailed' => [],
+            'filters' => [
+                'search' => $search,
+            ],
+            'defer' => true,
+        ]);
     }
 
     /**

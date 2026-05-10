@@ -104,14 +104,10 @@ class AlertController extends Controller
      */
     public function index(): View
     {
-        $alerts = Alert::query()
-            ->withCount('alertLogs')
-            ->withMax('alertLogs', 'sent_at')
-            ->orderByDesc('created_at')
-            ->get();
-
         return \view('horizon.alerts.index', [
-            'alerts' => $alerts,
+            'alerts' => collect(),
+            'defer' => true,
+            'evaluateAllAlertsVisible' => Alert::query()->where('enabled', true)->exists(),
             'header' => 'Alerts',
         ]);
     }
@@ -157,12 +153,6 @@ class AlertController extends Controller
 
         $logs = $logsQuery->paginate($perPage)->withQueryString();
 
-        $chartData = [
-            'chart24h' => $this->alertChartData->buildChart($alert, 1),
-            'chart7d' => $this->alertChartData->buildChart($alert, 7),
-            'chart30d' => $this->alertChartData->buildChart($alert, 30),
-        ];
-
         $alertName = $alert->name ?: "Alert #{$alert->id}";
 
         $selectedLogId = $request->query('log');
@@ -188,7 +178,8 @@ class AlertController extends Controller
             'alert' => $alert,
             'alertName' => $alertName,
             'logs' => $logs,
-            'chartData' => $chartData,
+            'chartData' => new \stdClass,
+            'defer' => true,
             'services' => $services,
             'ruleConfig' => $ruleConfig,
             'selectedLog' => $selectedLog,

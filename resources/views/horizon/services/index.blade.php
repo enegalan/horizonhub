@@ -75,7 +75,7 @@
                         <th class="table-header px-4 py-2.5 w-24" data-column-id="actions">Actions</th>
                     </tr>
                 </x-slot:head>
-                        @include('horizon.services.partials.service-tbody', ['services' => $services])
+                @include('horizon.services.partials.service-tbody', ['services' => $services])
             </x-table>
         </div>
 
