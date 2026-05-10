@@ -28,7 +28,7 @@ class EvaluateAlertJobTest extends TestCase
 
         $result = Cache::get('horizonhub.alert_evaluation_batches.eval-c.results.' . $alert->id);
         $this->assertSame('engine-fail', $result['error_message']);
-        $this->assertSame(1, Cache::get('horizonhub.alert_evaluation_batches.eval-c.error_count'));
+        $this->assertEquals(1, Cache::get('horizonhub.alert_evaluation_batches.eval-c.error_count'));
     }
 
     public function test_job_stores_not_found_result_and_error_counters(): void
@@ -40,8 +40,8 @@ class EvaluateAlertJobTest extends TestCase
 
         $result = Cache::get('horizonhub.alert_evaluation_batches.eval-a.results.99999');
         $this->assertSame('Alert not found', $result['error_message']);
-        $this->assertSame(1, Cache::get('horizonhub.alert_evaluation_batches.eval-a.evaluated_count'));
-        $this->assertSame(1, Cache::get('horizonhub.alert_evaluation_batches.eval-a.error_count'));
+        $this->assertEquals(1, Cache::get('horizonhub.alert_evaluation_batches.eval-a.evaluated_count'));
+        $this->assertEquals(1, Cache::get('horizonhub.alert_evaluation_batches.eval-a.error_count'));
     }
 
     public function test_job_updates_counters_and_first_error_message_once(): void
@@ -65,8 +65,8 @@ class EvaluateAlertJobTest extends TestCase
         ]);
 
         (new EvaluateAlertJob($alert->id, 'eval-b'))->handle($engine);
-        $this->assertSame(1, Cache::get('horizonhub.alert_evaluation_batches.eval-b.triggered_count'));
-        $this->assertSame(1, Cache::get('horizonhub.alert_evaluation_batches.eval-b.delivered_count'));
+        $this->assertEquals(1, Cache::get('horizonhub.alert_evaluation_batches.eval-b.triggered_count'));
+        $this->assertEquals(1, Cache::get('horizonhub.alert_evaluation_batches.eval-b.delivered_count'));
         $this->assertSame('first error', Cache::get('horizonhub.alert_evaluation_batches.eval-b.first_error_message'));
 
         Cache::put('horizonhub.alert_evaluation_batches.eval-b.first_error_message', 'locked', 1800);

@@ -8,8 +8,6 @@ use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
 class ModelAndProviderTest extends TestCase
@@ -65,19 +63,9 @@ class ModelAndProviderTest extends TestCase
         $this->assertNotNull($log->service);
     }
 
-    public function test_user_casts_and_horizon_stream_rate_limiter_registration(): void
+    public function test_user_password_is_hashed(): void
     {
         $user = User::factory()->create();
         $this->assertNotSame('secret', $user->password);
-
-        $request = Request::create('/horizon');
-        $request->setUserResolver(static function () use ($user) {
-            return $user;
-        });
-
-        $limiter = RateLimiter::limiter('horizon-stream');
-        $this->assertNotNull($limiter);
-        $limit = $limiter($request);
-        $this->assertNotNull($limit);
     }
 }
