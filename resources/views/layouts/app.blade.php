@@ -54,7 +54,7 @@
             <div class="flex min-h-0 min-w-0 flex-1 flex-col pt-12 lg:pt-0">
             @if (isset($header))
                 <header class="shrink-0 border-b border-border bg-card">
-                    <div class="mx-8 flex h-12 max-w-6xl items-center justify-between gap-3">
+                    <div class="mx-8 flex h-12 items-center justify-between gap-3">
                         <h1 class="min-w-0 truncate text-page-title text-foreground">{{ $header }}</h1>
                         @include('partials.header-toolbar')
                     </div>
