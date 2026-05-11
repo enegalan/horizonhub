@@ -7,7 +7,6 @@ use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 use App\Services\Notifiers\EmailNotifier;
 use App\Services\Notifiers\SlackNotifier;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 
 class AlertNotificationDispatcherService
@@ -42,7 +41,7 @@ class AlertNotificationDispatcherService
     {
         $providers = $alert->notificationProviders;
 
-        if (! ($providers instanceof Collection) || $providers->isEmpty()) {
+        if ($providers->isEmpty()) {
             return;
         }
 

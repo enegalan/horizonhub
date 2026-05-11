@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\Service;
-use App\Services\Alerts\AlertChartDataService;
 use App\Services\Alerts\AlertEngine;
 use App\Services\Alerts\AlertEvaluationBatchService;
 use App\Services\Alerts\AlertUpsertService;
@@ -18,11 +17,6 @@ use Illuminate\Http\Request;
 
 class AlertController extends Controller
 {
-    /**
-     * The alert chart data service.
-     */
-    private AlertChartDataService $alertChartData;
-
     /**
      * The alert upsert service.
      */
@@ -36,10 +30,9 @@ class AlertController extends Controller
     /**
      * The constructor.
      */
-    public function __construct(AlertChartDataService $alertChartData, AlertEvaluationBatchService $evaluationBatch, AlertUpsertService $alertUpsert)
+    public function __construct(AlertEvaluationBatchService $evaluationBatch, AlertUpsertService $alertUpsert)
     {
         $this->alertUpsert = $alertUpsert;
-        $this->alertChartData = $alertChartData;
         $this->evaluationBatch = $evaluationBatch;
     }
 

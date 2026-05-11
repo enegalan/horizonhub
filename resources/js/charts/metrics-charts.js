@@ -125,7 +125,7 @@ function getLegendSelectedFromChart(chart) {
             }
         }
         return null;
-    } catch (e) {
+    } catch (_e) {
         return null;
     }
 }

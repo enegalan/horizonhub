@@ -69,7 +69,7 @@ class HorizonMetricsService
      *
      * @param list<int> $serviceFilterIds
      *
-     * @return Collection<int, object{service_id: int, queue: string, job_count: int, service: Service|null}>
+     * @return Collection<int, \stdClass>
      */
     public function buildQueuesCollectionForServiceFilter(array $serviceFilterIds): Collection
     {
@@ -80,7 +80,7 @@ class HorizonMetricsService
             $workloadRows = \array_values(\array_filter(
                 $workloadRows,
                 static function (array $row) use ($allowedServiceIds): bool {
-                    return isset($allowedServiceIds[(int) ($row['service_id'] ?? 0)]);
+                    return isset($allowedServiceIds[(int) $row['service_id']]);
                 },
             ));
         }
@@ -94,21 +94,22 @@ class HorizonMetricsService
             ? \collect()
             : Service::whereIn('id', $serviceIds)->get()->keyBy('id');
 
-        return \collect($workloadRows)
+        $queues = \collect($workloadRows)
             ->map(function (array $row) use ($servicesById) {
-                $queueRaw = $row['queue'] ?? '';
-                $normalizedQueue = QueueNameNormalizer::normalize($queueRaw);
-                $queueLabel = $normalizedQueue ?? $queueRaw;
+                /** @var Service|null $service */
+                $service = $servicesById->get((int) $row['service_id']);
+                $queueRow = new \stdClass;
+                $queueRow->service_id = (int) $row['service_id'];
+                $queueRow->queue = QueueNameNormalizer::normalize($row['queue']) ?? $row['queue'];
+                $queueRow->job_count = (int) $row['jobs'];
+                $queueRow->service = $service;
 
-                return (object) [
-                    'service_id' => (int) $row['service_id'],
-                    'queue' => $queueLabel,
-                    'job_count' => (int) $row['jobs'],
-                    'service' => $servicesById->get((int) $row['service_id']),
-                ];
+                return $queueRow;
             })
             ->sortBy(fn ($r) => $r->queue)
             ->values();
+
+        return $queues;
     }
 
     /**
@@ -160,7 +161,7 @@ class HorizonMetricsService
     /**
      * Get the number of jobs processed in the past hour by service.
      *
-     * @return array<int, array{service_id: int, service: string, jobs: int}>
+     * @return array{services: list<string>, jobsPastHour: list<int>}
      */
     public function getJobsPastHourByService(): array
     {
@@ -188,7 +189,7 @@ class HorizonMetricsService
     /**
      * Get the processed and failed jobs by queue.
      *
-     * @return array{queue: string, processed: int, failed: int}
+     * @return array{queues: list<string>, processed: list<int>, failed: list<int>}
      */
     public function getProcessedFailedByQueue(array $serviceScope = []): array
     {
@@ -198,7 +199,7 @@ class HorizonMetricsService
     /**
      * Get the supervisors data for a single service.
      *
-     * @return array<int, array{name: string, status: string, processes: int, last_heartbeat: string, options: array<string, mixed>}>
+     * @return array<int, array{service_id: int, service: string, name: string, status: string, jobs: int, processes: int|null}>
      */
     public function getSupervisorsData(array $serviceScope = []): array
     {
@@ -254,9 +255,6 @@ class HorizonMetricsService
         $waits = [];
 
         foreach ($workloadRows as $row) {
-            if (! \is_array($row)) {
-                continue;
-            }
             $queue = $row['queue'] ?? null;
 
             if (! \is_string($queue) || $queue === '') {

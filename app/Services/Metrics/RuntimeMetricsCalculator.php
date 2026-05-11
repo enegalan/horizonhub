@@ -33,10 +33,6 @@ class RuntimeMetricsCalculator extends HorizonMetricsComputation
             $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp);
 
             foreach ($completedJobs as $job) {
-                if (! \is_array($job)) {
-                    continue;
-                }
-
                 $queuedAt = $job['reserved_at'] ?? null;
                 $completedAt = $job['completed_at'] ?? $job['processed_at'] ?? null;
 
@@ -63,10 +59,6 @@ class RuntimeMetricsCalculator extends HorizonMetricsComputation
             $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp);
 
             foreach ($failedJobs as $job) {
-                if (! \is_array($job)) {
-                    continue;
-                }
-
                 $queuedAt = $job['reserved_at'] ?? null;
                 $failedAt = $job['failed_at'] ?? null;
 

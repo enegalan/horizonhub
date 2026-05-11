@@ -1,5 +1,6 @@
 import hljs from 'highlight.js/lib/core';
 import jsonLanguage from 'highlight.js/lib/languages/json';
+import { parseJson } from './parse.js';
 
 hljs.registerLanguage('json', jsonLanguage);
 
@@ -114,7 +115,7 @@ function parseJsonCandidateLoop(initialCandidate, onParsedValue, onCycle, onPars
                 continue;
             }
             return next;
-        } catch (error) {
+        } catch (_error) {
             return onParseError(candidate);
         }
     }
@@ -204,7 +205,7 @@ function highlightJsonValue(value) {
     var jsonValue;
     try {
         jsonValue = JSON.stringify(value);
-    } catch (error) {
+    } catch (_error) {
         jsonValue = JSON.stringify(String(value));
     }
 
@@ -400,14 +401,14 @@ function createJsonTreeStateStore(storageKey) {
                 if (typeof p === 'string' && p) cache.add(p);
             });
         }
-    } catch (e) {
+    } catch (_e) {
     }
 
     function persist() {
         try {
             if (!window.localStorage) return;
             window.localStorage.setItem(storageKey, JSON.stringify(Array.from(cache)));
-        } catch (e) {
+        } catch (_e) {
         }
     }
 

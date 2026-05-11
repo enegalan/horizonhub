@@ -192,7 +192,7 @@ abstract class HorizonMetricsComputation
                 'limit' => $jobsPerRequest,
             ]);
 
-            if (! ($response['success'] ?? false)) {
+            if (! $response['success']) {
                 break;
             }
             $batch = $response['data']['jobs'] ?? [];
@@ -235,7 +235,7 @@ abstract class HorizonMetricsComputation
     /**
      * Get services that can provide Horizon metrics.
      *
-     * @param list<int>|null $serviceScope The service scope. Empty = all services with base_url; non-empty = restrict by id.
+     * @param array<string, mixed> $serviceScope The service scope. Empty = all services with base_url; non-empty = restrict by id.
      * @param bool $orderByName The order by name.
      * @param array<int, string> $selectColumns The select columns.
      *
@@ -280,7 +280,7 @@ abstract class HorizonMetricsComputation
         $mastersResponse = $this->horizonApi->getMasters($service);
         $mastersData = $mastersResponse['data'] ?? null;
 
-        if (! ($mastersResponse['success'] ?? false) || ! \is_array($mastersData)) {
+        if (! $mastersResponse['success'] || ! \is_array($mastersData)) {
             return [];
         }
 

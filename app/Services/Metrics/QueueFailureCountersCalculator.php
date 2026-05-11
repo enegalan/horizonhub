@@ -34,7 +34,7 @@ class QueueFailureCountersCalculator extends HorizonMetricsComputation
             ]);
             $completedData = $completedResponse['data'] ?? null;
 
-            if ($completedResponse['success'] ?? false && \is_array($completedData)) {
+            if ($completedResponse['success'] && \is_array($completedData)) {
                 $jobsPayload = $completedData['jobs'] ?? [];
                 $this->private__aggregateQueueCountsFromJobsPayload($jobsPayload, $sinceTimestamp, 'completed_at', $normalizedProcessed);
             }
@@ -44,7 +44,7 @@ class QueueFailureCountersCalculator extends HorizonMetricsComputation
             ]);
             $failedData = $failedResponse['data'] ?? null;
 
-            if ($failedResponse['success'] ?? false && \is_array($failedData)) {
+            if ($failedResponse['success'] && \is_array($failedData)) {
                 $jobsPayload = $failedData['jobs'] ?? [];
                 $this->private__aggregateQueueCountsFromJobsPayload($jobsPayload, $sinceTimestamp, 'failed_at', $normalizedFailed);
             }

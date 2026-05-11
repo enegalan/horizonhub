@@ -83,9 +83,9 @@ abstract class AbstractAlertNotifier implements AlertNotifier
             }
 
             $enriched[] = [
-                'service_id' => (int) ($event['service_id'] ?? 0),
+                'service_id' => (int) $event['service_id'],
                 'job_uuid' => $jobUuid,
-                'triggered_at' => $event['triggered_at'] ?? '',
+                'triggered_at' => $event['triggered_at'],
                 'job_class' => $jobClass,
                 'queue' => $queue,
                 'failed_at' => $failedAt,
@@ -116,7 +116,7 @@ abstract class AbstractAlertNotifier implements AlertNotifier
             $response = $this->horizonApi->getJob($service, $jobUuid);
             $data = $response['data'] ?? null;
 
-            if (! ($response['success'] ?? false) || ! \is_array($data)) {
+            if (! $response['success'] || ! \is_array($data)) {
                 continue;
             }
             $failedAt = null;

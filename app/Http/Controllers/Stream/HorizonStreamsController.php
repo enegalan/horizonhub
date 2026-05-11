@@ -85,24 +85,24 @@ class HorizonStreamsController extends StreamController
 
     public function alerts(): StreamedResponse
     {
-        return $this->runStream(fn (): ?string => $this->private__buildAlertsStreams());
+        return $this->runStream(fn (): string => $this->private__buildAlertsStreams());
     }
 
     public function alertShow(Alert $alert): StreamedResponse
     {
-        return $this->runStream(fn (): ?string => $this->private__buildAlertShowStreams($alert));
+        return $this->runStream(fn (): string => $this->private__buildAlertShowStreams($alert));
     }
 
     public function dashboard(): StreamedResponse
     {
-        return $this->runStream(fn (): ?string => $this->private__buildDashboardStreams());
+        return $this->runStream(fn (): string => $this->private__buildDashboardStreams());
     }
 
     public function jobs(Request $request): StreamedResponse
     {
         $query = $request->getQueryString() ?? '';
 
-        return $this->runStream(fn (): ?string => $this->private__buildJobsIndexStreams($query));
+        return $this->runStream(fn (): string => $this->private__buildJobsIndexStreams($query));
     }
 
     public function jobShow(Request $request, string $job): StreamedResponse
@@ -116,34 +116,34 @@ class HorizonStreamsController extends StreamController
     {
         $query = $request->getQueryString() ?? '';
 
-        return $this->runStream(fn (): ?string => $this->private__buildMetricsStreams($query));
+        return $this->runStream(fn (): string => $this->private__buildMetricsStreams($query));
     }
 
     public function providerList(): StreamedResponse
     {
-        return $this->runStream(fn (): ?string => $this->private__buildProvidersStreams());
+        return $this->runStream(fn (): string => $this->private__buildProvidersStreams());
     }
 
     public function queues(Request $request): StreamedResponse
     {
         $query = $request->getQueryString() ?? '';
 
-        return $this->runStream(fn (): ?string => $this->private__buildQueuesStreams($query));
+        return $this->runStream(fn (): string => $this->private__buildQueuesStreams($query));
     }
 
     public function serviceList(): StreamedResponse
     {
-        return $this->runStream(fn (): ?string => $this->private__buildServicesStreams());
+        return $this->runStream(fn (): string => $this->private__buildServicesStreams());
     }
 
     public function serviceShow(Request $request, Service $service): StreamedResponse
     {
         $query = $request->getQueryString() ?? '';
 
-        return $this->runStream(fn (): ?string => $this->private__buildServiceShowStreams($service, $query));
+        return $this->runStream(fn (): string => $this->private__buildServiceShowStreams($service, $query));
     }
 
-    private function private__buildAlertShowStreams(Alert $alert): ?string
+    private function private__buildAlertShowStreams(Alert $alert): string
     {
         $chartData = [
             'chart24h' => $this->alertChartData->buildChart($alert, 1),
@@ -168,7 +168,7 @@ class HorizonStreamsController extends StreamController
     //  Alerts index
     // ------------------------------------------------------------------
 
-    private function private__buildAlertsStreams(): ?string
+    private function private__buildAlertsStreams(): string
     {
         $alerts = Alert::query()
             ->withCount('alertLogs')
@@ -185,7 +185,7 @@ class HorizonStreamsController extends StreamController
     //  Dashboard
     // ------------------------------------------------------------------
 
-    private function private__buildDashboardStreams(): ?string
+    private function private__buildDashboardStreams(): string
     {
         $d = $this->dashboardData->build($this->horizonApi);
 
@@ -230,7 +230,7 @@ class HorizonStreamsController extends StreamController
         $response = $this->horizonApi->getJob($service, $routeJobUuid);
         $jobData = [];
 
-        if (($response['success'] ?? false) && isset($response['data']) && \is_array($response['data']) && \count($response['data']) > 0) {
+        if ($response['success'] && isset($response['data']) && $response['data'] !== []) {
             $jobData = $response['data'];
         } else {
             return null;
@@ -274,7 +274,7 @@ class HorizonStreamsController extends StreamController
     //  Jobs index
     // ------------------------------------------------------------------
 
-    private function private__buildJobsIndexStreams(string $query): ?string
+    private function private__buildJobsIndexStreams(string $query): string
     {
         $url = \route('horizon.jobs.index', [], true);
 
@@ -301,7 +301,7 @@ class HorizonStreamsController extends StreamController
     //  Metrics
     // ------------------------------------------------------------------
 
-    private function private__buildMetricsStreams(string $query): ?string
+    private function private__buildMetricsStreams(string $query): string
     {
         $d = $this->metricsDashboard->build($this->private__parseServiceIdsFromQuery($query));
 
@@ -337,7 +337,7 @@ class HorizonStreamsController extends StreamController
     //  Providers index
     // ------------------------------------------------------------------
 
-    private function private__buildProvidersStreams(): ?string
+    private function private__buildProvidersStreams(): string
     {
         $providers = NotificationProvider::query()
             ->orderBy('type')
@@ -353,7 +353,7 @@ class HorizonStreamsController extends StreamController
     //  Queues
     // ------------------------------------------------------------------
 
-    private function private__buildQueuesStreams(string $query): ?string
+    private function private__buildQueuesStreams(string $query): string
     {
         $serviceFilterIds = $this->private__parseServiceIdsFromQuery($query, 'queue_services');
         $queues = $this->metrics->buildQueuesCollectionForServiceFilter($serviceFilterIds);
@@ -367,7 +367,7 @@ class HorizonStreamsController extends StreamController
     //  Service show
     // ------------------------------------------------------------------
 
-    private function private__buildServiceShowStreams(Service $service, string $query): ?string
+    private function private__buildServiceShowStreams(Service $service, string $query): string
     {
         $url = \route('horizon.services.show', ['service' => $service->id], true);
         $queryParams = [];
@@ -419,7 +419,7 @@ class HorizonStreamsController extends StreamController
     //  Services index
     // ------------------------------------------------------------------
 
-    private function private__buildServicesStreams(): ?string
+    private function private__buildServicesStreams(): string
     {
         $services = Service::query()->orderBy('name')->get();
         $this->serviceStats->attachHorizonStats($services, $this->horizonApi);

@@ -49,7 +49,7 @@ final class HorizonOfflineAlertRuleStrategy implements AlertRuleStrategyInterfac
         $response = $this->horizonApi->getStats($service);
         $data = $response['data'] ?? null;
 
-        if (! ($response['success'] ?? false) || ! \is_array($data)) {
+        if (! $response['success'] || ! \is_array($data)) {
             return true;
         }
 

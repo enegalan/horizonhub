@@ -53,7 +53,7 @@ class JobCommandDataExtractor
             $parts = \explode("\0", $key);
             $candidate = \end($parts);
 
-            if (\is_string($candidate) && $candidate !== '') {
+            if ($candidate !== '') {
                 return $candidate;
             }
         }

@@ -35,7 +35,7 @@ class Alert extends Model
     /**
      * The fillable attributes of the alert.
      *
-     * @var array<int, string>
+     * @var list<string>
      */
     protected $fillable = [
         'name',
@@ -51,7 +51,7 @@ class Alert extends Model
     /**
      * Cached service names grouped by service id.
      *
-     * @var array<int, string>|null
+     * @var list<string>|null
      */
     private static ?array $cachedServiceNamesById = null;
 

@@ -18,7 +18,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
             $response = $this->horizonApi->getStats($service);
             $data = $response['data'] ?? null;
 
-            if (($response['success'] ?? false) && \is_array($data) && isset($data['failedJobs'])) {
+            if ($response['success'] && \is_array($data) && isset($data['failedJobs'])) {
                 return (int) $data['failedJobs'];
             }
 
@@ -38,7 +38,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
             $response = $this->horizonApi->getStats($svc);
             $data = $response['data'] ?? null;
 
-            if (! (($response['success'] ?? false) && \is_array($data) && isset($data['failedJobs']))) {
+            if (! ($response['success'] && \is_array($data) && isset($data['failedJobs']))) {
                 continue;
             }
 
@@ -59,7 +59,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
             $response = $this->horizonApi->getStats($service);
             $data = $response['data'] ?? null;
 
-            if (($response['success'] ?? false) && \is_array($data) && isset($data['recentJobs'])) {
+            if ($response['success'] && \is_array($data) && isset($data['recentJobs'])) {
                 return (int) $data['recentJobs'];
             }
 
@@ -79,7 +79,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
             $response = $this->horizonApi->getStats($svc);
             $data = $response['data'] ?? null;
 
-            if (! (($response['success'] ?? false) && \is_array($data) && isset($data['recentJobs']))) {
+            if (! ($response['success'] && \is_array($data) && isset($data['recentJobs']))) {
                 continue;
             }
 
@@ -111,7 +111,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
             $response = $this->horizonApi->getStats($service);
             $data = $response['data'] ?? null;
 
-            if (! (($response['success'] ?? false) && \is_array($data) && isset($data['recentJobs']))) {
+            if (! ($response['success'] && \is_array($data) && isset($data['recentJobs']))) {
                 continue;
             }
 
@@ -133,7 +133,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
             $response = $this->horizonApi->getStats($service);
             $data = $response['data'] ?? null;
 
-            if (($response['success'] ?? false) && \is_array($data)) {
+            if ($response['success'] && \is_array($data)) {
                 $jobs_per_minute = isset($data['jobsPerMinute']) ? (float) $data['jobsPerMinute'] : 0.0;
 
                 if ($jobs_per_minute > 0) {

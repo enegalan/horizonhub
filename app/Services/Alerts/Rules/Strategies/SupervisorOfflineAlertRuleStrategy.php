@@ -53,7 +53,7 @@ final class SupervisorOfflineAlertRuleStrategy implements AlertRuleStrategyInter
         $response = $this->horizonApi->getMasters($service);
         $data = $response['data'] ?? null;
 
-        if (! ($response['success'] ?? false) || ! \is_array($data)) {
+        if (! $response['success'] || ! \is_array($data)) {
             return false;
         }
 

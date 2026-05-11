@@ -117,14 +117,10 @@ class JobRuntimeHelper
             return null;
         }
 
-        if (\is_string($value)) {
-            try {
-                return Carbon::parse($value);
-            } catch (\Throwable $e) {
-                return null;
-            }
+        try {
+            return Carbon::parse($value);
+        } catch (\Throwable $e) {
+            return null;
         }
-
-        return null;
     }
 }

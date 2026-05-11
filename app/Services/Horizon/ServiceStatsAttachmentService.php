@@ -16,10 +16,6 @@ class ServiceStatsAttachmentService
     public function attachHorizonStats(iterable $services, HorizonApiProxyService $horizonApi): void
     {
         foreach ($services as $service) {
-            if (! $service instanceof Service) {
-                continue;
-            }
-
             if (! $service->getBaseUrl()) {
                 $service->horizon_failed_jobs_count = 0;
                 $service->horizon_jobs_count = 0;
@@ -32,7 +28,7 @@ class ServiceStatsAttachmentService
 
             $data = null;
 
-            if (($response['success'] ?? false) && isset($response['data']) && \is_array($response['data'])) {
+            if ($response['success'] && isset($response['data'])) {
                 $data = $response['data'];
             }
             $snap = [

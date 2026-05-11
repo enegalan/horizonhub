@@ -32,7 +32,7 @@ class MetricsCalculatorsCoverageTest extends TestCase
         ]);
 
         $calc = new JobsVolumeLast24hCalculator($api);
-        $result = $calc->getJobsVolumeLast24h([$service->id]);
+        $result = $calc->getJobsVolumeLast24h(['service_id' => $service->id]);
         $this->assertCount(25, $result['xAxis']);
         $this->assertSame(1, $result['completed'][1]);
         $this->assertSame(1, $result['failed'][1]);
@@ -66,7 +66,7 @@ class MetricsCalculatorsCoverageTest extends TestCase
         ]);
 
         $calc = new RuntimeMetricsCalculator($api);
-        $result = $calc->getJobRuntimesLast24h([$service->id]);
+        $result = $calc->getJobRuntimesLast24h(['service_id' => $service->id]);
         $this->assertCount(2, $result['points']);
         $this->assertSame('completed', $result['points'][0]['status']);
         $this->assertSame('failed', $result['points'][1]['status']);

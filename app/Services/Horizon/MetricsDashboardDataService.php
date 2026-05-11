@@ -56,42 +56,31 @@ class MetricsDashboardDataService
         $workloadRows = $this->metrics->getWorkloadData($scope);
         $supervisorsRows = $this->metrics->getSupervisorsData($scope);
 
-        $totalQueues = \is_array($workloadRows) ? \count($workloadRows) : 0;
+        $totalQueues = \count($workloadRows);
         $totalJobs = 0;
 
-        if (\is_array($workloadRows)) {
-            foreach ($workloadRows as $row) {
-                if (! \is_array($row)) {
-                    continue;
-                }
-                $totalJobs += isset($row['jobs']) && \is_numeric($row['jobs']) ? (int) $row['jobs'] : 0;
-            }
+        foreach ($workloadRows as $row) {
+            $totalJobs += (int) $row['jobs'];
         }
 
         $workloadSummary = "$totalQueues queue(s), $totalJobs job(s) total";
 
-        $totalSupervisors = \is_array($supervisorsRows) ? \count($supervisorsRows) : 0;
+        $totalSupervisors = \count($supervisorsRows);
         $onlineSupervisors = 0;
 
-        if (\is_array($supervisorsRows)) {
-            foreach ($supervisorsRows as $row) {
-                if (! \is_array($row)) {
-                    continue;
-                }
-
-                if (($row['status'] ?? null) === 'online') {
-                    $onlineSupervisors++;
-                }
+        foreach ($supervisorsRows as $row) {
+            if ($row['status'] === 'online') {
+                $onlineSupervisors++;
             }
         }
         $supervisorsSummary = "$totalSupervisors supervisor(s), $onlineSupervisors online";
 
-        $waitByQueue = $this->metrics->getWaitByQueueChartData(\is_array($workloadRows) ? $workloadRows : []);
+        $waitByQueue = $this->metrics->getWaitByQueueChartData($workloadRows);
 
         $metricsChartData = [
-            'jobsVolumeLast24h' => $jobsVolumeLast24h ?? ['xAxis' => [], 'completed' => [], 'failed' => []],
-            'jobRuntimesLast24h' => $jobRuntimesLast24h ?? ['points' => []],
-            'failureRateOverTime' => $failureRateOverTime ?? ['xAxis' => [], 'rate' => []],
+            'jobsVolumeLast24h' => $jobsVolumeLast24h,
+            'jobRuntimesLast24h' => $jobRuntimesLast24h,
+            'failureRateOverTime' => $failureRateOverTime,
             'waitByQueue' => $waitByQueue,
         ];
 
@@ -109,10 +98,10 @@ class MetricsDashboardDataService
             'workloadSummary' => $workloadSummary,
             'supervisorsSummary' => $supervisorsSummary,
             'waitByQueue' => $waitByQueue,
-            'hasRuntimeChart' => \is_array($jobRuntimesLast24h),
-            'hasFailureRateChart' => \is_array($failureRateOverTime),
-            'hasJobsVolumeChart' => \is_array($jobsVolumeLast24h),
-            'hasServiceChart' => \is_array($waitByQueue) && \count($waitByQueue['queues'] ?? []) > 0,
+            'hasRuntimeChart' => true,
+            'hasFailureRateChart' => true,
+            'hasJobsVolumeChart' => true,
+            'hasServiceChart' => $waitByQueue !== null && $waitByQueue['queues'] !== [],
         ];
     }
 }

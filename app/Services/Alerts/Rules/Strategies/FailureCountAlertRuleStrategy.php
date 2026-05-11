@@ -49,7 +49,7 @@ final class FailureCountAlertRuleStrategy implements AlertRuleStrategyInterface
         $response = $this->horizonApi->getFailedJobs($service, ['starting_at' => 0]);
         $data = $response['data'] ?? null;
 
-        if (! ($response['success'] ?? false) || ! \is_array($data)) {
+        if (! $response['success'] || ! \is_array($data)) {
             return ['triggered' => false, 'job_uuids' => []];
         }
 
@@ -57,7 +57,7 @@ final class FailureCountAlertRuleStrategy implements AlertRuleStrategyInterface
         $jobs = collect($data['jobs'] ?? []);
         $inWindow = $this->support->filterFailedJobsInWindow($jobs, $cutoff)
             ->filter(function ($job) use ($alert) {
-                return \is_array($job) && $this->support->failedJobRowMatches($alert, $job);
+                return $this->support->failedJobRowMatches($alert, $job);
             })
             ->values();
 

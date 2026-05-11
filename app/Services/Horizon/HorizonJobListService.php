@@ -207,6 +207,7 @@ class HorizonJobListService
             'processing' => fn (array $query): array => $this->horizonApi->getPendingJobs($service, $query),
             'processed' => fn (array $query): array => $this->horizonApi->getCompletedJobs($service, $query),
             'failed' => fn (array $query): array => $this->horizonApi->getFailedJobs($service, $query),
+            default => throw new \InvalidArgumentException("Unsupported job list status [$status]."),
         };
     }
 
@@ -372,7 +373,7 @@ class HorizonJobListService
                 'limit' => $jobsPerRequest,
             ]);
 
-            if (! ($response['success'] ?? false)) {
+            if (! $response['success']) {
                 break;
             }
 

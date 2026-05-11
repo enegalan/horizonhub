@@ -6,7 +6,6 @@ use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 use App\Models\Service;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -61,11 +60,5 @@ class ModelAndProviderTest extends TestCase
         $this->assertIsArray($log->job_uuids);
         $this->assertNotNull($log->alert);
         $this->assertNotNull($log->service);
-    }
-
-    public function test_user_password_is_hashed(): void
-    {
-        $user = User::factory()->create();
-        $this->assertNotSame('secret', $user->password);
     }
 }

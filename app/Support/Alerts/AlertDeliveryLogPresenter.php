@@ -3,6 +3,7 @@
 namespace App\Support\Alerts;
 
 use App\Models\AlertLog;
+use App\Models\Service;
 
 class AlertDeliveryLogPresenter
 {
@@ -44,8 +45,8 @@ class AlertDeliveryLogPresenter
         }
 
         return [
-            'sent_at' => $log->sent_at?->format('Y-m-d H:i:s') ?? '–',
-            'service_name' => $log->service?->name ?? '–',
+            'sent_at' => $log->sent_at->format('Y-m-d H:i:s'),
+            'service_name' => $log->service instanceof Service ? $log->service->name : '–',
             'events_text' => $initialTriggerCount === 1 ? '1 event' : "$initialTriggerCount events",
             'events_count' => $initialTriggerCount,
             'status' => (string) ($log->status ?? ''),

@@ -83,7 +83,7 @@ function preserveJobsSectionsOpenState(streamElement) {
                 openBySection[String(key)] = !!parsed[key];
             });
         }
-    } catch (e) {
+    } catch (_e) {
     }
 
     var liveDetails = liveStack.querySelectorAll('details[data-section-key]');

@@ -3,8 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property int $horizon_failed_jobs_count
+ * @property int $horizon_jobs_count
+ * @property string|null $horizon_status
+ */
 class Service extends Model
 {
     /**
@@ -19,7 +23,7 @@ class Service extends Model
     /**
      * The fillable attributes of the service.
      *
-     * @var array<int, string>
+     * @var list<string>
      */
     protected $fillable = [
         'name',
@@ -28,14 +32,6 @@ class Service extends Model
         'status',
         'last_seen_at',
     ];
-
-    /**
-     * Get the alerts of the service.
-     */
-    public function alerts(): HasMany
-    {
-        return $this->hasMany(Alert::class);
-    }
 
     /**
      * Get the base URL of the service.

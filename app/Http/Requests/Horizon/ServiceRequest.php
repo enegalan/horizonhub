@@ -27,7 +27,7 @@ class ServiceRequest extends FormRequest
         $existing = Service::query()->whereIn('id', $serviceIds)->pluck('id')->map(static fn ($id): int => (int) $id)->all();
         \sort($existing);
 
-        return \array_values($existing);
+        return $existing;
     }
 
     /**

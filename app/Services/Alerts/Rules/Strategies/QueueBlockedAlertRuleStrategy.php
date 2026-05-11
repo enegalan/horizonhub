@@ -60,7 +60,7 @@ final class QueueBlockedAlertRuleStrategy implements AlertRuleStrategyInterface
         $response = $this->horizonApi->getCompletedJobs($service, ['starting_at' => 0]);
         $data = $response['data'] ?? null;
 
-        if (! ($response['success'] ?? false) || ! \is_array($data)) {
+        if (! $response['success'] || ! \is_array($data)) {
             return false;
         }
 

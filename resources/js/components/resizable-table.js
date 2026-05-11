@@ -51,7 +51,7 @@ import { parseJson } from '../lib/parse';
                 if (order.indexOf(id) === -1) order.push(id);
             });
             return { order, widths };
-        } catch (e) {
+        } catch (_e) {
             return { order: columnIds.slice(), widths: {} };
         }
     }
@@ -66,7 +66,7 @@ import { parseJson } from '../lib/parse';
     function saveState(storageKey, order, widths) {
         try {
             localStorage.setItem(STORAGE_PREFIX + storageKey, JSON.stringify({ order: order, widths: widths || {} }));
-        } catch (e) {}
+        } catch (_e) {}
     }
 
     /**
@@ -290,10 +290,9 @@ import { parseJson } from '../lib/parse';
      * @param {HTMLElement} table
      * @param {string} storageKey
      * @param {object} state
-     * @param {string[]} columnIds
      * @returns {void}
      */
-    function setupResize(table, storageKey, state, columnIds) {
+    function setupResize(table, storageKey, state) {
         var theadRow = table.querySelector('thead tr');
         if (!theadRow) return;
 
@@ -352,10 +351,9 @@ import { parseJson } from '../lib/parse';
      * @param {HTMLElement} table
      * @param {string} storageKey
      * @param {object} state
-     * @param {string[]} columnIds
      * @returns {void}
      */
-    function setupReorder(table, storageKey, state, columnIds) {
+    function setupReorder(table, storageKey, state) {
         var theadRow = table.querySelector('thead tr');
         if (!theadRow) return;
 
@@ -422,7 +420,7 @@ import { parseJson } from '../lib/parse';
                 order.splice(ti, 0, sourceId);
                 state.order = order;
                 applyState(table, state);
-                setupResize(table, storageKey, state, columnIds);
+                setupResize(table, storageKey, state);
                 saveState(storageKey, state.order, state.widths);
             });
         });
@@ -447,14 +445,14 @@ import { parseJson } from '../lib/parse';
             if (window.horizonTableInteracting) return;
 
             applyState(table, state);
-            setupResize(table, storageKey, state, columnIds);
-            setupReorder(table, storageKey, state, columnIds);
+            setupResize(table, storageKey, state);
+            setupReorder(table, storageKey, state);
             return;
         }
 
         applyState(table, state);
-        setupResize(table, storageKey, state, columnIds);
-        setupReorder(table, storageKey, state, columnIds);
+        setupResize(table, storageKey, state);
+        setupReorder(table, storageKey, state);
         table.setAttribute(INITTED_ATTR, '1');
     }
 

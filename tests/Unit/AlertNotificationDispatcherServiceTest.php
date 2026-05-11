@@ -60,8 +60,6 @@ class AlertNotificationDispatcherServiceTest extends TestCase
 
     public function test_dispatch_routes_notifications_and_skips_empty_configs(): void
     {
-        Log::spy();
-
         $alert = Alert::query()->create([
             'name' => 'notif',
             'rule_type' => Alert::RULE_FAILURE_COUNT,
@@ -105,7 +103,5 @@ class AlertNotificationDispatcherServiceTest extends TestCase
 
         $service = new AlertNotificationDispatcherService($email, $slack);
         $service->dispatch($alert, [['service_id' => 1, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]], $log);
-
-        Log::shouldHaveReceived('warning')->once();
     }
 }

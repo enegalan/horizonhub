@@ -124,14 +124,14 @@ final class AlertRuleEvaluationSupport
         $response = $this->horizonApi->getFailedJobs($service, ['starting_at' => 0]);
         $data = $response['data'] ?? null;
 
-        if (! ($response['success'] ?? false) || ! \is_array($data)) {
+        if (! $response['success'] || ! \is_array($data)) {
             return collect();
         }
         $jobs = collect($data['jobs'] ?? []);
 
         return $this->filterFailedJobsInWindow($jobs, $cutoff)
             ->filter(function ($job) use ($alert) {
-                return \is_array($job) && $this->failedJobRowMatches($alert, $job);
+                return $this->failedJobRowMatches($alert, $job);
             })
             ->values();
     }
