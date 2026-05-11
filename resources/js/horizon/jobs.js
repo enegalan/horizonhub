@@ -52,6 +52,11 @@ export function horizonJobsPage(config) {
          */
         selectedFailedJobs: [],
         /**
+         * Last clicked failed job index in the filtered retry list.
+         * @type {number|null}
+         */
+        retrySelectionAnchorGlobalIndex: null,
+        /**
          * Selecting all failed jobs to retry.
          * @type {boolean}
          */
@@ -111,6 +116,7 @@ export function horizonJobsPage(config) {
                 });
             });
             this.selectedFailedJobs = [];
+            this.retrySelectionAnchorGlobalIndex = null;
             this.selectingAllFailed = false;
             this.retryPage = 1;
             this.loadFailedJobs();
@@ -121,6 +127,7 @@ export function horizonJobsPage(config) {
          */
         applyRetryModalFilters() {
             this.retryPage = 1;
+            this.retrySelectionAnchorGlobalIndex = null;
             this.loadFailedJobs();
         },
         /**
@@ -130,6 +137,7 @@ export function horizonJobsPage(config) {
         closeRetryModal() {
             this.showRetryModal = false;
             this.selectedFailedJobs = [];
+            this.retrySelectionAnchorGlobalIndex = null;
             this.selectingAllFailed = false;
             window.setTimeout(() => {
                 if (!this.showRetryModal) {
@@ -191,18 +199,19 @@ export function horizonJobsPage(config) {
         /**
          * Toggle the failed job.
          * @param {string} id
+         * @param {number} serviceId
+         * @param {number} rowIndex
+         * @param {MouseEvent|{ shiftKey?: boolean }|undefined} event
          * @returns {void}
          */
-        toggleFailed(id, serviceId) {
-            var i = this.selectedFailedJobs.findIndex(function (j) { return j.id === id; });
-            if (i >= 0) {
-                this.selectedFailedJobs.splice(i, 1);
-            } else {
-                this.selectedFailedJobs.push({
-                    id: id,
-                    service_id: typeof serviceId === 'number' ? serviceId : Number(serviceId),
-                });
+        toggleFailed(id, serviceId, rowIndex, event) {
+            var index = typeof rowIndex === 'number' ? rowIndex : Number(rowIndex);
+            if (event && event.shiftKey && !Number.isNaN(index) && index >= 0) {
+                this.applyFailedJobShiftSelection(index);
+                return;
             }
+            this.toggleFailedJobSelection(id, serviceId);
+            this.retrySelectionAnchorGlobalIndex = Number.isNaN(index) || index < 0 ? null : this.failedJobGlobalIndex(index);
         },
         /**
          * Select all failed jobs.
@@ -212,6 +221,7 @@ export function horizonJobsPage(config) {
             var self = this;
             if (this.selectingAllFailed) return;
             this.selectingAllFailed = true;
+            this.retrySelectionAnchorGlobalIndex = null;
             var params = this.retryModalFailedListQuery({ selection: 'all' });
             var url = config.failedListUrl + (params.toString() ? ('?' + params.toString()) : '');
             window.horizon.http.get(url).then(function (data) {
@@ -238,6 +248,7 @@ export function horizonJobsPage(config) {
          */
         clearSelection() {
             this.selectedFailedJobs = [];
+            this.retrySelectionAnchorGlobalIndex = null;
         },
         /**
          * Set the retry page.
@@ -312,6 +323,163 @@ export function horizonJobsPage(config) {
             }).catch(function () {
                 self.retrying = false;
             });
+        },
+        /**
+         * Apply Shift+click range selection across the filtered retry list.
+         * @param {number} clickedIndex
+         * @returns {void}
+         */
+        applyFailedJobShiftSelection(clickedIndex) {
+            var self = this;
+            var clickedGlobalIndex = this.failedJobGlobalIndex(clickedIndex);
+            if (clickedGlobalIndex === null) {
+                return;
+            }
+            var startGlobalIndex = this.failedJobShiftStartGlobalIndex();
+            var from = Math.min(startGlobalIndex, clickedGlobalIndex);
+            var to = Math.max(startGlobalIndex, clickedGlobalIndex);
+            var pageStart = (this.retryPage - 1) * this.retryPerPage;
+            var pageEnd = pageStart + this.failedJobs.length - 1;
+
+            if (from >= pageStart && to <= pageEnd) {
+                this.applyFailedJobShiftRangeOnRows(from - pageStart, to - pageStart);
+                this.retrySelectionAnchorGlobalIndex = clickedGlobalIndex;
+                return;
+            }
+
+            var params = this.retryModalFailedListQuery({ selection: 'all' });
+            var url = config.failedListUrl + (params.toString() ? ('?' + params.toString()) : '');
+            window.horizon.http.get(url).then(function (data) {
+                var jobs = Array.isArray(data.jobs) ? data.jobs : [];
+                self.applyFailedJobShiftRangeOnJobs(from, to, jobs);
+                self.retrySelectionAnchorGlobalIndex = clickedGlobalIndex;
+            }).catch(function (error) {
+                console.error('Failed applying shift selection across pages', error);
+            });
+        },
+        /**
+         * Apply Shift+click range selection on the current retry page rows.
+         * @param {number} from
+         * @param {number} to
+         * @returns {void}
+         */
+        applyFailedJobShiftRangeOnRows(from, to) {
+            for (var i = from; i <= to; i++) {
+                var job = this.failedJobs[i];
+                if (!job || !job.uuid) {
+                    continue;
+                }
+                this.toggleFailedJobShiftSelection(job.uuid, job.service_id);
+            }
+        },
+        /**
+         * Apply Shift+click range selection on compact failed-job rows.
+         * @param {number} from
+         * @param {number} to
+         * @param {{ id?: string, service_id?: number }[]} jobs
+         * @returns {void}
+         */
+        applyFailedJobShiftRangeOnJobs(from, to, jobs) {
+            if (!Array.isArray(jobs) || jobs.length === 0) {
+                return;
+            }
+            var end = Math.min(to, jobs.length - 1);
+            for (var i = from; i <= end; i++) {
+                var job = jobs[i];
+                if (!job || !job.id) {
+                    continue;
+                }
+                var serviceId = typeof job.service_id === 'number' ? job.service_id : Number(job.service_id);
+                this.toggleFailedJobShiftSelection(String(job.id), serviceId);
+            }
+        },
+        /**
+         * Add a failed job to the retry selection.
+         * @param {string} id
+         * @param {number} serviceId
+         * @returns {void}
+         */
+        addFailedJobSelection(id, serviceId) {
+            if (!id || this.isFailedJobSelected(id)) {
+                return;
+            }
+            this.selectedFailedJobs.push({
+                id: id,
+                service_id: typeof serviceId === 'number' ? serviceId : Number(serviceId),
+            });
+        },
+        /**
+         * Whether a failed job is selected for retry.
+         * @param {string} id
+         * @returns {boolean}
+         */
+        isFailedJobSelected(id) {
+            return this.selectedFailedJobs.some(function (job) {
+                return job.id === id;
+            });
+        },
+        /**
+         * Remove a failed job from the retry selection.
+         * @param {string} id
+         * @returns {void}
+         */
+        removeFailedJobSelection(id) {
+            var index = this.selectedFailedJobs.findIndex(function (job) {
+                return job.id === id;
+            });
+            if (index >= 0) {
+                this.selectedFailedJobs.splice(index, 1);
+            }
+        },
+        /**
+         * Toggle a failed job in the retry selection.
+         * @param {string} id
+         * @param {number} serviceId
+         * @returns {void}
+         */
+        toggleFailedJobSelection(id, serviceId) {
+            if (this.isFailedJobSelected(id)) {
+                this.removeFailedJobSelection(id);
+                return;
+            }
+            this.addFailedJobSelection(id, serviceId);
+        },
+        /**
+         * Global list index for a failed job row on the current retry page.
+         * @param {number} rowIndex
+         * @returns {number|null}
+         */
+        failedJobGlobalIndex(rowIndex) {
+            if (typeof rowIndex !== 'number' || Number.isNaN(rowIndex) || rowIndex < 0 || rowIndex >= this.failedJobs.length) {
+                return null;
+            }
+            return (this.retryPage - 1) * this.retryPerPage + rowIndex;
+        },
+        /**
+         * Start index for Shift+click range selection in the filtered retry list.
+         * @returns {number}
+         */
+        failedJobShiftStartGlobalIndex() {
+            if (this.selectedFailedJobs.length === 0) {
+                return 0;
+            }
+            if (typeof this.retrySelectionAnchorGlobalIndex === 'number' && !Number.isNaN(this.retrySelectionAnchorGlobalIndex) && this.retrySelectionAnchorGlobalIndex >= 0) {
+                return this.retrySelectionAnchorGlobalIndex + 1;
+            }
+            return 0;
+        },
+        /**
+         * Toggle a failed job when applying a Shift+click range.
+         * @param {string} id
+         * @param {number} serviceId
+         * @returns {void}
+         */
+        toggleFailedJobShiftSelection(id, serviceId) {
+            if (this.isFailedJobSelected(id)) {
+                this.removeFailedJobSelection(id);
+                return;
+            }
+            this.addFailedJobSelection(id, serviceId);
         },
     };
 }

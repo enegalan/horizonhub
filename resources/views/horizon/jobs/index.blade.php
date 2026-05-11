@@ -173,15 +173,21 @@
                                                 </td>
                                             </tr>
                                         </template>
-                                        <template x-for="job in failedJobs" :key="job.uuid">
+                                        <template x-for="(job, index) in failedJobs" :key="job.uuid">
                                             <tr class="transition-colors hover:bg-muted/30">
-                                                <td class="px-4 py-2.5" data-column-id="select">
+                                                <td
+                                                    class="px-4 py-2.5"
+                                                    data-column-id="select"
+                                                    x-bind:class="job.uuid ? 'cursor-pointer' : ''"
+                                                    @click="job.uuid ? toggleFailed(job.uuid, job.service_id, index, $event) : null"
+                                                >
                                                     <template x-if="job.uuid">
-                                                        <x-checkbox
-                                                            x-bind:checked="selectedFailedJobs.some((j) => j.id === job.uuid)"
-                                                            @change="toggleFailed(job.uuid, job.service_id)"
-                                                            x-bind:aria-label="'Select job ' + job.uuid"
-                                                        />
+                                                        <div class="pointer-events-none">
+                                                            <x-checkbox
+                                                                x-bind:checked="isFailedJobSelected(job.uuid)"
+                                                                x-bind:aria-label="'Select job ' + job.uuid"
+                                                            />
+                                                        </div>
                                                     </template>
                                                 </td>
                                                 <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="service" x-text="job.service_name || '–'"></td>
