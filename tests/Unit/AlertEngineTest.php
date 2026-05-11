@@ -179,7 +179,7 @@ class AlertEngineTest extends TestCase
         );
 
         $engine->evaluateScheduled();
-        $this->assertTrue(true);
+        $this->assertDatabaseCount('alerts', 1);
     }
 
     public function test_evaluate_scheduled_triggers_alert_and_retry_rebuilds_missing_events(): void

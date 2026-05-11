@@ -73,7 +73,7 @@ class ServiceShowPageDataService
         $statsResponse = $horizonApi->getStats($service);
         $statsData = $statsResponse['data'] ?? null;
 
-        if (($statsResponse['success'] ?? false) && \is_array($statsData)) {
+        if ($statsResponse['success'] && \is_array($statsData)) {
             if (isset($statsData['status']) && ! empty((string) $statsData['status'])) {
                 $horizonStatus = (string) $statsData['status'];
             }
@@ -112,7 +112,7 @@ class ServiceShowPageDataService
         $mastersResponse = $horizonApi->getMasters($service);
         $mastersData = $mastersResponse['data'] ?? null;
 
-        if (($mastersResponse['success'] ?? false) && \is_array($mastersData)) {
+        if ($mastersResponse['success'] && \is_array($mastersData)) {
             foreach ($mastersData as $master) {
                 if (! \is_array($master)) {
                     continue;

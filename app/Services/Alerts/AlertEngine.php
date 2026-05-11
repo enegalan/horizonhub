@@ -118,11 +118,11 @@ class AlertEngine
             $serviceIds = $alert->scopedServiceIds();
 
             if ($serviceIds === []) {
-                $serviceIds = Service::all()->pluck('id')->all();
+                $serviceIds = Service::query()->pluck('id')->all();
             }
 
             if (empty($serviceIds)) {
-                $errorMessage ??= 'No services to evaluate alert (add at least one service).';
+                $errorMessage = 'No services to evaluate alert (add at least one service).';
 
                 return [
                     'alert_id' => $alert->id,
@@ -262,7 +262,7 @@ class AlertEngine
     {
         $alert = $log->alert;
 
-        if (! $alert || $log->status !== 'failed') {
+        if (! $alert instanceof Alert || $log->status !== 'failed') {
             return;
         }
         $events = $this->private__rebuildEventsFromLog($log);

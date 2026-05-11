@@ -50,7 +50,7 @@ final class AvgExecutionTimeAlertRuleStrategy implements AlertRuleStrategyInterf
         $response = $this->horizonApi->getCompletedJobs($service, ['starting_at' => 0]);
         $data = $response['data'] ?? null;
 
-        if (! ($response['success'] ?? false) || ! \is_array($data)) {
+        if (! $response['success'] || ! \is_array($data)) {
             return ['triggered' => false, 'job_uuids' => []];
         }
 
@@ -58,11 +58,8 @@ final class AvgExecutionTimeAlertRuleStrategy implements AlertRuleStrategyInterf
         $cutoff = \now()->subMinutes($minutes);
 
         $durations = $jobs->filter(function ($job) use ($alert) {
-            return \is_array($job) && $this->support->completedJobRowMatches($alert, $job);
+            return $this->support->completedJobRowMatches($alert, $job);
         })->map(function ($job) use ($cutoff) {
-            if (! \is_array($job)) {
-                return null;
-            }
             $completedRaw = $job['completed_at'] ?? null;
             $queuedRaw = $job['pushedAt'] ?? null;
 

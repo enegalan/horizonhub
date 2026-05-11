@@ -581,7 +581,7 @@ export function horizonJobDetail(config) {
             if (!key) return;
             try {
                 window.localStorage.setItem(key, this.showAllExceptionLines ? '1' : '0');
-            } catch (e) {
+            } catch (_e) {
             }
         },
         /**
@@ -596,7 +596,7 @@ export function horizonJobDetail(config) {
                 var raw = window.localStorage.getItem(key);
                 if (raw === null) return;
                 this.showAllExceptionLines = raw === '1' || raw === 'true';
-            } catch (e) {
+            } catch (_e) {
             }
         },
         /**

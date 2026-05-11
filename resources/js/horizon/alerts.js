@@ -62,7 +62,7 @@ export function horizonAlertsList() {
             var iconEl = buttonEl.querySelector('.alert-evaluate-btn-icon');
             var spinnerEl = buttonEl.querySelector('.alert-evaluate-btn-spinner');
             var initialDisabled = buttonEl.getAttribute && buttonEl.getAttribute('data-alert-evaluate-initial-disabled') === '1';
-            buttonEl.disabled = !!isLoading ? true : !!initialDisabled;
+            buttonEl.disabled = isLoading ? true : initialDisabled;
             buttonEl.setAttribute('aria-busy', isLoading ? 'true' : 'false');
             if (iconEl) {
                 iconEl.classList.toggle('hidden', !!isLoading);
@@ -82,7 +82,7 @@ export function horizonAlertsList() {
             var buttons = document.querySelectorAll('[data-alert-evaluate-button="1"], [data-alert-evaluate-all-button="1"]');
             if (!buttons || !buttons.length) return;
             buttons.forEach(function (b) {
-                if (!!disabled) {
+                if (disabled) {
                     b.disabled = true;
                     b.setAttribute('aria-busy', 'true');
                     return;
@@ -135,8 +135,7 @@ export function horizonAlertsList() {
                         window.toast.info('Alert #' + alertId + ' did not trigger.');
                     }
                 }
-            }).catch(function (err) {
-                // defaultApiErrorHandler already shows a toast.
+            }).catch(function (_err) {
             }).finally(function () {
                 btnEl.removeAttribute('data-alert-evaluation-running');
                 self.private__setEvaluateButtonLoading(btnEl, false);
@@ -181,8 +180,7 @@ export function horizonAlertsList() {
                     bulkBtnEl: bulkBtnEl,
                     totalAlerts: totalAlerts
                 });
-            }).catch(function (err) {
-                // defaultApiErrorHandler already shows a toast.
+            }).catch(function (_err) {
                 self.bulkEvaluationInProgress = false;
                 bulkBtnEl.removeAttribute('data-alert-evaluation-running');
                 self.private__setAllEvaluateButtonsDisabled(false);

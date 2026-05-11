@@ -119,7 +119,7 @@ class HorizonApiProxyService
 
         $result = $this->private__call($service, $relativePath, 'get');
 
-        if (! ($result['success'] ?? false) && \in_array((int) ($result['status'] ?? 0), config('horizonhub.horizon_http_auth_statuses'), true)) {
+        if (! $result['success'] && \in_array((int) ($result['status'] ?? 0), config('horizonhub.horizon_http_auth_statuses'), true)) {
             $result = $this->private__call($service, $relativePath, 'get', true);
         }
 
@@ -218,16 +218,7 @@ class HorizonApiProxyService
             return null;
         }
 
-        $csrfToken = (string) ($matches[1] ?? '');
-
-        if ($csrfToken === '') {
-            Log::warning('Horizon Hub: empty CSRF token extracted from Horizon dashboard', [
-                'service_id' => $service->id ?? null,
-                'url' => $dashboardUrl,
-            ]);
-
-            return null;
-        }
+        $csrfToken = (string) $matches[1];
 
         return [
             'csrf_token' => $csrfToken,
@@ -359,7 +350,7 @@ class HorizonApiProxyService
         } catch (\Throwable $e) {
             Log::error('Horizon Hub: Horizon API call exception' . ($withDashboardSession ? ' (with dashboard session)' : ''), [
                 'service_id' => $service->id ?? null,
-                'url' => $url ?? null,
+                'url' => $url,
                 'error' => $e->getMessage(),
                 'exception' => $e::class,
             ]);

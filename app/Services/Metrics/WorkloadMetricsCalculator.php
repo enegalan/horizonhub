@@ -43,7 +43,7 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
             $mastersResponse = $this->horizonApi->getMasters($service);
             $mastersData = $mastersResponse['data'] ?? null;
 
-            if (! ($mastersResponse['success'] ?? false) || ! \is_array($mastersData)) {
+            if (! $mastersResponse['success'] || ! \is_array($mastersData)) {
                 continue;
             }
 
@@ -164,14 +164,14 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
         $response = $this->horizonApi->getWorkload($service);
         $payload = $response['data'] ?? null;
 
-        if (! ($response['success'] ?? false) || $payload === null) {
+        if (! $response['success'] || $payload === null) {
             return [];
         }
 
         $data = $payload['data'] ?? $payload['workload'] ?? null;
 
         if ($data === null || ! \is_array($data)) {
-            if (\is_array($payload) && isset($payload[0]) && \is_array($payload[0]) && isset($payload[0]['name'])) {
+            if (isset($payload[0]) && \is_array($payload[0]) && isset($payload[0]['name'])) {
                 $data = $payload;
             } else {
                 return [];

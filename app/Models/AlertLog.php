@@ -20,7 +20,7 @@ class AlertLog extends Model
     /**
      * The fillable attributes of the alert log.
      *
-     * @var array<int, string>
+     * @var list<string>
      */
     protected $fillable = [
         'alert_id',

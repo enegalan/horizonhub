@@ -84,7 +84,7 @@ class SlackNotifier extends AbstractAlertNotifier
 
             foreach ($enrichedEvents as $event) {
                 $jobUuid = isset($event['job_uuid']) && $event['job_uuid'] !== '' ? $event['job_uuid'] : null;
-                $triggeredAt = $event['triggered_at'] ?? '';
+                $triggeredAt = $event['triggered_at'];
                 $jobClass = $event['job_class'] ?? null;
                 $queue = $event['queue'] ?? null;
                 $failedAt = $event['failed_at'] ?? null;

@@ -113,7 +113,7 @@ class ServiceController extends Controller
 
         $result = $horizonApi->ping($service);
 
-        if ($result['success'] ?? false) {
+        if ($result['success']) {
             $service->update([
                 'status' => 'online',
                 'last_seen_at' => now(),
