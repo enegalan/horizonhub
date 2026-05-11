@@ -5,6 +5,7 @@ namespace App\Services\Alerts;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
 
 class AlertChartDataService
 {
@@ -41,7 +42,7 @@ class AlertChartDataService
             ->groupBy('bucket', 'status')
             ->get();
 
-        /** @var \Illuminate\Database\Eloquent\Model $row */
+        /** @var Model $row */
         foreach ($logs as $row) {
             $key = (string) $row->getAttribute('bucket');
 
