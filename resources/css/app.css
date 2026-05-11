@@ -266,6 +266,26 @@
     .empty-state-description {
         @apply text-xs text-muted-foreground mb-3 max-w-[280px];
     }
+    .skeleton {
+        --skeleton-delay: 0ms;
+        border-radius: var(--radius);
+        background-color: hsl(var(--muted));
+        will-change: background-position;
+        background-image: linear-gradient(
+            105deg,
+            #0000 0% 40%,
+            hsl(var(--card)) 50%,
+            #0000 60% 100%
+        );
+        background-position-x: -50%;
+        background-size: 200%;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+        .skeleton {
+            animation: 1.8s ease-in-out infinite skeleton;
+            animation-delay: var(--skeleton-delay);
+        }
+    }
 }
 
 .queue-action-btn[data-loading] .queue-btn-icon {
@@ -368,6 +388,16 @@ td[data-column-id="actions"] > div {
 
     .dark .notyf__toast.hub-notyf--warning .notyf__message {
         color: hsl(46, 87%, 65%);
+    }
+}
+
+@keyframes skeleton {
+    0% {
+        background-position: 150%;
+    }
+    
+    100% {
+        background-position: -50%;
     }
 }
 

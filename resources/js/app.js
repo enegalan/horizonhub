@@ -79,9 +79,6 @@ document.addEventListener('turbo:before-stream-render', function (e) {
                 }
             }
             initJsonTrees();
-            document.querySelectorAll('.motion-safe\\:animate-pulse').forEach(function (el) {
-                el.classList.remove('motion-safe:animate-pulse');
-            });
             renderMetricsCharts();
             renderAlertDetailCharts();
         });

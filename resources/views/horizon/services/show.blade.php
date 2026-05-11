@@ -93,7 +93,7 @@
             </x-button>
         </div>
 
-        <div id="service-show-stats-row-1" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6 @if(!empty($defer)) motion-safe:animate-pulse @endif">
+        <div id="service-show-stats-row-1" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
             @if(!empty($defer))
                 @include('horizon.services.partials.show-stats-row-1-skeleton')
             @else
@@ -101,7 +101,7 @@
             @endif
         </div>
 
-        <div id="service-show-stats-row-2" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6 @if(!empty($defer)) motion-safe:animate-pulse @endif">
+        <div id="service-show-stats-row-2" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
             @if(!empty($defer))
                 @include('horizon.services.partials.show-stats-row-2-skeleton')
             @else
@@ -109,7 +109,7 @@
             @endif
         </div>
 
-        <div class="card mb-4 p-4 @if(!empty($defer)) motion-safe:animate-pulse @endif">
+        <div class="card mb-4 p-4">
             <h3 class="text-section-title text-foreground mb-2">Supervisors</h3>
             <div id="service-show-supervisors-panel">
                 @if(!empty($defer))
@@ -120,7 +120,7 @@
             </div>
         </div>
 
-        <div class="card mb-4 @if(!empty($defer)) motion-safe:animate-pulse @endif">
+        <div class="card mb-4">
             <div class="flex items-center justify-between border-b border-border px-4 py-3">
                 <h3 class="text-section-title text-foreground">Current workload</h3>
                 <p id="service-show-workload-count" class="text-xs text-muted-foreground">
@@ -152,7 +152,7 @@
             </x-table>
         </div>
 
-        <div id="service-show-supervisor-groups" class="@if(!empty($defer)) motion-safe:animate-pulse @endif">
+        <div id="service-show-supervisor-groups">
             @if(!empty($defer))
                 @include('horizon.services.partials.show-supervisor-groups-skeleton')
             @else

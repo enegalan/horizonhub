@@ -5,6 +5,6 @@
     <div class="flex flex-col gap-2 mt-1 rounded-md border border-border bg-muted/30 p-3">
         <x-skeleton.text class="block h-3 w-full max-w-lg" />
         <x-skeleton.text class="block h-3 w-full max-w-md" />
-        <x-skeleton.text class="block h-3 w-full" />
+        <x-skeleton.text class="block h-3 w-full max-w-sm" />
     </div>
 </div>

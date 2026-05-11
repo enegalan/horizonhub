@@ -65,11 +65,11 @@
             <div id="dashboard-service-health-grid" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 @if(!empty($defer))
                     @for ($i = 0; $i < 6; $i++)
-                        <div class="card block animate-pulse p-3">
-                            <div class="h-4 max-w-[220px] rounded-md bg-muted"></div>
+                        <div class="card block p-3">
+                            <div class="skeleton h-4 max-w-[220px]"></div>
                             <div class="mt-3 space-y-2">
-                                <div class="h-3 w-1/2 rounded-md bg-muted"></div>
-                                <div class="h-3 w-2/3 rounded-md bg-muted"></div>
+                                <div class="skeleton h-3 w-1/2" style="--skeleton-delay: 120ms"></div>
+                                <div class="skeleton h-3 w-2/3" style="--skeleton-delay: 240ms"></div>
                             </div>
                         </div>
                     @endfor

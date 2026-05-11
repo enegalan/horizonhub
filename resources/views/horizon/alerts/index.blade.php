@@ -60,7 +60,7 @@
             @endif
         </div>
 
-        <div @class(['card', 'motion-safe:animate-pulse' => !empty($defer)])>
+        <div @class(['card'])>
             <x-table
                 resizable-key="horizon-alerts-list"
                 column-ids="name,service,rule_type,queue,job_type,enabled,last_triggered,actions"

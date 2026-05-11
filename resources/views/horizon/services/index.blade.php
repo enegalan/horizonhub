@@ -56,7 +56,7 @@
             </div>
         </div>
 
-        <div @class(['card', 'motion-safe:animate-pulse' => !empty($defer)])>
+        <div @class(['card'])>
             <x-table
                 resizable-key="horizon-service-list"
                 column-ids="name,base_url,status,horizon_status,jobs,failed,last_seen,actions"
