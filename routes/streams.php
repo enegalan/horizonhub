@@ -16,6 +16,9 @@ Route::group(['prefix' => 'streams/horizon'], function () {
     // Metrics
     Route::get('/metrics', [HorizonStreamsController::class, 'metrics'])->name('streams.metrics');
 
+    // Providers
+    Route::get('/providers', [HorizonStreamsController::class, 'providerList'])->name('streams.provider-list');
+
     // Queues
     Route::get('/queues', [HorizonStreamsController::class, 'queues'])->name('streams.queues');
 

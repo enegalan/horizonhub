@@ -43,10 +43,9 @@ class ProviderController extends Controller
      */
     public function index(): View
     {
-        $providers = NotificationProvider::orderBy('type')->orderBy('name')->get();
-
         return \view('horizon.providers.index', [
-            'providers' => $providers,
+            'providers' => collect(),
+            'defer' => true,
             'header' => 'Providers',
         ]);
     }

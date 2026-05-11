@@ -56,7 +56,7 @@
             </div>
         </div>
 
-        <div class="card">
+        <div @class(['card', 'motion-safe:animate-pulse' => !empty($defer)])>
             <x-table
                 resizable-key="horizon-service-list"
                 column-ids="name,base_url,status,horizon_status,jobs,failed,last_seen,actions"
@@ -75,7 +75,11 @@
                         <th class="table-header px-4 py-2.5 w-24" data-column-id="actions">Actions</th>
                     </tr>
                 </x-slot:head>
-                @include('horizon.services.partials.service-tbody', ['services' => $services])
+                @if(!empty($defer))
+                    <x-skeleton.table-rows rows="8" columns="8" />
+                @else
+                    @include('horizon.services.partials.service-tbody', ['services' => $services])
+                @endif
             </x-table>
         </div>
 

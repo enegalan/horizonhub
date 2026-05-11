@@ -23,6 +23,14 @@ class JobControllerTest extends TestCase
         $service = Service::query()->create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
         $this->get(route('horizon.jobs.show', ['job' => 'x', 'service_id' => 99999]))->assertRedirect(route('horizon.index'));
-        $this->get(route('horizon.jobs.show', ['job' => 'job-1', 'service_id' => $service->id]))->assertOk();
+
+        $response = $this->get(route('horizon.jobs.show', ['job' => 'job-1', 'service_id' => $service->id]));
+
+        $response->assertOk();
+        $html = (string) $response->getContent();
+        $this->assertStringContainsString('animate-pulse', $html);
+        $this->assertStringContainsString('id="horizon-job-detail-meta"', $html);
+        $this->assertStringContainsString('id="horizon-job-detail-data"', $html);
+        $this->assertStringContainsString('id="horizon-job-detail-payload"', $html);
     }
 }

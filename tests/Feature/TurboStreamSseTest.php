@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Controllers\Stream\HorizonStreamsController;
 use App\Models\Alert;
+use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\AlertChartDataService;
 use App\Services\Horizon\HorizonApiProxyService;
@@ -188,6 +189,27 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('action="replace"', $result);
     }
 
+    public function test_build_providers_streams_returns_tbody_morph_update(): void
+    {
+        NotificationProvider::query()->create([
+            'name' => 'stream-provider',
+            'type' => NotificationProvider::TYPE_EMAIL,
+            'config' => ['to' => ['ops@example.test']],
+        ]);
+
+        $controller = $this->app->make(HorizonStreamsController::class);
+
+        $reflection = new \ReflectionMethod($controller, 'private__buildProvidersStreams');
+        $reflection->setAccessible(true);
+
+        $result = $reflection->invoke($controller);
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('target="turbo-tbody-horizon-provider-list" method="morph"', $result);
+        $this->assertStringContainsString('action="update"', $result);
+        $this->assertStringContainsString('stream-provider', $result);
+    }
+
     public function test_build_queues_streams_returns_tbody_update(): void
     {
         Service::create([
@@ -272,6 +294,17 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('method="morph"', $withMethod);
     }
 
+    public function test_providers_index_marks_stream_patch_children_on_list_container(): void
+    {
+        $response = $this->get(route('horizon.providers.index'));
+
+        $response->assertOk();
+        $html = (string) $response->getContent();
+        $this->assertStringContainsString('data-turbo-stream-patch-children="true"', $html);
+        $this->assertStringContainsString('animate-pulse', $html);
+        $this->assertStringContainsString('id="turbo-tbody-horizon-provider-list"', $html);
+    }
+
     public function test_services_index_marks_stream_patch_children_on_list_container(): void
     {
         Service::create([
@@ -285,7 +318,7 @@ class TurboStreamSseTest extends TestCase
         $response->assertOk();
         $html = (string) $response->getContent();
         $this->assertStringContainsString('data-turbo-stream-patch-children="true"', $html);
-        $this->assertStringContainsString('data-stream-row-id="svc-', $html);
+        $this->assertStringContainsString('animate-pulse', $html);
     }
 
     public function test_streams_alert_show_returns_sse_content_type(): void

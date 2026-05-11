@@ -21,14 +21,6 @@ class ServiceControllerTest extends TestCase
         ]);
 
         $api = $this->createMock(HorizonApiProxyService::class);
-        $api->method('getStats')->willReturn([
-            'success' => true,
-            'data' => [
-                'failedJobs' => 0,
-                'recentJobs' => 0,
-                'status' => 'running',
-            ],
-        ]);
         $api->method('ping')->willReturnOnConsecutiveCalls(
             ['success' => true],
             ['success' => false, 'message' => 'failed ping'],

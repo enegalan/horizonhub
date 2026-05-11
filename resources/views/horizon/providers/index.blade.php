@@ -38,10 +38,12 @@
             @endif
         </div>
 
-        <div class="card">
+        <div @class(['card', 'motion-safe:animate-pulse' => !empty($defer)])>
             <x-table
                 resizable-key="horizon-settings-providers"
                 column-ids="name,type,config,actions"
+                body-id="turbo-tbody-horizon-provider-list"
+                stream-patch-children
             >
                 <x-slot:head>
                     <tr class="border-b border-border bg-muted/50">
@@ -51,69 +53,11 @@
                         <th class="table-header px-4 py-2.5 w-24" data-column-id="actions">Actions</th>
                     </tr>
                 </x-slot:head>
-                        @forelse($providers as $provider)
-                            <tr class="transition-colors hover:bg-muted/30">
-                                <td class="px-4 py-2.5 text-sm font-medium" data-column-id="name">{{ $provider->name }}</td>
-                                <td class="px-4 py-2.5" data-column-id="type">
-                                    @if($provider->type === 'slack')
-                                        <span class="badge">Slack</span>
-                                    @else
-                                        <span class="badge">Email</span>
-                                    @endif
-                                </td>
-                                <td class="px-4 py-2.5 text-sm text-muted-foreground font-mono max-w-xs truncate" data-column-id="config">
-                                    @if($provider->type === 'slack')
-                                        {{ $provider->getWebhookUrl() ?: '–' }}
-                                    @else
-                                        {{ implode(', ', $provider->getToEmails()) ?: '–' }}
-                                    @endif
-                                </td>
-                                <td class="px-4 py-2.5" data-column-id="actions">
-                                    <div class="flex items-center gap-2">
-                                        <x-button
-                                            variant="ghost"
-                                            type="button"
-                                            class="h-8 min-h-8 p-2"
-                                            aria-label="Edit"
-                                            title="Edit"
-                                            onclick="window.location.href='{{ route('horizon.providers.edit', $provider) }}'"
-                                        >
-                                            <x-heroicon-o-pencil-square class="size-4" />
-                                        </x-button>
-                                        @php
-                                            $providerDeleteClick = 'openDeleteProviderModal('.\Illuminate\Support\Js::from($provider->name).', '.\Illuminate\Support\Js::from(route('horizon.providers.destroy', $provider)).')';
-                                        @endphp
-                                        <x-button
-                                            variant="ghost"
-                                            type="button"
-                                            class="h-8 min-h-8 p-2 text-destructive hover:text-destructive"
-                                            aria-label="Delete"
-                                            title="Delete"
-                                            x-on:click="{{ $providerDeleteClick }}"
-                                        >
-                                            <x-heroicon-o-trash class="size-4" />
-                                        </x-button>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="4" data-column-id="name">
-                                    <div class="empty-state">
-                                        <x-heroicon-o-megaphone class="empty-state-icon" />
-                                        <p class="empty-state-title">No providers</p>
-                                        <p class="empty-state-description">Create Slack or Email providers, then select them when creating alerts.</p>
-                                        <x-button
-                                            type="button"
-                                            class="mt-3 h-9 text-sm"
-                                            onclick="window.location.href='{{ route('horizon.providers.create') }}'"
-                                        >
-                                            New provider
-                                        </x-button>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforelse
+                @if(!empty($defer))
+                    <x-skeleton.table-rows rows="6" columns="4" />
+                @else
+                    @include('horizon.providers.partials.provider-tbody', ['providers' => $providers])
+                @endif
             </x-table>
         </div>
 

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Horizon;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
-use App\Services\Horizon\ServiceStatsAttachmentService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -38,16 +37,11 @@ class ServiceController extends Controller
     /**
      * Display the list of services and registration form.
      */
-    public function index(ServiceStatsAttachmentService $serviceStats, HorizonApiProxyService $horizonApi): View
+    public function index(): View
     {
-        $services = Service::query()
-            ->orderBy('name')
-            ->get();
-
-        $serviceStats->attachHorizonStats($services, $horizonApi);
-
         return \view('horizon.services.index', [
-            'services' => $services,
+            'services' => Service::query()->orderBy('name')->get(),
+            'defer' => true,
             'header' => 'Services',
         ]);
     }

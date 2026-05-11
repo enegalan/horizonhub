@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Stream;
 use App\Http\Controllers\StreamController;
 use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Alert;
+use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\AlertChartDataService;
 use App\Services\Horizon\DashboardDataService;
@@ -116,6 +117,11 @@ class HorizonStreamsController extends StreamController
         $query = $request->getQueryString() ?? '';
 
         return $this->runStream(fn (): ?string => $this->private__buildMetricsStreams($query));
+    }
+
+    public function providerList(): StreamedResponse
+    {
+        return $this->runStream(fn (): ?string => $this->private__buildProvidersStreams());
     }
 
     public function queues(Request $request): StreamedResponse
@@ -325,6 +331,22 @@ class HorizonStreamsController extends StreamController
         $this->private__pushViewStreams($streams, $views, 'morph');
 
         return \implode("\n", $streams);
+    }
+
+    // ------------------------------------------------------------------
+    //  Providers index
+    // ------------------------------------------------------------------
+
+    private function private__buildProvidersStreams(): ?string
+    {
+        $providers = NotificationProvider::query()
+            ->orderBy('type')
+            ->orderBy('name')
+            ->get();
+
+        $html = \view('horizon.providers.partials.provider-tbody', ['providers' => $providers])->render();
+
+        return $this->private__turboStreamTag('update', 'turbo-tbody-horizon-provider-list', $html, 'morph');
     }
 
     // ------------------------------------------------------------------
