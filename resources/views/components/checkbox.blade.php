@@ -13,7 +13,7 @@
     }
 @endphp
 <div
-    class="checkbox-root"
+    class="checkbox-root flex items-center justify-center"
     x-data="{ mouseDownOnCheckbox: false }"
     x-ref="checkboxWrap"
     @mouseup.window="if (mouseDownOnCheckbox && $refs.checkboxWrap && !$refs.checkboxWrap.contains($event.target)) { $refs.checkboxWrap.querySelector('input')?.focus(); } mouseDownOnCheckbox = false"

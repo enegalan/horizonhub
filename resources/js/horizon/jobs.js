@@ -243,6 +243,17 @@ export function horizonJobsPage(config) {
             });
         },
         /**
+         * Select or clear all failed jobs from the retry modal header checkbox.
+         * @returns {void}
+         */
+        toggleAllFailedSelection() {
+            if (this.selectedFailedJobs.length > 0) {
+                this.clearSelection();
+                return;
+            }
+            this.selectAllFailed();
+        },
+        /**
          * Clear the selection.
          * @returns {void}
          */
