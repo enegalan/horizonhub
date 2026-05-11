@@ -9,14 +9,6 @@ export function initTheme() {
         getStoredTheme: getStoredTheme,
         resolveDark: resolveDark,
         /**
-         * Apply theme from preference.
-         * @param {'light'|'dark'|'system'} theme
-         * @returns {void}
-         */
-        applyFromPreference: function (theme) {
-            document.documentElement.classList.toggle('dark', resolveDark(theme));
-        },
-        /**
          * Apply theme.
          * @returns {void}
          */

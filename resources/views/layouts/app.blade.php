@@ -1,11 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="sidebar-bootstrapping"
-        x-data="{
-            theme: window.horizonHubTheme.getStoredTheme(),
-        }"
-        x-init="window.horizonHubTheme.applyFromPreference(theme)"
-        x-effect="window.horizonHubTheme.applyFromPreference(theme)"
-    >
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="sidebar-bootstrapping">
     <head>
         <!-- Meta -->
         <meta charset="utf-8">
@@ -14,6 +8,18 @@
         <meta name="turbo-prefetch" content="false">
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <meta name="view-transition" content="same-origin" />
+
+        <script>
+            (function () {
+                try {
+                    var theme = localStorage.getItem('horizonhub_theme');
+                    var isDark = theme === 'dark'
+                        || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+                    document.documentElement.classList.toggle('dark', isDark);
+                } catch (e) {}
+            })();
+        </script>
 
         <!-- Title -->
         <title>{{ config('app.name') }}</title>
