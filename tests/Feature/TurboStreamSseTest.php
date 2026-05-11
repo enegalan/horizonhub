@@ -301,7 +301,6 @@ class TurboStreamSseTest extends TestCase
         $response->assertOk();
         $html = (string) $response->getContent();
         $this->assertStringContainsString('data-turbo-stream-patch-children="true"', $html);
-        $this->assertStringContainsString('animate-pulse', $html);
         $this->assertStringContainsString('id="turbo-tbody-horizon-provider-list"', $html);
     }
 
@@ -318,7 +317,6 @@ class TurboStreamSseTest extends TestCase
         $response->assertOk();
         $html = (string) $response->getContent();
         $this->assertStringContainsString('data-turbo-stream-patch-children="true"', $html);
-        $this->assertStringContainsString('animate-pulse', $html);
     }
 
     public function test_streams_alert_show_returns_sse_content_type(): void

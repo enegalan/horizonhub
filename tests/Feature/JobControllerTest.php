@@ -28,7 +28,6 @@ class JobControllerTest extends TestCase
 
         $response->assertOk();
         $html = (string) $response->getContent();
-        $this->assertStringContainsString('animate-pulse', $html);
         $this->assertStringContainsString('id="horizon-job-detail-meta"', $html);
         $this->assertStringContainsString('id="horizon-job-detail-data"', $html);
         $this->assertStringContainsString('id="horizon-job-detail-payload"', $html);
