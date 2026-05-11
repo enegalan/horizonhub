@@ -267,7 +267,9 @@
         @apply text-xs text-muted-foreground mb-3 max-w-[280px];
     }
     .skeleton {
+        --skeleton-show-delay: 250ms;
         --skeleton-delay: 0ms;
+        opacity: 0;
         border-radius: var(--radius);
         background-color: hsl(var(--muted));
         will-change: background-position;
@@ -282,8 +284,17 @@
     }
     @media (prefers-reduced-motion: no-preference) {
         .skeleton {
-            animation: 1.8s ease-in-out infinite skeleton;
-            animation-delay: var(--skeleton-delay);
+            animation:
+                skeleton-show 0s linear var(--skeleton-show-delay) forwards,
+                1.8s ease-in-out infinite skeleton;
+            animation-delay:
+                0s,
+                calc(var(--skeleton-show-delay) + var(--skeleton-delay));
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .skeleton {
+            animation: skeleton-show 0s linear var(--skeleton-show-delay) forwards;
         }
     }
 }
@@ -388,6 +399,12 @@ td[data-column-id="actions"] > div {
 
     .dark .notyf__toast.hub-notyf--warning .notyf__message {
         color: hsl(46, 87%, 65%);
+    }
+}
+
+@keyframes skeleton-show {
+    to {
+        opacity: 1;
     }
 }
 
