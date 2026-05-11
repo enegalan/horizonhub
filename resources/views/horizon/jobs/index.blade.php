@@ -121,29 +121,6 @@
                                     Search
                                 </x-button>
                             </form>
-                            <div class="flex items-end gap-2">
-                                <x-button
-                                    type="button"
-                                    variant="outline"
-                                    class="h-9 text-sm inline-flex items-center justify-center gap-1 min-w-[7.5rem]"
-                                    x-bind:disabled="selectingAllFailed"
-                                    @click="selectAllFailed()"
-                                >
-                                    <span x-show="!selectingAllFailed">Select all</span>
-                                    <span x-cloak x-show="selectingAllFailed" style="display: none" class="inline-flex items-center gap-1">
-                                        <x-loader class="size-4" />
-                                        Selecting...
-                                    </span>
-                                </x-button>
-                                <x-button
-                                    type="button"
-                                    variant="ghost"
-                                    class="h-9 text-sm"
-                                    @click="clearSelection()"
-                                >
-                                    Clear selection
-                                </x-button>
-                            </div>
                         </div>
                             <div
                                 class="min-h-0 flex-1 overflow-x-auto overflow-y-auto rounded-md border border-border"
@@ -159,7 +136,19 @@
                                 >
                                     <x-slot:head>
                                         <tr class="border-b border-border">
-                                            <th class="table-header w-10 px-4 py-2.5" data-column-id="select"></th>
+                                            <th
+                                                class="table-header w-10 px-4 py-2.5 cursor-pointer"
+                                                data-column-id="select"
+                                                data-column-fixed
+                                                @click="toggleAllFailedSelection()"
+                                            >
+                                                <div class="pointer-events-none flex justify-center">
+                                                    <x-checkbox
+                                                        x-bind:checked="selectedFailedJobs.length > 0"
+                                                        aria-label="Select all failed jobs"
+                                                    />
+                                                </div>
+                                            </th>
                                             <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="service">Service</th>
                                             <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="queue">Queue</th>
                                             <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>

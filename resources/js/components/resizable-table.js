@@ -360,6 +360,13 @@ import { parseJson } from '../lib/parse';
         if (!theadRow) return;
 
         theadRow.querySelectorAll('th[data-column-id]').forEach(th => {
+            if (th.hasAttribute('data-column-fixed')) {
+                th.removeAttribute('draggable');
+                th.style.cursor = '';
+                th.classList.remove('select-none');
+                return;
+            }
+
             th.setAttribute('draggable', 'true');
             th.style.cursor = 'move';
             th.classList.add('select-none');
