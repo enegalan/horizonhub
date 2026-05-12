@@ -51,6 +51,7 @@ Route::prefix('horizon')->name('horizon.')->group(function (): void {
     Route::delete('/alerts/{alert}', [AlertController::class, 'destroy'])->name('alerts.destroy');
     Route::post('/alerts/logs/{log}/retry', [AlertController::class, 'retryLog'])->name('alerts.logs.retry');
     Route::post('/alerts/{alert}/evaluate', [AlertController::class, 'evaluateAlert'])->name('alerts.evaluate');
+    Route::post('/alerts/{alert}/toggle-enabled', [AlertController::class, 'toggleEnabled'])->name('alerts.toggle-enabled');
     Route::post('/alerts/evaluate-all', [AlertController::class, 'evaluateAllAlerts'])->name('alerts.evaluate-all');
     Route::get('/alerts/evaluations/{evaluationId}', [AlertController::class, 'evaluationStatus'])->name('alerts.evaluations.status');
 

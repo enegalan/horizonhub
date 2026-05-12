@@ -57,6 +57,7 @@ class TurboStreamSseTest extends TestCase
         $result = $reflection->invoke($controller);
 
         $this->assertNotNull($result);
+        $this->assertStringContainsString('target="turbo-horizon-alert-stats" method="morph"', $result);
         $this->assertStringContainsString('target="turbo-tbody-horizon-alerts-list" method="morph"', $result);
         $this->assertStringContainsString('action="update"', $result);
     }
@@ -205,6 +206,7 @@ class TurboStreamSseTest extends TestCase
         $result = $reflection->invoke($controller);
 
         $this->assertNotNull($result);
+        $this->assertStringContainsString('target="turbo-horizon-provider-stats" method="morph"', $result);
         $this->assertStringContainsString('target="turbo-tbody-horizon-provider-list" method="morph"', $result);
         $this->assertStringContainsString('action="update"', $result);
         $this->assertStringContainsString('stream-provider', $result);
@@ -265,6 +267,7 @@ class TurboStreamSseTest extends TestCase
         $result = $reflection->invoke($controller);
 
         $this->assertNotNull($result);
+        $this->assertStringContainsString('target="turbo-horizon-service-stats" method="morph"', $result);
         $this->assertStringContainsString('target="turbo-tbody-horizon-service-list" method="morph"', $result);
         $this->assertStringContainsString('action="update"', $result);
     }
@@ -301,6 +304,7 @@ class TurboStreamSseTest extends TestCase
         $response->assertOk();
         $html = (string) $response->getContent();
         $this->assertStringContainsString('data-turbo-stream-patch-children="true"', $html);
+        $this->assertStringContainsString('id="turbo-horizon-provider-stats"', $html);
         $this->assertStringContainsString('id="turbo-tbody-horizon-provider-list"', $html);
     }
 
@@ -317,6 +321,8 @@ class TurboStreamSseTest extends TestCase
         $response->assertOk();
         $html = (string) $response->getContent();
         $this->assertStringContainsString('data-turbo-stream-patch-children="true"', $html);
+        $this->assertStringContainsString('id="turbo-horizon-service-stats"', $html);
+        $this->assertStringContainsString('id="turbo-tbody-horizon-service-list"', $html);
     }
 
     public function test_streams_alert_show_returns_sse_content_type(): void

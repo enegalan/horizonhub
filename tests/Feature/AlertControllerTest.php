@@ -140,6 +140,30 @@ class AlertControllerTest extends TestCase
         $this->get(route('horizon.alerts.create'))->assertOk();
     }
 
+    public function test_toggle_enabled_updates_alert_state(): void
+    {
+        $alert = Alert::query()->create([
+            'name' => 'toggle-alert',
+            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'enabled' => true,
+        ]);
+
+        $this->post(route('horizon.alerts.toggle-enabled', ['alert' => $alert]))
+            ->assertOk()
+            ->assertJsonPath('alert_id', $alert->id)
+            ->assertJsonPath('enabled', false);
+
+        $alert->refresh();
+        $this->assertFalse($alert->enabled);
+
+        $this->post(route('horizon.alerts.toggle-enabled', ['alert' => $alert]))
+            ->assertOk()
+            ->assertJsonPath('enabled', true);
+
+        $alert->refresh();
+        $this->assertTrue($alert->enabled);
+    }
+
     public function test_retry_log_calls_engine_only_for_failed_logs(): void
     {
         $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);

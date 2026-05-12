@@ -2,6 +2,7 @@
 
 @section('content')
     <div
+        class="space-y-6"
         x-data="{
             showDeleteServiceModal: false,
             deleteServiceName: '',
@@ -20,13 +21,30 @@
             }
         }"
     >
-        <div class="card mb-4">
-            <div class="px-4 py-3">
-                <h2 class="text-section-title text-foreground mb-3">Register service</h2>
-                @if(session('status'))
-                    <p class="mb-2 text-xs text-muted-foreground">{{ session('status') }}</p>
-                @endif
-                <form method="POST" action="{{ route('horizon.services.store') }}" class="space-y-3 max-w-sm">
+        <div class="card overflow-hidden">
+            <div class="relative border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-5 py-5 sm:px-6">
+                <div class="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-primary/10 blur-3xl" aria-hidden="true"></div>
+                <div class="relative space-y-2">
+                    <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Connected Horizon instances</p>
+                    <h2 class="text-section-title text-foreground">Services</h2>
+                    <p class="max-w-2xl text-sm text-muted-foreground">
+                        Register each Horizon deployment, monitor its health, and open its dashboard when you need to inspect queues and workers.
+                    </p>
+                </div>
+            </div>
+
+            @if(session('status'))
+                <div class="border-b border-border px-5 py-3 text-sm text-muted-foreground sm:px-6">
+                    {{ session('status') }}
+                </div>
+            @endif
+
+            <div class="border-b border-border px-5 py-5 sm:px-6">
+                <div class="mb-4 space-y-1">
+                    <h3 class="text-sm font-semibold text-foreground">Register service</h3>
+                    <p class="text-sm text-muted-foreground">Add the internal URL Horizon Hub should use to collect metrics and events.</p>
+                </div>
+                <form method="POST" action="{{ route('horizon.services.store') }}" class="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
                     @csrf
                     <div class="space-y-2">
                         <x-input-label>Name</x-input-label>
@@ -35,7 +53,7 @@
                     </div>
                     <div class="space-y-2">
                         <x-input-label>Base URL</x-input-label>
-                        <x-text-input type="url" name="base_url" value="{{ old('base_url') }}" placeholder="http://my-service" class="w-full" />
+                        <x-text-input type="url" name="base_url" value="{{ old('base_url') }}" placeholder="http://my-service" class="w-full font-mono text-sm" />
                         @error('base_url') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                         <p class="text-xs text-muted-foreground">
                             Internal URL used to obtain events from the service.
@@ -43,44 +61,66 @@
                     </div>
                     <div class="space-y-2">
                         <x-input-label>Public URL (optional)</x-input-label>
-                        <x-text-input type="url" name="public_url" value="{{ old('public_url') }}" placeholder="http://my-service:8080" class="w-full" />
+                        <x-text-input type="url" name="public_url" value="{{ old('public_url') }}" placeholder="http://my-service:8080" class="w-full font-mono text-sm" />
                         @error('public_url') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                         <p class="text-xs text-muted-foreground">
                             URL reachable from your browser.
                         </p>
                     </div>
-                    <x-button type="submit" class="h-9 text-sm relative inline-flex items-center justify-center">
-                        Register
-                    </x-button>
+                    <div class="flex items-end">
+                        <x-button type="submit" class="h-9 w-full text-sm sm:w-auto">
+                            Register
+                        </x-button>
+                    </div>
                 </form>
             </div>
-        </div>
 
-        <div @class(['card'])>
-            <x-table
-                resizable-key="horizon-service-list"
-                column-ids="name,base_url,status,horizon_status,jobs,failed,last_seen,actions"
-                body-id="turbo-tbody-horizon-service-list"
-                stream-patch-children
-            >
-                <x-slot:head>
-                    <tr class="border-b border-border bg-muted/50">
-                        <th class="table-header px-4 py-2.5" data-column-id="name">Name</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="base_url">Base URL</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="status">Status</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="horizon_status">Horizon Status</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="jobs">Jobs</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="failed">Failed</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="last_seen">Last seen</th>
-                        <th class="table-header px-4 py-2.5 w-24" data-column-id="actions">Actions</th>
-                    </tr>
-                </x-slot:head>
-                @if(!empty($defer))
-                    <x-skeleton.table-rows rows="8" columns="8" />
-                @else
-                    @include('horizon.services.partials.service-tbody', ['services' => $services])
-                @endif
-            </x-table>
+            <div class="grid gap-3 border-b border-border px-5 py-4 sm:grid-cols-3 sm:px-6">
+                <div
+                    id="turbo-horizon-service-stats"
+                    class="contents"
+                    data-turbo-stream-patch-children="true"
+                >
+                    @if(!empty($defer))
+                        @for ($i = 0; $i < 3; $i++)
+                            <div class="rounded-lg border border-border/70 bg-muted/20 px-4 py-3">
+                                <div class="skeleton h-3 w-20" style="--skeleton-delay: {{ $i * 80 }}ms"></div>
+                                <div class="skeleton mt-3 h-7 w-12" style="--skeleton-delay: {{ ($i * 80) + 120 }}ms"></div>
+                            </div>
+                        @endfor
+                    @else
+                        @include('horizon.services.partials.service-stats', ['serviceStats' => $serviceStats ?? ['total' => 0, 'online' => 0, 'offline' => 0]])
+                    @endif
+                </div>
+            </div>
+
+            <div class="px-5 py-5 sm:px-6">
+                <div
+                    id="turbo-tbody-horizon-service-list"
+                    class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+                    data-turbo-stream-patch-children="true"
+                >
+                    @if(!empty($defer))
+                        @for ($i = 0; $i < 6; $i++)
+                            <div class="card overflow-hidden p-4">
+                                <div class="flex items-start gap-3">
+                                    <div class="skeleton size-11 shrink-0 rounded-xl" style="--skeleton-delay: {{ $i * 70 }}ms"></div>
+                                    <div class="min-w-0 flex-1 space-y-2">
+                                        <div class="skeleton h-4 w-2/3" style="--skeleton-delay: {{ ($i * 70) + 80 }}ms"></div>
+                                        <div class="skeleton h-3 w-1/2" style="--skeleton-delay: {{ ($i * 70) + 160 }}ms"></div>
+                                    </div>
+                                </div>
+                                <div class="mt-4 space-y-2">
+                                    <div class="skeleton h-3 w-full" style="--skeleton-delay: {{ ($i * 70) + 240 }}ms"></div>
+                                    <div class="skeleton h-3 w-5/6" style="--skeleton-delay: {{ ($i * 70) + 320 }}ms"></div>
+                                </div>
+                            </div>
+                        @endfor
+                    @else
+                        @include('horizon.services.partials.service-tbody', ['services' => $services])
+                    @endif
+                </div>
+            </div>
         </div>
 
         @include('horizon.services.partials.delete-service-confirm-modal')
