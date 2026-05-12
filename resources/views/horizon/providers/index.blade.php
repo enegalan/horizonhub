@@ -50,7 +50,7 @@
                         <th class="table-header px-4 py-2.5" data-column-id="name">Name</th>
                         <th class="table-header px-4 py-2.5" data-column-id="type">Type</th>
                         <th class="table-header px-4 py-2.5" data-column-id="config">Config</th>
-                        <th class="table-header px-4 py-2.5 w-24" data-column-id="actions">Actions</th>
+                        <th class="table-header px-4 py-2.5 w-24" data-column-id="actions" data-sortable="false">Actions</th>
                     </tr>
                 </x-slot:head>
                 @if(!empty($defer))

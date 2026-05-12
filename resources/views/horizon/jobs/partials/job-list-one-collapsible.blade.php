@@ -69,7 +69,7 @@
                         <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="failed_at">Failed at</th>
                         <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="runtime">Runtime</th>
                     @endif
-                    <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="actions">Actions</th>
+                    <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="actions" data-column-fixed>Actions</th>
                 </tr>
             </x-slot:head>
             @include('horizon.jobs.partials.job-list-tbody-rows', [

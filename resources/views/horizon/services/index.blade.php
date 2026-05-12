@@ -72,7 +72,7 @@
                         <th class="table-header px-4 py-2.5" data-column-id="jobs">Jobs</th>
                         <th class="table-header px-4 py-2.5" data-column-id="failed">Failed</th>
                         <th class="table-header px-4 py-2.5" data-column-id="last_seen">Last seen</th>
-                        <th class="table-header px-4 py-2.5 w-24" data-column-id="actions">Actions</th>
+                        <th class="table-header px-4 py-2.5 w-24" data-column-id="actions" data-sortable="false">Actions</th>
                     </tr>
                 </x-slot:head>
                 @if(!empty($defer))
