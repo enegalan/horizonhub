@@ -175,7 +175,7 @@
                             <th class="table-header px-4 py-2.5" data-column-id="service">Service</th>
                             <th class="table-header px-4 py-2.5" data-column-id="events">Events</th>
                             <th class="table-header px-4 py-2.5" data-column-id="status">Status</th>
-                            <th class="table-header px-4 py-2.5 w-24" data-column-id="actions">Actions</th>
+                            <th class="table-header px-4 py-2.5 w-24" data-column-id="actions" data-sortable="false">Actions</th>
                         </tr>
                     </x-slot:head>
                             @forelse($logs as $log)

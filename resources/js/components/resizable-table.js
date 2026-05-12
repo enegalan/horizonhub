@@ -303,7 +303,7 @@ import { parseJson } from '../lib/parse';
 
             var handle = document.createElement('span');
             handle.className = 'horizon-resize-handle absolute right-0 top-0 bottom-0 cursor-col-resize bg-transparent';
-            handle.style.cssText = 'width:' + RESIZE_HANDLE_WIDTH + 'px;margin-right:-' + (RESIZE_HANDLE_WIDTH / 2) + 'px;';
+            handle.style.cssText = 'width:' + RESIZE_HANDLE_WIDTH + 'px;';
             handle.title = 'Resize column';
 
             var line = document.createElement('span');
