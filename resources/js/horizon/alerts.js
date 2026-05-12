@@ -45,6 +45,13 @@ export function horizonAlertsList() {
                     if (evalBtn) {
                         e.preventDefault();
                         instance.private__handleEvaluateAlertClick(evalBtn);
+                        return;
+                    }
+
+                    var enabledToggleBtn = e.target && e.target.closest ? e.target.closest('[data-alert-enabled-toggle="1"]') : null;
+                    if (enabledToggleBtn) {
+                        e.preventDefault();
+                        instance.private__handleEnabledToggleClick(enabledToggleBtn);
                     }
                 };
                 document.addEventListener('click', window.__horizonAlertsListEvaluationClickListener);
@@ -90,6 +97,122 @@ export function horizonAlertsList() {
                 var initialDisabled = b.getAttribute && b.getAttribute('data-alert-evaluate-initial-disabled') === '1';
                 b.disabled = !!initialDisabled;
                 b.setAttribute('aria-busy', 'false');
+            });
+        },
+
+        /**
+         * Apply enabled state to an alert card.
+         * @param {HTMLElement} articleEl
+         * @param {boolean} enabled
+         * @returns {void}
+         */
+        private__applyAlertEnabledState(articleEl, enabled) {
+            if (!articleEl) return;
+
+            var accentEl = articleEl.querySelector('[data-alert-enabled-accent="1"]');
+            if (accentEl) {
+                accentEl.classList.remove(
+                    'bg-gradient-to-r',
+                    'from-emerald-500/80',
+                    'via-emerald-400/60',
+                    'to-transparent',
+                    'from-amber-500/80',
+                    'via-amber-400/60'
+                );
+                if (enabled) {
+                    accentEl.classList.add(
+                        'bg-gradient-to-r',
+                        'from-emerald-500/80',
+                        'via-emerald-400/60',
+                        'to-transparent'
+                    );
+                } else {
+                    accentEl.classList.add(
+                        'bg-gradient-to-r',
+                        'from-amber-500/80',
+                        'via-amber-400/60',
+                        'to-transparent'
+                    );
+                }
+            }
+
+            var iconEl = articleEl.querySelector('[data-alert-enabled-icon="1"]');
+            if (iconEl) {
+                iconEl.classList.remove(
+                    'border-emerald-500/20',
+                    'bg-emerald-500/10',
+                    'text-emerald-700',
+                    'dark:text-emerald-300',
+                    'border-amber-500/20',
+                    'bg-amber-500/10',
+                    'text-amber-700',
+                    'dark:text-amber-300'
+                );
+                if (enabled) {
+                    iconEl.classList.add(
+                        'border-emerald-500/20',
+                        'bg-emerald-500/10',
+                        'text-emerald-700',
+                        'dark:text-emerald-300'
+                    );
+                } else {
+                    iconEl.classList.add(
+                        'border-amber-500/20',
+                        'bg-amber-500/10',
+                        'text-amber-700',
+                        'dark:text-amber-300'
+                    );
+                }
+            }
+
+            var toggleBtn = articleEl.querySelector('[data-alert-enabled-toggle="1"]');
+            if (toggleBtn) {
+                toggleBtn.setAttribute('data-alert-enabled', enabled ? '1' : '0');
+                toggleBtn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+                toggleBtn.setAttribute('aria-label', enabled ? 'Disable alert' : 'Enable alert');
+                toggleBtn.setAttribute('title', enabled ? 'Disable alert' : 'Enable alert');
+            }
+
+            var badgeEl = articleEl.querySelector('[data-alert-enabled-badge="1"]');
+            if (badgeEl) {
+                badgeEl.classList.remove('badge-success', 'badge-danger');
+                badgeEl.classList.add(enabled ? 'badge-success' : 'badge-danger');
+                badgeEl.textContent = enabled ? 'On' : 'Off';
+            }
+
+            var evaluateBtn = articleEl.querySelector('[data-alert-evaluate-button="1"]');
+            if (evaluateBtn) {
+                evaluateBtn.setAttribute('data-alert-evaluate-initial-disabled', enabled ? '0' : '1');
+                if (evaluateBtn.getAttribute('aria-busy') !== 'true') {
+                    evaluateBtn.disabled = !enabled;
+                }
+            }
+        },
+
+        /**
+         * Handle enabled toggle click.
+         * @param {HTMLElement} btnEl
+         * @returns {void}
+         */
+        private__handleEnabledToggleClick(btnEl) {
+            var self = this;
+            if (!window.horizon || !window.horizon.http || !btnEl) return;
+            if (btnEl.disabled || btnEl.getAttribute('data-alert-enabled-toggle-running') === '1') return;
+
+            var url = btnEl.getAttribute('data-alert-enabled-toggle-url');
+            var articleEl = btnEl.closest('[data-stream-row-id]');
+            if (!url || !articleEl) return;
+
+            btnEl.setAttribute('data-alert-enabled-toggle-running', '1');
+            btnEl.disabled = true;
+
+            window.horizon.http.post(url, {}).then(function (data) {
+                var enabled = !!(data && data.enabled);
+                self.private__applyAlertEnabledState(articleEl, enabled);
+            }).catch(function () {
+            }).finally(function () {
+                btnEl.removeAttribute('data-alert-enabled-toggle-running');
+                btnEl.disabled = false;
             });
         },
 

@@ -53,7 +53,7 @@
     @endphp
 
     <div
-        class="max-w-2xl space-y-6"
+        class="mx-auto max-w-3xl space-y-6"
         x-data="{
             ruleType: {!! \Illuminate\Support\Js::from(old('rule_type', $alert->rule_type ?? 'failure_count')) !!},
             jobPatterns: {!! \Illuminate\Support\Js::from($jobPatternsForForm) !!},
@@ -99,15 +99,36 @@
             }
         }"
     >
+        <div class="card overflow-hidden">
+            <div class="relative border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-5 py-5 sm:px-6">
+                <div class="pointer-events-none absolute -left-8 top-0 size-32 rounded-full bg-emerald-500/10 blur-3xl" aria-hidden="true"></div>
+                <div class="pointer-events-none absolute -right-8 bottom-0 size-32 rounded-full bg-amber-500/10 blur-3xl" aria-hidden="true"></div>
+                <div class="relative space-y-2">
+                    <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        {{ $isEdit ? 'Update alert' : 'Create alert' }}
+                    </p>
+                    <h2 class="text-section-title text-foreground">
+                        {{ $isEdit ? 'Edit alert rule' : 'New alert rule' }}
+                    </h2>
+                    <p class="max-w-2xl text-sm text-muted-foreground">
+                        Choose what Horizon should watch, when it should fire, and which providers should receive the notification.
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <form method="POST" action="{{ $action }}" class="space-y-6">
             @csrf
             @if($isEdit)
                 @method('PUT')
             @endif
 
-            <div class="card">
-                <div class="px-4 py-4 space-y-4">
-                    <h2 class="text-section-title text-foreground">Rule</h2>
+            <div class="card overflow-hidden">
+                <div class="border-b border-border px-5 py-4 sm:px-6">
+                    <h3 class="text-sm font-semibold text-foreground">Rule</h3>
+                    <p class="mt-1 text-sm text-muted-foreground">Scope the alert to services, queues, and jobs, then set the trigger threshold.</p>
+                </div>
+                <div class="space-y-5 px-5 py-5 sm:px-6">
                     <div class="space-y-2">
                         <x-input-label for="name">Name (optional)</x-input-label>
                         <x-text-input
@@ -130,7 +151,7 @@
                         <div class="space-y-2">
                             @foreach($services as $s)
                                 <div
-                                    class="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 hover:bg-muted/50"
+                                    class="flex cursor-pointer items-center gap-3 rounded-xl border border-border px-3 py-2.5 transition-colors hover:bg-muted/50"
                                     @click="toggleCheckboxRow($event)"
                                 >
                                     <x-checkbox
@@ -172,16 +193,10 @@
                             :aria-expanded="queueOptionalSectionOpen"
                         >
                             <span>Queue (optional)</span>
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
+                            <x-icons.chevron-down
                                 class="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200"
-                                :class="{ 'rotate-180': queueOptionalSectionOpen }"
-                                aria-hidden="true"
-                            >
-                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                            </svg>
+                                x-bind:class="{ 'rotate-180': queueOptionalSectionOpen }"
+                            />
                         </button>
                         <div
                             x-show="queueOptionalSectionOpen"
@@ -234,16 +249,10 @@
                             :aria-expanded="jobOptionalSectionOpen"
                         >
                             <span>Job (optional)</span>
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
+                            <x-icons.chevron-down
                                 class="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200"
-                                :class="{ 'rotate-180': jobOptionalSectionOpen }"
-                                aria-hidden="true"
-                            >
-                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                            </svg>
+                                x-bind:class="{ 'rotate-180': jobOptionalSectionOpen }"
+                            />
                         </button>
                         <div
                             x-show="jobOptionalSectionOpen"
@@ -296,16 +305,10 @@
                             :aria-expanded="jobTypeOptionalSectionOpen"
                         >
                             <span>Job type (optional)</span>
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
+                            <x-icons.chevron-down
                                 class="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200"
-                                :class="{ 'rotate-180': jobTypeOptionalSectionOpen }"
-                                aria-hidden="true"
-                            >
-                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                            </svg>
+                                x-bind:class="{ 'rotate-180': jobTypeOptionalSectionOpen }"
+                            />
                         </button>
                         <div
                             x-show="jobTypeOptionalSectionOpen"
@@ -411,10 +414,13 @@
                 </div>
             </div>
 
-            <div class="card">
-                <div class="px-4 py-4 space-y-4">
-                    <h2 class="text-section-title text-foreground">Notifications</h2>
-                    <div class="space-y-2">
+            <div class="card overflow-hidden">
+                <div class="border-b border-border px-5 py-4 sm:px-6">
+                    <h3 class="text-sm font-semibold text-foreground">Notifications</h3>
+                    <p class="mt-1 text-sm text-muted-foreground">Control delivery throttling and choose which providers receive this alert.</p>
+                </div>
+                <div class="space-y-5 px-5 py-5 sm:px-6">
+                    <div class="space-y-2 rounded-xl border border-border/70 bg-muted/20 px-4 py-4">
                         <x-input-label for="email_interval_minutes">Minutes between notifications (throttle)</x-input-label>
                         <x-text-input
                             type="number"
@@ -445,8 +451,11 @@
                                 $oldProviderIds = old('provider_ids', $selectedProviderIds);
                             @endphp
                             @foreach($providers as $provider)
+                                @php
+                                    $isSlackProvider = $provider->type === \App\Models\NotificationProvider::TYPE_SLACK;
+                                @endphp
                                 <div
-                                    class="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 hover:bg-muted/50"
+                                    class="flex cursor-pointer items-center gap-3 rounded-xl border border-border px-3 py-2.5 transition-colors hover:bg-muted/50"
                                     @click="toggleCheckboxRow($event)"
                                 >
                                     <x-checkbox
@@ -455,8 +464,23 @@
                                         value="{{ $provider->id }}"
                                         :checked="in_array($provider->id, $oldProviderIds, true)"
                                     />
-                                    <span class="text-sm font-medium">{{ $provider->name }}</span>
-                                    <span class="text-xs text-muted-foreground">({{ $provider->type }})</span>
+                                    <div
+                                        @class([
+                                            'flex size-9 shrink-0 items-center justify-center rounded-lg border',
+                                            'border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-300' => $isSlackProvider,
+                                            'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300' => ! $isSlackProvider,
+                                        ])
+                                    >
+                                        @if($isSlackProvider)
+                                            <x-icons.slack class="size-4" />
+                                        @else
+                                            <x-heroicon-o-envelope class="size-4" />
+                                        @endif
+                                    </div>
+                                    <div class="min-w-0">
+                                        <span class="text-sm font-medium">{{ $provider->name }}</span>
+                                        <p class="text-xs text-muted-foreground">{{ $isSlackProvider ? 'Slack' : 'Email' }}</p>
+                                    </div>
                                 </div>
                             @endforeach
                         </div>
@@ -470,7 +494,7 @@
                     type="submit"
                     class="h-9 text-sm relative inline-flex items-center justify-center"
                 >
-                    Save
+                    {{ $isEdit ? 'Save changes' : 'Create alert' }}
                 </x-button>
                 <x-button
                     variant="ghost"

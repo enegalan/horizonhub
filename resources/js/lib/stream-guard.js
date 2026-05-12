@@ -343,19 +343,56 @@ function mergeTableRowCells(existingRow, incomingRow) {
 }
 
 /**
+ * Copy live client-owned subtrees into an incoming keyed child before merge.
+ * @param {Element} existing
+ * @param {Element} incoming
+ * @returns {Element}
+ */
+function private__stageKeyedChildWithClientPreservation(existing, incoming) {
+    var staged = incoming.cloneNode(true);
+    var existingHosts = existing.querySelectorAll('[data-stream-preserve-client]');
+    var stagedHosts = staged.querySelectorAll('[data-stream-preserve-client]');
+    var i;
+
+    for (i = 0; i < existingHosts.length; i++) {
+        if (!stagedHosts[i]) {
+            continue;
+        }
+        stagedHosts[i].replaceWith(existingHosts[i].cloneNode(true));
+    }
+
+    return staged;
+}
+
+/**
  * Merge generic keyed child.
  * @param {Element} existing
  * @param {Element} incoming
- * @returns {void}
+ * @returns {boolean}
  */
 function mergeGenericKeyedChild(existing, incoming) {
-    existing.innerHTML = incoming.innerHTML;
-    var attr = 'data-wait-seconds'
-    if (incoming.hasAttribute(attr)) {
-        existing.setAttribute(attr, String(incoming.getAttribute(attr)));
-    } else {
-        existing.removeAttribute(attr);
+    var staged = private__stageKeyedChildWithClientPreservation(existing, incoming);
+    var changed = false;
+    var nextHtml = staged.innerHTML;
+
+    if (existing.innerHTML !== nextHtml) {
+        existing.innerHTML = nextHtml;
+        changed = true;
     }
+
+    var attr = 'data-wait-seconds';
+    if (incoming.hasAttribute(attr)) {
+        var nextWaitSeconds = String(incoming.getAttribute(attr));
+        if (existing.getAttribute(attr) !== nextWaitSeconds) {
+            existing.setAttribute(attr, nextWaitSeconds);
+            changed = true;
+        }
+    } else if (existing.hasAttribute(attr)) {
+        existing.removeAttribute(attr);
+        changed = true;
+    }
+
+    return changed;
 }
 
 /**
