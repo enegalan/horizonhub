@@ -3,14 +3,14 @@
 namespace App\Http\Controllers\Horizon;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Horizon\FailedJobsListRequest;
+use App\Http\Requests\Horizon\RetryBatchRequest;
+use App\Http\Requests\Horizon\RetryJobRequest;
 use App\Models\Service;
-use App\Rules\RetryModalDateFilter;
 use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\HorizonJobListService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 
 class JobActionController extends Controller
@@ -37,20 +37,9 @@ class JobActionController extends Controller
     /**
      * List failed jobs for the retry modal (with filters).
      */
-    public function failedList(Request $request): JsonResponse
+    public function failedList(FailedJobsListRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'service_id' => 'nullable|integer|exists:services,id',
-            'service_ids' => 'nullable|array',
-            'service_ids.*' => 'integer|exists:services,id',
-            'search' => 'nullable|string|max:255',
-            'date_from' => ['nullable', 'string', 'max:32', new RetryModalDateFilter],
-            'date_to' => ['nullable', 'string', 'max:32', new RetryModalDateFilter],
-            'page' => 'nullable|integer|min:1',
-            'per_page' => 'nullable|integer|min:1|max:100',
-            'selection' => ['nullable', 'string', Rule::in(['page', 'all'])],
-        ]);
-
+        $validated = $request->validated();
         $selection = (string) ($validated['selection'] ?? 'page');
 
         $perPage = (int) ($validated['per_page'] ?? config('horizonhub.jobs_per_page'));
@@ -145,12 +134,9 @@ class JobActionController extends Controller
     /**
      * Retry a job.
      */
-    public function retry(Request $request): JsonResponse
+    public function retry(RetryJobRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'uuid' => ['required', 'string'],
-            'service_id' => ['required', 'integer', 'exists:services,id'],
-        ]);
+        $validated = $request->validated();
         $uuid = $validated['uuid'];
         $serviceId = $validated['service_id'];
 
@@ -175,13 +161,9 @@ class JobActionController extends Controller
     /**
      * Retry multiple jobs by ID
      */
-    public function retryBatch(Request $request): JsonResponse
+    public function retryBatch(RetryBatchRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'jobs' => ['required', 'array'],
-            'jobs.*.id' => ['required', 'string'],
-            'jobs.*.service_id' => ['required', 'integer', 'exists:services,id'],
-        ]);
+        $validated = $request->validated();
         $jobs = $validated['jobs'];
         $results = [];
         $succeeded = 0;

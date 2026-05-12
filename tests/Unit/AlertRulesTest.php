@@ -76,7 +76,7 @@ class AlertRulesTest extends TestCase
             ],
         ]);
         $support = new AlertRuleEvaluationSupport($api);
-        $strategy = new FailureCountAlertRuleStrategy($support, $api);
+        $strategy = new FailureCountAlertRuleStrategy($support);
         $result = $strategy->evaluateWithTriggeringJobs($alert, $service->id, null);
 
         $this->assertTrue($result['triggered']);
@@ -151,10 +151,10 @@ class AlertRulesTest extends TestCase
 
         $support = new AlertRuleEvaluationSupport($api);
 
-        $avg = new AvgExecutionTimeAlertRuleStrategy($support, $api);
+        $avg = new AvgExecutionTimeAlertRuleStrategy($support);
         $this->assertTrue($avg->evaluateWithTriggeringJobs($avgAlert, $service->id, null)['triggered']);
 
-        $queueBlocked = new QueueBlockedAlertRuleStrategy($support, $api);
+        $queueBlocked = new QueueBlockedAlertRuleStrategy($support);
         $this->assertFalse($queueBlocked->evaluateWithTriggeringJobs($queueAlert, $service->id, null)['triggered']);
 
         $worker = new WorkerOfflineAlertRuleStrategy;
@@ -177,9 +177,9 @@ class AlertRulesTest extends TestCase
         $null = new NullAlertRuleStrategy;
         $registry = new AlertRuleStrategyRegistry(
             $null,
-            new FailureCountAlertRuleStrategy($support, $api),
-            new AvgExecutionTimeAlertRuleStrategy($support, $api),
-            new QueueBlockedAlertRuleStrategy($support, $api),
+            new FailureCountAlertRuleStrategy($support),
+            new AvgExecutionTimeAlertRuleStrategy($support),
+            new QueueBlockedAlertRuleStrategy($support),
             new WorkerOfflineAlertRuleStrategy,
             new SupervisorOfflineAlertRuleStrategy($api),
             new HorizonOfflineAlertRuleStrategy($api),

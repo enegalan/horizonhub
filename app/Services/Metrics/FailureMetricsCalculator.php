@@ -34,7 +34,7 @@ class FailureMetricsCalculator extends HorizonMetricsComputation
 
         /** @var Service $service */
         foreach ($services as $service) {
-            $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp);
+            $completedJobs = $this->jobsWindowFetcher->fetchCompletedJobsSince($service, $sinceTimestamp);
             $processed += \count($completedJobs);
 
             $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp);
@@ -84,7 +84,7 @@ class FailureMetricsCalculator extends HorizonMetricsComputation
 
         /** @var Service $service */
         foreach ($services as $service) {
-            $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp);
+            $completedJobs = $this->jobsWindowFetcher->fetchCompletedJobsSince($service, $sinceTimestamp);
 
             foreach ($completedJobs as $job) {
                 $completedAt = $job['completed_at'] ?? $job['processed_at'] ?? null;

@@ -31,9 +31,8 @@
                     <div>
                         <dt class="label-muted">Service scope</dt>
                         @php
-                            $serviceIds = isset($ruleConfig['service_ids']) && \is_array($ruleConfig['service_ids']) ? $ruleConfig['service_ids'] : [];
                             $serviceNames = [];
-                            foreach ($serviceIds as $serviceId) {
+                            foreach ($ruleConfig['service_ids'] as $serviceId) {
                                 foreach ($services as $s) {
                                     if ((int) $s->id === (int) $serviceId) {
                                         $serviceNames[] = (string) $s->name;

@@ -13,21 +13,35 @@ class ModelAndProviderTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_alert_scoped_service_helpers_and_relations(): void
+    public function test_alert_service_scope_and_relations(): void
     {
         $s1 = Service::query()->create(['name' => 'A', 'base_url' => 'https://a.test', 'status' => 'online']);
         $s2 = Service::query()->create(['name' => 'B', 'base_url' => 'https://b.test', 'status' => 'online']);
         $alert = Alert::query()->create([
             'name' => 'z',
-            'service_ids' => [$s1->id, '0', $s2->id, 'foo', $s1->id],
+            'service_ids' => [$s1->id, $s2->id],
             'rule_type' => Alert::RULE_FAILURE_COUNT,
             'enabled' => true,
         ]);
 
-        $this->assertSame([$s1->id, $s2->id], $alert->scopedServiceIds());
+        $this->assertSame([$s1->id, $s2->id], $alert->service_ids);
         $this->assertTrue($alert->appliesToServiceId($s1->id));
         $this->assertFalse($alert->appliesToServiceId(999));
-        $this->assertSame(['A', 'B'], $alert->scopedServiceNames());
+
+        $globalAlert = Alert::query()->create([
+            'name' => 'global',
+            'service_ids' => [],
+            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'enabled' => true,
+        ]);
+        $this->assertTrue($globalAlert->appliesToServiceId($s1->id));
+
+        $defaultScopeAlert = new Alert([
+            'name' => 'defaults',
+            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'enabled' => true,
+        ]);
+        $this->assertSame([], $defaultScopeAlert->service_ids);
     }
 
     public function test_notification_provider_helpers_and_alert_log_casts(): void

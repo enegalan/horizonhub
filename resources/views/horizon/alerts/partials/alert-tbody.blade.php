@@ -8,7 +8,7 @@
         </td>
         <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="service">
             @php
-                $serviceLabels = $alert->scopedServiceNames();
+                $serviceLabels = isset($serviceLabelsByAlertId) ? $serviceLabelsByAlertId[$alert->id] : [];
             @endphp
             @if(\count($serviceLabels) > 0)
                 {{ \count($serviceLabels) === 1 ? $serviceLabels[0] : \implode(', ', $serviceLabels) }}

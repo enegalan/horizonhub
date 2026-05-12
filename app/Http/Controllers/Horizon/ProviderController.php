@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Horizon;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Horizon\UpsertProviderRequest;
 use App\Models\NotificationProvider;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 
 class ProviderController extends Controller
 {
@@ -53,10 +53,9 @@ class ProviderController extends Controller
     /**
      * Store a new provider.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(UpsertProviderRequest $request): RedirectResponse
     {
-        $data = $this->private__validateProvider($request, null);
-        NotificationProvider::create($data);
+        NotificationProvider::create($request->normalizedProviderData());
 
         return redirect()
             ->route('horizon.providers.index')
@@ -66,10 +65,9 @@ class ProviderController extends Controller
     /**
      * Update an existing provider.
      */
-    public function update(Request $request, NotificationProvider $provider): RedirectResponse
+    public function update(UpsertProviderRequest $request, NotificationProvider $provider): RedirectResponse
     {
-        $data = $this->private__validateProvider($request, $provider);
-        $provider->update($data);
+        $provider->update($request->normalizedProviderData());
 
         return redirect()
             ->route('horizon.providers.index')
@@ -96,43 +94,5 @@ class ProviderController extends Controller
             'emailTo' => $emailTo,
             'header' => $provider->exists ? 'Edit provider' : 'New provider',
         ]);
-    }
-
-    /**
-     * Validate and normalize provider data.
-     *
-     * @return array<string, mixed>
-     */
-    private function private__validateProvider(Request $request, ?NotificationProvider $provider): array
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'type' => 'required|in:slack,email',
-            'webhook_url' => 'required_if:type,slack|nullable|url',
-            'email_to' => 'required_if:type,email|nullable|string',
-        ]);
-
-        if ($validated['type'] === NotificationProvider::TYPE_EMAIL) {
-            $emails = \array_values(\array_filter(\array_map('trim', \explode(',', (string) ($validated['email_to'] ?? '')))));
-
-            foreach ($emails as $e) {
-                if (! \filter_var($e, FILTER_VALIDATE_EMAIL)) {
-                    \abort(422, 'One or more email addresses are invalid.');
-                }
-            }
-
-            if ($emails === []) {
-                \abort(422, 'Email recipients are required.');
-            }
-            $config = ['to' => $emails];
-        } else {
-            $config = ['webhook_url' => (string) ($validated['webhook_url'] ?? '')];
-        }
-
-        return [
-            'name' => $validated['name'],
-            'type' => $validated['type'],
-            'config' => $config,
-        ];
     }
 }

@@ -38,7 +38,7 @@ class AlertUpsertService
             'providers' => $providers,
             'ruleTypes' => $ruleTypes,
             'selectedProviderIds' => $alert->exists ? $alert->notificationProviders()->pluck('notification_providers.id')->all() : [],
-            'selectedServiceIds' => $alert->exists ? $alert->scopedServiceIds() : [],
+            'selectedServiceIds' => $alert->service_ids,
             'header' => $header,
         ];
     }
@@ -222,6 +222,7 @@ class AlertUpsertService
 
         $jobTypeColumn = $jobPatterns === [] ? null : Str::limit(\implode(', ', $jobPatterns), 252);
         $serviceIds = \array_values(\array_unique(\array_map('intval', $validated['service_ids'] ?? [])));
+        $serviceIds = \array_values(\array_filter($serviceIds, static fn (int $serviceId): bool => $serviceId > 0));
         \sort($serviceIds);
 
         $alertData = [

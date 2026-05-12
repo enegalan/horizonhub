@@ -5,7 +5,6 @@ namespace App\Services\Alerts;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Model;
 
 class AlertChartDataService
 {
@@ -24,7 +23,6 @@ class AlertChartDataService
             : \now()->subDays($days - 1)->startOfDay();
 
         $bucketFormatPhp = $days === 1 ? 'Y-m-d H:00' : 'Y-m-d';
-        $bucketFormatSql = $days === 1 ? '%Y-%m-%d %H:00' : '%Y-%m-%d';
 
         $buckets = [];
         $totalSlots = $days === 1 ? 24 : $days;
@@ -38,19 +36,19 @@ class AlertChartDataService
 
         $logs = AlertLog::where('alert_id', $alert->id)
             ->where('sent_at', '>=', $since)
-            ->selectRaw("DATE_FORMAT(sent_at, '$bucketFormatSql') as bucket, status, COUNT(*) as total")
-            ->groupBy('bucket', 'status')
-            ->get();
+            ->get(['sent_at', 'status']);
 
-        /** @var Model $row */
-        foreach ($logs as $row) {
-            $key = (string) $row->getAttribute('bucket');
+        foreach ($logs as $log) {
+            $key = $days === 1
+                ? $log->sent_at->copy()->startOfHour()->format($bucketFormatPhp)
+                : $log->sent_at->copy()->startOfDay()->format($bucketFormatPhp);
 
             if (! isset($buckets[$key])) {
                 continue;
             }
-            $status = (string) $row->getAttribute('status') === 'sent' ? 'sent' : 'failed';
-            $buckets[$key][$status] += (int) $row->getAttribute('total');
+
+            $status = (string) $log->status === 'sent' ? 'sent' : 'failed';
+            $buckets[$key][$status]++;
         }
 
         $xAxis = [];

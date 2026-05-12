@@ -5,22 +5,23 @@ namespace App\Services\Alerts\Rules;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
+use App\Services\Horizon\HorizonJobsWindowFetcher;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 final class AlertRuleEvaluationSupport
 {
     /**
-     * The Horizon API proxy service.
+     * The jobs window fetcher.
      */
-    private HorizonApiProxyService $horizonApi;
+    private HorizonJobsWindowFetcher $jobsWindowFetcher;
 
     /**
      * Construct the evaluation support.
      */
     public function __construct(HorizonApiProxyService $horizonApi)
     {
-        $this->horizonApi = $horizonApi;
+        $this->jobsWindowFetcher = new HorizonJobsWindowFetcher($horizonApi);
     }
 
     /**
@@ -111,6 +112,37 @@ final class AlertRuleEvaluationSupport
     }
 
     /**
+     * Find completed jobs in the window that match the alert.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function matchingCompletedJobsInWindow(Alert $alert, Service $service, Carbon $cutoff): Collection
+    {
+        $jobs = collect($this->jobsWindowFetcher->fetchCompletedJobsSince($service, $cutoff->getTimestamp()));
+
+        return $jobs->filter(function (array $job) use ($alert, $cutoff) {
+            $completedRaw = $job['completed_at'] ?? $job['processed_at'] ?? null;
+            $completedAt = null;
+
+            if (\is_numeric($completedRaw)) {
+                $completedAt = Carbon::createFromTimestamp((int) $completedRaw);
+            } elseif (\is_string($completedRaw) && $completedRaw !== '') {
+                try {
+                    $completedAt = Carbon::parse($completedRaw);
+                } catch (\Throwable $e) {
+                    $completedAt = null;
+                }
+            }
+
+            if ($completedAt === null || $completedAt->lt($cutoff)) {
+                return false;
+            }
+
+            return $this->completedJobRowMatches($alert, $job);
+        })->values();
+    }
+
+    /**
      * Find the matching failed jobs in the window.
      *
      * @param Alert $alert The alert.
@@ -121,13 +153,7 @@ final class AlertRuleEvaluationSupport
      */
     public function matchingFailedJobsInWindow(Alert $alert, Service $service, Carbon $cutoff): Collection
     {
-        $response = $this->horizonApi->getFailedJobs($service, ['starting_at' => 0]);
-        $data = $response['data'] ?? null;
-
-        if (! $response['success'] || ! \is_array($data)) {
-            return collect();
-        }
-        $jobs = collect($data['jobs'] ?? []);
+        $jobs = collect($this->jobsWindowFetcher->fetchFailedJobsSince($service, $cutoff->getTimestamp()));
 
         return $this->filterFailedJobsInWindow($jobs, $cutoff)
             ->filter(function ($job) use ($alert) {

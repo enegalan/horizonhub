@@ -6,9 +6,7 @@ use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\Service;
 use App\Services\Alerts\AlertChartDataService;
-use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class AlertChartDataServiceTest extends TestCase
@@ -35,12 +33,11 @@ class AlertChartDataServiceTest extends TestCase
             'sent_at' => now()->subHours(2),
         ]);
 
-        if (DB::getDriverName() === 'sqlite') {
-            $this->expectException(QueryException::class);
-        }
-
         $serviceObj = new AlertChartDataService;
         $chart = $serviceObj->buildChart($alert, 1);
         $this->assertArrayHasKey('xAxis', $chart);
+        $this->assertCount(24, $chart['xAxis']);
+        $this->assertContains(1, $chart['sent']);
+        $this->assertContains(1, $chart['failed']);
     }
 }

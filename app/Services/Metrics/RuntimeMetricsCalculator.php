@@ -30,7 +30,7 @@ class RuntimeMetricsCalculator extends HorizonMetricsComputation
         foreach ($services as $service) {
             $serviceName = (string) $service->name;
 
-            $completedJobs = $this->private__fetchCompletedJobsInWindow($service, $sinceTimestamp);
+            $completedJobs = $this->jobsWindowFetcher->fetchCompletedJobsSince($service, $sinceTimestamp);
 
             foreach ($completedJobs as $job) {
                 $queuedAt = $job['reserved_at'] ?? null;

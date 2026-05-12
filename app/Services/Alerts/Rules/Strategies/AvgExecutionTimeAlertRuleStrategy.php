@@ -6,16 +6,10 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\AlertRuleEvaluationSupport;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
-use App\Services\Horizon\HorizonApiProxyService;
 use Carbon\Carbon;
 
 final class AvgExecutionTimeAlertRuleStrategy implements AlertRuleStrategyInterface
 {
-    /**
-     * The Horizon API proxy service.
-     */
-    private HorizonApiProxyService $horizonApi;
-
     /**
      * The evaluation support.
      */
@@ -24,10 +18,9 @@ final class AvgExecutionTimeAlertRuleStrategy implements AlertRuleStrategyInterf
     /**
      * Construct the strategy.
      */
-    public function __construct(AlertRuleEvaluationSupport $support, HorizonApiProxyService $horizonApi)
+    public function __construct(AlertRuleEvaluationSupport $support)
     {
         $this->support = $support;
-        $this->horizonApi = $horizonApi;
     }
 
     /**
@@ -47,19 +40,10 @@ final class AvgExecutionTimeAlertRuleStrategy implements AlertRuleStrategyInterf
             return ['triggered' => false, 'job_uuids' => []];
         }
 
-        $response = $this->horizonApi->getCompletedJobs($service, ['starting_at' => 0]);
-        $data = $response['data'] ?? null;
-
-        if (! $response['success'] || ! \is_array($data)) {
-            return ['triggered' => false, 'job_uuids' => []];
-        }
-
-        $jobs = collect($data['jobs'] ?? []);
         $cutoff = \now()->subMinutes($minutes);
+        $jobs = $this->support->matchingCompletedJobsInWindow($alert, $service, $cutoff);
 
-        $durations = $jobs->filter(function ($job) use ($alert) {
-            return $this->support->completedJobRowMatches($alert, $job);
-        })->map(function ($job) use ($cutoff) {
+        $durations = $jobs->map(function ($job) use ($cutoff) {
             $completedRaw = $job['completed_at'] ?? null;
             $queuedRaw = $job['pushedAt'] ?? null;
 

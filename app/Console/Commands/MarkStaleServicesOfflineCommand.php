@@ -9,7 +9,7 @@ class MarkStaleServicesOfflineCommand extends Command
 {
     protected $signature = 'hh:mark-stale-services-offline';
 
-    protected $description = 'Mark services stand-by/offline and remove dead supervisors by last_seen_at thresholds';
+    protected $description = 'Mark services stand-by or offline when last_seen_at exceeds configured thresholds';
 
     public function handle(): int
     {

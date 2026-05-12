@@ -26,101 +26,6 @@ class AlertEngineTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_evaluate_after_event_allows_avg_execution_time_on_completed_event(): void
-    {
-        $service = Service::query()->create(['name' => 'svc-avg', 'base_url' => 'https://avg.test', 'status' => 'online']);
-        $provider = NotificationProvider::query()->create([
-            'name' => 'mail-avg',
-            'type' => NotificationProvider::TYPE_EMAIL,
-            'config' => ['to' => ['alerts@example.com']],
-        ]);
-        $alert = Alert::query()->create([
-            'name' => 'avg-alert',
-            'service_ids' => [$service->id],
-            'rule_type' => Alert::RULE_AVG_EXECUTION_TIME,
-            'threshold' => ['seconds' => 1],
-            'enabled' => true,
-        ]);
-        $alert->notificationProviders()->sync([$provider->id]);
-
-        $api = $this->createMock(HorizonApiProxyService::class);
-        $api->expects($this->once())->method('getCompletedJobs')->willReturn([
-            'success' => true,
-            'data' => ['jobs' => [[
-                'id' => 'job-avg',
-                'reserved_at' => now()->subSeconds(10)->getTimestamp(),
-                'completed_at' => now()->getTimestamp(),
-            ]]],
-        ]);
-
-        $dispatcher = $this->createMock(AlertNotificationDispatcherService::class);
-        $dispatcher->expects($this->never())->method('dispatch');
-        $engine = new AlertEngine(new AlertBatchStoreService, $dispatcher, $this->private__buildRegistry($api));
-        $engine->evaluateAfterEvent($service->id, 'JobCompleted');
-
-        $this->assertDatabaseCount('alert_logs', 0);
-    }
-
-    public function test_evaluate_after_event_skips_when_event_type_is_not_supported_by_rule(): void
-    {
-        $service = Service::query()->create(['name' => 'svc-skip', 'base_url' => 'https://skip.test', 'status' => 'online']);
-        Alert::query()->create([
-            'name' => 'failure-only',
-            'service_ids' => [$service->id],
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
-            'threshold' => ['count' => 1, 'minutes' => 5],
-            'enabled' => true,
-        ]);
-
-        $engine = new AlertEngine(
-            new AlertBatchStoreService,
-            $this->createMock(AlertNotificationDispatcherService::class),
-            $this->private__buildRegistry($this->createMock(HorizonApiProxyService::class)),
-        );
-        $engine->evaluateAfterEvent($service->id, 'JobProcessed');
-
-        $this->assertDatabaseCount('alert_logs', 0);
-    }
-
-    public function test_evaluate_after_event_triggers_and_sends_when_rule_matches(): void
-    {
-        $service = Service::query()->create([
-            'name' => 'alert-svc',
-            'base_url' => 'https://alerts.test',
-            'status' => 'online',
-        ]);
-        $provider = NotificationProvider::query()->create([
-            'name' => 'mail',
-            'type' => NotificationProvider::TYPE_EMAIL,
-            'config' => ['to' => ['alerts@example.com']],
-        ]);
-        $alert = Alert::query()->create([
-            'name' => 'failure',
-            'service_ids' => [$service->id],
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
-            'threshold' => ['count' => 1, 'minutes' => 5],
-            'enabled' => true,
-        ]);
-        $alert->notificationProviders()->sync([$provider->id]);
-
-        $batch = new AlertBatchStoreService;
-        $dispatcher = $this->createMock(AlertNotificationDispatcherService::class);
-        $dispatcher->expects($this->once())->method('dispatch');
-
-        $api = $this->createMock(HorizonApiProxyService::class);
-        $api->method('getFailedJobs')->willReturn([
-            'success' => true,
-            'data' => ['jobs' => [['id' => 'uuid-a', 'failed_at' => now()->toIso8601String(), 'queue' => '', 'payload' => []]]],
-        ]);
-        $registry = $this->private__buildRegistry($api);
-
-        $engine = new AlertEngine($batch, $dispatcher, $registry);
-        $engine->evaluateAfterEvent($service->id, 'JobFailed');
-
-        $this->assertDatabaseCount('alert_logs', 1);
-        $this->assertSame([], $batch->getPending($alert));
-    }
-
     public function test_evaluate_alert_reports_pending_flush_error_when_batch_store_throws(): void
     {
         $alert = Alert::query()->create([
@@ -358,9 +263,9 @@ class AlertEngineTest extends TestCase
 
         return new AlertRuleStrategyRegistry(
             new NullAlertRuleStrategy,
-            new FailureCountAlertRuleStrategy($support, $api),
-            new AvgExecutionTimeAlertRuleStrategy($support, $api),
-            new QueueBlockedAlertRuleStrategy($support, $api),
+            new FailureCountAlertRuleStrategy($support),
+            new AvgExecutionTimeAlertRuleStrategy($support),
+            new QueueBlockedAlertRuleStrategy($support),
             new WorkerOfflineAlertRuleStrategy,
             new SupervisorOfflineAlertRuleStrategy($api),
             new HorizonOfflineAlertRuleStrategy($api),

@@ -176,7 +176,25 @@ class HorizonStreamsController extends StreamController
             ->orderByDesc('created_at')
             ->get();
 
-        $html = \view('horizon.alerts.partials.alert-tbody', ['alerts' => $alerts])->render();
+        $serviceNamesById = Service::query()->pluck('name', 'id')->all();
+        $labelsByAlertId = [];
+
+        foreach ($alerts as $alert) {
+            $labels = [];
+
+            foreach ($alert->service_ids as $serviceId) {
+                $name = $serviceNamesById[$serviceId];
+
+                $labels[] = $name;
+            }
+
+            $labelsByAlertId[$alert->id] = $labels;
+        }
+
+        $html = \view('horizon.alerts.partials.alert-tbody', [
+            'alerts' => $alerts,
+            'serviceLabelsByAlertId' => $labelsByAlertId,
+        ])->render();
 
         return $this->private__turboStreamTag('update', 'turbo-tbody-horizon-alerts-list', $html, 'morph');
     }
