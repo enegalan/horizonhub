@@ -187,20 +187,6 @@ class AlertController extends Controller
     }
 
     /**
-     * Toggle whether an alert is enabled.
-     */
-    public function toggleEnabled(Alert $alert): JsonResponse
-    {
-        $alert->enabled = ! $alert->enabled;
-        $alert->save();
-
-        return \response()->json([
-            'alert_id' => $alert->id,
-            'enabled' => $alert->enabled,
-        ]);
-    }
-
-    /**
      * Store a new alert.
      */
     public function store(Request $request): RedirectResponse
@@ -212,6 +198,20 @@ class AlertController extends Controller
         return redirect()
             ->route('horizon.alerts.index')
             ->with('status', 'Alert created.');
+    }
+
+    /**
+     * Toggle whether an alert is enabled.
+     */
+    public function toggleEnabled(Alert $alert): JsonResponse
+    {
+        $alert->enabled = ! $alert->enabled;
+        $alert->save();
+
+        return \response()->json([
+            'alert_id' => $alert->id,
+            'enabled' => $alert->enabled,
+        ]);
     }
 
     /**
