@@ -41,7 +41,7 @@ class ServiceController extends Controller
     public function index(): View
     {
         return \view('horizon.services.index', [
-            'services' => Service::query()->orderBy('name')->get(),
+            'services' => collect(),
             'defer' => true,
             'header' => 'Services',
         ]);
