@@ -67,7 +67,7 @@
                             URL reachable from your browser.
                         </p>
                     </div>
-                    <div class="flex items-end">
+                    <div class="flex items-center">
                         <x-button type="submit" class="h-9 w-full text-sm sm:w-auto">
                             Register
                         </x-button>
