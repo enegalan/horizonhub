@@ -166,4 +166,28 @@ class AlertControllerTest extends TestCase
         $this->post(route('horizon.alerts.logs.retry', ['log' => $sentLog]))->assertRedirect();
         $this->post(route('horizon.alerts.logs.retry', ['log' => $failedLog]))->assertRedirect();
     }
+
+    public function test_toggle_enabled_updates_alert_state(): void
+    {
+        $alert = Alert::query()->create([
+            'name' => 'toggle-alert',
+            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'enabled' => true,
+        ]);
+
+        $this->post(route('horizon.alerts.toggle-enabled', ['alert' => $alert]))
+            ->assertOk()
+            ->assertJsonPath('alert_id', $alert->id)
+            ->assertJsonPath('enabled', false);
+
+        $alert->refresh();
+        $this->assertFalse($alert->enabled);
+
+        $this->post(route('horizon.alerts.toggle-enabled', ['alert' => $alert]))
+            ->assertOk()
+            ->assertJsonPath('enabled', true);
+
+        $alert->refresh();
+        $this->assertTrue($alert->enabled);
+    }
 }

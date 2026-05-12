@@ -8,6 +8,7 @@ use App\Models\Alert;
 use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\AlertChartDataService;
+use App\Services\Alerts\ProviderDeliveryStatsService;
 use App\Services\Horizon\DashboardDataService;
 use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\HorizonJobDetailService;
@@ -58,6 +59,11 @@ class HorizonStreamsController extends StreamController
     private MetricsDashboardDataService $metricsDashboard;
 
     /**
+     * The provider delivery stats service.
+     */
+    private ProviderDeliveryStatsService $providerDeliveryStats;
+
+    /**
      * The service show page data service.
      */
     private ServiceShowPageDataService $serviceShowPageData;
@@ -70,7 +76,7 @@ class HorizonStreamsController extends StreamController
     /**
      * The constructor.
      */
-    public function __construct(MetricsDashboardDataService $metricsDashboard, DashboardDataService $dashboardData, HorizonMetricsService $metrics, HorizonApiProxyService $horizonApi, HorizonJobListService $jobList, HorizonJobDetailService $jobDetail, ServiceShowPageDataService $serviceShowPageData, ServiceStatsAttachmentService $serviceStats, AlertChartDataService $alertChartData)
+    public function __construct(MetricsDashboardDataService $metricsDashboard, DashboardDataService $dashboardData, HorizonMetricsService $metrics, HorizonApiProxyService $horizonApi, HorizonJobListService $jobList, HorizonJobDetailService $jobDetail, ServiceShowPageDataService $serviceShowPageData, ServiceStatsAttachmentService $serviceStats, AlertChartDataService $alertChartData, ProviderDeliveryStatsService $providerDeliveryStats)
     {
         $this->metricsDashboard = $metricsDashboard;
         $this->dashboardData = $dashboardData;
@@ -81,6 +87,7 @@ class HorizonStreamsController extends StreamController
         $this->serviceShowPageData = $serviceShowPageData;
         $this->serviceStats = $serviceStats;
         $this->alertChartData = $alertChartData;
+        $this->providerDeliveryStats = $providerDeliveryStats;
     }
 
     public function alerts(): StreamedResponse
@@ -183,20 +190,29 @@ class HorizonStreamsController extends StreamController
             $labels = [];
 
             foreach ($alert->service_ids as $serviceId) {
-                $name = $serviceNamesById[$serviceId];
+                $name = $serviceNamesById[$serviceId] ?? null;
 
-                $labels[] = $name;
+                if ($name !== null) {
+                    $labels[] = $name;
+                }
             }
 
             $labelsByAlertId[$alert->id] = $labels;
         }
 
-        $html = \view('horizon.alerts.partials.alert-tbody', [
-            'alerts' => $alerts,
-            'serviceLabelsByAlertId' => $labelsByAlertId,
-        ])->render();
+        $alertStats = [
+            'total' => $alerts->count(),
+            'enabled' => $alerts->where('enabled', true)->count(),
+            'disabled' => $alerts->where('enabled', false)->count(),
+        ];
 
-        return $this->private__turboStreamTag('update', 'turbo-tbody-horizon-alerts-list', $html, 'morph');
+        $streams = [];
+        $this->private__pushViewStreams($streams, [
+            'turbo-horizon-alert-stats' => ['view' => 'horizon.alerts.partials.alert-stats', 'data' => ['alertStats' => $alertStats]],
+            'turbo-tbody-horizon-alerts-list' => ['view' => 'horizon.alerts.partials.alert-tbody', 'data' => ['alerts' => $alerts, 'serviceLabelsByAlertId' => $labelsByAlertId]],
+        ], 'morph');
+
+        return \implode("\n", $streams);
     }
 
     // ------------------------------------------------------------------
@@ -362,9 +378,15 @@ class HorizonStreamsController extends StreamController
             ->orderBy('name')
             ->get();
 
-        $html = \view('horizon.providers.partials.provider-tbody', ['providers' => $providers])->render();
+        $deliveryStats = $this->providerDeliveryStats->countsByProviderType();
 
-        return $this->private__turboStreamTag('update', 'turbo-tbody-horizon-provider-list', $html, 'morph');
+        $streams = [];
+        $this->private__pushViewStreams($streams, [
+            'turbo-horizon-provider-stats' => ['view' => 'horizon.providers.partials.provider-stats', 'data' => ['deliveryStats' => $deliveryStats]],
+            'turbo-tbody-horizon-provider-list' => ['view' => 'horizon.providers.partials.provider-tbody', 'data' => ['providers' => $providers]],
+        ], 'morph');
+
+        return \implode("\n", $streams);
     }
 
     // ------------------------------------------------------------------
@@ -442,9 +464,19 @@ class HorizonStreamsController extends StreamController
         $services = Service::query()->orderBy('name')->get();
         $this->serviceStats->attachHorizonStats($services, $this->horizonApi);
 
-        $html = \view('horizon.services.partials.service-tbody', ['services' => $services])->render();
+        $serviceStats = [
+            'total' => $services->count(),
+            'online' => $services->where('status', 'online')->count(),
+            'offline' => $services->whereIn('status', ['offline', 'stand_by'])->count(),
+        ];
 
-        return $this->private__turboStreamTag('update', 'turbo-tbody-horizon-service-list', $html, 'morph');
+        $streams = [];
+        $this->private__pushViewStreams($streams, [
+            'turbo-horizon-service-stats' => ['view' => 'horizon.services.partials.service-stats', 'data' => ['serviceStats' => $serviceStats]],
+            'turbo-tbody-horizon-service-list' => ['view' => 'horizon.services.partials.service-tbody', 'data' => ['services' => $services]],
+        ], 'morph');
+
+        return \implode("\n", $streams);
     }
 
     /**
