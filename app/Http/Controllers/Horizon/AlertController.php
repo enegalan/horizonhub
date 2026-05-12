@@ -164,7 +164,7 @@ class AlertController extends Controller
             'threshold' => $alert->threshold,
             'queue' => $alert->queue,
             'job_type' => $alert->job_type,
-            'service_ids' => $alert->scopedServiceIds(),
+            'service_ids' => $alert->service_ids,
         ];
 
         return \view('horizon.alerts.show', [

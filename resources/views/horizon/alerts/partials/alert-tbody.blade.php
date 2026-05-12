@@ -3,7 +3,7 @@
 @endphp
 @forelse($alerts as $alert)
     @php
-        $serviceLabels = $alert->scopedServiceNames();
+        $serviceLabels = isset($serviceLabelsByAlertId) ? ($serviceLabelsByAlertId[$alert->id] ?? []) : [];
         $queuePatterns = isset($alert->threshold['queue_patterns']) && \is_array($alert->threshold['queue_patterns']) ? $alert->threshold['queue_patterns'] : [];
         $jobPatterns = isset($alert->threshold['job_patterns']) && \is_array($alert->threshold['job_patterns']) ? $alert->threshold['job_patterns'] : [];
         $queueSummary = \count($queuePatterns) > 1

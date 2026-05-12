@@ -37,36 +37,6 @@ class AlertEngine
     }
 
     /**
-     * Evaluate the alert after an event.
-     *
-     * @param int $serviceId The service ID.
-     * @param string $eventType The event type.
-     * @param string|null $jobUuid The job UUID.
-     */
-    public function evaluateAfterEvent(int $serviceId, string $eventType, ?string $jobUuid = null): void
-    {
-        /** @var Collection<int, Alert> $alerts */
-        $alerts = Alert::where('enabled', true)
-            ->with('notificationProviders')
-            ->get();
-
-        foreach ($alerts as $alert) {
-            if (! $alert->appliesToServiceId($serviceId)) {
-                continue;
-            }
-
-            if (! $this->private__shouldEvaluate($alert, $eventType)) {
-                continue;
-            }
-            $result = $this->evaluateWithTriggeringJobs($alert, $serviceId, $jobUuid);
-
-            if ($result['triggered']) {
-                $this->private__triggerAlert($alert, $serviceId, $jobUuid, $result['job_uuids']);
-            }
-        }
-    }
-
-    /**
      * Evaluate a single alert immediately (scheduled context).
      *
      * @param Alert $alert The alert.
@@ -78,7 +48,8 @@ class AlertEngine
      *     triggered_service_id: int|null,
      *     error_message: string|null,
      *     pending_flush_error_message: string|null,
-     *     delivered: bool
+     *     delivered: bool,
+     *     delivered_check_error_message: string|null
      * }
      */
     public function evaluateAlert(Alert $alert): array
@@ -89,6 +60,7 @@ class AlertEngine
         $errorMessage = null;
         $pendingFlushErrorMessage = null;
         $delivered = false;
+        $deliveredCheckErrorMessage = null;
         $lastSentAtBefore = null;
 
         try {
@@ -115,7 +87,7 @@ class AlertEngine
 
         try {
             /** @var array<int, int> $serviceIds */
-            $serviceIds = $alert->scopedServiceIds();
+            $serviceIds = $alert->service_ids;
 
             if ($serviceIds === []) {
                 $serviceIds = Service::query()->pluck('id')->all();
@@ -132,6 +104,7 @@ class AlertEngine
                     'error_message' => $errorMessage,
                     'pending_flush_error_message' => $pendingFlushErrorMessage,
                     'delivered' => false,
+                    'delivered_check_error_message' => null,
                 ];
             }
 
@@ -157,6 +130,11 @@ class AlertEngine
             $lastSentAtAfter = $this->batchStore->getLastSentAt($alert);
             $delivered = $lastSentAtAfter !== null && ($lastSentAtBefore === null || ! $lastSentAtAfter->eq($lastSentAtBefore));
         } catch (\Throwable $e) {
+            Log::error('Horizon Hub: evaluate alert failed while checking delivery', [
+                'alert_id' => $alert->id,
+                'error' => $e->getMessage(),
+            ]);
+            $deliveredCheckErrorMessage = $e->getMessage();
         }
 
         return [
@@ -167,6 +145,7 @@ class AlertEngine
             'error_message' => $errorMessage,
             'pending_flush_error_message' => $pendingFlushErrorMessage,
             'delivered' => $delivered,
+            'delivered_check_error_message' => $deliveredCheckErrorMessage,
         ];
     }
 
@@ -185,7 +164,7 @@ class AlertEngine
 
         foreach ($alerts as $alert) {
             try {
-                $serviceIds = $alert->scopedServiceIds();
+                $serviceIds = $alert->service_ids;
 
                 if ($serviceIds === []) {
                     $serviceIds = $services->pluck('id')->all();
@@ -346,34 +325,6 @@ class AlertEngine
         ]);
 
         $this->notificationDispatcher->dispatch($alert, $events, $log);
-    }
-
-    /**
-     * Should evaluate the alert.
-     *
-     * @param Alert $alert The alert.
-     * @param string $eventType The event type.
-     */
-    private function private__shouldEvaluate(Alert $alert, string $eventType): bool
-    {
-        if ($alert->rule_type === Alert::RULE_FAILURE_COUNT && $eventType !== 'JobFailed') {
-            return false;
-        }
-
-        if ($alert->rule_type === Alert::RULE_AVG_EXECUTION_TIME) {
-            return \in_array($eventType, ['JobProcessed', 'JobCompleted'], true);
-        }
-
-        if (\in_array($alert->rule_type, [
-            Alert::RULE_QUEUE_BLOCKED,
-            Alert::RULE_WORKER_OFFLINE,
-            Alert::RULE_SUPERVISOR_OFFLINE,
-            Alert::RULE_HORIZON_OFFLINE,
-        ], true)) {
-            return false;
-        }
-
-        return true;
     }
 
     /**

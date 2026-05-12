@@ -4,6 +4,7 @@ namespace App\Services\Metrics;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
+use App\Services\Horizon\HorizonJobsWindowFetcher;
 use App\Support\Horizon\QueueNameNormalizer;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
@@ -30,11 +31,17 @@ abstract class HorizonMetricsComputation
     protected HorizonApiProxyService $horizonApi;
 
     /**
+     * The jobs window fetcher.
+     */
+    protected HorizonJobsWindowFetcher $jobsWindowFetcher;
+
+    /**
      * Construct the Horizon metrics computation.
      */
     public function __construct(HorizonApiProxyService $horizonApi)
     {
         $this->horizonApi = $horizonApi;
+        $this->jobsWindowFetcher = new HorizonJobsWindowFetcher($horizonApi);
     }
 
     /**
@@ -110,36 +117,6 @@ abstract class HorizonMetricsComputation
     }
 
     /**
-     * Fetch completed jobs with completed_at >= $sinceTimestamp by paginating the Horizon API.
-     *
-     * Each request uses Horizon query `limit` = horizonhub.horizon_api_job_list_page_size.
-     * The number of HTTP pages per service is capped by horizonhub.max_horizon_pages.
-     *
-     * @param Service $service The service.
-     * @param int $sinceTimestamp The since timestamp.
-     *
-     * @return list<array<string, mixed>>
-     */
-    protected function private__fetchCompletedJobsInWindow(Service $service, int $sinceTimestamp): array
-    {
-        return $this->private__fetchJobsInWindow(
-            $sinceTimestamp,
-            function (array $query) use ($service): array {
-                return $this->horizonApi->getCompletedJobs($service, $query);
-            },
-            static function (array $job): ?int {
-                $completedAt = $job['completed_at'] ?? $job['processed_at'] ?? null;
-
-                if (! \is_numeric($completedAt)) {
-                    return null;
-                }
-
-                return (int) $completedAt;
-            },
-        );
-    }
-
-    /**
      * Fetch failed jobs with failed_at >= $sinceTimestamp by paginating the Horizon API.
      *
      * Each request uses Horizon query `limit` = horizonhub.horizon_api_job_list_page_size.
@@ -152,21 +129,7 @@ abstract class HorizonMetricsComputation
      */
     protected function private__fetchFailedJobsInWindow(Service $service, int $sinceTimestamp): array
     {
-        return $this->private__fetchJobsInWindow(
-            $sinceTimestamp,
-            function (array $query) use ($service): array {
-                return $this->horizonApi->getFailedJobs($service, $query);
-            },
-            static function (array $job): ?int {
-                $failedAt = $job['failed_at'] ?? null;
-
-                if (! \is_numeric($failedAt)) {
-                    return null;
-                }
-
-                return (int) $failedAt;
-            },
-        );
+        return $this->jobsWindowFetcher->fetchFailedJobsSince($service, $sinceTimestamp);
     }
 
     /**

@@ -29,25 +29,11 @@ class QueueFailureCountersCalculator extends HorizonMetricsComputation
 
         /** @var Service $service */
         foreach ($services as $service) {
-            $completedResponse = $this->horizonApi->getCompletedJobs($service, [
-                'starting_at' => 0,
-            ]);
-            $completedData = $completedResponse['data'] ?? null;
+            $completedJobs = $this->jobsWindowFetcher->fetchCompletedJobsSince($service, $sinceTimestamp);
+            $this->private__aggregateQueueCountsFromJobsPayload($completedJobs, $sinceTimestamp, 'completed_at', $normalizedProcessed);
 
-            if ($completedResponse['success'] && \is_array($completedData)) {
-                $jobsPayload = $completedData['jobs'] ?? [];
-                $this->private__aggregateQueueCountsFromJobsPayload($jobsPayload, $sinceTimestamp, 'completed_at', $normalizedProcessed);
-            }
-
-            $failedResponse = $this->horizonApi->getFailedJobs($service, [
-                'starting_at' => 0,
-            ]);
-            $failedData = $failedResponse['data'] ?? null;
-
-            if ($failedResponse['success'] && \is_array($failedData)) {
-                $jobsPayload = $failedData['jobs'] ?? [];
-                $this->private__aggregateQueueCountsFromJobsPayload($jobsPayload, $sinceTimestamp, 'failed_at', $normalizedFailed);
-            }
+            $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp);
+            $this->private__aggregateQueueCountsFromJobsPayload($failedJobs, $sinceTimestamp, 'failed_at', $normalizedFailed);
         }
 
         $allQueues = \array_unique(\array_merge(\array_keys($normalizedProcessed), \array_keys($normalizedFailed)));

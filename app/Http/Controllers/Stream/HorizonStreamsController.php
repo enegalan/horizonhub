@@ -183,6 +183,23 @@ class HorizonStreamsController extends StreamController
             ->orderByDesc('created_at')
             ->get();
 
+        $serviceNamesById = Service::query()->pluck('name', 'id')->all();
+        $labelsByAlertId = [];
+
+        foreach ($alerts as $alert) {
+            $labels = [];
+
+            foreach ($alert->service_ids as $serviceId) {
+                $name = $serviceNamesById[$serviceId] ?? null;
+
+                if ($name !== null) {
+                    $labels[] = $name;
+                }
+            }
+
+            $labelsByAlertId[$alert->id] = $labels;
+        }
+
         $alertStats = [
             'total' => $alerts->count(),
             'enabled' => $alerts->where('enabled', true)->count(),
@@ -192,7 +209,7 @@ class HorizonStreamsController extends StreamController
         $streams = [];
         $this->private__pushViewStreams($streams, [
             'turbo-horizon-alert-stats' => ['view' => 'horizon.alerts.partials.alert-stats', 'data' => ['alertStats' => $alertStats]],
-            'turbo-tbody-horizon-alerts-list' => ['view' => 'horizon.alerts.partials.alert-tbody', 'data' => ['alerts' => $alerts]],
+            'turbo-tbody-horizon-alerts-list' => ['view' => 'horizon.alerts.partials.alert-tbody', 'data' => ['alerts' => $alerts, 'serviceLabelsByAlertId' => $labelsByAlertId]],
         ], 'morph');
 
         return \implode("\n", $streams);

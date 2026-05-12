@@ -6,15 +6,9 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\AlertRuleEvaluationSupport;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
-use App\Services\Horizon\HorizonApiProxyService;
 
 final class FailureCountAlertRuleStrategy implements AlertRuleStrategyInterface
 {
-    /**
-     * The Horizon API proxy service.
-     */
-    private HorizonApiProxyService $horizonApi;
-
     /**
      * The evaluation support.
      */
@@ -23,10 +17,9 @@ final class FailureCountAlertRuleStrategy implements AlertRuleStrategyInterface
     /**
      * Construct the strategy.
      */
-    public function __construct(AlertRuleEvaluationSupport $support, HorizonApiProxyService $horizonApi)
+    public function __construct(AlertRuleEvaluationSupport $support)
     {
         $this->support = $support;
-        $this->horizonApi = $horizonApi;
     }
 
     /**
@@ -46,20 +39,8 @@ final class FailureCountAlertRuleStrategy implements AlertRuleStrategyInterface
             return ['triggered' => false, 'job_uuids' => []];
         }
 
-        $response = $this->horizonApi->getFailedJobs($service, ['starting_at' => 0]);
-        $data = $response['data'] ?? null;
-
-        if (! $response['success'] || ! \is_array($data)) {
-            return ['triggered' => false, 'job_uuids' => []];
-        }
-
         $cutoff = \now()->subMinutes($minutes);
-        $jobs = collect($data['jobs'] ?? []);
-        $inWindow = $this->support->filterFailedJobsInWindow($jobs, $cutoff)
-            ->filter(function ($job) use ($alert) {
-                return $this->support->failedJobRowMatches($alert, $job);
-            })
-            ->values();
+        $inWindow = $this->support->matchingFailedJobsInWindow($alert, $service, $cutoff);
 
         $triggered = $inWindow->count() >= $count;
 

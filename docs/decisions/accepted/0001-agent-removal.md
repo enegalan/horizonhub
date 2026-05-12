@@ -1,4 +1,4 @@
-# ADR: Agent removal
+# ADR: Direct Horizon HTTP integration
 
 - ID: ADR-0001
 - Status: accepted
@@ -16,19 +16,19 @@ Replace the agent layer with an API-based layer.
 
 ## Rationale
 
-- The agent currently provides a compatibility boundary that reduces per-service divergence.
-- Direct-only integration would shift complexity into hub services and increase contract drift risk.
-- Migration effort and regression surface are high compared to expected short-term benefits.
+- Direct HTTP keeps the integration surface visible in the Hub codebase and tests.
+- A separate agent would add deployment and compatibility overhead without a current product requirement.
+- Contract hardening and observability can evolve inside the existing proxy and metrics services.
 
 ## Consequences
 
-- Agent-related code remains in scope for maintenance.
-- Improvement work should target contract hardening and observability, not structural removal.
-- New proposals must preserve compatibility with current integrations.
+- Horizon API contract changes must be handled in Hub services, configuration, and tests.
+- Improvement work should target contract hardening, pagination limits, and observability rather than reintroducing an agent.
+- New proposals must preserve compatibility with current HTTP integrations.
 
 ## Reopen triggers
 
 This decision can be revisited only if at least one condition is met:
 
 - A replacement design is approved with rollout phases, compatibility strategy, and rollback plan.
-- A security or platform constraint makes the current model non-viable.
+- A security or platform constraint makes the current HTTP model non-viable.

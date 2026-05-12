@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property list<int> $service_ids
+ */
 class Alert extends Model
 {
     public const RULE_AVG_EXECUTION_TIME = 'avg_execution_time';
@@ -19,6 +22,15 @@ class Alert extends Model
     public const RULE_SUPERVISOR_OFFLINE = 'supervisor_offline';
 
     public const RULE_WORKER_OFFLINE = 'worker_offline';
+
+    /**
+     * The model's default values for attributes.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'service_ids' => '[]',
+    ];
 
     /**
      * The casts of the alert.
@@ -49,13 +61,6 @@ class Alert extends Model
     ];
 
     /**
-     * Cached service names grouped by service id.
-     *
-     * @var list<string>|null
-     */
-    private static ?array $cachedServiceNamesById = null;
-
-    /**
      * Get the alert logs of the alert.
      */
     public function alertLogs(): HasMany
@@ -68,13 +73,11 @@ class Alert extends Model
      */
     public function appliesToServiceId(int $serviceId): bool
     {
-        $scopedIds = $this->scopedServiceIds();
-
-        if ($scopedIds === []) {
+        if ($this->service_ids === []) {
             return true;
         }
 
-        return \in_array($serviceId, $scopedIds, true);
+        return \in_array($serviceId, $this->service_ids, true);
     }
 
     /**
@@ -84,61 +87,5 @@ class Alert extends Model
     {
         return $this->belongsToMany(NotificationProvider::class, 'alert_notification_provider')
             ->withTimestamps();
-    }
-
-    /**
-     * Get explicit scoped service ids.
-     *
-     * @return array<int, int>
-     */
-    public function scopedServiceIds(): array
-    {
-        $ids = [];
-
-        if (\is_array($this->service_ids)) {
-            foreach ($this->service_ids as $id) {
-                if (! \is_numeric($id) || (int) $id <= 0) {
-                    continue;
-                }
-                $id = (int) $id;
-                $ids[$id] = $id;
-            }
-        }
-
-        return \array_values($ids);
-    }
-
-    /**
-     * Get scoped service names preserving scoped service id order.
-     *
-     * @return array<int, string>
-     */
-    public function scopedServiceNames(): array
-    {
-        $scopedIds = $this->scopedServiceIds();
-
-        if ($scopedIds === []) {
-            return [];
-        }
-
-        if (self::$cachedServiceNamesById === null) {
-            $namesById = Service::query()
-                ->orderBy('name')
-                ->pluck('name', 'id')
-                ->all();
-            self::$cachedServiceNamesById = $namesById;
-        }
-
-        $labels = [];
-
-        foreach ($scopedIds as $serviceId) {
-            $name = self::$cachedServiceNamesById[$serviceId] ?? null;
-
-            if (! empty($name)) {
-                $labels[] = $name;
-            }
-        }
-
-        return $labels;
     }
 }

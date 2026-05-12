@@ -6,16 +6,10 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\AlertRuleEvaluationSupport;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
-use App\Services\Horizon\HorizonApiProxyService;
 use Carbon\Carbon;
 
 final class QueueBlockedAlertRuleStrategy implements AlertRuleStrategyInterface
 {
-    /**
-     * The Horizon API proxy service.
-     */
-    private HorizonApiProxyService $horizonApi;
-
     /**
      * The evaluation support.
      */
@@ -24,10 +18,9 @@ final class QueueBlockedAlertRuleStrategy implements AlertRuleStrategyInterface
     /**
      * Construct the strategy.
      */
-    public function __construct(AlertRuleEvaluationSupport $support, HorizonApiProxyService $horizonApi)
+    public function __construct(AlertRuleEvaluationSupport $support)
     {
         $this->support = $support;
-        $this->horizonApi = $horizonApi;
     }
 
     /**
@@ -57,27 +50,10 @@ final class QueueBlockedAlertRuleStrategy implements AlertRuleStrategyInterface
             return false;
         }
 
-        $response = $this->horizonApi->getCompletedJobs($service, ['starting_at' => 0]);
-        $data = $response['data'] ?? null;
+        $cutoff = \now()->subMinutes($minutes);
+        $jobs = $this->support->matchingCompletedJobsInWindow($alert, $service, $cutoff);
 
-        if (! $response['success'] || ! \is_array($data)) {
-            return false;
-        }
-
-        $jobs = collect($data['jobs'] ?? []);
-
-        $queuePatterns = $this->support->resolveQueuePatterns($alert);
-
-        if ($queuePatterns !== []) {
-            $jobs = $jobs->filter(function ($job) use ($alert) {
-                return \is_array($job) && $this->support->jobMatchesQueuePatterns($alert, $job);
-            });
-        }
-
-        $lastProcessed = $jobs->map(function ($job) {
-            if (! \is_array($job)) {
-                return null;
-            }
+        $lastProcessed = $jobs->map(function (array $job) {
             $completedRaw = $job['completed_at'] ?? null;
 
             if (! \is_string($completedRaw) || $completedRaw === '') {

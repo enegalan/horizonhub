@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Horizon;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Horizon\UpsertServiceRequest;
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
 use Illuminate\Contracts\View\View;
@@ -80,13 +81,9 @@ class ServiceController extends Controller
     /**
      * Store a new service.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(UpsertServiceRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:services,name',
-            'base_url' => 'required|url',
-            'public_url' => 'nullable|url',
-        ]);
+        $validated = $request->validated();
 
         Service::create([
             'name' => $validated['name'],
@@ -136,13 +133,9 @@ class ServiceController extends Controller
     /**
      * Update an existing service.
      */
-    public function update(Request $request, Service $service, HorizonApiProxyService $horizonApi): RedirectResponse
+    public function update(UpsertServiceRequest $request, Service $service, HorizonApiProxyService $horizonApi): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:services,name,' . (int) $service->id,
-            'base_url' => 'required|url',
-            'public_url' => 'nullable|url',
-        ]);
+        $validated = $request->validated();
 
         $service->update([
             'name' => $validated['name'],
