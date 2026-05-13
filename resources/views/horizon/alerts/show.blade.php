@@ -215,7 +215,7 @@
                                                 class="inline-flex items-center justify-center h-8 min-h-8 p-2 rounded-md"
                                                 aria-label="View delivery log"
                                                 title="View delivery log"
-                                                x-on:click="openDeliveryLogModal(@js(\App\Support\Alerts\AlertDeliveryLogPresenter::payloadFromLog($log)))"
+                                                x-on:click="openDeliveryLogModal({{ \Illuminate\Support\Js::from(\App\Support\Alerts\AlertDeliveryLogPresenter::payloadFromLog($log)) }})"
                                             >
                                                 <x-heroicon-o-document-text class="size-4" />
                                             </x-button>

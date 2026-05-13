@@ -42,4 +42,20 @@ class ServiceStatsAttachmentService
             $service->horizon_status = $snap['status'];
         }
     }
+
+    /**
+     * Summarize service availability for list stats.
+     *
+     * @param Collection<int, Service> $services
+     *
+     * @return array{total: int, online: int, offline: int}
+     */
+    public function buildListSummaryCounts(Collection $services): array
+    {
+        return [
+            'total' => $services->count(),
+            'online' => $services->where('status', 'online')->count(),
+            'offline' => $services->whereIn('status', ['offline', 'stand_by'])->count(),
+        ];
+    }
 }

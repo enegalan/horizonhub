@@ -80,7 +80,7 @@
                     class="h-8 min-h-8 px-2.5 text-xs text-destructive hover:text-destructive"
                     aria-label="Delete"
                     title="Delete"
-                    x-on:click="openDeleteProviderModal(@js($provider->name), @js(route('horizon.providers.destroy', $provider)))"
+                    x-on:click="openDeleteProviderModal({{ \Illuminate\Support\Js::from($provider->name) }}, {{ \Illuminate\Support\Js::from(route('horizon.providers.destroy', $provider)) }})"
                 >
                     <x-heroicon-o-trash class="size-4" />
                     <span>Delete</span>

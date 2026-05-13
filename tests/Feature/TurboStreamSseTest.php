@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\Stream\HorizonStreamsController;
+use App\Http\Controllers\StreamController;
 use App\Models\Alert;
 use App\Models\NotificationProvider;
 use App\Models\Service;
@@ -289,7 +290,7 @@ class TurboStreamSseTest extends TestCase
         ]);
         $this->assertSame([$service->id], $parse->invoke($controller, 'queue_services[]=' . $service->id, 'queue_services'));
 
-        $tag = new \ReflectionMethod($controller, 'private__turboStreamTag');
+        $tag = new \ReflectionMethod(StreamController::class, 'turboStreamTag');
         $tag->setAccessible(true);
         $withoutMethod = $tag->invoke($controller, 'update', 'x', '<div>a</div>');
         $withMethod = $tag->invoke($controller, 'update', 'x', '<div>a</div>', 'morph');

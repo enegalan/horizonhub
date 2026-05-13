@@ -33,4 +33,21 @@ class ServiceStatsAttachmentServiceTest extends TestCase
         $this->assertSame(0, $serviceNoBaseUrl->horizon_jobs_count);
         $this->assertNull($serviceNoBaseUrl->horizon_status);
     }
+
+    public function test_build_list_summary_counts_groups_offline_and_stand_by(): void
+    {
+        $services = collect([
+            Service::query()->create(['name' => 'online-svc', 'base_url' => 'https://online.test', 'status' => 'online']),
+            Service::query()->create(['name' => 'offline-svc', 'base_url' => 'https://offline.test', 'status' => 'offline']),
+            Service::query()->create(['name' => 'standby-svc', 'base_url' => 'https://standby.test', 'status' => 'stand_by']),
+        ]);
+
+        $counts = (new ServiceStatsAttachmentService)->buildListSummaryCounts($services);
+
+        $this->assertSame([
+            'total' => 3,
+            'online' => 1,
+            'offline' => 2,
+        ], $counts);
+    }
 }
