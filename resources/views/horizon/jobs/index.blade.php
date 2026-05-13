@@ -9,7 +9,7 @@
             jobsPerPage: {{ config('horizonhub.jobs_per_page') }},
         }) : {}"
     >
-        <div class="card">
+        <div class="card overflow-hidden">
             <div class="relative border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-5 py-5 sm:px-6">
                 <div class="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-primary/10 blur-3xl" aria-hidden="true"></div>
                 <div class="relative flex flex-wrap items-start justify-between gap-4">
