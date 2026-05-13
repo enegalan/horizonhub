@@ -3,23 +3,7 @@
 @section('content')
     <div
         class="space-y-6"
-        x-data="{
-            showDeleteAlertModal: false,
-            deleteAlertName: '',
-            deleteAlertAction: '',
-            openDeleteAlertModal(name, action) {
-                this.deleteAlertName = name;
-                this.deleteAlertAction = action;
-                this.showDeleteAlertModal = true;
-            },
-            closeDeleteAlertModal() {
-                this.showDeleteAlertModal = false;
-            },
-            confirmDeleteAlert() {
-                this.$refs.deleteAlertForm.requestSubmit();
-                this.closeDeleteAlertModal();
-            }
-        }"
+        x-data="window.horizonDeleteConfirm ? window.horizonDeleteConfirm('Alert') : {}"
     >
         <div
             class="card overflow-hidden"

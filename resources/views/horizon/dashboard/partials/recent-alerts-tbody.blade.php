@@ -1,5 +1,6 @@
 @php
     /** @var \Illuminate\Support\Collection<int, \App\Models\AlertLog>|\App\Models\AlertLog[] $recentAlertLogs */
+    $recentAlertLogs ??= collect();
 @endphp
 @forelse($recentAlertLogs as $log)
     <tr class="transition-colors hover:bg-muted/30" data-stream-row-id="al-{{ (int) $log->id }}">

@@ -10,7 +10,6 @@
             ? \strtolower((string) $service->horizon_status)
             : '';
         $dashboardUrl = $service->getPublicUrl().config('horizonhub.horizon_paths.dashboard');
-        $serviceDeleteClick = 'openDeleteServiceModal('.\Illuminate\Support\Js::from($service->name).', '.\Illuminate\Support\Js::from(route('horizon.services.destroy', $service)).')';
     @endphp
     <article
         class="card group relative overflow-hidden transition-colors hover:border-primary/30"
@@ -128,7 +127,7 @@
                     class="h-8 min-h-8 px-2.5 text-xs text-destructive hover:text-destructive"
                     aria-label="Delete"
                     title="Delete"
-                    x-on:click="{{ $serviceDeleteClick }}"
+                    x-on:click="openDeleteServiceModal(@js($service->name), @js(route('horizon.services.destroy', $service)))"
                 >
                     <x-heroicon-o-trash class="size-4" />
                     <span>Delete</span>

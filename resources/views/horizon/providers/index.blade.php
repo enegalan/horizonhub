@@ -3,23 +3,7 @@
 @section('content')
     <div
         class="space-y-6"
-        x-data="{
-            showDeleteProviderModal: false,
-            deleteProviderName: '',
-            deleteProviderAction: '',
-            openDeleteProviderModal(name, action) {
-                this.deleteProviderName = name;
-                this.deleteProviderAction = action;
-                this.showDeleteProviderModal = true;
-            },
-            closeDeleteProviderModal() {
-                this.showDeleteProviderModal = false;
-            },
-            confirmDeleteProvider() {
-                this.$refs.deleteProviderForm.requestSubmit();
-                this.closeDeleteProviderModal();
-            }
-        }"
+        x-data="window.horizonDeleteConfirm ? window.horizonDeleteConfirm('Provider') : {}"
     >
         <div class="card overflow-hidden">
             <div class="relative border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-5 py-5 sm:px-6">

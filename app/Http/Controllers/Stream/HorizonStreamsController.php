@@ -378,9 +378,20 @@ class HorizonStreamsController extends StreamController
         $serviceFilterIds = $this->private__parseServiceIdsFromQuery($query, 'queue_services');
         $queues = $this->metrics->buildQueuesCollectionForServiceFilter($serviceFilterIds);
 
-        $html = \view('horizon.queues.partials.queue-tbody', ['queues' => $queues])->render();
+        $queueCount = $queues->count();
+        $totalJobs = (int) $queues->sum(static fn ($r): int => (int) ($r->job_count ?? 0));
 
-        return $this->turboStreamTag('update', 'turbo-tbody-horizon-queue-list', $html, 'morph');
+        $statsHtml = \view('horizon.queues.partials.queue-page-stats-inner', [
+            'queueCount' => $queueCount,
+            'totalJobs' => $totalJobs,
+        ])->render();
+
+        $tbodyHtml = \view('horizon.queues.partials.queue-tbody', ['queues' => $queues])->render();
+
+        return \implode("\n", [
+            $this->turboStreamTag('update', 'turbo-horizon-queue-stats', $statsHtml, 'morph'),
+            $this->turboStreamTag('update', 'turbo-tbody-horizon-queue-list', $tbodyHtml, 'morph'),
+        ]);
     }
 
     // ------------------------------------------------------------------

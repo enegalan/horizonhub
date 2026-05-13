@@ -14,8 +14,6 @@
             : (\count($jobPatterns) === 1
                 ? \Illuminate\Support\Str::limit((string) $jobPatterns[0], 32)
                 : ($alert->job_type ? \Illuminate\Support\Str::limit($alert->job_type, 32) : 'All jobs'));
-        $alertDeleteLabel = $alert->name ?: ('#' . $alert->id);
-        $alertDeleteClick = 'openDeleteAlertModal('.\Illuminate\Support\Js::from($alertDeleteLabel).', '.\Illuminate\Support\Js::from(route('horizon.alerts.destroy', $alert)).')';
     @endphp
     <article
         class="card group relative overflow-hidden transition-colors hover:border-primary/30"
@@ -140,7 +138,7 @@
                     class="h-8 min-h-8 px-2.5 text-xs text-destructive hover:text-destructive"
                     aria-label="Delete"
                     title="Delete"
-                    x-on:click="{{ $alertDeleteClick }}"
+                    x-on:click="openDeleteAlertModal(@js($alert->name ?: ('#' . $alert->id)), @js(route('horizon.alerts.destroy', $alert)))"
                 >
                     <x-heroicon-o-trash class="size-4" />
                     <span>Delete</span>

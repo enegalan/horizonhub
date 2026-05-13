@@ -3,23 +3,7 @@
 @section('content')
     <div
         class="space-y-6"
-        x-data="{
-            showDeleteServiceModal: false,
-            deleteServiceName: '',
-            deleteServiceAction: '',
-            openDeleteServiceModal(name, action) {
-                this.deleteServiceName = name;
-                this.deleteServiceAction = action;
-                this.showDeleteServiceModal = true;
-            },
-            closeDeleteServiceModal() {
-                this.showDeleteServiceModal = false;
-            },
-            confirmDeleteService() {
-                this.$refs.deleteServiceForm.requestSubmit();
-                this.closeDeleteServiceModal();
-            }
-        }"
+        x-data="window.horizonDeleteConfirm ? window.horizonDeleteConfirm('Service') : {}"
     >
         <div class="card overflow-hidden">
             <div class="relative border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-5 py-5 sm:px-6">
@@ -67,7 +51,7 @@
                             URL reachable from your browser.
                         </p>
                     </div>
-                    <div class="flex items-end">
+                    <div class="flex items-center">
                         <x-button type="submit" class="h-9 w-full text-sm sm:w-auto">
                             Register
                         </x-button>
