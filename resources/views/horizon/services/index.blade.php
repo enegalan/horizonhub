@@ -3,23 +3,7 @@
 @section('content')
     <div
         class="space-y-6"
-        x-data="{
-            showDeleteServiceModal: false,
-            deleteServiceName: '',
-            deleteServiceAction: '',
-            openDeleteServiceModal(name, action) {
-                this.deleteServiceName = name;
-                this.deleteServiceAction = action;
-                this.showDeleteServiceModal = true;
-            },
-            closeDeleteServiceModal() {
-                this.showDeleteServiceModal = false;
-            },
-            confirmDeleteService() {
-                this.$refs.deleteServiceForm.requestSubmit();
-                this.closeDeleteServiceModal();
-            }
-        }"
+        x-data="window.horizonDeleteConfirm ? window.horizonDeleteConfirm('Service') : {}"
     >
         <div class="card overflow-hidden">
             <div class="relative border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-5 py-5 sm:px-6">
@@ -89,7 +73,7 @@
                             </div>
                         @endfor
                     @else
-                        @include('horizon.services.partials.service-stats', ['serviceStats' => $serviceStats ?? ['total' => 0, 'online' => 0, 'offline' => 0]])
+                        @include('horizon.services.partials.service-stats', ['serviceStats' => $serviceStats ?? null])
                     @endif
                 </div>
             </div>

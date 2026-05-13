@@ -1,7 +1,8 @@
 @php
     /** @var array|null $workloadRows */
+    $workloadRows ??= [];
 @endphp
-<tr id="metrics-workload-empty" style="{{ (is_array($workloadRows ?? null) && \count($workloadRows) > 0) ? 'display:none;' : '' }}">
+<tr id="metrics-workload-empty" style="{{ \count($workloadRows) > 0 ? 'display:none;' : '' }}">
     <td colspan="5" data-column-id="service">
         <div class="empty-state">
             <x-heroicon-o-queue-list class="empty-state-icon" />
@@ -10,7 +11,7 @@
         </div>
     </td>
 </tr>
-@foreach($workloadRows ?? [] as $row)
+@foreach($workloadRows as $row)
     <tr class="transition-colors hover:bg-muted/30" data-stream-row-id="wl-{{ (int) ($row['service_id'] ?? 0) }}-{{ rawurlencode((string) ($row['queue'] ?? '')) }}">
         <td class="px-4 py-2.5 text-sm text-muted-foreground break-all" data-column-id="service">
             @if(! empty($row['service_id']))

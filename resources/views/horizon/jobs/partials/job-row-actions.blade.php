@@ -1,15 +1,10 @@
 @php
-    $serviceForDashboard = $pageService ?? ($job->service ?? null);
-    $jobUuidForDashboard = $job->uuid ?? null;
-    $jobStatusForDashboard = (string) ($job->status ?? '');
     $horizonJobUrl = \App\Support\Horizon\JobDashboardUrlBuilder::build(
-        $serviceForDashboard,
-        $jobUuidForDashboard,
-        $jobStatusForDashboard
+        $pageService ?? ($job->service ?? null),
+        $job->uuid,
+        $job->status
     );
-@endphp
-@php
-    $showRetry = $showRetry ?? false;
+    $showRetry ??= false;
 @endphp
 <div class="flex items-center gap-1">
     @if($showRetry)

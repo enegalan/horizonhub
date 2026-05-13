@@ -148,7 +148,7 @@
                     @if(!empty($defer))
                         <x-skeleton.table-rows rows="5" columns="5" />
                     @else
-                        @include('horizon.metrics.partials.workload-tbody', ['workloadRows' => $workloadRows ?? []])
+                        @include('horizon.metrics.partials.workload-tbody', ['workloadRows' => $workloadRows ?? null])
                     @endif
                 </x-table>
             </div>
@@ -177,7 +177,7 @@
                     @if(!empty($defer))
                         <x-skeleton.table-rows rows="4" columns="5" />
                     @else
-                        @include('horizon.metrics.partials.supervisors-tbody', ['supervisorsRows' => $supervisorsRows ?? []])
+                        @include('horizon.metrics.partials.supervisors-tbody', ['supervisorsRows' => $supervisorsRows ?? null])
                     @endif
                 </x-table>
             </div>

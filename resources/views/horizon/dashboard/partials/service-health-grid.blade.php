@@ -1,3 +1,7 @@
+@php
+    /** @var \Illuminate\Support\Collection<int, \App\Models\Service>|\App\Models\Service[] $services */
+    $services ??= collect();
+@endphp
 @forelse($services as $service)
     @php
         $svcSt = \strtolower((string) ($service->status ?? ''));

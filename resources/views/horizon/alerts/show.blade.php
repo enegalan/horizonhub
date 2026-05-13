@@ -15,7 +15,7 @@
 
         <div id="alert-detail-stats" data-alert-detail-stats>
             @include('horizon.alerts.partials.detail-stats', [
-                'chartData' => $chartData ?? [],
+                'chartData' => $chartData ?? null,
                 'defer' => $defer ?? false,
             ])
         </div>
@@ -209,18 +209,13 @@
                                     </td>
                                     <td class="px-4 py-2.5" data-column-id="actions">
                                         <div class="flex items-center gap-2">
-                                            @php
-                                                /** @var \App\Models\AlertLog $log */
-                                                $payload = \App\Support\Alerts\AlertDeliveryLogPresenter::payloadFromLog($log);
-                                                $deliveryLogOpenClick = 'openDeliveryLogModal('.\Illuminate\Support\Js::from($payload).')';
-                                            @endphp
                                             <x-button
                                                 variant="outline"
                                                 type="button"
                                                 class="inline-flex items-center justify-center h-8 min-h-8 p-2 rounded-md"
                                                 aria-label="View delivery log"
                                                 title="View delivery log"
-                                                x-on:click="{{ $deliveryLogOpenClick }}"
+                                                x-on:click="openDeliveryLogModal(@js(\App\Support\Alerts\AlertDeliveryLogPresenter::payloadFromLog($log)))"
                                             >
                                                 <x-heroicon-o-document-text class="size-4" />
                                             </x-button>

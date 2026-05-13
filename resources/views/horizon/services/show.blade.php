@@ -7,19 +7,7 @@
     @endphp
     <div
         id="horizon-service-dashboard"
-        x-data="{
-            showDeleteServiceModal: false,
-            openDeleteServiceModal() {
-                this.showDeleteServiceModal = true;
-            },
-            closeDeleteServiceModal() {
-                this.showDeleteServiceModal = false;
-            },
-            confirmDeleteService() {
-                this.$refs.deleteServiceForm.requestSubmit();
-                this.closeDeleteServiceModal();
-            }
-        }"
+        x-data="window.horizonDeleteConfirm ? window.horizonDeleteConfirm('Service', { listMode: false }) : {}"
     >
         <p class="mb-3 text-xs text-muted-foreground">
             <a href="{{ route('horizon.jobs.index') }}" class="link" data-turbo-action="replace">Jobs</a> /

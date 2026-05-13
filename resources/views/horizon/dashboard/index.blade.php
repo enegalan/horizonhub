@@ -61,7 +61,6 @@
                 </div>
             </div>
 
-
             <div class="border-b border-border px-5 py-5 sm:px-6">
                 <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
                     <h3 class="text-section-title text-foreground">Services</h3>
@@ -82,7 +81,7 @@
                             </div>
                         @endfor
                     @else
-                        @include('horizon.dashboard.partials.service-health-grid', ['services' => $services ?? collect()])
+                        @include('horizon.dashboard.partials.service-health-grid', ['services' => $services ?? null])
                     @endif
                 </div>
             </div>
@@ -111,7 +110,7 @@
                         @if(!empty($defer))
                             <x-skeleton.table-rows rows="5" columns="4" />
                         @else
-                            @include('horizon.dashboard.partials.recent-alerts-tbody', ['recentAlertLogs' => $recentAlertLogs ?? collect()])
+                            @include('horizon.dashboard.partials.recent-alerts-tbody', ['recentAlertLogs' => $recentAlertLogs ?? null])
                         @endif
                     </x-table>
                 </div>
