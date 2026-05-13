@@ -32,10 +32,10 @@
 <details
     data-section-key="{{ $sectionKey }}"
     :open="sectionOpen.{{ $sectionKey }}"
-    class="group border-border border-l-4 transition-colors duration-200 py-2 {{ $baseBorderClasses[$kind] }} {{ $openAccentClasses[$kind] }}"
+    class="group border-b border-border border-l-4 transition-colors duration-200 last:border-b-0 py-2 {{ $baseBorderClasses[$kind] }} {{ $openAccentClasses[$kind] }}"
 >
     <summary
-        class="flex cursor-pointer list-none items-center gap-2 py-2 pl-4 text-section-title text-foreground [&::-webkit-details-marker]:hidden"
+        class="flex cursor-pointer list-none items-center gap-2 py-2 pl-4 pr-5 text-section-title text-foreground sm:pr-6 [&::-webkit-details-marker]:hidden"
         @click="persistSectionFromSummary('{{ $sectionKey }}', $event)"
     >
         <x-heroicon-o-chevron-down class="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
@@ -54,22 +54,22 @@
                 <tr class="border-b border-border bg-muted/50">
                     <th class="table-header px-4 py-2.5" data-column-id="uuid">UUID</th>
                     @if($showServiceColumn)
-                        <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="service">Service</th>
+                        <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="service">Service</th>
                     @endif
-                    <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="queue">Queue</th>
+                    <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="queue">Queue</th>
                     <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
-                    <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="attempts">Attempts</th>
-                    <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="queued_at">Queued at</th>
+                    <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="attempts">Attempts</th>
+                    <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="queued_at">Queued at</th>
                     @if($kind === 'processing')
-                        <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="delayed_until">Delayed until</th>
+                        <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="delayed_until">Delayed until</th>
                     @elseif($kind === 'processed')
-                        <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="processed">Processed</th>
-                        <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="runtime">Runtime</th>
+                        <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="processed">Processed</th>
+                        <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="runtime">Runtime</th>
                     @elseif($kind === 'failed')
-                        <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="failed_at">Failed at</th>
-                        <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="runtime">Runtime</th>
+                        <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="failed_at">Failed at</th>
+                        <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="runtime">Runtime</th>
                     @endif
-                    <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="actions" data-column-fixed>Actions</th>
+                    <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="actions" data-column-fixed>Actions</th>
                 </tr>
             </x-slot:head>
             @include('horizon.jobs.partials.job-list-tbody-rows', [
@@ -80,7 +80,7 @@
                 'defer' => $defer,
             ])
         </x-table>
-        <div id="job-pagination-{{ $bodyKey }}" class="px-4 py-2 mt-2">
+        <div id="job-pagination-{{ $bodyKey }}" class="mt-2 px-4 py-2 sm:px-6">
             @include('horizon.jobs.partials.job-list-section-pagination', ['paginator' => $paginator])
         </div>
     </div>

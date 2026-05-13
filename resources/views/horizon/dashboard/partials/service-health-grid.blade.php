@@ -1,37 +1,44 @@
 @forelse($services as $service)
+    @php
+        $svcSt = \strtolower((string) ($service->status ?? ''));
+        if ($svcSt === 'online') {
+            $svcDot = 'bg-emerald-500';
+            $svcLabel = 'Online';
+            $topBarClass = 'from-emerald-500/80 via-emerald-400/60 to-transparent';
+        } elseif ($svcSt === 'stand_by') {
+            $svcDot = 'bg-amber-500';
+            $svcLabel = 'Stand-by';
+            $topBarClass = 'from-amber-500/80 via-amber-400/60 to-transparent';
+        } else {
+            $svcDot = 'bg-red-500';
+            $svcLabel = 'Offline';
+            $topBarClass = 'from-red-500/80 via-red-400/60 to-transparent';
+        }
+        $hz = isset($service->horizon_status) && (string) $service->horizon_status !== ''
+            ? \strtolower((string) $service->horizon_status)
+            : '';
+        if ($hz === 'active' || $hz === 'running') {
+            $hzDot = 'bg-emerald-500';
+            $hzLabel = 'Horizon active';
+        } else {
+            $hzDot = 'bg-amber-500';
+            $hzLabel = 'Horizon inactive';
+        }
+    @endphp
     <a
         href="{{ route('horizon.services.show', $service) }}"
-        class="card block p-3 transition-colors hover:bg-muted/30"
+        class="card group relative block overflow-hidden transition-colors hover:border-primary/30"
         data-turbo-action="replace"
         data-stream-row-id="svc-h-{{ (int) $service->id }}"
     >
-        <div class="flex items-start justify-between gap-2">
+        <div
+            class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r {{ $topBarClass }}"
+            aria-hidden="true"
+        ></div>
+        <div class="relative flex items-start justify-between gap-2 p-4">
             <div class="min-w-0">
-                <p class="truncate text-sm font-medium text-foreground">{{ $service->name }}</p>
-                <p class="mt-0.5 text-xs text-muted-foreground">
-                    @php
-                        $svcSt = \strtolower((string) ($service->status ?? ''));
-                        if ($svcSt === 'online') {
-                            $svcDot = 'bg-emerald-500';
-                            $svcLabel = 'Online';
-                        } elseif ($svcSt === 'stand_by') {
-                            $svcDot = 'bg-amber-500';
-                            $svcLabel = 'Stand-by';
-                        } else {
-                            $svcDot = 'bg-red-500';
-                            $svcLabel = 'Offline';
-                        }
-                        $hz = isset($service->horizon_status) && (string) $service->horizon_status !== ''
-                            ? \strtolower((string) $service->horizon_status)
-                            : '';
-                        if ($hz === 'active' || $hz === 'running') {
-                            $hzDot = 'bg-emerald-500';
-                            $hzLabel = 'Horizon active';
-                        } else {
-                            $hzDot = 'bg-amber-500';
-                            $hzLabel = 'Horizon inactive';
-                        }
-                    @endphp
+                <p class="truncate text-sm font-semibold text-foreground">{{ $service->name }}</p>
+                <p class="mt-1 text-xs text-muted-foreground">
                     <span class="inline-flex items-center gap-1">
                         <span class="inline-block size-1.5 shrink-0 rounded-full {{ $svcDot }}" title="{{ $svcLabel }}" aria-hidden="true"></span>
                         {{ $svcLabel }}
@@ -42,11 +49,11 @@
                     </span>
                 </p>
             </div>
-            <x-heroicon-o-chevron-right class="size-4 shrink-0 text-muted-foreground" />
+            <x-heroicon-o-chevron-right class="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
         </div>
     </a>
 @empty
-    <div class="card p-6 sm:col-span-2 xl:col-span-3">
+    <div class="card p-8 sm:col-span-2 xl:col-span-3">
         <div class="empty-state">
             <x-heroicon-o-server-stack class="empty-state-icon" />
             <p class="empty-state-title">No services registered</p>
