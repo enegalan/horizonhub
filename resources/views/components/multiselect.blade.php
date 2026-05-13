@@ -18,6 +18,8 @@
     {{ $extraAttrs }}
     x-data="{
         open: false,
+        anchor: { top: 0, left: 0, width: 0 },
+        _repositionHandler: null,
         submitOnChange: {{ $submitOnChange ? 'true' : 'false' }},
         fieldName: {{ json_encode($name.'[]') }},
         selectedValues: {{ json_encode($selectedStrings) }},
@@ -40,6 +42,9 @@
             var self = this;
             this.$nextTick(function () { self.syncHiddenInputs(); });
         },
+        destroy() {
+            this.unbindReposition();
+        },
         get options() {
             var sel = this.$refs.optionSource;
             if (!sel) return [];
@@ -59,6 +64,46 @@
         },
         placeholder: {{ json_encode($placeholder) }},
         emptyMessage: {{ json_encode($emptyMessage) }},
+        openMenu() {
+            this.open = true;
+            var self = this;
+            this.$nextTick(function () {
+                self.updateAnchor();
+                self.bindReposition();
+            });
+        },
+        closeMenu() {
+            if (!this.open) return;
+            this.open = false;
+            this.unbindReposition();
+            this.maybeSubmitIfDirty();
+        },
+        toggleMenu() {
+            if (this.open) {
+                this.closeMenu();
+            } else {
+                this.openMenu();
+            }
+        },
+        updateAnchor() {
+            var trigger = this.$refs.trigger;
+            if (!trigger) return;
+            var rect = trigger.getBoundingClientRect();
+            this.anchor = { top: rect.bottom + 4, left: rect.left, width: rect.width };
+        },
+        bindReposition() {
+            if (this._repositionHandler) return;
+            var self = this;
+            this._repositionHandler = function () { self.updateAnchor(); };
+            window.addEventListener('scroll', this._repositionHandler, true);
+            window.addEventListener('resize', this._repositionHandler);
+        },
+        unbindReposition() {
+            if (!this._repositionHandler) return;
+            window.removeEventListener('scroll', this._repositionHandler, true);
+            window.removeEventListener('resize', this._repositionHandler);
+            this._repositionHandler = null;
+        },
         toggle(optValue) {
             var v = String(optValue);
             var i = this.selectedValues.indexOf(v);
@@ -89,7 +134,7 @@
             }
         },
     }"
-    @click.away="open = false; maybeSubmitIfDirty()"
+    @click.away="closeMenu()"
 >
     <select x-ref="optionSource" multiple class="sr-only" tabindex="-1" aria-hidden="true">
         {{ $slot }}
@@ -98,7 +143,8 @@
 
     <button
         type="button"
-        @click="if (open) { open = false; maybeSubmitIfDirty(); } else { open = true; }"
+        x-ref="trigger"
+        @click="toggleMenu()"
         :aria-expanded="open"
         aria-haspopup="listbox"
         class="btn-ghost flex h-9 w-full min-w-[8rem] items-center justify-between whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
@@ -108,6 +154,7 @@
     </button>
 
     <div
+        x-ref="panel"
         x-show="open"
         x-transition:enter="transition ease-out duration-100"
         x-transition:enter-start="opacity-0 scale-95"
@@ -115,7 +162,8 @@
         x-transition:leave="transition ease-in duration-75"
         x-transition:leave-start="opacity-100 scale-100"
         x-transition:leave-end="opacity-0 scale-95"
-        class="absolute z-50 mt-1 max-h-60 min-w-[12rem] overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+        x-bind:style="{ top: anchor.top + 'px', left: anchor.left + 'px', minWidth: Math.max(anchor.width, 192) + 'px' }"
+        class="fixed z-50 max-h-60 overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
         role="listbox"
     >
         <div

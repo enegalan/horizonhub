@@ -7,6 +7,8 @@
 <div class="relative {{ $wrapperClass }}"
     x-data="{
         open: false,
+        anchor: { top: 0, left: 0, width: 0 },
+        _repositionHandler: null,
         selectedValue: '',
         get hiddenSelect() { return this.$refs.hidden; },
         get options() {
@@ -25,12 +27,54 @@
         },
         placeholder: {{ json_encode($placeholder) }},
         emptyMessage: {{ json_encode($emptyMessage) }},
+        openMenu() {
+            this.open = true;
+            var self = this;
+            this.$nextTick(function () {
+                self.updateAnchor();
+                self.bindReposition();
+            });
+        },
+        closeMenu() {
+            if (!this.open) return;
+            this.open = false;
+            this.unbindReposition();
+        },
+        toggleMenu() {
+            if (this.open) {
+                this.closeMenu();
+            } else {
+                this.openMenu();
+            }
+        },
+        updateAnchor() {
+            var trigger = this.$refs.trigger;
+            if (!trigger) return;
+            var rect = trigger.getBoundingClientRect();
+            this.anchor = { top: rect.bottom + 4, left: rect.left, width: rect.width };
+        },
+        bindReposition() {
+            if (this._repositionHandler) return;
+            var self = this;
+            this._repositionHandler = function () { self.updateAnchor(); };
+            window.addEventListener('scroll', this._repositionHandler, true);
+            window.addEventListener('resize', this._repositionHandler);
+        },
+        unbindReposition() {
+            if (!this._repositionHandler) return;
+            window.removeEventListener('scroll', this._repositionHandler, true);
+            window.removeEventListener('resize', this._repositionHandler);
+            this._repositionHandler = null;
+        },
+        destroy() {
+            this.unbindReposition();
+        },
         choose(opt) {
             this.selectedValue = opt.value;
             this.hiddenSelect.value = opt.value;
             this.hiddenSelect.dispatchEvent(new Event('input', { bubbles: true }));
             this.hiddenSelect.dispatchEvent(new Event('change', { bubbles: true }));
-            this.open = false;
+            this.closeMenu();
         },
         syncFromDom() {
             if (this.hiddenSelect) this.selectedValue = this.hiddenSelect.value;
@@ -41,7 +85,7 @@
         $nextTick(sync);
         $watch('open', (open) => { if (open) sync(); });
     "
-    @click.away="open = false"
+    @click.away="closeMenu()"
     >
     <select x-ref="hidden"
         {{ $selectAttrs->merge(['class' => 'sr-only']) }}>
@@ -55,7 +99,8 @@
     </select>
 
     <button type="button"
-        @click="open = !open"
+        x-ref="trigger"
+        @click="toggleMenu()"
         :aria-expanded="open"
         aria-haspopup="listbox"
         class="btn-ghost flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
@@ -63,14 +108,16 @@
         <x-heroicon-o-chevron-down class="h-4 w-4 shrink-0 opacity-50" />
     </button>
 
-    <div x-show="open"
+    <div x-ref="panel"
+        x-show="open"
         x-transition:enter="transition ease-out duration-100"
         x-transition:enter-start="opacity-0 scale-95"
         x-transition:enter-end="opacity-100 scale-100"
         x-transition:leave="transition ease-in duration-75"
         x-transition:leave-start="opacity-100 scale-100"
         x-transition:leave-end="opacity-0 scale-95"
-        class="absolute z-50 mt-1 max-h-60 min-w-[8rem] overflow-auto rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"
+        x-bind:style="{ top: anchor.top + 'px', left: anchor.left + 'px', minWidth: Math.max(anchor.width, 128) + 'px' }"
+        class="fixed z-50 max-h-60 overflow-auto rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"
         role="listbox">
         <div
             x-show="dataOptions.length === 0"
