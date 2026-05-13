@@ -228,6 +228,7 @@ class TurboStreamSseTest extends TestCase
         $result = $reflection->invoke($controller, '');
 
         $this->assertNotNull($result);
+        $this->assertStringContainsString('target="turbo-horizon-queue-stats" method="morph"', $result);
         $this->assertStringContainsString('target="turbo-tbody-horizon-queue-list" method="morph"', $result);
         $this->assertStringContainsString('action="update"', $result);
     }

@@ -16,7 +16,7 @@
         <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground break-all" data-column-id="queue">
             {{ $row->queue }}
         </td>
-        <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="job_count">
+        <td class="px-4 py-2.5 text-sm font-medium tabular-nums text-foreground" data-column-id="job_count">
             {{ number_format($row->job_count) }}
         </td>
     </tr>
