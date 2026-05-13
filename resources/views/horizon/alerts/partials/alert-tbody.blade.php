@@ -138,7 +138,7 @@
                     class="h-8 min-h-8 px-2.5 text-xs text-destructive hover:text-destructive"
                     aria-label="Delete"
                     title="Delete"
-                    x-on:click="openDeleteAlertModal(@js($alert->name ?: ('#' . $alert->id)), @js(route('horizon.alerts.destroy', $alert)))"
+                    x-on:click="openDeleteAlertModal({{ \Illuminate\Support\Js::from($alert->name ?: ('#' . $alert->id)) }}, {{ \Illuminate\Support\Js::from(route('horizon.alerts.destroy', $alert)) }})"
                 >
                     <x-heroicon-o-trash class="size-4" />
                     <span>Delete</span>
