@@ -12,7 +12,12 @@
         $dashboardUrl = $service->getPublicUrl().config('horizonhub.horizon_paths.dashboard');
     @endphp
     <article
-        class="card group relative overflow-hidden transition-colors hover:border-primary/30"
+        @class([
+            'card group relative overflow-hidden transition-colors',
+            'hover:border-emerald-500/45 dark:hover:border-emerald-400/50' => $isOnline,
+            'hover:border-amber-500/45 dark:hover:border-amber-400/50' => $isStandBy,
+            'hover:border-red-500/45 dark:hover:border-red-400/50' => ! $isOnline && ! $isStandBy,
+        ])
         data-stream-row-id="svc-{{ (int) $service->id }}"
     >
         <div
