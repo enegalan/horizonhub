@@ -9,18 +9,22 @@
             $svcDot = 'bg-emerald-500';
             $svcLabel = 'Online';
             $topBarClass = 'from-emerald-500/80 via-emerald-400/60 to-transparent';
+            $hoverBorderClass = 'hover:border-emerald-500/45 dark:hover:border-emerald-400/50';
+            $hoverChevronClass = 'group-hover:text-emerald-600 dark:group-hover:text-emerald-400';
         } elseif ($svcSt === 'stand_by') {
             $svcDot = 'bg-amber-500';
             $svcLabel = 'Stand-by';
             $topBarClass = 'from-amber-500/80 via-amber-400/60 to-transparent';
+            $hoverBorderClass = 'hover:border-amber-500/45 dark:hover:border-amber-400/50';
+            $hoverChevronClass = 'group-hover:text-amber-600 dark:group-hover:text-amber-400';
         } else {
             $svcDot = 'bg-red-500';
             $svcLabel = 'Offline';
             $topBarClass = 'from-red-500/80 via-red-400/60 to-transparent';
+            $hoverBorderClass = 'hover:border-red-500/45 dark:hover:border-red-400/50';
+            $hoverChevronClass = 'group-hover:text-red-600 dark:group-hover:text-red-400';
         }
-        $hz = isset($service->horizon_status) && (string) $service->horizon_status !== ''
-            ? \strtolower((string) $service->horizon_status)
-            : '';
+        $hz = \strtolower((string) $service->horizon_status);
         if ($hz === 'active' || $hz === 'running') {
             $hzDot = 'bg-emerald-500';
             $hzLabel = 'Horizon active';
@@ -31,7 +35,7 @@
     @endphp
     <a
         href="{{ route('horizon.services.show', $service) }}"
-        class="card group relative block overflow-hidden transition-colors hover:border-primary/30"
+        class="card group relative block overflow-hidden transition-colors {{ $hoverBorderClass }}"
         data-turbo-action="replace"
         data-stream-row-id="svc-h-{{ (int) $service->id }}"
     >
@@ -53,7 +57,7 @@
                     </span>
                 </p>
             </div>
-            <x-heroicon-o-chevron-right class="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+            <x-heroicon-o-chevron-right class="size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 {{ $hoverChevronClass }}" />
         </div>
     </a>
 @empty
