@@ -4,16 +4,17 @@
     'selected' => [],
     'submitOnChange' => false,
     'emptyMessage' => 'No results',
+    'labelledBy' => null,
+    'ariaLabel' => null,
 ])
 
 @php
     $selectedStrings = array_values(array_map('strval', (array) $selected));
     $wrapperClass = $attributes->get('class', '');
     $domId = $attributes->get('id');
-    $extraAttrs = $attributes->except(['class', 'id']);
+    $extraAttrs = $attributes->except(['class', 'id', 'labelledBy', 'aria-labelledby', 'ariaLabel', 'aria-label']);
 @endphp
 <div
-    @if($domId) id="{{ $domId }}" @endif
     class="relative {{ $wrapperClass }}"
     {{ $extraAttrs }}
     x-data="{
@@ -144,6 +145,8 @@
     <button
         type="button"
         x-ref="trigger"
+        @if($domId) id="{{ $domId }}" @endif
+        @if($labelledBy) aria-labelledby="{{ $labelledBy }}" @elseif($ariaLabel) aria-label="{{ $ariaLabel }}" @endif
         @click="toggleMenu()"
         :aria-expanded="open"
         aria-haspopup="listbox"

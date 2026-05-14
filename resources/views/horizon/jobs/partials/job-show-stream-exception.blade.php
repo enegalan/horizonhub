@@ -20,7 +20,7 @@
                 @if(\count($exception) > config('horizonhub.failed_job_exception_preview_lines'))
                     <button
                         type="button"
-                        class="mx-4 my-4 font-medium text-primary-solid"
+                        class="mx-4 my-4 font-medium text-primary"
                         @click="toggleExceptionLines()"
                         x-text="showAllExceptionLines ? 'Show less' : 'Show all'"
                         no-ring

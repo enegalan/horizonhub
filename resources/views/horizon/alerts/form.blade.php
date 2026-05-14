@@ -99,31 +99,28 @@
             }
         }"
     >
-        <div class="card overflow-hidden">
-            <div class="relative border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-5 py-5 sm:px-6">
-                <div class="pointer-events-none absolute -left-8 top-0 size-32 rounded-full bg-emerald-500/10 blur-3xl" aria-hidden="true"></div>
-                <div class="pointer-events-none absolute -right-8 bottom-0 size-32 rounded-full bg-amber-500/10 blur-3xl" aria-hidden="true"></div>
-                <div class="relative space-y-2">
-                    <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        {{ $isEdit ? 'Update alert' : 'Create alert' }}
-                    </p>
-                    <h2 class="text-section-title text-foreground">
-                        {{ $isEdit ? 'Edit alert rule' : 'New alert rule' }}
-                    </h2>
-                    <p class="max-w-2xl text-sm text-muted-foreground">
-                        Choose what Horizon should watch, when it should fire, and which providers should receive the notification.
-                    </p>
-                </div>
-            </div>
-        </div>
-
         <form method="POST" action="{{ $action }}" class="space-y-6">
             @csrf
             @if($isEdit)
                 @method('PUT')
             @endif
 
-            <div class="card overflow-hidden">
+            <div id="alert-section-rule" class="card overflow-hidden">
+                <div class="relative border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-5 py-5 sm:px-6">
+                    <div class="pointer-events-none absolute -left-8 top-0 size-32 rounded-full bg-emerald-500/10 blur-3xl" aria-hidden="true"></div>
+                    <div class="pointer-events-none absolute -right-8 bottom-0 size-32 rounded-full bg-amber-500/10 blur-3xl" aria-hidden="true"></div>
+                    <div class="relative space-y-2">
+                        <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            {{ $isEdit ? 'Update alert' : 'Create alert' }}
+                        </p>
+                        <h2 class="text-section-title text-foreground">
+                            {{ $isEdit ? 'Edit alert rule' : 'New alert rule' }}
+                        </h2>
+                        <p class="max-w-2xl text-sm text-muted-foreground">
+                            Choose what Horizon should watch, when it should fire, and which providers should receive the notification.
+                        </p>
+                    </div>
+                </div>
                 <div class="border-b border-border px-5 py-4 sm:px-6">
                     <h3 class="text-sm font-semibold text-foreground">Rule</h3>
                     <p class="mt-1 text-sm text-muted-foreground">Scope the alert to services, queues, and jobs, then set the trigger threshold.</p>
@@ -152,6 +149,8 @@
                             @foreach($services as $s)
                                 <div
                                     class="flex cursor-pointer items-center gap-3 rounded-xl border border-border px-3 py-2.5 transition-colors hover:bg-muted/50"
+                                    role="group"
+                                    tabindex="0"
                                     @click="toggleCheckboxRow($event)"
                                 >
                                     <x-checkbox
@@ -414,7 +413,7 @@
                 </div>
             </div>
 
-            <div class="card overflow-hidden">
+            <div id="alert-section-notifications" class="card overflow-hidden">
                 <div class="border-b border-border px-5 py-4 sm:px-6">
                     <h3 class="text-sm font-semibold text-foreground">Notifications</h3>
                     <p class="mt-1 text-sm text-muted-foreground">Control delivery throttling and choose which providers receive this alert.</p>
@@ -456,6 +455,8 @@
                                 @endphp
                                 <div
                                     class="flex cursor-pointer items-center gap-3 rounded-xl border border-border px-3 py-2.5 transition-colors hover:bg-muted/50"
+                                    role="group"
+                                    tabindex="0"
                                     @click="toggleCheckboxRow($event)"
                                 >
                                     <x-checkbox

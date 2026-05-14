@@ -137,10 +137,13 @@
     </article>
 @empty
     <div class="card p-8 sm:col-span-2 xl:col-span-3">
-        <div class="empty-state">
-            <x-heroicon-o-server-stack class="empty-state-icon" />
-            <p class="empty-state-title">No services</p>
-            <p class="empty-state-description">Register a service above to connect your first Horizon instance.</p>
-        </div>
+        <x-empty-state
+            title="No services"
+            description="Register a service above to connect your first Horizon instance."
+        >
+            <x-slot name="icon">
+                <x-heroicon-o-server-stack class="empty-state-icon" />
+            </x-slot>
+        </x-empty-state>
     </div>
 @endforelse

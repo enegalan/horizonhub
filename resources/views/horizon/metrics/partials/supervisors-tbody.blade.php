@@ -4,13 +4,14 @@
 @endphp
 <tr id="metrics-supervisors-empty" style="{{ \count($supervisorsRows) > 0 ? 'display:none;' : '' }}">
     <td colspan="5" data-column-id="service">
-        <div class="empty-state">
-            <x-heroicon-o-queue-list class="empty-state-icon" />
-            <p class="empty-state-title">No supervisor data yet</p>
-            <p class="empty-state-description">
-                Supervisors will appear here once Horizon is running on your services.
-            </p>
-        </div>
+        <x-empty-state
+            title="No supervisor data yet"
+            description="Supervisors will appear here once Horizon is running on your services."
+        >
+            <x-slot name="icon">
+                <x-heroicon-o-queue-list class="empty-state-icon" />
+            </x-slot>
+        </x-empty-state>
     </td>
 </tr>
 @foreach($supervisorsRows as $row)

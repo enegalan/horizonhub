@@ -8,8 +8,8 @@
         <div class="card overflow-hidden">
             <div class="relative bg-gradient-to-br from-primary/10 via-card to-card py-4">
                 <div class="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-primary/10 blur-3xl" aria-hidden="true"></div>
-                <div class="grid gap-3 border-b border-border px-5 py-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
-                    <div class="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+                <div class="grid gap-3 px-5 py-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
+                    <div class="rounded-lg border border-emerald-500/15 bg-emerald-500/[0.04] px-4 py-3">
                         <p class="text-xs font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Jobs past minute</p>
                         <div class="mt-1 flex min-h-[2.5rem] items-center gap-2">
                             <span id="dashboard-value-jobs-minute" class="text-2xl font-semibold tabular-nums text-foreground">
@@ -21,7 +21,7 @@
                             </span>
                         </div>
                     </div>
-                    <div class="rounded-lg border border-sky-500/20 bg-sky-500/5 px-4 py-3">
+                    <div class="rounded-lg border border-sky-500/15 bg-sky-500/[0.04] px-4 py-3">
                         <p class="text-xs font-medium uppercase tracking-wide text-sky-700 dark:text-sky-300">Jobs past hour</p>
                         <div class="mt-1 flex min-h-[2.5rem] items-center gap-2">
                             <span id="dashboard-value-jobs-hour" class="text-2xl font-semibold tabular-nums text-foreground">
@@ -33,7 +33,7 @@
                             </span>
                         </div>
                     </div>
-                    <div class="rounded-lg border border-rose-500/20 bg-rose-500/5 px-4 py-3">
+                    <div class="rounded-lg border border-rose-500/15 bg-rose-500/[0.04] px-4 py-3">
                         <p class="text-xs font-medium uppercase tracking-wide text-rose-700 dark:text-rose-300">Failed jobs (7 days)</p>
                         <div class="mt-1 flex min-h-[2.5rem] items-center gap-2">
                             <span id="dashboard-value-failed-seven" class="text-2xl font-semibold tabular-nums text-foreground">
@@ -45,7 +45,7 @@
                             </span>
                         </div>
                     </div>
-                    <div class="rounded-lg border border-violet-500/20 bg-violet-500/5 px-4 py-3 sm:col-span-2 lg:col-span-1">
+                    <div class="rounded-lg border border-violet-500/15 bg-violet-500/[0.04] px-4 py-3 sm:col-span-2 lg:col-span-1">
                         <p class="text-xs font-medium uppercase tracking-wide text-violet-700 dark:text-violet-300">Services online</p>
                         <div class="mt-1 flex min-h-[2.5rem] items-center gap-2">
                             <div id="dashboard-services-kpi-inner" class="flex min-h-[2.5rem] items-center gap-2">
@@ -60,7 +60,9 @@
                     </div>
                 </div>
             </div>
+        </div>
 
+        <div class="card overflow-hidden">
             <div class="border-b border-border px-5 py-5 sm:px-6">
                 <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
                     <h3 class="text-section-title text-foreground">Services</h3>
@@ -85,64 +87,64 @@
                     @endif
                 </div>
             </div>
+        </div>
 
-            <div class="grid lg:grid-cols-2 lg:divide-x lg:divide-border">
-                <div class="flex min-w-0 flex-col border-b border-border lg:border-b-0">
-                    <div class="flex items-center justify-between border-b border-border bg-muted/20 px-5 py-3 sm:px-6">
-                        <h3 class="text-section-title text-foreground">Recent alerts</h3>
-                        <a href="{{ route('horizon.alerts.index') }}" class="link text-xs" data-turbo-action="replace">View all</a>
-                    </div>
-                    <x-table
-                        resizable-key="horizon-dashboard-alerts"
-                        column-ids="name,service,status,sent"
-                        body-key="horizon-dashboard-alerts"
-                        body-id="dashboard-recent-alerts-body"
-                        stream-patch-children
-                    >
-                        <x-slot:head>
-                            <tr class="border-b border-border bg-muted/50">
-                                <th class="table-header min-w-[120px] px-4 py-2.5" data-column-id="name">Alert</th>
-                                <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="service">Service</th>
-                                <th class="table-header min-w-[80px] px-4 py-2.5" data-column-id="status">Status</th>
-                                <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="sent">Sent</th>
-                            </tr>
-                        </x-slot:head>
-                        @if(!empty($defer))
-                            <x-skeleton.table-rows rows="5" columns="4" />
-                        @else
-                            @include('horizon.dashboard.partials.recent-alerts-tbody', ['recentAlertLogs' => $recentAlertLogs ?? null])
-                        @endif
-                    </x-table>
+        <div class="grid gap-6 lg:grid-cols-2">
+            <div class="card flex min-w-0 flex-col overflow-hidden">
+                <div class="flex items-center justify-between border-b border-border bg-muted/20 px-5 py-3 sm:px-6">
+                    <h3 class="text-section-title text-foreground">Recent alerts</h3>
+                    <a href="{{ route('horizon.alerts.index') }}" class="link text-xs" data-turbo-action="replace">View all</a>
                 </div>
+                <x-table
+                    resizable-key="horizon-dashboard-alerts"
+                    column-ids="name,service,status,sent"
+                    body-key="horizon-dashboard-alerts"
+                    body-id="dashboard-recent-alerts-body"
+                    stream-patch-children
+                >
+                    <x-slot:head>
+                        <tr class="border-b border-border bg-muted/50">
+                            <th class="table-header min-w-[120px] px-4 py-2.5" data-column-id="name">Alert</th>
+                            <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="service">Service</th>
+                            <th class="table-header min-w-[80px] px-4 py-2.5" data-column-id="status">Status</th>
+                            <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="sent">Sent</th>
+                        </tr>
+                    </x-slot:head>
+                    @if(!empty($defer))
+                        <x-skeleton.table-rows rows="5" columns="4" />
+                    @else
+                        @include('horizon.dashboard.partials.recent-alerts-tbody', ['recentAlertLogs' => $recentAlertLogs ?? null])
+                    @endif
+                </x-table>
+            </div>
 
-                <div class="flex min-w-0 flex-col">
-                    <div class="flex items-center justify-between border-b border-border bg-muted/20 px-5 py-3 sm:px-6">
-                        <h3 class="text-section-title text-foreground">Current workload</h3>
-                        <a href="{{ route('horizon.queues.index') }}" class="link text-xs" data-turbo-action="replace">View queues</a>
-                    </div>
-                    <x-table
-                        resizable-key="horizon-dashboard-workload"
-                        column-ids="service,queue,jobs,processes,wait"
-                        body-key="horizon-dashboard-workload"
-                        body-id="dashboard-workload-summary-body"
-                        stream-patch-children
-                    >
-                        <x-slot:head>
-                            <tr class="border-b border-border bg-muted/50">
-                                <th class="table-header min-w-[120px] px-4 py-2.5" data-column-id="service">Service</th>
-                                <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="queue">Queue</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="jobs">Jobs</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="processes">Processes</th>
-                                <th class="table-header px-4 py-2.5" data-column-id="wait">Wait</th>
-                            </tr>
-                        </x-slot:head>
-                        @if(!empty($defer))
-                            <x-skeleton.table-rows rows="5" columns="5" />
-                        @else
-                            @include('horizon.dashboard.partials.workload-summary-tbody', ['workloadRows' => $workloadRows ?? []])
-                        @endif
-                    </x-table>
+            <div class="card flex min-w-0 flex-col overflow-hidden">
+                <div class="flex items-center justify-between border-b border-border bg-muted/20 px-5 py-3 sm:px-6">
+                    <h3 class="text-section-title text-foreground">Current workload</h3>
+                    <a href="{{ route('horizon.queues.index') }}" class="link text-xs" data-turbo-action="replace">View queues</a>
                 </div>
+                <x-table
+                    resizable-key="horizon-dashboard-workload"
+                    column-ids="service,queue,jobs,processes,wait"
+                    body-key="horizon-dashboard-workload"
+                    body-id="dashboard-workload-summary-body"
+                    stream-patch-children
+                >
+                    <x-slot:head>
+                        <tr class="border-b border-border bg-muted/50">
+                            <th class="table-header min-w-[120px] px-4 py-2.5" data-column-id="service">Service</th>
+                            <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="queue">Queue</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="jobs">Jobs</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="processes">Processes</th>
+                            <th class="table-header px-4 py-2.5" data-column-id="wait">Wait</th>
+                        </tr>
+                    </x-slot:head>
+                    @if(!empty($defer))
+                        <x-skeleton.table-rows rows="5" columns="5" />
+                    @else
+                        @include('horizon.dashboard.partials.workload-summary-tbody', ['workloadRows' => $workloadRows ?? []])
+                    @endif
+                </x-table>
             </div>
         </div>
     </div>

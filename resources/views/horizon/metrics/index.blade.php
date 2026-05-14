@@ -10,12 +10,13 @@
 
         <form method="GET" action="{{ route('horizon.metrics') }}" class="mb-4 flex flex-wrap items-end gap-3" data-turbo-frame="_top">
             <div class="space-y-2">
-                <x-input-label for="metrics-service-filter">Filter by services</x-input-label>
+                <x-input-label id="metrics-service-filter-label" for="metrics-service-filter">Filter by services</x-input-label>
                 <div class="flex flex-wrap items-end gap-2">
                     <x-multiselect
                         id="metrics-service-filter"
+                        labelled-by="metrics-service-filter-label"
                         name="service_id"
-                        class="w-64"
+                        class="w-full min-w-0 sm:w-64"
                         :selected="$serviceIds ?? []"
                         placeholder="All services"
                         empty-message="No services found"

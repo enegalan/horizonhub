@@ -4,11 +4,14 @@
 @endphp
 <tr id="metrics-workload-empty" style="{{ \count($workloadRows) > 0 ? 'display:none;' : '' }}">
     <td colspan="5" data-column-id="service">
-        <div class="empty-state">
-            <x-heroicon-o-queue-list class="empty-state-icon" />
-            <p class="empty-state-title">No queues yet</p>
-            <p class="empty-state-description">Queues will appear here once jobs are dispatched to your services.</p>
-        </div>
+        <x-empty-state
+            title="No queues yet"
+            description="Queues will appear here once jobs are dispatched to your services."
+        >
+            <x-slot name="icon">
+                <x-heroicon-o-queue-list class="empty-state-icon" />
+            </x-slot>
+        </x-empty-state>
     </td>
 </tr>
 @foreach($workloadRows as $row)

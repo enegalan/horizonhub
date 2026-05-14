@@ -58,13 +58,16 @@
     </a>
 @empty
     <div class="card p-8 sm:col-span-2 xl:col-span-3">
-        <div class="empty-state">
-            <x-heroicon-o-server-stack class="empty-state-icon" />
-            <p class="empty-state-title">No services registered</p>
-            <p class="empty-state-description">Register a Horizon service to see health here.</p>
+        <x-empty-state
+            title="No services registered"
+            description="Register a Horizon service to see health here."
+        >
+            <x-slot name="icon">
+                <x-heroicon-o-server-stack class="empty-state-icon" />
+            </x-slot>
             <x-button type="button" class="mt-3 h-9 text-sm" onclick="window.location.href='{{ route('horizon.services.index') }}'">
                 Go to Services
             </x-button>
-        </div>
+        </x-empty-state>
     </div>
 @endforelse

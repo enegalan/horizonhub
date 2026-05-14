@@ -90,10 +90,13 @@
     </article>
 @empty
     <div class="card p-8 sm:col-span-2 xl:col-span-3">
-        <div class="empty-state">
-            <x-heroicon-o-megaphone class="empty-state-icon" />
-            <p class="empty-state-title">No providers yet</p>
-            <p class="empty-state-description">Create Slack or email providers, then select them when creating alerts.</p>
+        <x-empty-state
+            title="No providers yet"
+            description="Create Slack or email providers, then select them when creating alerts."
+        >
+            <x-slot name="icon">
+                <x-heroicon-o-megaphone class="empty-state-icon" />
+            </x-slot>
             <x-button
                 type="button"
                 class="mt-3 h-9 text-sm"
@@ -101,6 +104,6 @@
             >
                 New provider
             </x-button>
-        </div>
+        </x-empty-state>
     </div>
 @endforelse

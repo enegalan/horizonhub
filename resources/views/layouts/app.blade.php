@@ -60,13 +60,13 @@
             <div class="flex min-h-0 min-w-0 flex-1 flex-col pt-12 lg:pt-0">
             @if (isset($header))
                 <header class="shrink-0 border-b border-border bg-card">
-                    <div class="mx-8 flex h-12 items-center justify-between gap-3">
+                    <div class="flex h-12 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
                         <h1 class="min-w-0 truncate text-page-title text-foreground">{{ $header }}</h1>
                         @include('partials.header-toolbar')
                     </div>
                 </header>
             @endif
-                <main class="flex-1 p-4 lg:p-6">
+                <main class="flex-1 px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
                     @yield('content')
                     @isset($slot)
                         {{ $slot }}

@@ -19,11 +19,13 @@
             <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
                 <div class="flex flex-wrap items-end gap-3">
                     <div class="space-y-2">
-                        <x-input-label>Services</x-input-label>
+                        <x-input-label id="queues-index-services-label" for="queues-index-services">Services</x-input-label>
                         <form method="GET" action="{{ route('horizon.queues.index') }}" data-turbo-frame="_top">
                             <x-multiselect
+                                id="queues-index-services"
+                                labelled-by="queues-index-services-label"
                                 name="queue_services"
-                                class="w-56"
+                                class="w-full min-w-0 sm:w-56"
                                 :submit-on-change="true"
                                 :selected="$serviceIds ?? []"
                                 placeholder="All services"

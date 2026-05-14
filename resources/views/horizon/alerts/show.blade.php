@@ -239,11 +239,14 @@
                             @empty
                                 <tr>
                                     <td colspan="5" data-column-id="sent_at">
-                                        <div class="empty-state">
-                                            <x-heroicon-o-bell class="empty-state-icon" />
-                                            <p class="empty-state-title">No alert deliveries yet</p>
-                                            <p class="empty-state-description">When this alert triggers, sent and failed notifications will appear here.</p>
-                                        </div>
+                                        <x-empty-state
+                                            title="No alert deliveries yet"
+                                            description="When this alert triggers, sent and failed notifications will appear here."
+                                        >
+                                            <x-slot name="icon">
+                                                <x-heroicon-o-bell class="empty-state-icon" />
+                                            </x-slot>
+                                        </x-empty-state>
                                     </td>
                                 </tr>
                             @endforelse

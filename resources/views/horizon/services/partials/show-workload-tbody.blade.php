@@ -20,11 +20,14 @@
 @empty
     <tr>
         <td colspan="4" data-column-id="queue">
-            <div class="empty-state">
-                <x-heroicon-o-queue-list class="empty-state-icon" />
-                <p class="empty-state-title">No queues for this service yet</p>
-                <p class="empty-state-description">Queues will appear here once jobs are dispatched to this service.</p>
-            </div>
+            <x-empty-state
+                title="No queues for this service yet"
+                description="Queues will appear here once jobs are dispatched to this service."
+            >
+                <x-slot name="icon">
+                    <x-heroicon-o-queue-list class="empty-state-icon" />
+                </x-slot>
+            </x-empty-state>
         </td>
     </tr>
 @endforelse

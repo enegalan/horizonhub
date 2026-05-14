@@ -69,11 +69,14 @@
 @empty
     <tr data-stream-row-id="__empty-{{ $kind }}">
         <td colspan="9" data-column-id="{{ $showServiceColumn ? 'service' : 'queue' }}">
-            <div class="empty-state">
-                <x-heroicon-o-document-text class="empty-state-icon" />
-                <p class="empty-state-title">{{ $emptyCopy[$kind]['title'] }}</p>
-                <p class="empty-state-description">{{ $emptyCopy[$kind]['description'] }}</p>
-            </div>
+            <x-empty-state
+                title="{{ $emptyCopy[$kind]['title'] }}"
+                description="{{ $emptyCopy[$kind]['description'] }}"
+            >
+                <x-slot name="icon">
+                    <x-heroicon-o-document-text class="empty-state-icon" />
+                </x-slot>
+            </x-empty-state>
         </td>
     </tr>
 @endforelse

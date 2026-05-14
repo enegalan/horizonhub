@@ -25,12 +25,14 @@
 
             <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
                 <div class="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
-                    <form method="GET" action="{{ route('horizon.jobs.index') }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="_top">
-                        <div class="space-y-2">
-                            <x-input-label>Services</x-input-label>
+                    <form method="GET" action="{{ route('horizon.jobs.index') }}" class="flex min-w-0 flex-1 flex-col flex-wrap gap-3 sm:flex-row sm:items-end" data-turbo-frame="_top">
+                        <div class="min-w-0 space-y-2 sm:max-w-none">
+                            <x-input-label id="jobs-index-services-label" for="jobs-index-services">Services</x-input-label>
                             <x-multiselect
+                                id="jobs-index-services"
+                                labelled-by="jobs-index-services-label"
                                 name="serviceFilter"
-                                class="w-56"
+                                class="w-full min-w-0 sm:w-56"
                                 :selected="$filters['serviceIds'] ?? []"
                                 placeholder="All services"
                                 empty-message="No services found"
@@ -40,15 +42,16 @@
                                 @endforeach
                             </x-multiselect>
                         </div>
-                        <div class="space-y-2">
-                            <x-input-label>Search</x-input-label>
-                            <div class="flex items-center gap-2">
+                        <div class="min-w-0 flex-1 space-y-2 sm:max-w-none">
+                            <x-input-label for="jobs-index-search">Search</x-input-label>
+                            <div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
                                 <x-text-input
+                                    id="jobs-index-search"
                                     type="text"
                                     name="search"
                                     value="{{ $filters['search'] ?? '' }}"
                                     placeholder="Queue, job or UUID"
-                                    class="w-56"
+                                    class="w-full min-w-0 sm:w-56"
                                 />
                                 <x-button type="submit" class="h-9 text-sm">
                                     Search
@@ -95,12 +98,13 @@
                                 class="contents"
                             >
                                 <template x-for="session in [retryModalSession]" :key="session">
-                                    <div class="space-y-2">
-                                        <x-input-label>Services</x-input-label>
+                                    <div class="min-w-0 space-y-2">
+                                        <x-input-label id="retry-modal-services-label" for="retry-modal-services">Services</x-input-label>
                                         <x-multiselect
                                             id="retry-modal-services"
+                                            labelled-by="retry-modal-services-label"
                                             name="retryModalServiceFilter"
-                                            class="w-56"
+                                            class="w-full min-w-0 sm:w-56"
                                             :selected="[]"
                                             placeholder="All services"
                                             empty-message="No services found"
@@ -119,12 +123,12 @@
                                         name="retry_modal_search"
                                         type="text"
                                         placeholder="Queue, job or UUID"
-                                        class="w-56"
+                                        class="w-full min-w-0 sm:w-56"
                                         x-model="retryFilters.search"
                                         autocomplete="off"
                                     />
                                 </div>
-                                <div class="min-w-64 max-w-xl flex-1 space-y-2">
+                                <div class="min-w-0 w-full max-w-xl flex-1 space-y-2 sm:min-w-64">
                                     <x-input-label for="retry-modal-failed-at-range">Failed at range</x-input-label>
                                     <x-input-date
                                         id="retry-modal-failed-at-range"
