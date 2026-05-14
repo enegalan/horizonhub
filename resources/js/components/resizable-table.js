@@ -307,7 +307,7 @@ import { parseJson } from '../lib/parse';
             handle.title = 'Resize column';
 
             var line = document.createElement('span');
-            line.className = 'absolute top-0 bottom-0 w-px bg-primary/15';
+            line.className = 'absolute top-0 bottom-0 w-px bg-border';
             line.style.cssText = 'right:' + (RESIZE_HANDLE_WIDTH / 2 - 0.5) + 'px;';
             handle.appendChild(line);
 
