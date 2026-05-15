@@ -11,7 +11,7 @@ $sizes = [
     'md' => 'max-w-md',
     'lg' => 'max-w-lg',
     'xl' => 'max-w-2xl',
-    'xxl' => 'max-w-[min(70rem,calc(100vw-2rem))]',
+    'xxl' => 'max-w-full sm:max-w-[min(70rem,calc(100vw-2rem))]',
 ];
 
 $defaultSize = 'md';
@@ -26,7 +26,7 @@ $wideDialog = \in_array((string) $size, ['xl', 'xxl'], true);
 
 <div
     {{ $attributes->merge([
-        'class' => 'fixed inset-0 z-50 overflow-y-auto px-4',
+        'class' => 'fixed inset-0 z-50 overflow-y-auto overscroll-contain ' . ($wideDialog ? 'px-0 sm:px-4' : 'px-4'),
         'role' => 'dialog',
         'aria-modal' => 'true',
     ]) }}
@@ -44,29 +44,36 @@ $wideDialog = \in_array((string) $size, ['xl', 'xxl'], true);
         @include('components.backdrop', ['variant' => $backdropVariant])
     </div>
 
-    <div class="relative z-10 flex min-h-full items-center justify-center py-4" @click.self="$dispatch('close-modal')">
+    <div
+        class="relative z-10 flex min-h-full justify-center {{ $wideDialog ? 'items-stretch p-0 sm:items-center sm:p-4' : 'items-end p-3 sm:items-center sm:p-4' }}"
+        @click.self="$dispatch('close-modal')"
+    >
         <div
-            class="card w-full {{ $sizeClass }} p-4 bg-card {{ $wideDialog ? 'max-h-[90vh] flex flex-col overflow-hidden' : '' }}"
+            class="card w-full {{ $sizeClass }} bg-card {{ $wideDialog ? 'flex min-h-0 max-h-[100dvh] flex-col overflow-hidden rounded-none p-3 max-sm:min-h-[100dvh] sm:max-h-[min(90vh,100dvh-2rem)] sm:rounded-lg sm:p-4' : 'p-4' }}"
         >
-        @if(isset($header))
-            {{ $header }}
-        @elseif($dialogTitle)
-            <h2 class="text-section-title text-foreground mb-3">{{ $dialogTitle }}</h2>
-        @endif
+            @if(isset($header))
+                {{ $header }}
+            @elseif($dialogTitle)
+                <h2 class="text-section-title text-foreground mb-3">{{ $dialogTitle }}</h2>
+            @endif
 
-        @if(trim((string) $slot) !== '')
-            <div class="{{ $wideDialog ? 'min-h-0 flex-1 overflow-hidden mb-4' : 'mb-4' }}">
-                {{ $slot }}
-            </div>
-        @elseif($message)
-            <p class="text-sm text-muted-foreground mb-4">{{ $message }}</p>
-        @endif
+            @if(trim((string) $slot) !== '')
+                <div class="mt-4 {{ $wideDialog ? 'min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain' : 'mb-4' }}">
+                    {{ $slot }}
+                </div>
+            @elseif($message)
+                <p class="text-sm text-muted-foreground mb-4">{{ $message }}</p>
+            @endif
 
-        @isset($footer)
-            <div class="flex shrink-0 gap-2 pt-1">
-                {{ $footer }}
-            </div>
-        @endisset
+            @isset($footer)
+                <div @class([
+                    'mt-1 flex shrink-0 gap-2',
+                    'border-t border-border pt-3 pb-[max(0.25rem,env(safe-area-inset-bottom))]' => $wideDialog,
+                    'pt-1' => ! $wideDialog,
+                ])>
+                    {{ $footer }}
+                </div>
+            @endisset
         </div>
     </div>
 </div>
