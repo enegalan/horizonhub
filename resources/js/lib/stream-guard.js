@@ -380,18 +380,19 @@ function mergeGenericKeyedChild(existing, incoming) {
         changed = true;
     }
 
-    var attr = 'data-wait-seconds';
-    if (incoming.hasAttribute(attr)) {
-        var nextWaitSeconds = String(incoming.getAttribute(attr));
-        if (existing.getAttribute(attr) !== nextWaitSeconds) {
-            existing.setAttribute(attr, nextWaitSeconds);
+    var attrs = ['data-wait-seconds', 'data-last-seen-at'];
+    for (var attr of attrs) {
+        if (incoming.hasAttribute(attr)) {
+            var nextValue = String(incoming.getAttribute(attr));
+            if (existing.getAttribute(attr) !== nextValue) {
+                existing.setAttribute(attr, nextValue);
+                changed = true;
+            }
+        } else if (existing.hasAttribute(attr)) {
+            existing.removeAttribute(attr);
             changed = true;
         }
-    } else if (existing.hasAttribute(attr)) {
-        existing.removeAttribute(attr);
-        changed = true;
     }
-
     return changed;
 }
 

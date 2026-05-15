@@ -9,7 +9,7 @@ import { horizonServicesList } from './horizon/services';
 import { horizonMetricsPage, renderMetricsCharts } from './horizon/metrics';
 import { initTurboStream } from './lib/sse';
 import { createHttpHelpers } from './lib/http';
-import { formatQueueWaitElements } from './lib/datetime-format';
+import { formatDatetimeElements } from './lib/datetime-format';
 import { getTurboStreamTargetElement, renderTurboStreamWithGuards } from './lib/stream-guard';
 import { mountToaster } from './components/toaster';
 import { registerInputDatePicker } from './components/input-date-picker';
@@ -50,7 +50,7 @@ document.addEventListener('turbo:load', function () {
         Alpine.initTree(document.body);
     });
     schedule(function () {
-        formatQueueWaitElements();
+        formatDatetimeElements();
     });
     mountToaster();
 });
@@ -59,7 +59,7 @@ onDocumentReady(function () {
     mountToaster();
     window.horizonHubTheme.applyTheme();
     schedule(function () {
-        formatQueueWaitElements();
+        formatDatetimeElements();
     });
     initTurboStream();
 });
@@ -74,7 +74,7 @@ document.addEventListener('turbo:before-stream-render', function (e) {
         }
         var syncRoot = getTurboStreamTargetElement(streamElement);
         schedule(function () {
-            formatQueueWaitElements(syncRoot);
+            formatDatetimeElements(syncRoot);
             if (outcome === 'rendered') {
                 if (syncRoot && typeof window.horizonSyncResizableTablesUnderRoot === 'function') {
                     window.horizonSyncResizableTablesUnderRoot(syncRoot);

@@ -1,18 +1,39 @@
 /**
- * Format queue wait seconds as humanized duration and observe DOM for new elements.
- * @param {Element} root
+ * Format datetime elements in the DOM.
+ * @param {Element|null} root
  * @returns {void}
  */
-export function formatQueueWaitElements(root) {
+export function formatDatetimeElements(root) {
     if (typeof window.moment === 'undefined') return;
 
     var context = root && typeof root.querySelectorAll === 'function' ? root : document;
     if (!context) return;
 
-    var nodes = context.querySelectorAll('[data-wait-seconds]');
-    if (!nodes || !nodes.length) return;
+    private__formatLastSeenElements(context);
+    private__formatQueueWaitElements(context);
+}
 
-    nodes.forEach(function (el) {
+/**
+ * Format last seen at as humanized duration and observe DOM for new elements.
+ * @param {Element} root
+ * @returns {void}
+ */
+function private__formatLastSeenElements(root) {
+    root.querySelectorAll('[data-last-seen-at]').forEach(function (el) {
+        var m = window.moment(el.getAttribute('data-last-seen-at'));
+        if (m.isValid()) {
+            el.textContent = m.fromNow();
+        }
+    });
+}
+
+/**
+ * Format queue wait seconds as humanized duration and observe DOM for new elements.
+ * @param {Element} root
+ * @returns {void}
+ */
+function private__formatQueueWaitElements(root) {
+    root.querySelectorAll('[data-wait-seconds]').forEach(function (el) {
         var raw = el.getAttribute('data-wait-seconds');
         if (!raw) return;
 

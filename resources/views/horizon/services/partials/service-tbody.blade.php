@@ -96,14 +96,21 @@
                             @if($horizonStatus !== '')
                                 {{ $service->horizon_status }}
                             @else
-                                Offline
+                                offline
                             @endif
                         </p>
                     </div>
                     <div>
                         <p class="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Last seen</p>
-                        <p class="mt-1 font-mono text-xs text-foreground/90">
-                            {{ $service->last_seen_at?->format('Y-m-d H:i:s') ?? 'Never' }}
+                        <p
+                            class="mt-1 text-xs text-foreground/90"
+                            @if($service->last_seen_at)
+                                data-last-seen-at="{{ $service->last_seen_at->copy()->startOfMinute()->toIso8601String() }}"
+                            @endif
+                        >
+                            @if(! $service->last_seen_at)
+                                never
+                            @endif
                         </p>
                     </div>
                 </div>
