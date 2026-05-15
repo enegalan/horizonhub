@@ -250,7 +250,7 @@ function initMetricsCharts() {
     if (serviceEl && data.waitByQueue && data.waitByQueue.queues && data.waitByQueue.queues.length) {
         applyChartOptions(serviceEl, {
             animation: false,
-            color: [c.line],
+            color: [c.processed],
             tooltip: Object.assign({}, getAxisTooltipViewportOptions(), {
                 trigger: 'axis',
                 formatter: function (params) {
