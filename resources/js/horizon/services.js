@@ -37,6 +37,24 @@ export function horizonServicesList() {
         private__applyServiceEnabledState(articleEl, enabled) {
             if (!articleEl) return;
 
+            var connectivity = articleEl.getAttribute('data-service-connectivity') || 'offline';
+            var hoverBorderClasses = [
+                'hover:border-emerald-500/45',
+                'dark:hover:border-emerald-400/50',
+                'hover:border-amber-500/45',
+                'dark:hover:border-amber-400/50',
+                'hover:border-red-500/45',
+                'dark:hover:border-red-400/50',
+            ];
+            articleEl.classList.remove.apply(articleEl.classList, hoverBorderClasses);
+            if (!enabled || connectivity === 'stand_by') {
+                articleEl.classList.add('hover:border-amber-500/45', 'dark:hover:border-amber-400/50');
+            } else if (connectivity === 'online') {
+                articleEl.classList.add('hover:border-emerald-500/45', 'dark:hover:border-emerald-400/50');
+            } else {
+                articleEl.classList.add('hover:border-red-500/45', 'dark:hover:border-red-400/50');
+            }
+
             var accentEl = articleEl.querySelector('[data-service-enabled-accent="1"]');
             if (accentEl) {
                 accentEl.classList.remove(
@@ -48,10 +66,9 @@ export function horizonServicesList() {
                     'via-red-400/60'
                 );
                 if (enabled) {
-                    var status = articleEl.getAttribute('data-service-connectivity') || 'offline';
-                    if (status === 'online') {
+                    if (connectivity === 'online') {
                         accentEl.classList.add('from-emerald-500/80', 'via-emerald-400/60');
-                    } else if (status === 'stand_by') {
+                    } else if (connectivity === 'stand_by') {
                         accentEl.classList.add('from-amber-500/80', 'via-amber-400/60');
                     } else {
                         accentEl.classList.add('from-red-500/80', 'via-red-400/60');
@@ -85,7 +102,6 @@ export function horizonServicesList() {
                         'dark:text-amber-300'
                     );
                 } else {
-                    var connectivity = articleEl.getAttribute('data-service-connectivity') || 'offline';
                     if (connectivity === 'online') {
                         iconEl.classList.add(
                             'border-emerald-500/20',
