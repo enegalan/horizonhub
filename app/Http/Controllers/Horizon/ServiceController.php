@@ -7,6 +7,7 @@ use App\Http\Requests\Horizon\UpsertServiceRequest;
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -90,6 +91,7 @@ class ServiceController extends Controller
             'base_url' => \rtrim($validated['base_url'], '/'),
             'public_url' => ! empty($validated['public_url']) ? \rtrim($validated['public_url'], '/') : null,
             'status' => 'offline',
+            'enabled' => true,
         ]);
 
         return redirect()
@@ -128,6 +130,20 @@ class ServiceController extends Controller
         return redirect()
             ->back()
             ->with('status', $message);
+    }
+
+    /**
+     * Toggle whether a service is enabled.
+     */
+    public function toggleEnabled(Service $service): JsonResponse
+    {
+        $service->enabled = ! $service->enabled;
+        $service->save();
+
+        return \response()->json([
+            'service_id' => $service->id,
+            'enabled' => $service->enabled,
+        ]);
     }
 
     /**

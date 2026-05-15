@@ -20,7 +20,7 @@ class AlertUpsertService
      */
     public function buildFormViewVariables(Alert $alert): array
     {
-        $services = Service::orderBy('name')->get();
+        $services = Service::query()->enabled()->orderBy('name')->get();
         $providers = NotificationProvider::orderBy('type')->orderBy('name')->get();
         $ruleTypes = [
             Alert::RULE_FAILURE_COUNT => 'Failure count in window',

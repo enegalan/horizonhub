@@ -20,7 +20,7 @@ class QueueController extends Controller
         return \view('horizon.queues.index', [
             'queueCount' => 0,
             'queues' => \collect(),
-            'services' => Service::orderBy('name')->get(),
+            'services' => Service::query()->enabled()->orderBy('name')->get(),
             'totalJobs' => 0,
             'serviceIds' => $serviceFilterIds,
             'defer' => true,

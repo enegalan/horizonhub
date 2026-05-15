@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
+ * @property bool $enabled
  * @property int $horizon_failed_jobs_count
  * @property int $horizon_jobs_count
  * @property string|null $horizon_status
@@ -12,11 +14,21 @@ use Illuminate\Database\Eloquent\Model;
 class Service extends Model
 {
     /**
+     * Default attribute values.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'enabled' => true,
+    ];
+
+    /**
      * The casts of the service.
      *
      * @var array<string, string>
      */
     protected $casts = [
+        'enabled' => 'boolean',
         'last_seen_at' => 'datetime',
     ];
 
@@ -30,6 +42,7 @@ class Service extends Model
         'base_url',
         'public_url',
         'status',
+        'enabled',
         'last_seen_at',
     ];
 
@@ -53,5 +66,17 @@ class Service extends Model
         }
 
         return $this->getBaseUrl();
+    }
+
+    /**
+     * Scope to enabled services only.
+     *
+     * @param Builder<Service> $query
+     *
+     * @return Builder<Service>
+     */
+    public function scopeEnabled($query)
+    {
+        return $query->where('enabled', true);
     }
 }

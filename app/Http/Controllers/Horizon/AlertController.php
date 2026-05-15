@@ -157,7 +157,7 @@ class AlertController extends Controller
                 ->find($selectedLogId);
         }
 
-        $services = Service::orderBy('name')->get();
+        $services = Service::query()->enabled()->orderBy('name')->get();
 
         $ruleConfig = [
             'rule_type' => $alert->rule_type,

@@ -14,7 +14,7 @@ class MetricsController extends Controller
      */
     public function index(ServiceRequest $request): View
     {
-        $services = Service::orderBy('name')->get(['id', 'name']);
+        $services = Service::query()->enabled()->orderBy('name')->get(['id', 'name']);
         $serviceIds = ServiceRequest::existingIdsFromRequest($request, ['service_id']);
 
         return \view('horizon.metrics.index', [

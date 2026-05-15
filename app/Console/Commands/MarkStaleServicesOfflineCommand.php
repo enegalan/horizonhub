@@ -19,6 +19,7 @@ class MarkStaleServicesOfflineCommand extends Command
         $dead_threshold = \now()->subMinutes($dead_minutes);
 
         $stand_by = Service::query()
+            ->enabled()
             ->where('status', 'online')
             ->where(function ($q) use ($stale_threshold) {
                 $q->whereNull('last_seen_at')->orWhere('last_seen_at', '<', $stale_threshold);
@@ -29,6 +30,7 @@ class MarkStaleServicesOfflineCommand extends Command
         }
 
         $offline = Service::query()
+            ->enabled()
             ->whereIn('status', ['online', 'stand_by'])
             ->where(function ($q) use ($dead_threshold) {
                 $q->whereNull('last_seen_at')->orWhere('last_seen_at', '<', $dead_threshold);

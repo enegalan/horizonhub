@@ -5,7 +5,7 @@
         class="space-y-6"
         x-data="window.horizonDeleteConfirm ? window.horizonDeleteConfirm('Service') : {}"
     >
-        <div class="card overflow-hidden">
+        <div class="card overflow-hidden" x-data="window.horizonServicesList ? window.horizonServicesList() : {}" x-init="typeof init === 'function' && init()">
             <div class="relative border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-5 py-5 sm:px-6">
                 <div class="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-primary/10 blur-3xl" aria-hidden="true"></div>
                 <div class="relative space-y-2">

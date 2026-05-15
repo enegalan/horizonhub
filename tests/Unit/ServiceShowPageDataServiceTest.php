@@ -72,4 +72,30 @@ class ServiceShowPageDataServiceTest extends TestCase
         $this->assertCount(1, $data['supervisors']);
         $this->assertCount(1, $data['workloadQueues']);
     }
+
+    public function test_build_returns_empty_data_when_service_is_disabled(): void
+    {
+        $service = Service::query()->create([
+            'name' => 'disabled-svc',
+            'base_url' => 'https://disabled.test',
+            'status' => 'online',
+            'enabled' => false,
+        ]);
+        $request = Request::create('/horizon/services/' . $service->id, 'GET');
+
+        $metrics = $this->createMock(HorizonMetricsService::class);
+        $metrics->expects($this->never())->method('getJobsPastMinute');
+
+        $jobList = $this->createMock(HorizonJobListService::class);
+        $jobList->expects($this->never())->method('buildServiceStatusPaginators');
+
+        $horizonApi = $this->createMock(HorizonApiProxyService::class);
+        $horizonApi->expects($this->never())->method('getStats');
+
+        $data = (new ServiceShowPageDataService($metrics, $jobList))->build($service, $request, $horizonApi);
+
+        $this->assertSame(0, $data['jobsPastMinute']);
+        $this->assertNull($data['horizonStatus']);
+        $this->assertTrue($data['workloadQueues']->isEmpty());
+    }
 }

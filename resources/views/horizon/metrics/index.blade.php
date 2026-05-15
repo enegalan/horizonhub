@@ -87,44 +87,44 @@
 
         <div class="grid gap-4">
             <div class="grid gap-4 lg:grid-cols-2">
-                <div class="card p-4">
+                <div class="card min-w-0 overflow-hidden p-4">
                     <h3 class="text-section-title text-foreground mb-2">Jobs per hour (last 24 hours)</h3>
-                    <div class="relative h-56">
+                    <div class="chart-panel">
                         <div id="metrics-loader-jobs-volume-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasJobsVolumeChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
                             <x-loader class="size-8 text-muted-foreground" />
                         </div>
-                        <div id="jobs-volume-last-24h-chart" class="h-56"></div>
+                        <div id="jobs-volume-last-24h-chart" class="chart-canvas"></div>
                     </div>
                 </div>
 
-                <div class="card p-4">
+                <div class="card min-w-0 overflow-hidden p-4">
                     <h3 class="text-section-title text-foreground mb-2">Failure rate over time (last 24h, %)</h3>
-                    <div class="relative h-56">
+                    <div class="chart-panel">
                         <div id="metrics-loader-failure-rate-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasFailureRateChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
                             <x-loader class="size-8 text-muted-foreground" />
                         </div>
-                        <div id="failure-rate-chart" class="h-56"></div>
+                        <div id="failure-rate-chart" class="chart-canvas"></div>
                     </div>
                 </div>
 
-                <div class="card p-4">
+                <div class="card min-w-0 overflow-hidden p-4">
                     <h3 class="text-section-title text-foreground mb-2">Job runtimes (last 24 hours, seconds)</h3>
                     <p class="text-xs text-muted-foreground mb-2">Each vertex is one job (finish time vs duration), connected in time order within Completed vs Failed.</p>
-                    <div class="relative h-56">
+                    <div class="chart-panel">
                         <div id="metrics-loader-runtime-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasRuntimeChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
                             <x-loader class="size-8 text-muted-foreground" />
                         </div>
-                        <div id="runtime-chart" class="h-56"></div>
+                        <div id="runtime-chart" class="chart-canvas"></div>
                     </div>
                 </div>
 
-                <div class="card p-4">
+                <div class="card min-w-0 overflow-hidden p-4">
                     <h3 class="text-section-title text-foreground mb-2">Queue wait by queue (max wait, top 12)</h3>
-                    <div class="relative h-56">
+                    <div class="chart-panel">
                         <div id="metrics-loader-service-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasServiceChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
                             <x-loader class="size-8 text-muted-foreground" />
                         </div>
-                        <div id="service-distribution-chart" class="h-56"></div>
+                        <div id="service-distribution-chart" class="chart-canvas"></div>
                     </div>
                 </div>
             </div>

@@ -22,6 +22,7 @@ class ServiceFactory extends Factory
             'base_url' => 'https://' . $this->faker->unique()->domainName(),
             'public_url' => null,
             'status' => 'online',
+            'enabled' => true,
             'last_seen_at' => now(),
         ];
     }
