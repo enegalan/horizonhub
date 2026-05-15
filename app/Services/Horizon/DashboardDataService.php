@@ -44,7 +44,9 @@ class DashboardDataService
         $anyOffline = false;
         $anyStandBy = false;
 
-        foreach ($services as $service) {
+        $enabledServices = $services->where('enabled', true);
+
+        foreach ($enabledServices as $service) {
             if ($service->status === 'online') {
                 $onlineCount++;
             }
@@ -58,7 +60,7 @@ class DashboardDataService
             }
         }
 
-        $servicesHealthDotClass = $services->isEmpty() ? 'bg-slate-400' :
+        $servicesHealthDotClass = $enabledServices->isEmpty() ? 'bg-slate-400' :
             ($anyOffline ? 'bg-orange-500' :
                 ($anyStandBy ? 'bg-amber-500' : 'bg-emerald-500'));
 
@@ -73,7 +75,7 @@ class DashboardDataService
         return \array_merge($metrics, [
             'services' => $services,
             'servicesOnlineCount' => $onlineCount,
-            'servicesTotal' => $services->count(),
+            'servicesTotal' => $enabledServices->count(),
             'servicesHealthDotClass' => $servicesHealthDotClass,
             'recentAlertLogs' => $recentAlertLogs,
             'workloadRows' => $workloadRows,

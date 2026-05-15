@@ -60,6 +60,16 @@ class ServiceControllerTest extends TestCase
         $service->refresh();
         $this->assertSame('offline', $service->status);
 
+        $this->post(route('horizon.services.toggle-enabled', ['service' => $service]))
+            ->assertOk()
+            ->assertJson(['service_id' => $service->id, 'enabled' => false]);
+        $service->refresh();
+        $this->assertFalse($service->enabled);
+
+        $this->post(route('horizon.services.toggle-enabled', ['service' => $service]))
+            ->assertOk()
+            ->assertJson(['enabled' => true]);
+
         $this->delete(route('horizon.services.destroy', ['service' => $service]))->assertRedirect(route('horizon.services.index'));
         $this->assertDatabaseMissing('services', ['id' => $service->id]);
     }

@@ -96,7 +96,7 @@ function initMetricsCharts() {
                 bottom: 0,
                 textStyle: { color: c.axis, fontSize: 10 }
             },
-            grid: { left: 48, right: 24, top: 16, bottom: 36 },
+            grid: { left: 8, right: 16, top: 16, bottom: 36, containLabel: true },
             xAxis: {
                 type: 'category',
                 data: data.jobsPastHourByService.services,
@@ -129,7 +129,7 @@ function initMetricsCharts() {
             animation: false,
             color: [c.failed],
             tooltip: Object.assign({}, getAxisTooltipViewportOptions(), { trigger: 'axis', formatter: '{b}: {c}%' }),
-            grid: { left: 48, right: 24, top: 16, bottom: 32 },
+            grid: { left: 8, right: 16, top: 16, bottom: 32, containLabel: true },
             xAxis: { type: 'category', data: data.failureRateOverTime.xAxis, axisLine: { lineStyle: { color: c.axis } }, axisLabel: { color: c.axis, fontSize: 10 } },
             yAxis: { type: 'value', name: '%', min: 0, axisLine: { show: false }, splitLine: { lineStyle: { color: c.axis, opacity: 0.3 } }, axisLabel: { color: c.axis, fontSize: 10 } },
             series: [{ type: 'line', name: 'Failure rate', data: data.failureRateOverTime.rate, smooth: true, symbol: 'circle', symbolSize: 4 }]
@@ -224,7 +224,7 @@ function initMetricsCharts() {
                         bottom: 0,
                         textStyle: { color: c.axis, fontSize: 10 }
                     },
-                    grid: { left: 48, right: 24, top: 16, bottom: 36 },
+                    grid: { left: 8, right: 16, top: 16, bottom: 36, containLabel: true },
                     xAxis: {
                         type: 'time',
                         axisLine: { lineStyle: { color: c.axis } },
@@ -250,7 +250,7 @@ function initMetricsCharts() {
     if (serviceEl && data.waitByQueue && data.waitByQueue.queues && data.waitByQueue.queues.length) {
         applyChartOptions(serviceEl, {
             animation: false,
-            color: [c.line],
+            color: [c.processed],
             tooltip: Object.assign({}, getAxisTooltipViewportOptions(), {
                 trigger: 'axis',
                 formatter: function (params) {
@@ -260,7 +260,7 @@ function initMetricsCharts() {
                 }
             }),
             legend: { data: [], bottom: 0, textStyle: { color: c.axis, fontSize: 10 } },
-            grid: { left: 120, right: 48, top: 16, bottom: 36 },
+            grid: { left: 8, right: 16, top: 16, bottom: 36, containLabel: true },
             xAxis: {
                 type: 'value',
                 name: 'Seconds',

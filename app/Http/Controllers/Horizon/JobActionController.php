@@ -67,7 +67,7 @@ class JobActionController extends Controller
             $serviceIds = [$validated['service_id']];
         }
 
-        $servicesQuery = Service::query()->whereNotNull('base_url');
+        $servicesQuery = Service::query()->enabled()->whereNotNull('base_url');
 
         if (\count($serviceIds) > 0) {
             $servicesQuery->whereIn('id', $serviceIds);

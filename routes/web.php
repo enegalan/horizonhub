@@ -40,6 +40,7 @@ Route::prefix('horizon')->name('horizon.')->group(function (): void {
     Route::put('/services/{service}', [ServiceController::class, 'update'])->name('services.update');
     Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
     Route::post('/services/{service}/test-connection', [ServiceController::class, 'testConnection'])->name('services.test-connection');
+    Route::post('/services/{service}/toggle-enabled', [ServiceController::class, 'toggleEnabled'])->name('services.toggle-enabled');
 
     // Alerts routes...
     Route::get('/alerts', [AlertController::class, 'index'])->name('alerts.index');

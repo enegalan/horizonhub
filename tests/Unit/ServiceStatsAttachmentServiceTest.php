@@ -34,6 +34,25 @@ class ServiceStatsAttachmentServiceTest extends TestCase
         $this->assertNull($serviceNoBaseUrl->horizon_status);
     }
 
+    public function test_attach_horizon_stats_skips_disabled_services(): void
+    {
+        $disabled = Service::query()->create([
+            'name' => 'disabled-svc',
+            'base_url' => 'https://disabled.test',
+            'status' => 'online',
+            'enabled' => false,
+        ]);
+
+        $api = $this->createMock(HorizonApiProxyService::class);
+        $api->expects($this->never())->method('getStats');
+
+        (new ServiceStatsAttachmentService)->attachHorizonStats([$disabled], $api);
+
+        $this->assertSame(0, $disabled->horizon_failed_jobs_count);
+        $this->assertSame(0, $disabled->horizon_jobs_count);
+        $this->assertNull($disabled->horizon_status);
+    }
+
     public function test_build_list_summary_counts_groups_offline_and_stand_by(): void
     {
         $services = collect([

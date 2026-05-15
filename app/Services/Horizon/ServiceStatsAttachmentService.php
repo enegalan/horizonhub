@@ -16,6 +16,14 @@ class ServiceStatsAttachmentService
     public function attachHorizonStats(iterable $services, HorizonApiProxyService $horizonApi): void
     {
         foreach ($services as $service) {
+            if (! $service->enabled) {
+                $service->horizon_failed_jobs_count = 0;
+                $service->horizon_jobs_count = 0;
+                $service->horizon_status = null;
+
+                continue;
+            }
+
             if (! $service->getBaseUrl()) {
                 $service->horizon_failed_jobs_count = 0;
                 $service->horizon_jobs_count = 0;
@@ -52,10 +60,12 @@ class ServiceStatsAttachmentService
      */
     public function buildListSummaryCounts(Collection $services): array
     {
+        $enabledServices = $services->where('enabled', true);
+
         return [
             'total' => $services->count(),
-            'online' => $services->where('status', 'online')->count(),
-            'offline' => $services->whereIn('status', ['offline', 'stand_by'])->count(),
+            'online' => $enabledServices->where('status', 'online')->count(),
+            'offline' => $enabledServices->whereIn('status', ['offline', 'stand_by'])->count(),
         ];
     }
 }

@@ -137,7 +137,7 @@ class HorizonApiProxyService
     {
         $relativePath = (string) config('horizonhub.horizon_paths.ping');
 
-        return $this->private__call($service, $relativePath, 'get', false, true);
+        return $this->private__call($service, $relativePath, 'get', false, true, true);
     }
 
     /**
@@ -270,11 +270,20 @@ class HorizonApiProxyService
      *
      * @param bool $withDashboardSession When true, bootstrap Horizon dashboard session and CSRF token.
      * @param bool $bypassFailureCooldown When true, ignore existing failure cooldown before call.
+     * @param bool $allowWhenDisabled When true, call the API even when the service is disabled.
      *
      * @return array{success: bool, message?: string, status?: int}
      */
-    private function private__call(Service $service, string $path, string $method = 'post', bool $withDashboardSession = false, bool $bypassFailureCooldown = false): array
+    private function private__call(Service $service, string $path, string $method = 'post', bool $withDashboardSession = false, bool $bypassFailureCooldown = false, bool $allowWhenDisabled = false): array
     {
+        if (! $service->enabled && ! $allowWhenDisabled) {
+            return [
+                'success' => false,
+                'message' => 'Service is disabled.',
+                'status' => 503,
+            ];
+        }
+
         if (! $bypassFailureCooldown && Cache::has($this->private__failureCooldownCacheKey($service))) {
             return [
                 'success' => false,

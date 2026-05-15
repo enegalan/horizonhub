@@ -66,7 +66,7 @@ class AlertEngineTest extends TestCase
         $result = $engine->evaluateAlert($alert);
 
         $this->assertFalse($result['triggered']);
-        $this->assertSame('No services to evaluate alert (add at least one service).', $result['error_message']);
+        $this->assertSame('No enabled services to evaluate alert (enable at least one service).', $result['error_message']);
     }
 
     public function test_evaluate_scheduled_handles_empty_scope_without_errors(): void

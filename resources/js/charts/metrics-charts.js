@@ -23,6 +23,32 @@ export function getChartColors() {
     };
 }
 
+var chartResizeObservers = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
+
+/**
+ * Resize the chart when its host element changes size (grid, sidebar, viewport).
+ * @param {Element} el
+ * @returns {void}
+ */
+function bindChartResize(el) {
+    if (!el || typeof ResizeObserver === 'undefined') {
+        return;
+    }
+    if (chartResizeObservers && chartResizeObservers.has(el)) {
+        return;
+    }
+    var observer = new ResizeObserver(function () {
+        var chart = window.echarts.getInstanceByDom(el);
+        if (chart) {
+            chart.resize();
+        }
+    });
+    observer.observe(el);
+    if (chartResizeObservers) {
+        chartResizeObservers.set(el, observer);
+    }
+}
+
 /**
  * Apply the chart options.
  * @param {Element} el
@@ -43,6 +69,7 @@ export function applyChartOptions(el, options) {
         chart.setOption(options);
         chart.resize();
     }
+    bindChartResize(el);
 }
 
 /**
@@ -61,7 +88,7 @@ export function buildJobsVolumeLast24hOptions(jobsVolumeLast24h, c) {
             bottom: 0,
             textStyle: { color: c.axis, fontSize: 10 },
         },
-        grid: { left: 48, right: 24, top: 16, bottom: 36 },
+        grid: { left: 8, right: 16, top: 16, bottom: 36, containLabel: true },
         xAxis: {
             type: 'category',
             data: jobsVolumeLast24h.xAxis || [],

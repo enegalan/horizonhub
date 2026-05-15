@@ -206,7 +206,7 @@ abstract class HorizonMetricsComputation
      */
     protected function private__getServicesForMetrics(array $serviceScope = [], bool $orderByName = false, array $selectColumns = []): Collection
     {
-        $servicesQuery = Service::query()->whereNotNull('base_url');
+        $servicesQuery = Service::query()->enabled()->whereNotNull('base_url');
 
         if ($serviceScope !== []) {
             $ids = \array_values(\array_unique(\array_filter(

@@ -90,11 +90,17 @@ class AlertEngine
             $serviceIds = $alert->service_ids;
 
             if ($serviceIds === []) {
-                $serviceIds = Service::query()->pluck('id')->all();
+                $serviceIds = Service::query()->enabled()->pluck('id')->all();
+            } else {
+                $serviceIds = Service::query()
+                    ->enabled()
+                    ->whereIn('id', $serviceIds)
+                    ->pluck('id')
+                    ->all();
             }
 
             if (empty($serviceIds)) {
-                $errorMessage = 'No services to evaluate alert (add at least one service).';
+                $errorMessage = 'No enabled services to evaluate alert (enable at least one service).';
 
                 return [
                     'alert_id' => $alert->id,
@@ -160,18 +166,23 @@ class AlertEngine
         $alerts = Alert::where('enabled', true)
             ->with('notificationProviders')
             ->get();
-        $services = Service::all();
+        $enabledServiceIds = Service::query()->enabled()->pluck('id')->all();
 
         foreach ($alerts as $alert) {
             try {
                 $serviceIds = $alert->service_ids;
 
                 if ($serviceIds === []) {
-                    $serviceIds = $services->pluck('id')->all();
+                    $serviceIds = $enabledServiceIds;
+                } else {
+                    $serviceIds = \array_values(\array_intersect(
+                        $serviceIds,
+                        $enabledServiceIds,
+                    ));
                 }
 
                 if (empty($serviceIds)) {
-                    Log::warning('Horizon Hub: no services to evaluate alert (add at least one service)', ['alert_id' => $alert->id]);
+                    Log::warning('Horizon Hub: no enabled services to evaluate alert', ['alert_id' => $alert->id]);
 
                     continue;
                 }

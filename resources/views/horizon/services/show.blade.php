@@ -15,6 +15,13 @@
             <span class="text-foreground">{{ $service->name }}</span>
         </p>
 
+        @if(! $service->enabled)
+            <div class="mb-4 rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+                This service is disabled. Horizon Hub will not poll its API or include it in metrics and alerts until you enable it again from the
+                <a href="{{ route('horizon.services.index') }}" class="link font-medium" data-turbo-action="replace">services list</a>.
+            </div>
+        @endif
+
         <div class="mb-4 flex flex-wrap items-center gap-2">
             @php
                 if ($service->status === 'online') {

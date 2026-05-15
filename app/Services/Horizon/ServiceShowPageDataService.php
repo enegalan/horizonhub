@@ -55,6 +55,10 @@ class ServiceShowPageDataService
      */
     public function build(Service $service, Request $request, HorizonApiProxyService $horizonApi): array
     {
+        if (! $service->enabled) {
+            return $this->private__buildDisabledPageData($service, $request);
+        }
+
         $search = (string) $request->query('search', '');
 
         $jobsPastMinute = $this->metrics->getJobsPastMinute($service);
@@ -241,6 +245,66 @@ class ServiceShowPageDataService
             'jobsProcessing' => $paginators['processing'],
             'jobsProcessed' => $paginators['processed'],
             'jobsFailed' => $paginators['failed'],
+            'filters' => [
+                'search' => $search,
+            ],
+        ];
+    }
+
+    /**
+     * Build empty dashboard data when the service is disabled.
+     *
+     * @return array{
+     *     jobsPastMinute: int,
+     *     jobsPastHour: int,
+     *     failedPastSevenDays: int,
+     *     totalProcesses: null,
+     *     maxWaitTimeSeconds: null,
+     *     queueWithMaxRuntime: null,
+     *     queueWithMaxThroughput: null,
+     *     horizonStatus: null,
+     *     supervisorGroups: Collection,
+     *     supervisors: Collection,
+     *     workloadQueues: Collection,
+     *     jobsProcessing: LengthAwarePaginator,
+     *     jobsProcessed: LengthAwarePaginator,
+     *     jobsFailed: LengthAwarePaginator,
+     *     filters: array{search: string}
+     * }
+     */
+    private function private__buildDisabledPageData(Service $service, Request $request): array
+    {
+        $search = (string) $request->query('search', '');
+        $perPage = (int) config('horizonhub.jobs_per_page');
+        $path = $request->url();
+        $query = $request->query();
+        $pageProcessing = \max(1, (int) $request->query('page_processing', 1));
+        $pageProcessed = \max(1, (int) $request->query('page_processed', 1));
+        $pageFailed = \max(1, (int) $request->query('page_failed', 1));
+
+        $emptyPaginator = static fn (int $page, string $pageName): LengthAwarePaginator => new LengthAwarePaginator(
+            [],
+            0,
+            $perPage,
+            $page,
+            ['path' => $path, 'pageName' => $pageName, 'query' => $query],
+        );
+
+        return [
+            'jobsPastMinute' => 0,
+            'jobsPastHour' => 0,
+            'failedPastSevenDays' => 0,
+            'totalProcesses' => null,
+            'maxWaitTimeSeconds' => null,
+            'queueWithMaxRuntime' => null,
+            'queueWithMaxThroughput' => null,
+            'horizonStatus' => null,
+            'supervisorGroups' => \collect(),
+            'supervisors' => \collect(),
+            'workloadQueues' => \collect(),
+            'jobsProcessing' => $emptyPaginator($pageProcessing, 'page_processing'),
+            'jobsProcessed' => $emptyPaginator($pageProcessed, 'page_processed'),
+            'jobsFailed' => $emptyPaginator($pageFailed, 'page_failed'),
             'filters' => [
                 'search' => $search,
             ],

@@ -147,6 +147,24 @@ class HorizonApiProxyServiceTest extends TestCase
         $this->assertSame('Rate limited by upstream', $result['message'] ?? null);
     }
 
+    public function test_get_stats_returns_error_when_service_is_disabled(): void
+    {
+        $service = Service::create([
+            'name' => 'svc-disabled',
+            'base_url' => 'https://disabled.test',
+            'status' => 'online',
+            'enabled' => false,
+        ]);
+
+        Http::fake();
+
+        $result = (new HorizonApiProxyService)->getStats($service);
+
+        $this->assertFalse($result['success']);
+        $this->assertSame('Service is disabled.', $result['message']);
+        Http::assertNothingSent();
+    }
+
     public function test_get_workload_retries_with_dashboard_session_after_unauthorized_response(): void
     {
         $apiCalls = 0;
@@ -272,6 +290,26 @@ class HorizonApiProxyServiceTest extends TestCase
         $this->assertFalse($result['success']);
         $this->assertSame(502, $result['status'] ?? null);
         $this->assertSame('network down', $result['message'] ?? null);
+    }
+
+    public function test_ping_still_works_when_service_is_disabled(): void
+    {
+        Http::fake(fn () => Http::response(['ok' => true], 200));
+
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.ping', '/stats');
+
+        $service = Service::create([
+            'name' => 'svc-disabled-ping',
+            'base_url' => 'https://disabled-ping.test',
+            'status' => 'offline',
+            'enabled' => false,
+        ]);
+
+        $result = (new HorizonApiProxyService)->ping($service);
+
+        $this->assertTrue($result['success']);
+        Http::assertSentCount(1);
     }
 
     public function test_ping_success_updates_last_seen_at_and_status(): void
