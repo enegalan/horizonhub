@@ -62,6 +62,11 @@ export function horizonJobsPage(config) {
          */
         selectingAllFailed: false,
         /**
+         * Loading failed jobs for the retry modal table.
+         * @type {boolean}
+         */
+        retryLoadingJobs: false,
+        /**
          * Retry page.
          * @type {number}
          */
@@ -181,6 +186,7 @@ export function horizonJobsPage(config) {
         loadFailedJobs() {
             var params = this.retryModalFailedListQuery();
             var url = config.failedListUrl + (params.toString() ? ('?' + params.toString()) : '');
+            this.retryLoadingJobs = true;
             window.horizon.http.get(url).then((data) => {
                 this.failedJobs = Array.isArray(data.data) ? data.data : [];
                 if (data.meta) {
@@ -194,6 +200,8 @@ export function horizonJobsPage(config) {
                 }
             }).catch(function (error) {
                 console.error('Failed loading failed jobs', error);
+            }).finally(() => {
+                this.retryLoadingJobs = false;
             });
         },
         /**
