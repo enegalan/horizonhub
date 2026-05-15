@@ -58,7 +58,7 @@
             </button>
         </div>
         <nav
-            class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden p-2"
+            class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden py-2 px-4 "
             :class="isLg && !sidebarOpen ? 'items-center' : ''"
         >
             <a href="{{ route('horizon.index') }}" class="nav-side-link {{ request()->routeIs('horizon.index') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
