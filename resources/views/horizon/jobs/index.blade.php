@@ -60,7 +60,8 @@
                         </div>
                     </form>
                     <div class="flex shrink-0 items-end gap-2">
-                        <x-button type="button" class="h-9 text-sm" @click="openRetryModal()">
+                        <x-button type="button" variant="secondary" class="h-9 text-sm" @click="openRetryModal()">
+                            <x-heroicon-o-arrow-path class="size-4" />
                             Retry failed jobs
                         </x-button>
                     </div>

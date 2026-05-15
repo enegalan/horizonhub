@@ -8,35 +8,37 @@
     >
         <script type="application/json" id="metrics-chart-data">@json($metricsChartData ?? [])</script>
 
-        <form method="GET" action="{{ route('horizon.metrics') }}" class="mb-4 flex flex-wrap items-end gap-3" data-turbo-frame="_top">
-            <div class="space-y-2">
-                <x-input-label id="metrics-service-filter-label" for="metrics-service-filter">Filter by services</x-input-label>
-                <div class="flex flex-wrap items-end gap-2">
-                    <x-multiselect
-                        id="metrics-service-filter"
-                        labelled-by="metrics-service-filter-label"
-                        name="service_id"
-                        class="w-full min-w-0 sm:w-64"
-                        :selected="$serviceIds ?? []"
-                        placeholder="All services"
-                        empty-message="No services found"
-                    >
-                        @foreach(($services ?? collect()) as $service)
-                            <option value="{{ $service->id }}">{{ $service->name }}</option>
-                        @endforeach
-                    </x-multiselect>
+        <div class="card mb-6 overflow-hidden">
+            <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
+                <form method="GET" action="{{ route('horizon.metrics') }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="_top">
+                    <div class="space-y-2">
+                        <x-input-label id="metrics-service-filter-label" for="metrics-service-filter">Services</x-input-label>
+                        <x-multiselect
+                            id="metrics-service-filter"
+                            labelled-by="metrics-service-filter-label"
+                            name="service_id"
+                            class="w-full min-w-0 sm:w-64"
+                            :selected="$serviceIds ?? []"
+                            placeholder="All services"
+                            empty-message="No services found"
+                        >
+                            @foreach(($services ?? collect()) as $service)
+                                <option value="{{ $service->id }}">{{ $service->name }}</option>
+                            @endforeach
+                        </x-multiselect>
+                    </div>
                     <x-button type="submit" class="h-9 shrink-0 text-sm">
                         Filter
                     </x-button>
-                </div>
+                </form>
             </div>
-        </form>
+        </div>
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-            <div class="card p-4">
-                <h3 class="label-muted">Jobs past minute</h3>
-                <div class="mt-1 flex items-center gap-2 min-h-[2.5rem]">
-                    <span id="metrics-value-jobs-minute" class="text-2xl font-semibold text-foreground">
+            <div class="rounded-lg border border-emerald-500/15 bg-emerald-500/[0.04] px-4 py-3">
+                <p class="text-xs font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Jobs past minute</p>
+                <div class="mt-1 flex min-h-[2.5rem] items-center gap-2">
+                    <span id="metrics-value-jobs-minute" class="text-2xl font-semibold tabular-nums text-foreground">
                         @if(!empty($defer))
                             <x-skeleton.text class="h-8 w-16" />
                         @else
@@ -45,10 +47,10 @@
                     </span>
                 </div>
             </div>
-            <div class="card p-4">
-                <h3 class="label-muted">Jobs past hour</h3>
-                <div class="mt-1 flex items-center gap-2 min-h-[2.5rem]">
-                    <span id="metrics-value-jobs-hour" class="text-2xl font-semibold text-foreground">
+            <div class="rounded-lg border border-sky-500/15 bg-sky-500/[0.04] px-4 py-3">
+                <p class="text-xs font-medium uppercase tracking-wide text-sky-700 dark:text-sky-300">Jobs past hour</p>
+                <div class="mt-1 flex min-h-[2.5rem] items-center gap-2">
+                    <span id="metrics-value-jobs-hour" class="text-2xl font-semibold tabular-nums text-foreground">
                         @if(!empty($defer))
                             <x-skeleton.text class="h-8 w-16" />
                         @else
@@ -57,10 +59,10 @@
                     </span>
                 </div>
             </div>
-            <div class="card p-4">
-                <h3 class="label-muted">Failed jobs (past 7 days)</h3>
-                <div class="mt-1 flex items-center gap-2 min-h-[2.5rem]">
-                    <span id="metrics-value-failed-seven" class="text-2xl font-semibold text-foreground">
+            <div class="rounded-lg border border-rose-500/15 bg-rose-500/[0.04] px-4 py-3">
+                <p class="text-xs font-medium uppercase tracking-wide text-rose-700 dark:text-rose-300">Failed jobs (past 7 days)</p>
+                <div class="mt-1 flex min-h-[2.5rem] items-center gap-2">
+                    <span id="metrics-value-failed-seven" class="text-2xl font-semibold tabular-nums text-foreground">
                         @if(!empty($defer))
                             <x-skeleton.text class="h-8 w-16" />
                         @else
@@ -69,10 +71,10 @@
                     </span>
                 </div>
             </div>
-            <div class="card p-4">
-                <h3 class="label-muted">Failure rate (last 24h)</h3>
-                <div class="mt-1 flex items-center gap-2 min-h-[2.5rem]">
-                    <p id="metrics-value-failure-rate" class="text-2xl font-semibold text-foreground">
+            <div class="rounded-lg border border-amber-500/15 bg-amber-500/[0.04] px-4 py-3">
+                <p class="text-xs font-medium uppercase tracking-wide text-amber-700 dark:text-amber-300">Failure rate (last 24h)</p>
+                <div class="mt-1 flex min-h-[2.5rem] items-center gap-2">
+                    <p id="metrics-value-failure-rate" class="text-2xl font-semibold tabular-nums text-foreground">
                         @if(!empty($defer))
                             <x-skeleton.text class="h-8 w-24" />
                         @else
@@ -84,44 +86,46 @@
         </div>
 
         <div class="grid gap-4">
-            <div class="card p-4">
-                <h3 class="text-section-title text-foreground mb-2">Jobs per hour (last 24 hours)</h3>
-                <div class="relative h-56">
-                    <div id="metrics-loader-jobs-volume-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasJobsVolumeChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
-                        <x-loader class="size-8 text-muted-foreground" />
+            <div class="grid gap-4 lg:grid-cols-2">
+                <div class="card p-4">
+                    <h3 class="text-section-title text-foreground mb-2">Jobs per hour (last 24 hours)</h3>
+                    <div class="relative h-56">
+                        <div id="metrics-loader-jobs-volume-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasJobsVolumeChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
+                            <x-loader class="size-8 text-muted-foreground" />
+                        </div>
+                        <div id="jobs-volume-last-24h-chart" class="h-56"></div>
                     </div>
-                    <div id="jobs-volume-last-24h-chart" class="h-56"></div>
                 </div>
-            </div>
 
-            <div class="card p-4">
-                <h3 class="text-section-title text-foreground mb-2">Failure rate over time (last 24h, %)</h3>
-                <div class="relative h-56">
-                    <div id="metrics-loader-failure-rate-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasFailureRateChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
-                        <x-loader class="size-8 text-muted-foreground" />
+                <div class="card p-4">
+                    <h3 class="text-section-title text-foreground mb-2">Failure rate over time (last 24h, %)</h3>
+                    <div class="relative h-56">
+                        <div id="metrics-loader-failure-rate-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasFailureRateChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
+                            <x-loader class="size-8 text-muted-foreground" />
+                        </div>
+                        <div id="failure-rate-chart" class="h-56"></div>
                     </div>
-                    <div id="failure-rate-chart" class="h-56"></div>
                 </div>
-            </div>
 
-            <div class="card p-4">
-                <h3 class="text-section-title text-foreground mb-2">Job runtimes (last 24 hours, seconds)</h3>
-                <p class="text-xs text-muted-foreground mb-2">Each vertex is one job (finish time vs duration), connected in time order within Completed vs Failed.</p>
-                <div class="relative h-56">
-                    <div id="metrics-loader-runtime-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasRuntimeChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
-                        <x-loader class="size-8 text-muted-foreground" />
+                <div class="card p-4">
+                    <h3 class="text-section-title text-foreground mb-2">Job runtimes (last 24 hours, seconds)</h3>
+                    <p class="text-xs text-muted-foreground mb-2">Each vertex is one job (finish time vs duration), connected in time order within Completed vs Failed.</p>
+                    <div class="relative h-56">
+                        <div id="metrics-loader-runtime-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasRuntimeChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
+                            <x-loader class="size-8 text-muted-foreground" />
+                        </div>
+                        <div id="runtime-chart" class="h-56"></div>
                     </div>
-                    <div id="runtime-chart" class="h-56"></div>
                 </div>
-            </div>
 
-            <div class="card p-4">
-                <h3 class="text-section-title text-foreground mb-2">Queue wait by queue (max wait, top 12)</h3>
-                <div class="relative h-56">
-                    <div id="metrics-loader-service-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasServiceChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
-                        <x-loader class="size-8 text-muted-foreground" />
+                <div class="card p-4">
+                    <h3 class="text-section-title text-foreground mb-2">Queue wait by queue (max wait, top 12)</h3>
+                    <div class="relative h-56">
+                        <div id="metrics-loader-service-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasServiceChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
+                            <x-loader class="size-8 text-muted-foreground" />
+                        </div>
+                        <div id="service-distribution-chart" class="h-56"></div>
                     </div>
-                    <div id="service-distribution-chart" class="h-56"></div>
                 </div>
             </div>
 
