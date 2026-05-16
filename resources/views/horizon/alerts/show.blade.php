@@ -8,10 +8,13 @@
         x-init="typeof init === 'function' ? init() : null"
         id="horizon-alert-detail"
     >
-        <p class="mb-3 text-xs text-muted-foreground" data-alert-detail-breadcrumb>
-            <a href="{{ route('horizon.alerts.index') }}" class="link" data-turbo-action="replace">Alerts</a> /
-            <span class="text-foreground">{{ $alertName }}</span>
-        </p>
+        <x-breadcrumbs
+            data-alert-detail-breadcrumb
+            :items="[
+                ['label' => 'Alerts', 'url' => route('horizon.alerts.index')],
+                ['label' => $alertName],
+            ]"
+        />
 
         <div id="alert-detail-stats" data-alert-detail-stats>
             @include('horizon.alerts.partials.detail-stats', [

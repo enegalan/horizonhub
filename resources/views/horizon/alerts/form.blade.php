@@ -106,21 +106,12 @@
             @endif
 
             <div id="alert-section-rule" class="card overflow-hidden">
-                <div class="relative border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-5 py-5 sm:px-6">
-                    <div class="pointer-events-none absolute -left-8 top-0 size-32 rounded-full bg-emerald-500/10 blur-3xl" aria-hidden="true"></div>
-                    <div class="pointer-events-none absolute -right-8 bottom-0 size-32 rounded-full bg-amber-500/10 blur-3xl" aria-hidden="true"></div>
-                    <div class="relative space-y-2">
-                        <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                            {{ $isEdit ? 'Update alert' : 'Create alert' }}
-                        </p>
-                        <h2 class="text-section-title text-foreground">
-                            {{ $isEdit ? 'Edit alert rule' : 'New alert rule' }}
-                        </h2>
-                        <p class="max-w-2xl text-sm text-muted-foreground">
-                            Choose what Horizon should watch, when it should fire, and which providers should receive the notification.
-                        </p>
-                    </div>
-                </div>
+                <x-page-hero
+                    :eyebrow="$isEdit ? 'Update alert' : 'Create alert'"
+                    :title="$isEdit ? 'Edit alert rule' : 'New alert rule'"
+                    description="Choose what Horizon should watch, when it should fire, and which providers should receive the notification."
+                />
+
                 <div class="border-b border-border px-5 py-4 sm:px-6">
                     <h3 class="text-sm font-semibold text-foreground">Rule</h3>
                     <p class="mt-1 text-sm text-muted-foreground">Scope the alert to services, queues, and jobs, then set the trigger threshold.</p>

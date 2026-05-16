@@ -28,7 +28,10 @@ class ProviderControllerTest extends TestCase
         ]);
 
         $response->assertRedirect(route('horizon.providers.index'));
-        $response->assertSessionHas('status', 'Provider created.');
+        $response->assertSessionHas('status', [
+            'message' => 'Provider created.',
+            'type' => 'success',
+        ]);
         $this->assertDatabaseHas('notification_providers', [
             'name' => 'ops-slack',
             'type' => NotificationProvider::TYPE_SLACK,
@@ -71,7 +74,10 @@ class ProviderControllerTest extends TestCase
             'type' => NotificationProvider::TYPE_SLACK,
             'webhook_url' => 'https://hooks.slack.test/new',
         ])->assertRedirect(route('horizon.providers.index'))
-            ->assertSessionHas('status', 'Provider updated.');
+            ->assertSessionHas('status', [
+                'message' => 'Provider updated.',
+                'type' => 'success',
+            ]);
 
         $this->assertDatabaseHas('notification_providers', [
             'id' => $provider->id,
@@ -80,7 +86,10 @@ class ProviderControllerTest extends TestCase
 
         $this->delete(route('horizon.providers.destroy', ['provider' => $provider]))
             ->assertRedirect(route('horizon.providers.index'))
-            ->assertSessionHas('status', 'Provider deleted.');
+            ->assertSessionHas('status', [
+                'message' => 'Provider deleted.',
+                'type' => 'success',
+            ]);
 
         $this->assertDatabaseMissing('notification_providers', ['id' => $provider->id]);
     }

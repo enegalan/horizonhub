@@ -1,7 +1,8 @@
 @props([
     'label',
     'tone' => 'neutral',
-    'value',
+    'value' => null,
+    'valueId' => null,
 ])
 
 @php
@@ -18,6 +19,10 @@
             'border' => 'border-border/70 bg-muted/20',
             'label' => 'text-muted-foreground',
         ],
+        'rose' => [
+            'border' => 'border-rose-500/20 bg-rose-500/5',
+            'label' => 'text-rose-700 dark:text-rose-300',
+        ],
         'sky' => [
             'border' => 'border-sky-500/20 bg-sky-500/5',
             'label' => 'text-sky-700 dark:text-sky-300',
@@ -29,9 +34,20 @@
     ];
 
     $toneConfig = $toneClasses[$tone] ?? $toneClasses['neutral'];
+    $hasValueSlot = ! $slot->isEmpty();
+    $valueWrapperClass = 'mt-1 flex min-h-[2.5rem] items-center gap-2 text-2xl font-semibold tabular-nums text-foreground';
+    if ($hasValueSlot && $tone === 'amber') {
+        $valueWrapperClass .= ' text-base';
+    }
 @endphp
 
 <div {{ $attributes->class(['rounded-lg border px-4 py-3', $toneConfig['border']]) }}>
     <p class="text-xs font-medium uppercase tracking-wide {{ $toneConfig['label'] }}">{{ $label }}</p>
-    <p class="mt-1 text-2xl font-semibold tabular-nums text-foreground">{{ $value }}</p>
+    <div @class([$valueWrapperClass]) @if($valueId) id="{{ $valueId }}" @endif>
+        @if($hasValueSlot)
+            {{ $slot }}
+        @else
+            <span>{{ $value }}</span>
+        @endif
+    </div>
 </div>

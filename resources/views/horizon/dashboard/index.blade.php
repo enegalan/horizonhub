@@ -6,61 +6,47 @@
         class="space-y-6"
     >
         <div class="card overflow-hidden">
-            <div class="relative bg-gradient-to-br from-primary/10 via-card to-card py-4">
-                <div class="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-primary/10 blur-3xl" aria-hidden="true"></div>
-                <div class="grid gap-3 px-5 py-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
-                    <div class="rounded-lg border border-emerald-500/15 bg-emerald-500/[0.04] px-4 py-3">
-                        <p class="text-xs font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Jobs past minute</p>
-                        <div class="mt-1 flex min-h-[2.5rem] items-center gap-2">
-                            <span id="dashboard-value-jobs-minute" class="text-2xl font-semibold tabular-nums text-foreground">
-                                @if(!empty($defer))
-                                    <x-skeleton.text class="h-8 w-16" />
-                                @else
-                                    {{ $jobsPastMinute ?? '—' }}
-                                @endif
-                            </span>
-                        </div>
-                    </div>
-                    <div class="rounded-lg border border-sky-500/15 bg-sky-500/[0.04] px-4 py-3">
-                        <p class="text-xs font-medium uppercase tracking-wide text-sky-700 dark:text-sky-300">Jobs past hour</p>
-                        <div class="mt-1 flex min-h-[2.5rem] items-center gap-2">
-                            <span id="dashboard-value-jobs-hour" class="text-2xl font-semibold tabular-nums text-foreground">
-                                @if(!empty($defer))
-                                    <x-skeleton.text class="h-8 w-16" />
-                                @else
-                                    {{ $jobsPastHour ?? '—' }}
-                                @endif
-                            </span>
-                        </div>
-                    </div>
-                    <div class="rounded-lg border border-rose-500/15 bg-rose-500/[0.04] px-4 py-3">
-                        <p class="text-xs font-medium uppercase tracking-wide text-rose-700 dark:text-rose-300">Failed jobs (7 days)</p>
-                        <div class="mt-1 flex min-h-[2.5rem] items-center gap-2">
-                            <span id="dashboard-value-failed-seven" class="text-2xl font-semibold tabular-nums text-foreground">
-                                @if(!empty($defer))
-                                    <x-skeleton.text class="h-8 w-16" />
-                                @else
-                                    {{ $failedPastSevenDays ?? '—' }}
-                                @endif
-                            </span>
-                        </div>
-                    </div>
-                    <div class="rounded-lg border border-violet-500/15 bg-violet-500/[0.04] px-4 py-3 sm:col-span-2 lg:col-span-1">
-                        <p class="text-xs font-medium uppercase tracking-wide text-violet-700 dark:text-violet-300">Services online</p>
-                        <div class="mt-1 flex min-h-[2.5rem] items-center gap-2">
-                            <div id="dashboard-services-kpi-inner" class="flex min-h-[2.5rem] items-center gap-2">
-                                @if(!empty($defer))
-                                    <x-skeleton.text class="size-4 shrink-0 rounded-full" />
-                                    <x-skeleton.text class="h-8 w-20" />
-                                @else
-                                    @include('horizon.dashboard.partials.kpi-services-online-inner')
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <x-page-hero
+                eyebrow="Overview"
+                title="Dashboard"
+                description="Live health and workload across your connected Horizon services."
+                class="border-b-0"
+            />
         </div>
+
+        <x-kpi-grid gradient>
+            <x-stat-card label="Jobs past minute" tone="emerald" value-id="dashboard-value-jobs-minute">
+                @if(!empty($defer))
+                    <x-skeleton.text class="h-8 w-16" />
+                @else
+                    {{ $jobsPastMinute ?? '—' }}
+                @endif
+            </x-stat-card>
+            <x-stat-card label="Jobs past hour" tone="sky" value-id="dashboard-value-jobs-hour">
+                @if(!empty($defer))
+                    <x-skeleton.text class="h-8 w-16" />
+                @else
+                    {{ $jobsPastHour ?? '—' }}
+                @endif
+            </x-stat-card>
+            <x-stat-card label="Failed jobs (7 days)" tone="rose" value-id="dashboard-value-failed-seven">
+                @if(!empty($defer))
+                    <x-skeleton.text class="h-8 w-16" />
+                @else
+                    {{ $failedPastSevenDays ?? '—' }}
+                @endif
+            </x-stat-card>
+            <x-stat-card label="Services online" tone="violet" class="sm:col-span-2 lg:col-span-1">
+                <div id="dashboard-services-kpi-inner" class="flex min-h-[2.5rem] items-center gap-2">
+                    @if(!empty($defer))
+                        <x-skeleton.text class="size-4 shrink-0 rounded-full" />
+                        <x-skeleton.text class="h-8 w-20" />
+                    @else
+                        @include('horizon.dashboard.partials.kpi-services-online-inner')
+                    @endif
+                </div>
+            </x-stat-card>
+        </x-kpi-grid>
 
         <div class="card overflow-hidden">
             <div class="border-b border-border px-5 py-5 sm:px-6">

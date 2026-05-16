@@ -9,11 +9,13 @@
         id="horizon-service-dashboard"
         x-data="window.horizonDeleteConfirm ? window.horizonDeleteConfirm('Service', { listMode: false }) : {}"
     >
-        <p class="mb-3 text-xs text-muted-foreground">
-            <a href="{{ route('horizon.jobs.index') }}" class="link" data-turbo-action="replace">Jobs</a> /
-            <a href="{{ route('horizon.services.index') }}" class="link" data-turbo-action="replace">Services</a> /
-            <span class="text-foreground">{{ $service->name }}</span>
-        </p>
+        <x-breadcrumbs :items="[
+            ['label' => 'Jobs', 'url' => route('horizon.jobs.index')],
+            ['label' => 'Services', 'url' => route('horizon.services.index')],
+            ['label' => $service->name],
+        ]" />
+
+        <x-session-flash class="mb-4 rounded-md border" />
 
         @if(! $service->enabled)
             <div class="mb-4 rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
@@ -22,70 +24,70 @@
             </div>
         @endif
 
+        @php
+            if ($service->status === 'online') {
+                $serviceStatusColor = 'bg-emerald-500';
+                $serviceStatusLabel = 'Online';
+            } elseif ($service->status === 'stand_by') {
+                $serviceStatusColor = 'bg-amber-500';
+                $serviceStatusLabel = 'Stand-by';
+            } else {
+                $serviceStatusColor = 'bg-red-500';
+                $serviceStatusLabel = 'Offline';
+            }
+            $dashboardUrl = $service->getPublicUrl().config('horizonhub.horizon_paths.dashboard');
+        @endphp
         <div class="mb-4 flex flex-wrap items-center gap-2">
-            @php
-                if ($service->status === 'online') {
-                    $serviceStatusColor = 'bg-emerald-500';
-                    $serviceStatusLabel = 'Online';
-                } elseif ($service->status === 'stand_by') {
-                    $serviceStatusColor = 'bg-amber-500';
-                    $serviceStatusLabel = 'Stand-by';
-                } else {
-                    $serviceStatusColor = 'bg-red-500';
-                    $serviceStatusLabel = 'Offline';
-                }
-            @endphp
-            <div class="mr-4 inline-flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-1.5">
+            <div class="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-1.5">
                 <span class="inline-flex shrink-0 size-2.5 rounded-full {{ $serviceStatusColor }}" title="{{ $serviceStatusLabel }}" aria-label="{{ $serviceStatusLabel }}"></span>
                 <span class="text-xs text-muted-foreground">
                     Status: <span class="font-medium text-foreground">{{ $serviceStatusLabel }}</span>
                 </span>
             </div>
-            @php
-                $dashboardUrl = $service->getPublicUrl().config('horizonhub.horizon_paths.dashboard');
-            @endphp
-            <x-button
-                variant="ghost"
-                type="button"
-                onclick="window.open('{{ $dashboardUrl }}', '_blank')"
-                class="h-8 min-h-8 p-2"
-                aria-label="Open Horizon dashboard"
-                title="Open Horizon dashboard"
-            >
-                <x-heroicon-o-window class="size-4" />
-            </x-button>
-            <form method="POST" action="{{ route('horizon.services.test-connection', $service) }}">
-                @csrf
+            <div class="inline-flex flex-wrap items-center gap-1 rounded-lg border border-border bg-card p-1">
                 <x-button
                     variant="ghost"
-                    type="submit"
-                    class="h-8 min-h-8 p-2"
-                    aria-label="Test connection"
-                    title="Test connection"
+                    type="button"
+                    onclick="window.open('{{ $dashboardUrl }}', '_blank')"
+                    class="h-8 gap-1.5 px-2 sm:px-3"
+                    aria-label="Open Horizon dashboard"
                 >
-                    <x-heroicon-o-signal class="size-4" />
+                    <x-heroicon-o-window class="size-4 shrink-0" />
+                    <span class="hidden text-xs sm:inline">Horizon</span>
                 </x-button>
-            </form>
-            <x-button
-                variant="ghost"
-                type="button"
-                onclick="window.location.href='{{ route('horizon.services.edit', $service) }}'"
-                class="h-8 min-h-8 p-2"
-                aria-label="Edit service"
-                title="Edit service"
-            >
-                <x-heroicon-o-pencil-square class="size-4" />
-            </x-button>
-            <x-button
-                variant="ghost"
-                type="button"
-                class="h-8 min-h-8 p-2 text-destructive hover:text-destructive"
-                aria-label="Delete service"
-                title="Delete service"
-                @click="openDeleteServiceModal()"
-            >
-                <x-heroicon-o-trash class="size-4" />
-            </x-button>
+                <form method="POST" action="{{ route('horizon.services.test-connection', $service) }}" class="inline-flex">
+                    @csrf
+                    <x-button
+                        variant="ghost"
+                        type="submit"
+                        class="h-8 gap-1.5 px-2 sm:px-3"
+                        aria-label="Test connection"
+                    >
+                        <x-heroicon-o-signal class="size-4 shrink-0" />
+                        <span class="hidden text-xs sm:inline">Test</span>
+                    </x-button>
+                </form>
+                <x-button
+                    variant="ghost"
+                    type="button"
+                    onclick="window.location.href='{{ route('horizon.services.edit', $service) }}'"
+                    class="h-8 gap-1.5 px-2 sm:px-3"
+                    aria-label="Edit service"
+                >
+                    <x-heroicon-o-pencil-square class="size-4 shrink-0" />
+                    <span class="hidden text-xs sm:inline">Edit</span>
+                </x-button>
+                <x-button
+                    variant="ghost"
+                    type="button"
+                    class="h-8 gap-1.5 px-2 text-destructive hover:text-destructive sm:px-3"
+                    aria-label="Delete service"
+                    @click="openDeleteServiceModal()"
+                >
+                    <x-heroicon-o-trash class="size-4 shrink-0" />
+                    <span class="hidden text-xs sm:inline">Delete</span>
+                </x-button>
+            </div>
         </div>
 
         <div id="service-show-stats-row-1" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">

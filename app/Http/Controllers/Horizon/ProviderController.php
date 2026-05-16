@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Horizon;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Horizon\UpsertProviderRequest;
 use App\Models\NotificationProvider;
+use App\Support\FlashStatus;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 
@@ -27,7 +28,7 @@ class ProviderController extends Controller
 
         return redirect()
             ->route('horizon.providers.index')
-            ->with('status', 'Provider deleted.');
+            ->with('status', FlashStatus::success('Provider deleted.'));
     }
 
     /**
@@ -59,7 +60,7 @@ class ProviderController extends Controller
 
         return redirect()
             ->route('horizon.providers.index')
-            ->with('status', 'Provider created.');
+            ->with('status', FlashStatus::success('Provider created.'));
     }
 
     /**
@@ -71,7 +72,7 @@ class ProviderController extends Controller
 
         return redirect()
             ->route('horizon.providers.index')
-            ->with('status', 'Provider updated.');
+            ->with('status', FlashStatus::success('Provider updated.'));
     }
 
     /**

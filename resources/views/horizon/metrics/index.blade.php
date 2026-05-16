@@ -34,56 +34,36 @@
             </div>
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-            <div class="rounded-lg border border-emerald-500/15 bg-emerald-500/[0.04] px-4 py-3">
-                <p class="text-xs font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Jobs past minute</p>
-                <div class="mt-1 flex min-h-[2.5rem] items-center gap-2">
-                    <span id="metrics-value-jobs-minute" class="text-2xl font-semibold tabular-nums text-foreground">
-                        @if(!empty($defer))
-                            <x-skeleton.text class="h-8 w-16" />
-                        @else
-                            {{ $jobsPastMinute ?? '—' }}
-                        @endif
-                    </span>
-                </div>
-            </div>
-            <div class="rounded-lg border border-sky-500/15 bg-sky-500/[0.04] px-4 py-3">
-                <p class="text-xs font-medium uppercase tracking-wide text-sky-700 dark:text-sky-300">Jobs past hour</p>
-                <div class="mt-1 flex min-h-[2.5rem] items-center gap-2">
-                    <span id="metrics-value-jobs-hour" class="text-2xl font-semibold tabular-nums text-foreground">
-                        @if(!empty($defer))
-                            <x-skeleton.text class="h-8 w-16" />
-                        @else
-                            {{ $jobsPastHour ?? '—' }}
-                        @endif
-                    </span>
-                </div>
-            </div>
-            <div class="rounded-lg border border-rose-500/15 bg-rose-500/[0.04] px-4 py-3">
-                <p class="text-xs font-medium uppercase tracking-wide text-rose-700 dark:text-rose-300">Failed jobs (past 7 days)</p>
-                <div class="mt-1 flex min-h-[2.5rem] items-center gap-2">
-                    <span id="metrics-value-failed-seven" class="text-2xl font-semibold tabular-nums text-foreground">
-                        @if(!empty($defer))
-                            <x-skeleton.text class="h-8 w-16" />
-                        @else
-                            {{ $failedPastSevenDays ?? '—' }}
-                        @endif
-                    </span>
-                </div>
-            </div>
-            <div class="rounded-lg border border-amber-500/15 bg-amber-500/[0.04] px-4 py-3">
-                <p class="text-xs font-medium uppercase tracking-wide text-amber-700 dark:text-amber-300">Failure rate (last 24h)</p>
-                <div class="mt-1 flex min-h-[2.5rem] items-center gap-2">
-                    <p id="metrics-value-failure-rate" class="text-2xl font-semibold tabular-nums text-foreground">
-                        @if(!empty($defer))
-                            <x-skeleton.text class="h-8 w-24" />
-                        @else
-                            @include('horizon.metrics.partials.failure-rate-value', ['failureRate24h' => $failureRate24h ?? null])
-                        @endif
-                    </p>
-                </div>
-            </div>
-        </div>
+        <x-kpi-grid class="mb-6">
+            <x-stat-card label="Jobs past minute" tone="emerald" value-id="metrics-value-jobs-minute">
+                @if(!empty($defer))
+                    <x-skeleton.text class="h-8 w-16" />
+                @else
+                    {{ $jobsPastMinute ?? '—' }}
+                @endif
+            </x-stat-card>
+            <x-stat-card label="Jobs past hour" tone="sky" value-id="metrics-value-jobs-hour">
+                @if(!empty($defer))
+                    <x-skeleton.text class="h-8 w-16" />
+                @else
+                    {{ $jobsPastHour ?? '—' }}
+                @endif
+            </x-stat-card>
+            <x-stat-card label="Failed jobs (past 7 days)" tone="rose" value-id="metrics-value-failed-seven">
+                @if(!empty($defer))
+                    <x-skeleton.text class="h-8 w-16" />
+                @else
+                    {{ $failedPastSevenDays ?? '—' }}
+                @endif
+            </x-stat-card>
+            <x-stat-card label="Failure rate (last 24h)" tone="amber" value-id="metrics-value-failure-rate">
+                @if(!empty($defer))
+                    <x-skeleton.text class="h-8 w-24" />
+                @else
+                    @include('horizon.metrics.partials.failure-rate-value', ['failureRate24h' => $failureRate24h ?? null])
+                @endif
+            </x-stat-card>
+        </x-kpi-grid>
 
         <div class="grid gap-4">
             <div class="grid gap-4 lg:grid-cols-2">
