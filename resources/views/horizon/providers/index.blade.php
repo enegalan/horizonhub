@@ -6,16 +6,12 @@
         x-data="window.horizonDeleteConfirm ? window.horizonDeleteConfirm('Provider') : {}"
     >
         <div class="card overflow-hidden">
-            <div class="relative border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-5 py-5 sm:px-6">
-                <div class="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-primary/10 blur-3xl" aria-hidden="true"></div>
-                <div class="relative flex flex-wrap items-start justify-between gap-4">
-                    <div class="min-w-0 space-y-2">
-                        <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Delivery channels</p>
-                        <h2 class="text-section-title text-foreground">Notification providers</h2>
-                        <p class="max-w-2xl text-sm text-muted-foreground">
-                            Connect Slack or email destinations once, then attach them to alert rules when you need to notify a team.
-                        </p>
-                    </div>
+            <x-page-hero
+                eyebrow="Delivery channels"
+                title="Notification providers"
+                description="Connect Slack or email destinations once, then attach them to alert rules when you need to notify a team."
+            >
+                <x-slot:actions>
                     <x-button
                         type="button"
                         class="h-9 shrink-0 text-sm"
@@ -23,14 +19,10 @@
                     >
                         New provider
                     </x-button>
-                </div>
-            </div>
+                </x-slot:actions>
+            </x-page-hero>
 
-            @if(session('status'))
-                <div class="border-b border-border px-5 py-3 text-sm text-muted-foreground sm:px-6">
-                    {{ session('status') }}
-                </div>
-            @endif
+            <x-session-flash />
 
             <div class="grid gap-3 border-b border-border px-5 py-4 sm:grid-cols-3 sm:px-6">
                 <div

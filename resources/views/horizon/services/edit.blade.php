@@ -3,17 +3,12 @@
 @section('content')
     <div class="mx-auto max-w-3xl space-y-6">
         <div class="card overflow-hidden">
-            <div class="relative border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-5 py-5 sm:px-6">
-                <div class="pointer-events-none absolute -left-8 top-0 size-32 rounded-full bg-emerald-500/10 blur-3xl" aria-hidden="true"></div>
-                <div class="pointer-events-none absolute -right-8 bottom-0 size-32 rounded-full bg-sky-500/10 blur-3xl" aria-hidden="true"></div>
-                <div class="relative space-y-2">
-                    <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Update service</p>
-                    <h2 class="text-section-title text-foreground">Edit service</h2>
-                    <p class="max-w-2xl text-sm text-muted-foreground">
-                        Update the URLs Horizon Hub should use to reach this deployment and open its dashboard from your browser.
-                    </p>
-                </div>
-            </div>
+            <x-page-hero
+                eyebrow="Update service"
+                title="Edit service"
+                description="Update the URLs Horizon Hub should use to reach this deployment and open its dashboard from your browser."
+            />
+
         </div>
 
         <div class="card overflow-hidden">

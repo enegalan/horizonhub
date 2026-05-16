@@ -10,18 +10,11 @@
         }) : {}"
     >
         <div class="card overflow-hidden">
-            <div class="relative border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-5 py-5 sm:px-6">
-                <div class="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-primary/10 blur-3xl" aria-hidden="true"></div>
-                <div class="relative flex flex-wrap items-start justify-between gap-4">
-                    <div class="min-w-0 space-y-2">
-                        <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Job monitor</p>
-                        <h2 class="text-section-title text-foreground">Queues &amp; workloads</h2>
-                        <p class="max-w-2xl text-sm text-muted-foreground">
-                            Inspect processing, completed, and failed jobs across services. Filter by service or search, and retry failures in bulk when needed.
-                        </p>
-                    </div>
-                </div>
-            </div>
+            <x-page-hero
+                eyebrow="Job monitor"
+                title="Queues &amp; workloads"
+                description="Inspect processing, completed, and failed jobs across services. Filter by service or search, and retry failures in bulk when needed."
+            />
 
             <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
                 <div class="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
@@ -123,10 +116,10 @@
                             </div>
                             <form
                                 @submit.prevent="applyRetryModalFilters()"
-                                class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:items-end"
+                                class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)_auto] lg:items-end"
                             >
                                 <template x-for="session in [retryModalSession]" :key="session">
-                                    <div class="min-w-0 space-y-2 lg:col-span-3">
+                                    <div class="min-w-0 space-y-2">
                                         <x-input-label id="retry-modal-services-label" for="retry-modal-services">Services</x-input-label>
                                         <x-multiselect
                                             id="retry-modal-services"
@@ -144,7 +137,7 @@
                                         </x-multiselect>
                                     </div>
                                 </template>
-                                <div class="min-w-0 space-y-2 lg:col-span-3">
+                                <div class="min-w-0 space-y-2">
                                     <x-input-label for="retry-modal-search">Search</x-input-label>
                                     <x-text-input
                                         id="retry-modal-search"
@@ -156,7 +149,7 @@
                                         autocomplete="off"
                                     />
                                 </div>
-                                <div class="min-w-0 space-y-2 sm:col-span-2 lg:col-span-5">
+                                <div class="min-w-0 space-y-2 sm:col-span-2 lg:col-span-1">
                                     <x-input-label for="retry-modal-failed-at-range">Failed at range</x-input-label>
                                     <x-input-date
                                         id="retry-modal-failed-at-range"
@@ -165,9 +158,9 @@
                                         x-model="retryFilters.failed_at_range"
                                     />
                                 </div>
-                                <div class="flex items-end sm:col-span-2 lg:col-span-1">
-                                    <x-button type="submit" class="h-9 w-full text-sm sm:w-auto">
-                                        <x-heroicon-o-magnifying-glass class="size-4" />
+                                <div class="flex items-end sm:col-span-2 sm:justify-end lg:col-span-1 lg:justify-start">
+                                    <x-button type="submit" class="h-9 w-full shrink-0 whitespace-nowrap sm:w-auto">
+                                        <x-heroicon-o-magnifying-glass class="size-4 shrink-0" />
                                         Search
                                     </x-button>
                                 </div>

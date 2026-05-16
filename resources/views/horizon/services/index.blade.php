@@ -6,22 +6,13 @@
         x-data="window.horizonDeleteConfirm ? window.horizonDeleteConfirm('Service') : {}"
     >
         <div class="card overflow-hidden" x-data="window.horizonServicesList ? window.horizonServicesList() : {}" x-init="typeof init === 'function' && init()">
-            <div class="relative border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-5 py-5 sm:px-6">
-                <div class="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-primary/10 blur-3xl" aria-hidden="true"></div>
-                <div class="relative space-y-2">
-                    <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Connected Horizon instances</p>
-                    <h2 class="text-section-title text-foreground">Services</h2>
-                    <p class="max-w-2xl text-sm text-muted-foreground">
-                        Register each Horizon deployment, monitor its health, and open its dashboard when you need to inspect queues and workers.
-                    </p>
-                </div>
-            </div>
+            <x-page-hero
+                eyebrow="Connected Horizon instances"
+                title="Services"
+                description="Register each Horizon deployment, monitor its health, and open its dashboard when you need to inspect queues and workers."
+            />
 
-            @if(session('status'))
-                <div class="border-b border-border px-5 py-3 text-sm text-muted-foreground sm:px-6">
-                    {{ session('status') }}
-                </div>
-            @endif
+            <x-session-flash />
 
             <div class="border-b border-border px-5 py-5 sm:px-6">
                 <div class="mb-4 space-y-1">

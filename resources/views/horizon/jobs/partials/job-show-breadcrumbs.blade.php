@@ -1,7 +1,11 @@
-<p class="mb-3 text-xs text-muted-foreground">
-    <a href="{{ route('horizon.jobs.index') }}" class="link" data-turbo-action="replace">Jobs</a>
-    @if($job->service)
-        / <a href="{{ route('horizon.services.show', $job->service) }}" class="link" data-turbo-action="replace">{{ $job->service->name }}</a>
-    @endif
-    / <span class="text-foreground">{{ $job->name ?? $job->uuid }}</span>
-</p>
+@php
+    $breadcrumbItems = [
+        ['label' => 'Jobs', 'url' => route('horizon.jobs.index')],
+    ];
+    if ($job->service) {
+        $breadcrumbItems[] = ['label' => $job->service->name, 'url' => route('horizon.services.show', $job->service)];
+    }
+    $breadcrumbItems[] = ['label' => $job->name ?? $job->uuid];
+@endphp
+
+<x-breadcrumbs :items="$breadcrumbItems" />

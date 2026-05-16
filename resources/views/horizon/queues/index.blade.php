@@ -3,18 +3,11 @@
 @section('content')
     <div class="space-y-6">
         <div class="card overflow-hidden">
-            <div class="relative border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-5 py-5 sm:px-6">
-                <div class="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-primary/10 blur-3xl" aria-hidden="true"></div>
-                <div class="relative flex flex-wrap items-start justify-between gap-4">
-                    <div class="min-w-0 space-y-2">
-                        <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Workload</p>
-                        <h2 class="text-section-title text-foreground">Queues</h2>
-                        <p class="max-w-2xl text-sm text-muted-foreground">
-                            Pending jobs per queue across your Horizon services. Filter by service to focus on a subset of workers.
-                        </p>
-                    </div>
-                </div>
-            </div>
+            <x-page-hero
+                eyebrow="Workload"
+                title="Queues"
+                description="Pending jobs per queue across your Horizon services. Filter by service to focus on a subset of workers."
+            />
 
             <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
                 <div class="flex flex-wrap items-end gap-3">

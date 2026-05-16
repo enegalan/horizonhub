@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Horizon\UpsertServiceRequest;
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
+use App\Support\FlashStatus;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -22,7 +23,7 @@ class ServiceController extends Controller
 
         return redirect()
             ->route('horizon.services.index')
-            ->with('status', 'Service deleted.');
+            ->with('status', FlashStatus::success('Service deleted.'));
     }
 
     /**
@@ -96,7 +97,7 @@ class ServiceController extends Controller
 
         return redirect()
             ->route('horizon.services.index')
-            ->with('status', 'Service created.');
+            ->with('status', FlashStatus::success('Service created.'));
     }
 
     /**
@@ -107,7 +108,7 @@ class ServiceController extends Controller
         if (! $service->base_url) {
             return redirect()
                 ->back()
-                ->with('status', 'Service has no base URL configured.');
+                ->with('status', FlashStatus::warning('Service has no base URL configured.'));
         }
 
         $result = $horizonApi->ping($service);
@@ -120,7 +121,7 @@ class ServiceController extends Controller
 
             return redirect()
                 ->back()
-                ->with('status', 'Service Horizon API is reachable.');
+                ->with('status', FlashStatus::success('Service Horizon API is reachable.'));
         }
 
         $service->update(['status' => 'offline']);
@@ -129,7 +130,7 @@ class ServiceController extends Controller
 
         return redirect()
             ->back()
-            ->with('status', $message);
+            ->with('status', FlashStatus::error($message));
     }
 
     /**
@@ -162,6 +163,6 @@ class ServiceController extends Controller
 
         return redirect()
             ->route('horizon.services.index')
-            ->with('status', 'Service updated.');
+            ->with('status', FlashStatus::success('Service updated.'));
     }
 }

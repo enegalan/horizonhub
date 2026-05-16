@@ -61,31 +61,31 @@
             class="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden py-2 px-4 "
             :class="isLg && !sidebarOpen ? 'items-center' : ''"
         >
-            <a href="{{ route('horizon.index') }}" class="nav-side-link {{ request()->routeIs('horizon.index') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
+            <a href="{{ route('horizon.index') }}" title="Dashboard" class="nav-side-link {{ request()->routeIs('horizon.index') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-squares-2x2 class="h-4 w-4 shrink-0" />
                 <span class="nav-side-link-label truncate">Dashboard</span>
             </a>
-            <a href="{{ route('horizon.jobs.index') }}" class="nav-side-link {{ request()->routeIs('horizon.jobs.index') || request()->routeIs('horizon.jobs.show') || request()->routeIs('horizon.jobs.failed') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
+            <a href="{{ route('horizon.jobs.index') }}" title="Jobs" class="nav-side-link {{ request()->routeIs('horizon.jobs.index') || request()->routeIs('horizon.jobs.show') || request()->routeIs('horizon.jobs.failed') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-clipboard-document-list class="h-4 w-4 shrink-0" />
                 <span class="nav-side-link-label truncate">Jobs</span>
             </a>
-            <a href="{{ route('horizon.queues.index') }}" class="nav-side-link {{ request()->routeIs('horizon.queues.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
+            <a href="{{ route('horizon.queues.index') }}" title="Queues" class="nav-side-link {{ request()->routeIs('horizon.queues.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-queue-list class="h-4 w-4 shrink-0" />
                 <span class="nav-side-link-label truncate">Queues</span>
             </a>
-            <a href="{{ route('horizon.services.index') }}" class="nav-side-link {{ request()->routeIs('horizon.services.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
+            <a href="{{ route('horizon.services.index') }}" title="Services" class="nav-side-link {{ request()->routeIs('horizon.services.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-server-stack class="h-4 w-4 shrink-0" />
                 <span class="nav-side-link-label truncate">Services</span>
             </a>
-            <a href="{{ route('horizon.metrics') }}" class="nav-side-link {{ request()->routeIs('horizon.metrics') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
+            <a href="{{ route('horizon.metrics') }}" title="Metrics" class="nav-side-link {{ request()->routeIs('horizon.metrics') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-chart-bar class="h-4 w-4 shrink-0" />
                 <span class="nav-side-link-label truncate">Metrics</span>
             </a>
-            <a href="{{ route('horizon.alerts.index') }}" class="nav-side-link {{ request()->routeIs('horizon.alerts.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
+            <a href="{{ route('horizon.alerts.index') }}" title="Alerts" class="nav-side-link {{ request()->routeIs('horizon.alerts.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-bell class="h-4 w-4 shrink-0" />
                 <span class="nav-side-link-label truncate">Alerts</span>
             </a>
-            <a href="{{ route('horizon.providers.index') }}" class="nav-side-link {{ request()->routeIs('horizon.providers.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
+            <a href="{{ route('horizon.providers.index') }}" title="Providers" class="nav-side-link {{ request()->routeIs('horizon.providers.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-heroicon-o-megaphone class="h-4 w-4 shrink-0" />
                 <span class="nav-side-link-label truncate">Providers</span>
             </a>

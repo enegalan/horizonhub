@@ -9,21 +9,12 @@
 
     <div class="mx-auto max-w-3xl space-y-6" x-data="{ type: '{{ $currentType }}' }">
         <div class="card overflow-hidden">
-            <div class="relative border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-5 py-5 sm:px-6">
-                <div class="pointer-events-none absolute -left-8 top-0 size-32 rounded-full bg-sky-500/10 blur-3xl" aria-hidden="true"></div>
-                <div class="pointer-events-none absolute -right-8 bottom-0 size-32 rounded-full bg-violet-500/10 blur-3xl" aria-hidden="true"></div>
-                <div class="relative space-y-2">
-                    <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        {{ $isEdit ? 'Update provider' : 'Create provider' }}
-                    </p>
-                    <h2 class="text-section-title text-foreground">
-                        {{ $isEdit ? 'Edit notification provider' : 'New notification provider' }}
-                    </h2>
-                    <p class="max-w-2xl text-sm text-muted-foreground">
-                        Pick a delivery channel, give it a recognizable name, and add the destination details your alerts will use.
-                    </p>
-                </div>
-            </div>
+            <x-page-hero
+                :eyebrow="$isEdit ? 'Update provider' : 'Create provider'"
+                :title="$isEdit ? 'Edit notification provider' : 'New notification provider'"
+                description="Pick a delivery channel, give it a recognizable name, and add the destination details your alerts will use."
+            />
+
         </div>
 
         <form method="POST" action="{{ $action }}" class="space-y-6">

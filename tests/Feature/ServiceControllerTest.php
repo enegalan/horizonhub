@@ -52,11 +52,21 @@ class ServiceControllerTest extends TestCase
             'public_url' => '',
         ])->assertRedirect(route('horizon.services.index'));
 
-        $this->post(route('horizon.services.test-connection', ['service' => $service]))->assertRedirect();
+        $this->post(route('horizon.services.test-connection', ['service' => $service]))
+            ->assertRedirect()
+            ->assertSessionHas('status', [
+                'message' => 'Service Horizon API is reachable.',
+                'type' => 'success',
+            ]);
         $service->refresh();
         $this->assertSame('online', $service->status);
 
-        $this->post(route('horizon.services.test-connection', ['service' => $service]))->assertRedirect();
+        $this->post(route('horizon.services.test-connection', ['service' => $service]))
+            ->assertRedirect()
+            ->assertSessionHas('status', [
+                'message' => 'failed ping',
+                'type' => 'error',
+            ]);
         $service->refresh();
         $this->assertSame('offline', $service->status);
 
