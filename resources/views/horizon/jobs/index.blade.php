@@ -12,7 +12,7 @@
         <div class="card overflow-hidden">
             <x-page-hero
                 eyebrow="Job monitor"
-                title="Queues &amp; workloads"
+                title="Queues & workloads"
                 description="Inspect processing, completed, and failed jobs across services. Filter by service or search, and retry failures in bulk when needed."
             />
 

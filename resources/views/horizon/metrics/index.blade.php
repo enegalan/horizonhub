@@ -70,9 +70,10 @@
                 <div class="card min-w-0 overflow-hidden p-4">
                     <h3 class="text-section-title text-foreground mb-2">Jobs per hour (last 24 hours)</h3>
                     <div class="chart-panel">
-                        <div id="metrics-loader-jobs-volume-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasJobsVolumeChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
+                        <div id="metrics-loader-jobs-volume-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ empty($defer) ? 'display:none;' : '' }}">
                             <x-loader class="size-8 text-muted-foreground" />
                         </div>
+                        @include('horizon.metrics.partials.chart-empty-overlay', ['overlayId' => 'metrics-empty-jobs-volume-chart'])
                         <div id="jobs-volume-last-24h-chart" class="chart-canvas"></div>
                     </div>
                 </div>
@@ -80,9 +81,10 @@
                 <div class="card min-w-0 overflow-hidden p-4">
                     <h3 class="text-section-title text-foreground mb-2">Failure rate over time (last 24h, %)</h3>
                     <div class="chart-panel">
-                        <div id="metrics-loader-failure-rate-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasFailureRateChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
+                        <div id="metrics-loader-failure-rate-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ empty($defer) ? 'display:none;' : '' }}">
                             <x-loader class="size-8 text-muted-foreground" />
                         </div>
+                        @include('horizon.metrics.partials.chart-empty-overlay', ['overlayId' => 'metrics-empty-failure-rate-chart'])
                         <div id="failure-rate-chart" class="chart-canvas"></div>
                     </div>
                 </div>
@@ -91,9 +93,10 @@
                     <h3 class="text-section-title text-foreground mb-2">Job runtimes (last 24 hours, seconds)</h3>
                     <p class="text-xs text-muted-foreground mb-2">Each vertex is one job (finish time vs duration), connected in time order within Completed vs Failed.</p>
                     <div class="chart-panel">
-                        <div id="metrics-loader-runtime-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasRuntimeChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
+                        <div id="metrics-loader-runtime-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ empty($defer) ? 'display:none;' : '' }}">
                             <x-loader class="size-8 text-muted-foreground" />
                         </div>
+                        @include('horizon.metrics.partials.chart-empty-overlay', ['overlayId' => 'metrics-empty-runtime-chart'])
                         <div id="runtime-chart" class="chart-canvas"></div>
                     </div>
                 </div>
@@ -101,9 +104,10 @@
                 <div class="card min-w-0 overflow-hidden p-4">
                     <h3 class="text-section-title text-foreground mb-2">Queue wait by queue (max wait, top 12)</h3>
                     <div class="chart-panel">
-                        <div id="metrics-loader-service-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ ($hasServiceChart ?? false) && empty($defer) ? 'display:none;' : '' }}">
+                        <div id="metrics-loader-service-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ empty($defer) ? 'display:none;' : '' }}">
                             <x-loader class="size-8 text-muted-foreground" />
                         </div>
+                        @include('horizon.metrics.partials.chart-empty-overlay', ['overlayId' => 'metrics-empty-service-chart'])
                         <div id="service-distribution-chart" class="chart-canvas"></div>
                     </div>
                 </div>

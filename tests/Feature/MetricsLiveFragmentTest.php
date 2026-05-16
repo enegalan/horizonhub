@@ -26,5 +26,7 @@ class MetricsLiveFragmentTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('id="metrics-chart-data"', false);
+        $response->assertSee('id="metrics-empty-jobs-volume-chart"', false);
+        $response->assertSee('No data to display', false);
     }
 }
