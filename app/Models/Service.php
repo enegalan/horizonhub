@@ -69,18 +69,6 @@ class Service extends Model
     }
 
     /**
-     * Scope to enabled services only.
-     *
-     * @param Builder<Service> $query
-     *
-     * @return Builder<Service>
-     */
-    public function scopeEnabled($query)
-    {
-        return $query->where('enabled', true);
-    }
-
-    /**
      * Scope to disabled services only.
      *
      * @param Builder<Service> $query
@@ -90,5 +78,17 @@ class Service extends Model
     public function scopeDisabled($query)
     {
         return $query->where('enabled', false);
+    }
+
+    /**
+     * Scope to enabled services only.
+     *
+     * @param Builder<Service> $query
+     *
+     * @return Builder<Service>
+     */
+    public function scopeEnabled($query)
+    {
+        return $query->where('enabled', true);
     }
 }
