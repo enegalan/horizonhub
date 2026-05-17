@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
+use App\Services\Horizon\HorizonJobsWindowFetcher;
 use App\Services\Metrics\JobsVolumeLast24hCalculator;
 use App\Services\Metrics\RuntimeMetricsCalculator;
 use App\Services\Metrics\WorkloadMetricsCalculator;
@@ -31,7 +32,7 @@ class MetricsCalculatorsCoverageTest extends TestCase
             'data' => ['jobs' => [['index' => 2, 'failed_at' => $since + 3600]]],
         ]);
 
-        $calc = new JobsVolumeLast24hCalculator($api);
+        $calc = new JobsVolumeLast24hCalculator($api, new HorizonJobsWindowFetcher($api));
         $result = $calc->getJobsVolumeLast24h(['service_id' => $service->id]);
         $this->assertCount(25, $result['xAxis']);
         $this->assertSame(1, $result['completed'][1]);
@@ -65,7 +66,7 @@ class MetricsCalculatorsCoverageTest extends TestCase
             ]]],
         ]);
 
-        $calc = new RuntimeMetricsCalculator($api);
+        $calc = new RuntimeMetricsCalculator($api, new HorizonJobsWindowFetcher($api));
         $result = $calc->getJobRuntimesLast24h(['service_id' => $service->id]);
         $this->assertCount(2, $result['points']);
         $this->assertSame('completed', $result['points'][0]['status']);
@@ -105,7 +106,7 @@ class MetricsCalculatorsCoverageTest extends TestCase
             ]]];
         });
 
-        $calc = new WorkloadMetricsCalculator($api);
+        $calc = new WorkloadMetricsCalculator($api, new HorizonJobsWindowFetcher($api));
         $workload = $calc->getWorkloadData([]);
         $this->assertNotEmpty($workload);
         $this->assertSame('default', $workload[0]['queue']);

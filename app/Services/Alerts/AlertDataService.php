@@ -6,7 +6,7 @@ use App\Models\Alert;
 use App\Models\Service;
 use Illuminate\Support\Collection;
 
-class AlertIndexStreamDataService
+class AlertDataService
 {
     /**
      * Load alerts for the index stream with list metadata.
@@ -17,7 +17,7 @@ class AlertIndexStreamDataService
      *     serviceLabelsByAlertId: array<int, list<string>>
      * }
      */
-    public function buildStreamPayload(): array
+    public function build(): array
     {
         $alerts = Alert::query()
             ->withCount('alertLogs')

@@ -14,6 +14,7 @@ use App\Services\Alerts\Rules\Strategies\QueueBlockedAlertRuleStrategy;
 use App\Services\Alerts\Rules\Strategies\SupervisorOfflineAlertRuleStrategy;
 use App\Services\Alerts\Rules\Strategies\WorkerOfflineAlertRuleStrategy;
 use App\Services\Horizon\HorizonApiProxyService;
+use App\Services\Horizon\HorizonJobsWindowFetcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -24,7 +25,7 @@ class AlertRulesTest extends TestCase
     public function test_evaluation_support_resolves_patterns_and_filters_jobs(): void
     {
         $api = $this->createMock(HorizonApiProxyService::class);
-        $support = new AlertRuleEvaluationSupport($api);
+        $support = new AlertRuleEvaluationSupport(new HorizonJobsWindowFetcher($api));
         $alert = new Alert([
             'queue' => 'default',
             'job_type' => 'App\\Jobs\\Sync',
@@ -75,7 +76,7 @@ class AlertRulesTest extends TestCase
                 ],
             ],
         ]);
-        $support = new AlertRuleEvaluationSupport($api);
+        $support = new AlertRuleEvaluationSupport(new HorizonJobsWindowFetcher($api));
         $strategy = new FailureCountAlertRuleStrategy($support);
         $result = $strategy->evaluateWithTriggeringJobs($alert, $service->id, null);
 
@@ -149,7 +150,7 @@ class AlertRulesTest extends TestCase
         ]);
         $api->method('getStats')->willReturn(['success' => true, 'data' => ['status' => 'inactive']]);
 
-        $support = new AlertRuleEvaluationSupport($api);
+        $support = new AlertRuleEvaluationSupport(new HorizonJobsWindowFetcher($api));
 
         $avg = new AvgExecutionTimeAlertRuleStrategy($support);
         $this->assertTrue($avg->evaluateWithTriggeringJobs($avgAlert, $service->id, null)['triggered']);
@@ -173,7 +174,7 @@ class AlertRulesTest extends TestCase
     public function test_registry_resolves_known_and_unknown_rules(): void
     {
         $api = $this->createMock(HorizonApiProxyService::class);
-        $support = new AlertRuleEvaluationSupport($api);
+        $support = new AlertRuleEvaluationSupport(new HorizonJobsWindowFetcher($api));
         $null = new NullAlertRuleStrategy;
         $registry = new AlertRuleStrategyRegistry(
             $null,

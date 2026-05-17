@@ -12,13 +12,6 @@ use Illuminate\Database\Eloquent\Collection;
 abstract class HorizonMetricsComputation
 {
     /**
-     * The number of days in a week.
-     *
-     * @var int
-     */
-    protected const DAYS_7 = 7;
-
-    /**
      * The number of top queues to return.
      *
      * @var int
@@ -38,10 +31,10 @@ abstract class HorizonMetricsComputation
     /**
      * Construct the Horizon metrics computation.
      */
-    public function __construct(HorizonApiProxyService $horizonApi)
+    public function __construct(HorizonApiProxyService $horizonApi, HorizonJobsWindowFetcher $jobsWindowFetcher)
     {
         $this->horizonApi = $horizonApi;
-        $this->jobsWindowFetcher = new HorizonJobsWindowFetcher($horizonApi);
+        $this->jobsWindowFetcher = $jobsWindowFetcher;
     }
 
     /**
@@ -133,69 +126,6 @@ abstract class HorizonMetricsComputation
     }
 
     /**
-     * Fetch jobs in a time window by paginating Horizon until we cross the lower bound.
-     *
-     * @param int $sinceTimestamp The since timestamp.
-     * @param callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>} $pageFetcher The page fetcher.
-     * @param callable(array<string, mixed>): ?int $jobTimestampExtractor The job timestamp extractor.
-     *
-     * @return list<array<string, mixed>>
-     */
-    protected function private__fetchJobsInWindow(int $sinceTimestamp, callable $pageFetcher, callable $jobTimestampExtractor): array
-    {
-        $jobs = [];
-        $startingAt = -1;
-        $page = 0;
-        $jobsPerRequest = (int) config('horizonhub.horizon_api_job_list_page_size');
-        $maxPages = (int) config('horizonhub.max_horizon_pages');
-
-        while ($page < $maxPages) {
-            $response = $pageFetcher([
-                'starting_at' => $startingAt,
-                'limit' => $jobsPerRequest,
-            ]);
-
-            if (! $response['success']) {
-                break;
-            }
-            $batch = $response['data']['jobs'] ?? [];
-
-            if (! \is_array($batch) || $batch === []) {
-                break;
-            }
-            $oldestInBatch = null;
-
-            foreach ($batch as $job) {
-                if (! \is_array($job)) {
-                    continue;
-                }
-
-                $ts = $jobTimestampExtractor($job);
-
-                if ($ts === null) {
-                    continue;
-                }
-
-                if ($ts >= $sinceTimestamp) {
-                    $jobs[] = $job;
-                }
-
-                if ($oldestInBatch === null || $ts < $oldestInBatch) {
-                    $oldestInBatch = $ts;
-                }
-            }
-
-            if ($oldestInBatch === null || $oldestInBatch < $sinceTimestamp || \count($batch) < $jobsPerRequest) {
-                break;
-            }
-            $startingAt = $this->private__nextMetricsJobsStartingAt($startingAt, $batch);
-            $page++;
-        }
-
-        return $jobs;
-    }
-
-    /**
      * Get services that can provide Horizon metrics.
      *
      * @param array<string, mixed> $serviceScope The service scope. Empty = all services with base_url; non-empty = restrict by id.
@@ -232,82 +162,6 @@ abstract class HorizonMetricsComputation
     }
 
     /**
-     * Get queue rows (name + 0 jobs) from masters/supervisors when workload API returns nothing.
-     *
-     * @param Service $service The service.
-     *
-     * @return array<int, array{queue: string, jobs: int, processes: int|null, wait: float|null}>
-     */
-    protected function private__getWorkloadFallbackFromMasters(Service $service): array
-    {
-        $mastersResponse = $this->horizonApi->getMasters($service);
-        $mastersData = $mastersResponse['data'] ?? null;
-
-        if (! $mastersResponse['success'] || ! \is_array($mastersData)) {
-            return [];
-        }
-
-        $queueNames = [];
-
-        foreach ($mastersData as $master) {
-            if (! \is_array($master)) {
-                continue;
-            }
-
-            $supervisors = $master['supervisors'] ?? null;
-
-            if (! \is_array($supervisors)) {
-                continue;
-            }
-
-            foreach ($supervisors as $supervisor) {
-                if (! \is_array($supervisor)) {
-                    continue;
-                }
-
-                $options = isset($supervisor['options']) && \is_array($supervisor['options']) ? $supervisor['options'] : [];
-                $queues = $options['queue'] ?? null;
-
-                if (! \is_array($queues)) {
-                    $queues = $queues !== null && $queues !== '' ? [(string) $queues] : [];
-                } else {
-                    $queues = \array_map('strval', $queues);
-                }
-
-                foreach ($queues as $q) {
-                    if (empty($q)) {
-                        continue;
-                    }
-
-                    $normalizedQueue = QueueNameNormalizer::normalize($q);
-
-                    if (empty($normalizedQueue)) {
-                        continue;
-                    }
-
-                    $queueNames[$normalizedQueue] = true;
-                }
-            }
-        }
-
-        $queueNames = \array_keys($queueNames);
-        \sort($queueNames);
-
-        $rows = [];
-
-        foreach ($queueNames as $name) {
-            $rows[] = [
-                'queue' => $name,
-                'jobs' => 0,
-                'processes' => null,
-                'wait' => null,
-            ];
-        }
-
-        return $rows;
-    }
-
-    /**
      * Initialize hourly buckets between $since and $endHour (inclusive).
      *
      * @param Carbon $since The since.
@@ -330,23 +184,6 @@ abstract class HorizonMetricsComputation
         }
 
         return $buckets;
-    }
-
-    /**
-     * Next Horizon jobs list cursor: starting_at is a zero-based index into the Redis-backed list, not a unix timestamp.
-     *
-     * @param int $startingAt The starting at.
-     * @param array<int, mixed> $batch The batch.
-     */
-    protected function private__nextMetricsJobsStartingAt(int $startingAt, array $batch): int
-    {
-        $last = $batch[\array_key_last($batch)];
-
-        if (\is_array($last) && isset($last['index'])) {
-            return (int) $last['index'];
-        }
-
-        return \max(0, $startingAt + 1) + \count($batch) - 1;
     }
 
     /**

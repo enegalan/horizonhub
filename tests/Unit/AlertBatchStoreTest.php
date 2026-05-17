@@ -3,12 +3,12 @@
 namespace Tests\Unit;
 
 use App\Models\Alert;
-use App\Services\Alerts\AlertBatchStoreService;
+use App\Services\Alerts\Engine\AlertBatchStore;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
-class AlertBatchStoreServiceTest extends TestCase
+class AlertBatchStoreTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -20,7 +20,7 @@ class AlertBatchStoreServiceTest extends TestCase
             'rule_type' => Alert::RULE_FAILURE_COUNT,
             'enabled' => true,
         ]);
-        $service = new AlertBatchStoreService;
+        $service = new AlertBatchStore;
 
         $this->assertSame([], $service->getPending($alert));
         $service->setPending($alert, [['service_id' => 1, 'job_uuid' => 'a', 'triggered_at' => now()->toIso8601String()]]);
@@ -42,7 +42,7 @@ class AlertBatchStoreServiceTest extends TestCase
             'enabled' => true,
             'email_interval_minutes' => 10,
         ]);
-        $service = new AlertBatchStoreService;
+        $service = new AlertBatchStore;
 
         $this->assertTrue($service->shouldSendNow($alert));
 

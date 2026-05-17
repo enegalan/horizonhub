@@ -98,7 +98,7 @@
                                 </div>
                                 <button
                                     type="button"
-                                    class="btn-ghost -mr-1 inline-flex size-9 shrink-0 items-center justify-center rounded-md"
+                                    class="btn-ghost -mr-1 inline-flex size-9 shrink-0 items-center justify-center rounded-md p-0"
                                     aria-label="Close"
                                     @click="closeRetryModal()"
                                 >

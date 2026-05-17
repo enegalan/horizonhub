@@ -4,11 +4,11 @@ namespace Tests\Unit;
 
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Alerts\AlertIndexStreamDataService;
+use App\Services\Alerts\AlertDataService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class AlertIndexStreamDataServiceTest extends TestCase
+class AlertDataServiceTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -36,7 +36,7 @@ class AlertIndexStreamDataServiceTest extends TestCase
             'service_ids' => [],
         ]);
 
-        $payload = $this->app->make(AlertIndexStreamDataService::class)->buildStreamPayload();
+        $payload = $this->app->make(AlertDataService::class)->build();
 
         $this->assertCount(2, $payload['alerts']);
         $this->assertSame([

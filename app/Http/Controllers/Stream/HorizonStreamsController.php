@@ -8,7 +8,7 @@ use App\Models\Alert;
 use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\AlertChartDataService;
-use App\Services\Alerts\AlertIndexStreamDataService;
+use App\Services\Alerts\AlertDataService;
 use App\Services\Alerts\ProviderDeliveryStatsService;
 use App\Services\Horizon\DashboardDataService;
 use App\Services\Horizon\HorizonApiProxyService;
@@ -32,7 +32,7 @@ class HorizonStreamsController extends StreamController
     /**
      * The alert index stream data service.
      */
-    private AlertIndexStreamDataService $alertIndexStreamData;
+    private AlertDataService $alertIndexStreamData;
 
     /**
      * The dashboard data service.
@@ -82,7 +82,7 @@ class HorizonStreamsController extends StreamController
     /**
      * The constructor.
      */
-    public function __construct(MetricsDashboardDataService $metricsDashboard, DashboardDataService $dashboardData, HorizonMetricsService $metrics, HorizonApiProxyService $horizonApi, HorizonJobListService $jobList, HorizonJobDetailService $jobDetail, ServiceShowPageDataService $serviceShowPageData, ServiceStatsAttachmentService $serviceStats, AlertChartDataService $alertChartData, AlertIndexStreamDataService $alertIndexStreamData, ProviderDeliveryStatsService $providerDeliveryStats)
+    public function __construct(MetricsDashboardDataService $metricsDashboard, DashboardDataService $dashboardData, HorizonMetricsService $metrics, HorizonApiProxyService $horizonApi, HorizonJobListService $jobList, HorizonJobDetailService $jobDetail, ServiceShowPageDataService $serviceShowPageData, ServiceStatsAttachmentService $serviceStats, AlertChartDataService $alertChartData, AlertDataService $alertIndexStreamData, ProviderDeliveryStatsService $providerDeliveryStats)
     {
         $this->metricsDashboard = $metricsDashboard;
         $this->dashboardData = $dashboardData;
@@ -184,7 +184,7 @@ class HorizonStreamsController extends StreamController
 
     private function private__buildAlertsStreams(): string
     {
-        $payload = $this->alertIndexStreamData->buildStreamPayload();
+        $payload = $this->alertIndexStreamData->build();
 
         $streams = [];
         $this->pushViewStreams($streams, [

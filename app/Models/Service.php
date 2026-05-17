@@ -79,4 +79,16 @@ class Service extends Model
     {
         return $query->where('enabled', true);
     }
+
+    /**
+     * Scope to disabled services only.
+     *
+     * @param Builder<Service> $query
+     *
+     * @return Builder<Service>
+     */
+    public function scopeDisabled($query)
+    {
+        return $query->where('enabled', false);
+    }
 }

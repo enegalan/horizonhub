@@ -44,17 +44,16 @@ class MetricsDashboardDataService
      */
     public function build(array $serviceIds): array
     {
-        $scope = $serviceIds;
         $throughput = $this->metrics->getThroughputTotalsForServiceIds($serviceIds);
         $jobsPastMinute = $throughput['jobsPastMinute'];
         $jobsPastHour = $throughput['jobsPastHour'];
         $failedPastSevenDays = $throughput['failedPastSevenDays'];
-        $failureRate24h = $this->metrics->getFailureRate24h($scope);
-        $jobRuntimesLast24h = $this->metrics->getJobRuntimesLast24h($scope);
-        $failureRateOverTime = $this->metrics->getFailureRateOverTime($scope);
-        $jobsVolumeLast24h = $this->metrics->getJobsVolumeLast24h($scope);
-        $workloadRows = $this->metrics->getWorkloadData($scope);
-        $supervisorsRows = $this->metrics->getSupervisorsData($scope);
+        $failureRate24h = $this->metrics->getFailureRate24h($serviceIds);
+        $jobRuntimesLast24h = $this->metrics->getJobRuntimesLast24h($serviceIds);
+        $failureRateOverTime = $this->metrics->getFailureRateOverTime($serviceIds);
+        $jobsVolumeLast24h = $this->metrics->getJobsVolumeLast24h($serviceIds);
+        $workloadRows = $this->metrics->getWorkloadData($serviceIds);
+        $supervisorsRows = $this->metrics->getSupervisorsData($serviceIds);
 
         $totalQueues = \count($workloadRows);
         $totalJobs = 0;

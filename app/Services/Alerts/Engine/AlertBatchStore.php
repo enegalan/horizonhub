@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Services\Alerts;
+namespace App\Services\Alerts\Engine;
 
 use App\Models\Alert;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 
-class AlertBatchStoreService
+class AlertBatchStore
 {
     /**
      * The cache prefix for pending alerts.

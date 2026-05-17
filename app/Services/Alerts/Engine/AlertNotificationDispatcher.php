@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Alerts;
+namespace App\Services\Alerts\Engine;
 
 use App\Models\Alert;
 use App\Models\AlertLog;
@@ -9,7 +9,7 @@ use App\Services\Notifiers\EmailNotifier;
 use App\Services\Notifiers\SlackNotifier;
 use Illuminate\Support\Facades\Log;
 
-class AlertNotificationDispatcherService
+class AlertNotificationDispatcher
 {
     /**
      * The email notifier.

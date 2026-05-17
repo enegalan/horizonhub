@@ -34,7 +34,7 @@ class RuntimeMetricsCalculator extends HorizonMetricsComputation
 
             foreach ($completedJobs as $job) {
                 $queuedAt = $job['reserved_at'] ?? null;
-                $completedAt = $job['completed_at'] ?? $job['processed_at'] ?? null;
+                $completedAt = $job['completed_at'] ?? null;
 
                 if (! \is_numeric($queuedAt) || ! \is_numeric($completedAt)) {
                     continue;

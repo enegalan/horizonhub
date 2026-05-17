@@ -7,7 +7,7 @@ use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\AlertChartDataService;
-use App\Services\Alerts\AlertEngine;
+use App\Services\Alerts\Engine\AlertEngine;
 use App\Services\Alerts\AlertEvaluationBatchService;
 use App\Services\Alerts\AlertUpsertService;
 use Illuminate\Foundation\Testing\RefreshDatabase;

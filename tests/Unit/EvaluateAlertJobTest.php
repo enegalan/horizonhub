@@ -4,7 +4,7 @@ namespace Tests\Unit;
 
 use App\Jobs\EvaluateAlertJob;
 use App\Models\Alert;
-use App\Services\Alerts\AlertEngine;
+use App\Services\Alerts\Engine\AlertEngine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;

@@ -6,14 +6,14 @@ use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 use App\Models\Service;
-use App\Services\Alerts\AlertNotificationDispatcherService;
+use App\Services\Alerts\Engine\AlertNotificationDispatcher;
 use App\Services\Notifiers\EmailNotifier;
 use App\Services\Notifiers\SlackNotifier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
-class AlertNotificationDispatcherServiceTest extends TestCase
+class AlertNotificationDispatcherTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -50,7 +50,7 @@ class AlertNotificationDispatcherServiceTest extends TestCase
         $slack = $this->createMock(SlackNotifier::class);
         $slack->method('sendBatched')->willThrowException(new \RuntimeException('boom'));
 
-        $service = new AlertNotificationDispatcherService($email, $slack);
+        $service = new AlertNotificationDispatcher($email, $slack);
         $service->dispatch($alert, [['service_id' => 1, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]], $log);
 
         $log->refresh();
@@ -101,7 +101,7 @@ class AlertNotificationDispatcherServiceTest extends TestCase
         $slack = $this->createMock(SlackNotifier::class);
         $slack->expects($this->once())->method('sendBatched');
 
-        $service = new AlertNotificationDispatcherService($email, $slack);
+        $service = new AlertNotificationDispatcher($email, $slack);
         $service->dispatch($alert, [['service_id' => 1, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]], $log);
     }
 }

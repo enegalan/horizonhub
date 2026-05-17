@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Service;
-use App\Services\Alerts\AlertEngine;
+use App\Services\Alerts\Engine\AlertEngine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

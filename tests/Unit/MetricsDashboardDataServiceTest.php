@@ -47,7 +47,6 @@ class MetricsDashboardDataServiceTest extends TestCase
             ->method('getWaitByQueueChartData')
             ->with([])
             ->willReturn(null);
-
         $sut = new MetricsDashboardDataService($metrics);
         $out = $sut->build([]);
 

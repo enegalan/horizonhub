@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\Service;
-use App\Services\Alerts\AlertEngine;
+use App\Services\Alerts\Engine\AlertEngine;
 use App\Services\Alerts\AlertEvaluationBatchService;
 use App\Services\Alerts\AlertUpsertService;
 use App\Support\Alerts\AlertDeliveryLogPresenter;
@@ -101,7 +101,7 @@ class AlertController extends Controller
         return \view('horizon.alerts.index', [
             'alerts' => collect(),
             'defer' => true,
-            'evaluateAllAlertsVisible' => Alert::query()->where('enabled', true)->exists(),
+            'evaluateAllAlertsVisible' => Alert::query()->enabled()->exists(),
             'header' => 'Alerts',
         ]);
     }

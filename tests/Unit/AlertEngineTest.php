@@ -6,9 +6,9 @@ use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 use App\Models\Service;
-use App\Services\Alerts\AlertBatchStoreService;
-use App\Services\Alerts\AlertEngine;
-use App\Services\Alerts\AlertNotificationDispatcherService;
+use App\Services\Alerts\Engine\AlertBatchStore;
+use App\Services\Alerts\Engine\AlertEngine;
+use App\Services\Alerts\Engine\AlertNotificationDispatcher;
 use App\Services\Alerts\Rules\AlertRuleEvaluationSupport;
 use App\Services\Alerts\Rules\AlertRuleStrategyRegistry;
 use App\Services\Alerts\Rules\Strategies\AvgExecutionTimeAlertRuleStrategy;
@@ -19,6 +19,7 @@ use App\Services\Alerts\Rules\Strategies\QueueBlockedAlertRuleStrategy;
 use App\Services\Alerts\Rules\Strategies\SupervisorOfflineAlertRuleStrategy;
 use App\Services\Alerts\Rules\Strategies\WorkerOfflineAlertRuleStrategy;
 use App\Services\Horizon\HorizonApiProxyService;
+use App\Services\Horizon\HorizonJobsWindowFetcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -34,13 +35,13 @@ class AlertEngineTest extends TestCase
             'enabled' => true,
         ]);
 
-        $batch = $this->createMock(AlertBatchStoreService::class);
+        $batch = $this->createMock(AlertBatchStore::class);
         $batch->method('getLastSentAt')->willReturn(null);
         $batch->method('getPending')->willThrowException(new \RuntimeException('pending boom'));
 
         $engine = new AlertEngine(
             $batch,
-            $this->createMock(AlertNotificationDispatcherService::class),
+            $this->createMock(AlertNotificationDispatcher::class),
             $this->private__buildRegistry($this->createMock(HorizonApiProxyService::class)),
         );
         $result = $engine->evaluateAlert($alert);
@@ -58,8 +59,8 @@ class AlertEngineTest extends TestCase
             'enabled' => true,
         ]);
 
-        $batch = new AlertBatchStoreService;
-        $dispatcher = $this->createMock(AlertNotificationDispatcherService::class);
+        $batch = new AlertBatchStore;
+        $dispatcher = $this->createMock(AlertNotificationDispatcher::class);
         $registry = $this->private__buildRegistry($this->createMock(HorizonApiProxyService::class));
         $engine = new AlertEngine($batch, $dispatcher, $registry);
 
@@ -78,8 +79,8 @@ class AlertEngineTest extends TestCase
         ]);
 
         $engine = new AlertEngine(
-            new AlertBatchStoreService,
-            $this->createMock(AlertNotificationDispatcherService::class),
+            new AlertBatchStore,
+            $this->createMock(AlertNotificationDispatcher::class),
             $this->private__buildRegistry($this->createMock(HorizonApiProxyService::class)),
         );
 
@@ -110,10 +111,10 @@ class AlertEngineTest extends TestCase
             'data' => ['jobs' => [['id' => 'uuid-z', 'failed_at' => now()->toIso8601String(), 'queue' => '', 'payload' => []]]],
         ]);
 
-        $dispatcher = $this->createMock(AlertNotificationDispatcherService::class);
+        $dispatcher = $this->createMock(AlertNotificationDispatcher::class);
         $dispatcher->expects($this->exactly(2))->method('dispatch');
 
-        $engine = new AlertEngine(new AlertBatchStoreService, $dispatcher, $this->private__buildRegistry($api));
+        $engine = new AlertEngine(new AlertBatchStore, $dispatcher, $this->private__buildRegistry($api));
         $engine->evaluateScheduled();
         $this->assertDatabaseCount('alert_logs', 1);
 
@@ -147,8 +148,8 @@ class AlertEngineTest extends TestCase
             'data' => ['jobs' => [['id' => 'job-a', 'failed_at' => now()->toIso8601String(), 'queue' => '', 'payload' => []]]],
         ]);
         $engine = new AlertEngine(
-            new AlertBatchStoreService,
-            $this->createMock(AlertNotificationDispatcherService::class),
+            new AlertBatchStore,
+            $this->createMock(AlertNotificationDispatcher::class),
             $this->private__buildRegistry($api),
         );
         $result = $engine->evaluateWithTriggeringJobs($alert, $service->id, null);
@@ -174,10 +175,10 @@ class AlertEngineTest extends TestCase
         ]);
         $alert->notificationProviders()->sync([$provider->id]);
 
-        $batch = new AlertBatchStoreService;
+        $batch = new AlertBatchStore;
         $batch->setPending($alert, [['service_id' => $service->id, 'job_uuid' => 'u-ex', 'triggered_at' => now()->toIso8601String()]]);
 
-        $dispatcher = $this->createMock(AlertNotificationDispatcherService::class);
+        $dispatcher = $this->createMock(AlertNotificationDispatcher::class);
         $dispatcher->method('dispatch')->willThrowException(new \RuntimeException('dispatch fail'));
 
         $engine = new AlertEngine($batch, $dispatcher, $this->private__buildRegistry($this->createMock(HorizonApiProxyService::class)));
@@ -203,10 +204,10 @@ class AlertEngineTest extends TestCase
         ]);
         $alert->notificationProviders()->sync([$provider->id]);
 
-        $batch = new AlertBatchStoreService;
+        $batch = new AlertBatchStore;
         $batch->setPending($alert, [['service_id' => $service->id, 'job_uuid' => 'u1', 'triggered_at' => now()->toIso8601String()]]);
 
-        $dispatcher = $this->createMock(AlertNotificationDispatcherService::class);
+        $dispatcher = $this->createMock(AlertNotificationDispatcher::class);
         $dispatcher->expects($this->once())->method('dispatch');
         $engine = new AlertEngine($batch, $dispatcher, $this->private__buildRegistry($this->createMock(HorizonApiProxyService::class)));
 
@@ -244,8 +245,8 @@ class AlertEngineTest extends TestCase
             'sent_at' => now(),
         ]);
 
-        $batch = new AlertBatchStoreService;
-        $dispatcher = $this->createMock(AlertNotificationDispatcherService::class);
+        $batch = new AlertBatchStore;
+        $dispatcher = $this->createMock(AlertNotificationDispatcher::class);
         $dispatcher->expects($this->once())->method('dispatch');
         $registry = $this->private__buildRegistry($this->createMock(HorizonApiProxyService::class));
         $engine = new AlertEngine($batch, $dispatcher, $registry);
@@ -259,7 +260,7 @@ class AlertEngineTest extends TestCase
 
     private function private__buildRegistry(HorizonApiProxyService $api): AlertRuleStrategyRegistry
     {
-        $support = new AlertRuleEvaluationSupport($api);
+        $support = new AlertRuleEvaluationSupport(new HorizonJobsWindowFetcher($api));
 
         return new AlertRuleStrategyRegistry(
             new NullAlertRuleStrategy,

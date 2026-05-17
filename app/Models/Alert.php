@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -87,5 +88,17 @@ class Alert extends Model
     {
         return $this->belongsToMany(NotificationProvider::class, 'alert_notification_provider')
             ->withTimestamps();
+    }
+
+    /**
+     * Scope to enabled services only.
+     *
+     * @param Builder<Alert> $query
+     *
+     * @return Builder<Alert>
+     */
+    public function scopeEnabled($query)
+    {
+        return $query->where('enabled', true);
     }
 }

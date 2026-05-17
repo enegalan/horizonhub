@@ -52,7 +52,7 @@ class AlertEvaluationBatchService
     public function startEvaluateAll(): array
     {
         $alertIds = Alert::query()
-            ->where('enabled', true)
+            ->enabled()
             ->pluck('id')
             ->all();
 

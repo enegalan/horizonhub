@@ -4,7 +4,6 @@ namespace App\Services\Alerts\Rules;
 
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\HorizonJobsWindowFetcher;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -19,9 +18,9 @@ final class AlertRuleEvaluationSupport
     /**
      * Construct the evaluation support.
      */
-    public function __construct(HorizonApiProxyService $horizonApi)
+    public function __construct(HorizonJobsWindowFetcher $jobsWindowFetcher)
     {
-        $this->jobsWindowFetcher = new HorizonJobsWindowFetcher($horizonApi);
+        $this->jobsWindowFetcher = $jobsWindowFetcher;
     }
 
     /**

@@ -129,10 +129,6 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
         foreach ($services as $service) {
             $rows = $this->getWorkloadForService($service);
 
-            if ($rows === []) {
-                $rows = $this->private__getWorkloadFallbackFromMasters($service);
-            }
-
             foreach ($rows as $row) {
                 $result[] = [
                     'service_id' => (int) $service->id,

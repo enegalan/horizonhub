@@ -15,7 +15,7 @@ class QueueFailureCountersCalculator extends HorizonMetricsComputation
      */
     public function getProcessedFailedByQueue(array $serviceScope = []): array
     {
-        $since = \now()->subDays(self::DAYS_7);
+        $since = \now()->subDays(7);
         $sinceTimestamp = $since->getTimestamp();
 
         $services = $this->private__getServicesForMetrics($serviceScope);

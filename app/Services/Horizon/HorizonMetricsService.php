@@ -54,14 +54,14 @@ class HorizonMetricsService
     /**
      * Construct the Horizon metrics service.
      */
-    public function __construct(HorizonApiProxyService $horizonApi)
+    public function __construct(HorizonApiProxyService $horizonApi, HorizonJobsWindowFetcher $jobsWindowFetcher)
     {
-        $this->jobsThroughputMetrics = new JobsThroughputMetricsCalculator($horizonApi);
-        $this->workloadMetrics = new WorkloadMetricsCalculator($horizonApi);
-        $this->failureMetrics = new FailureMetricsCalculator($horizonApi);
-        $this->runtimeMetrics = new RuntimeMetricsCalculator($horizonApi);
-        $this->queueFailureCounters = new QueueFailureCountersCalculator($horizonApi);
-        $this->jobsVolumeLast24h = new JobsVolumeLast24hCalculator($horizonApi);
+        $this->jobsThroughputMetrics = new JobsThroughputMetricsCalculator($horizonApi, $jobsWindowFetcher);
+        $this->workloadMetrics = new WorkloadMetricsCalculator($horizonApi, $jobsWindowFetcher);
+        $this->failureMetrics = new FailureMetricsCalculator($horizonApi, $jobsWindowFetcher);
+        $this->runtimeMetrics = new RuntimeMetricsCalculator($horizonApi, $jobsWindowFetcher);
+        $this->queueFailureCounters = new QueueFailureCountersCalculator($horizonApi, $jobsWindowFetcher);
+        $this->jobsVolumeLast24h = new JobsVolumeLast24hCalculator($horizonApi, $jobsWindowFetcher);
     }
 
     /**

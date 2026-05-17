@@ -252,12 +252,12 @@ class HorizonJobListService
                 $queue = (string) ($job['queue'] ?? '');
                 $name = (string) ($job['name'] ?? '');
 
-                if (! empty($search)) {
-                    $haystack = "$queue $name $jobUuid";
-
-                    if (\stripos($haystack, $search) === false) {
-                        continue;
-                    }
+                if (! $this->private__matchesSearch((object) [
+                    'queue' => $queue,
+                    'name' => $name,
+                    'uuid' => $jobUuid,
+                ], $search)) {
+                    continue;
                 }
 
                 $failedAtRaw = $job['failed_at'] ?? null;
@@ -471,8 +471,8 @@ class HorizonJobListService
         $name = (string) ($job['name'] ?? '');
         $payload = isset($job['payload']) && \is_array($job['payload']) ? $job['payload'] : [];
 
-        $pushedAt = $job['pushedAt'] ?? $payload['pushedAt'] ?? null;
-        $reservedAtRaw = $job['reserved_at'] ?? $job['reservedAt'] ?? $payload['reserved_at'] ?? $payload['reservedAt'] ?? null;
+        $pushedAt = $payload['pushedAt'] ?? null;
+        $reservedAtRaw = $payload['reserved_at'] ?? null;
         $completedAt = $job['completed_at'] ?? null;
         $failedAtRaw = $job['failed_at'] ?? null;
 
@@ -485,12 +485,8 @@ class HorizonJobListService
         $commandData = JobCommandDataExtractor::extract($payload);
 
         $availableAt = isset($commandData['delay']['date']) ? JobRuntimeHelper::parseJobTimestamp($commandData['delay']['date']) : null;
-        $attemptsRaw = $job['attempts'] ?? $payload['attempts'] ?? null;
-        $attempts = $attemptsRaw !== null && $attemptsRaw !== '' ? (int) $attemptsRaw : null;
-
-        if ($attempts !== null && $attempts < 1) {
-            $attempts = null;
-        }
+        $attemptsRaw = $payload['attempts'] ?? null;
+        $attempts = is_numeric($attemptsRaw) && $attemptsRaw >= 1 ? (int) $attemptsRaw : null;
 
         $runtime = JobRuntimeHelper::getFormattedRuntime(
             JobRuntimeHelper::getRuntimeSeconds(

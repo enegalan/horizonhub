@@ -87,7 +87,7 @@ class FailureMetricsCalculator extends HorizonMetricsComputation
             $completedJobs = $this->jobsWindowFetcher->fetchCompletedJobsSince($service, $sinceTimestamp);
 
             foreach ($completedJobs as $job) {
-                $completedAt = $job['completed_at'] ?? $job['processed_at'] ?? null;
+                $completedAt = $job['completed_at'] ?? null;
 
                 if (! \is_numeric($completedAt)) {
                     continue;

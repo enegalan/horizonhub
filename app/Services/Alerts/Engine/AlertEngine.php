@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Alerts;
+namespace App\Services\Alerts\Engine;
 
 use App\Models\Alert;
 use App\Models\AlertLog;
@@ -14,12 +14,12 @@ class AlertEngine
     /**
      * The batch store.
      */
-    private AlertBatchStoreService $batchStore;
+    private AlertBatchStore $batchStore;
 
     /**
      * The notification dispatcher.
      */
-    private AlertNotificationDispatcherService $notificationDispatcher;
+    private AlertNotificationDispatcher $notificationDispatcher;
 
     /**
      * The rule strategy registry.
@@ -29,7 +29,7 @@ class AlertEngine
     /**
      * Construct the alert engine.
      */
-    public function __construct(AlertBatchStoreService $batchStore, AlertNotificationDispatcherService $notificationDispatcher, AlertRuleStrategyRegistry $ruleStrategyRegistry)
+    public function __construct(AlertBatchStore $batchStore, AlertNotificationDispatcher $notificationDispatcher, AlertRuleStrategyRegistry $ruleStrategyRegistry)
     {
         $this->batchStore = $batchStore;
         $this->notificationDispatcher = $notificationDispatcher;
@@ -89,7 +89,7 @@ class AlertEngine
             /** @var array<int, int> $serviceIds */
             $serviceIds = $alert->service_ids;
 
-            if ($serviceIds === []) {
+            if (empty($serviceIds)) {
                 $serviceIds = Service::query()->enabled()->pluck('id')->all();
             } else {
                 $serviceIds = Service::query()
@@ -172,7 +172,7 @@ class AlertEngine
             try {
                 $serviceIds = $alert->service_ids;
 
-                if ($serviceIds === []) {
+                if (empty($serviceIds)) {
                     $serviceIds = $enabledServiceIds;
                 } else {
                     $serviceIds = \array_values(\array_intersect(
