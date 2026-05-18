@@ -184,7 +184,7 @@ class ServiceController extends Controller
     }
 
     /**
-     * Store the headers for the service.
+     * Store the headers for a service.
      */
     private function private__storeHeaders(Service $service, array $headers): void
     {
