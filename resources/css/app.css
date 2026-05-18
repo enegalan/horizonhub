@@ -104,7 +104,8 @@
     }
     :disabled.cursor-wait,
     :disabled[class*="cursor-wait"] {
-        @apply cursor-wait opacity-50 filter-none;
+        cursor: wait;
+        @apply opacity-50 filter-none;
     }
     input[type="text"],
     input[type="url"],
