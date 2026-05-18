@@ -42,8 +42,6 @@ class ServiceController extends Controller
      */
     public function edit(Service $service): View
     {
-        $service->load('headers');
-
         return \view('horizon.services.form', [
             'service' => $service,
             'header' => 'Edit service',
