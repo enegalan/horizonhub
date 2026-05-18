@@ -6,7 +6,7 @@
             <x-page-hero
                 eyebrow="Workload"
                 title="Queues"
-                description="Pending jobs per queue across your Horizon services. Filter by service to focus on a subset of workers."
+                description="Pending jobs per queue across your Horizon services. Filter by tag or service to focus on a subset of workers."
             />
 
             <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
@@ -16,7 +16,7 @@
                         :selected-tags="$selectedTags ?? []"
                         :show-service-multiselect="true"
                         :services="$services"
-                        :service-ids="$serviceIds ?? []"
+                        :service-ids="$selectedServiceIds ?? []"
                         service-multiselect-id="queues-index-services"
                         service-multiselect-name="queue_services"
                         service-multiselect-label="Services"

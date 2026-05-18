@@ -16,7 +16,7 @@
                         :selected-tags="$selectedTags ?? []"
                         :show-service-multiselect="true"
                         :services="$services ?? collect()"
-                        :service-ids="$serviceIds ?? []"
+                        :service-ids="$selectedServiceIds ?? []"
                         service-multiselect-id="metrics-service-filter"
                         service-multiselect-name="service_id"
                     />

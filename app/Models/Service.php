@@ -58,6 +58,35 @@ class Service extends Model
     ];
 
     /**
+     * Distinct tags across services (uses model casts, not raw JSON pluck).
+     *
+     * @return list<string>
+     */
+    public static function distinctTags(bool $enabledOnly = false): array
+    {
+        $query = self::query();
+
+        if ($enabledOnly) {
+            $query->enabled();
+        }
+
+        $tags = [];
+
+        foreach ($query->get(['tags']) as $service) {
+            foreach ($service->tags as $tag) {
+                if (\is_string($tag) && $tag !== '') {
+                    $tags[$tag] = $tag;
+                }
+            }
+        }
+
+        $list = \array_values($tags);
+        \sort($list);
+
+        return $list;
+    }
+
+    /**
      * Get the base URL of the service.
      */
     public function getBaseUrl(): string

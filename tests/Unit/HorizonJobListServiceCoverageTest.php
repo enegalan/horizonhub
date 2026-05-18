@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\HorizonJobListService;
+use App\Services\Horizon\ServiceFilterService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Tests\TestCase;
@@ -42,7 +43,7 @@ class HorizonJobListServiceCoverageTest extends TestCase
             ]],
         ]);
 
-        $service = new HorizonJobListService($api);
+        $service = new HorizonJobListService($api, new ServiceFilterService);
 
         $request = Request::create('/horizon/jobs', 'GET', [
             'search' => 'Job',

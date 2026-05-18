@@ -27,7 +27,8 @@
             class="w-full min-w-0 sm:w-64"
             :selected="$selectedTags"
             placeholder="All tags"
-            empty-message="No tags yet"
+            empty-message="No tags defined"
+            searchable
         >
             @foreach($allTags as $tag)
                 <option value="{{ $tag }}">{{ $tag }}</option>

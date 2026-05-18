@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Horizon\FailedJobsListRequest;
 use App\Http\Requests\Horizon\RetryBatchRequest;
 use App\Http\Requests\Horizon\RetryJobRequest;
+use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\HorizonJobListService;
@@ -67,14 +68,10 @@ class JobActionController extends Controller
             $serviceIds = [$validated['service_id']];
         }
 
-        $servicesQuery = Service::query()->enabled()->whereNotNull('base_url');
-
-        if (\count($serviceIds) > 0) {
-            $servicesQuery->whereIn('id', $serviceIds);
-        }
+        $tags = ServiceRequest::existingTagsFromRequest($request, ['service_tag']);
 
         /** @var Collection<int, Service> $services */
-        $services = $servicesQuery->get();
+        $services = $this->private__resolveRetryModalServices($serviceIds, $tags);
 
         if ($services->count() === 0) {
             if ($selection === 'all') {
@@ -206,5 +203,45 @@ class JobActionController extends Controller
             'failed' => $failed,
             'results' => $results,
         ]);
+    }
+
+    /**
+     * Enabled services with base URL for the retry modal, filtered by ids and/or tags.
+     *
+     * @param list<int> $serviceIds
+     * @param list<string> $tags
+     *
+     * @return Collection<int, Service>
+     */
+    private function private__resolveRetryModalServices(array $serviceIds, array $tags): Collection
+    {
+        $query = Service::query()->enabled()->whereNotNull('base_url');
+
+        if ($tags !== [] && $serviceIds !== []) {
+            $tagIds = Service::query()
+                ->enabled()
+                ->whereNotNull('base_url')
+                ->matchingTags($tags)
+                ->pluck('id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+            $ids = \array_values(\array_intersect($serviceIds, $tagIds));
+
+            if ($ids === []) {
+                return new Collection;
+            }
+
+            return $query->whereIn('id', $ids)->get();
+        }
+
+        if ($tags !== []) {
+            return $query->matchingTags($tags)->get();
+        }
+
+        if ($serviceIds !== []) {
+            return $query->whereIn('id', $serviceIds)->get();
+        }
+
+        return $query->get();
     }
 }

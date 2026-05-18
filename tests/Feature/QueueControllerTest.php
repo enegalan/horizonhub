@@ -22,7 +22,7 @@ class QueueControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertViewHas('defer', true);
-        $response->assertViewHas('serviceIds', []);
+        $response->assertViewHas('selectedServiceIds', []);
         $response->assertSee('queue-svc', false);
         $response->assertSee('id="turbo-tbody-horizon-queue-list"', false);
     }
@@ -40,6 +40,6 @@ class QueueControllerTest extends TestCase
         ]));
 
         $response->assertOk();
-        $response->assertViewHas('serviceIds', [$service->id]);
+        $response->assertViewHas('selectedServiceIds', [$service->id]);
     }
 }

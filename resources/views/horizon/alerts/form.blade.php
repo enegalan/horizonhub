@@ -158,32 +158,26 @@
                         @error('service_ids.*') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
                     <div class="space-y-2">
-                        <x-input-label>Tags</x-input-label>
+                        <x-input-label id="alert-service-tags-label" for="alert-service-tags">Tags</x-input-label>
                         <p class="text-xs text-muted-foreground">Services must have all selected tags. Combined with explicit services above (union).</p>
                         @php
                             $oldServiceTags = old('service_tags', $selectedServiceTags ?? []);
                             $oldServiceTags = \is_array($oldServiceTags) ? $oldServiceTags : [];
                         @endphp
-                        <div class="space-y-2">
-                            @forelse($allTags ?? [] as $tag)
-                                <div
-                                    class="flex cursor-pointer items-center gap-3 rounded-xl border border-border px-3 py-2.5 transition-colors hover:bg-muted/50"
-                                    role="group"
-                                    tabindex="0"
-                                    @click="toggleCheckboxRow($event)"
-                                >
-                                    <x-checkbox
-                                        id="service-tag-{{ md5($tag) }}"
-                                        name="service_tags[]"
-                                        value="{{ $tag }}"
-                                        :checked="in_array($tag, $oldServiceTags, true)"
-                                    />
-                                    <x-input-label for="service-tag-{{ md5($tag) }}" class="cursor-pointer text-sm font-normal">{{ $tag }}</x-input-label>
-                                </div>
-                            @empty
-                                <p class="text-xs text-muted-foreground">No tags defined yet. Add tags on the service edit form.</p>
-                            @endforelse
-                        </div>
+                        <x-multiselect
+                            id="alert-service-tags"
+                            labelled-by="alert-service-tags-label"
+                            name="service_tags"
+                            class="w-full max-w-md"
+                            :selected="$oldServiceTags"
+                            placeholder="All tags (no restriction)"
+                            empty-message="No tags defined yet. Add tags on the service edit form."
+                            searchable
+                        >
+                            @foreach($allTags ?? [] as $tag)
+                                <option value="{{ $tag }}">{{ $tag }}</option>
+                            @endforeach
+                        </x-multiselect>
                         @error('service_tags') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                         @error('service_tags.*') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>

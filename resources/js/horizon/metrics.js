@@ -1,6 +1,5 @@
 import { applyChartOptions, buildJobsVolumeLast24hOptions, getAxisTooltipViewportOptions, getChartColors } from "../charts/metrics-charts";
 import { parseJsonFromElement } from "../lib/parse";
-import { isHotReloadEnabled } from "../lib/sse";
 
 /**
  * Alpine component for the metrics page.
@@ -17,23 +16,6 @@ export function horizonMetricsPage() {
 
             // Initial hydration to initially show metrics charts and format elements
             renderMetricsCharts();
-
-            var filterEl = document.getElementById("metrics-service-filter");
-            if (filterEl) {
-                filterEl.addEventListener("change", function (e) {
-                    var ids = e.detail.values.map(String).filter(Boolean).sort();
-                    var url = new URL(window.location.href);
-                    url.searchParams.delete("service_id");
-                    url.searchParams.delete("service_id[]");
-                    ids.forEach(function (id) {
-                        url.searchParams.append("service_id[]", id);
-                    });
-                    window.history.replaceState({}, "", url.toString());
-                    if (isHotReloadEnabled() && typeof window.__horizonHubRefreshStreamReconnect === "function") {
-                        window.__horizonHubRefreshStreamReconnect();
-                    }
-                });
-            }
         },
     };
 }

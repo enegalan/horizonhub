@@ -24,7 +24,7 @@
                             :selected-tags="$selectedTags ?? []"
                             :show-service-multiselect="true"
                             :services="$services"
-                            :service-ids="$filters['serviceIds'] ?? []"
+                            :service-ids="$selectedServiceIds ?? []"
                             service-multiselect-id="jobs-index-services"
                             service-multiselect-name="serviceFilter"
                             service-multiselect-label="Services"
@@ -86,7 +86,7 @@
                                     <div class="min-w-0 space-y-0.5 sm:space-y-1">
                                         <h2 class="text-lg font-semibold leading-tight text-foreground sm:text-section-title">Retry failed jobs</h2>
                                         <p class="hidden max-w-2xl text-sm text-muted-foreground sm:block">
-                                            Filter by service, search, or failure time. Select jobs below, then retry in bulk.
+                                            Filter by service, tag, search, or failure time. Select jobs below, then retry in bulk.
                                         </p>
                                     </div>
                                 </div>
@@ -110,7 +110,7 @@
                             </div>
                             <form
                                 @submit.prevent="applyRetryModalFilters()"
-                                class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)_auto] lg:items-end"
+                                class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)_auto] xl:items-end"
                             >
                                 <template x-for="session in [retryModalSession]" :key="session">
                                     <div class="min-w-0 space-y-2">
@@ -127,6 +127,24 @@
                                         >
                                             @foreach($services as $s)
                                                 <option value="{{ $s->id }}">{{ $s->name }} ({{ $s->status }})</option>
+                                            @endforeach
+                                        </x-multiselect>
+                                    </div>
+                                    <div class="min-w-0 space-y-2">
+                                        <x-input-label id="retry-modal-tags-label" for="retry-modal-tags">Tags</x-input-label>
+                                        <x-multiselect
+                                            id="retry-modal-tags"
+                                            labelled-by="retry-modal-tags-label"
+                                            name="retryModalServiceTag"
+                                            class="w-full min-w-0"
+                                            :selected="[]"
+                                            placeholder="All tags"
+                                            empty-message="No tags defined"
+                                            searchable
+                                            @change="retryFilters.service_tags = $event.detail.values"
+                                        >
+                                            @foreach($allTags ?? [] as $tag)
+                                                <option value="{{ $tag }}">{{ $tag }}</option>
                                             @endforeach
                                         </x-multiselect>
                                     </div>

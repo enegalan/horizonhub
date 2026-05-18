@@ -30,10 +30,6 @@ export function horizonServiceForm(initialHeaders, initialTags) {
                 return;
             }
 
-            if (this.tags.length >= 32) {
-                return;
-            }
-
             this.tags.push(normalized);
             this.tagInput = '';
         },

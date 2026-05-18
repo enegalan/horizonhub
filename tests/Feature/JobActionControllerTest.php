@@ -12,6 +12,43 @@ class JobActionControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_failed_list_filters_services_by_tag(): void
+    {
+        $matching = Service::query()->create([
+            'name' => 'svc-tagged',
+            'base_url' => 'https://tagged.test',
+            'status' => 'online',
+            'tags' => ['production'],
+        ]);
+        Service::query()->create([
+            'name' => 'svc-other',
+            'base_url' => 'https://other.test',
+            'status' => 'online',
+            'tags' => ['staging'],
+        ]);
+
+        $jobList = $this->createMock(HorizonJobListService::class);
+        $jobList->expects($this->once())
+            ->method('buildFailedJobsRetryModalPage')
+            ->with(
+                $this->callback(function ($services) use ($matching): bool {
+                    return $services->count() === 1 && (int) $services->first()->id === (int) $matching->id;
+                }),
+                '',
+                null,
+                null,
+                1,
+                \PHP_INT_MAX,
+            )
+            ->willReturn(['rows' => [], 'total' => 0, 'last_page' => 1]);
+        $this->app->instance(HorizonJobListService::class, $jobList);
+
+        $this->getJson(route('horizon.jobs.failed', [
+            'selection' => 'all',
+            'service_tag' => ['production'],
+        ]))->assertOk();
+    }
+
     public function test_failed_list_returns_empty_meta_when_no_services_match(): void
     {
         $jobList = $this->createMock(HorizonJobListService::class);

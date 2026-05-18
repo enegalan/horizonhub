@@ -61,4 +61,53 @@ class ServiceFilterServiceTest extends TestCase
 
         $this->assertSame([], $this->filter->resolveServiceIds($request));
     }
+
+    #[Test]
+    public function resolve_returns_no_match_placeholder_when_tag_and_service_do_not_overlap(): void
+    {
+        $prod = Service::factory()->create(['tags' => ['production']]);
+        $staging = Service::factory()->create(['tags' => ['staging']]);
+
+        $request = Request::create('/horizon/jobs', 'GET', [
+            'service_tag' => ['production'],
+            'serviceFilter' => [$staging->id],
+        ]);
+
+        $ids = $this->filter->resolveServiceIds($request);
+
+        $this->assertSame([ServiceFilterService::NO_MATCH_SERVICE_ID], $ids);
+        $this->assertNotContains($prod->id, $ids);
+        $this->assertNotContains($staging->id, $ids);
+    }
+
+    #[Test]
+    public function selected_service_ids_from_request_ignores_resolved_no_match_placeholder(): void
+    {
+        $prod = Service::factory()->create(['tags' => ['production']]);
+        $staging = Service::factory()->create(['tags' => ['staging']]);
+
+        $request = Request::create('/horizon/metrics', 'GET', [
+            'service_tag' => ['production'],
+            'service_id' => [$staging->id],
+        ]);
+
+        $this->assertSame([ServiceFilterService::NO_MATCH_SERVICE_ID], $this->filter->resolveServiceIds($request));
+        $this->assertSame([$staging->id], $this->filter->selectedServiceIdsFromRequest($request));
+        $this->assertNotContains(ServiceFilterService::NO_MATCH_SERVICE_ID, $this->filter->selectedServiceIdsFromRequest($request));
+    }
+
+    #[Test]
+    public function resolve_returns_no_match_placeholder_when_tag_matches_no_service(): void
+    {
+        Service::factory()->create(['tags' => ['production']]);
+
+        $request = Request::create('/horizon/dashboard', 'GET', [
+            'service_tag' => ['staging'],
+        ]);
+
+        $this->assertSame(
+            [ServiceFilterService::NO_MATCH_SERVICE_ID],
+            $this->filter->resolveServiceIds($request),
+        );
+    }
 }

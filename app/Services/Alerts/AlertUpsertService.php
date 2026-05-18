@@ -5,7 +5,6 @@ namespace App\Services\Alerts;
 use App\Models\Alert;
 use App\Models\NotificationProvider;
 use App\Models\Service;
-use App\Services\Horizon\ServiceTagNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -32,7 +31,6 @@ class AlertUpsertService
             Alert::RULE_HORIZON_OFFLINE => 'Horizon offline',
         ];
         $header = $alert->exists ? 'Edit alert' : 'New alert';
-        $allTags = ServiceTagNormalizer::normalizeList(Service::query()->enabled()->pluck('tags')->all());
 
         return [
             'alert' => $alert,
@@ -42,7 +40,7 @@ class AlertUpsertService
             'selectedProviderIds' => $alert->exists ? $alert->notificationProviders()->pluck('notification_providers.id')->all() : [],
             'selectedServiceIds' => $alert->service_ids,
             'selectedServiceTags' => $alert->service_tags,
-            'allTags' => $allTags,
+            'allTags' => Service::distinctTags(true),
             'header' => $header,
         ];
     }

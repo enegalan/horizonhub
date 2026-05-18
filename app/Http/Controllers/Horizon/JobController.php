@@ -21,7 +21,6 @@ class JobController extends Controller
             'jobsFailed' => [],
             'services' => Service::query()->enabled()->orderBy('name')->get(),
             'filters' => [
-                'serviceIds' => $serviceFilter->resolveServiceIds($request),
                 'search' => (string) $request->query('search', ''),
             ],
             'defer' => true,

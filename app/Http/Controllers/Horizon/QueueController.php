@@ -20,7 +20,6 @@ class QueueController extends Controller
             'queues' => \collect(),
             'services' => Service::query()->enabled()->orderBy('name')->get(),
             'totalJobs' => 0,
-            'serviceIds' => $serviceFilter->resolveServiceIds($request),
             'defer' => true,
             'header' => 'Queues',
         ], $serviceFilter->viewData($request)));
