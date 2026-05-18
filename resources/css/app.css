@@ -82,13 +82,37 @@
     [x-cloak] {
         display: none !important;
     }
+    button:disabled,
+    input:disabled,
+    select:disabled,
+    textarea:disabled,
+    fieldset:disabled {
+        @apply cursor-not-allowed opacity-40;
+        filter: saturate(0.75) contrast(0.92);
+    }
+    button:disabled,
+    input[type="button"]:disabled,
+    input[type="submit"]:disabled,
+    input[type="reset"]:disabled {
+        @apply pointer-events-none shadow-none;
+        filter: saturate(0.75) contrast(0.92) grayscale(0.2);
+    }
+    button:disabled:hover,
+    button:disabled:focus,
+    button:disabled:active {
+        box-shadow: none !important;
+    }
+    :disabled.cursor-wait,
+    :disabled[class*="cursor-wait"] {
+        @apply cursor-wait opacity-50 filter-none;
+    }
     input[type="text"],
     input[type="url"],
     input[type="email"],
     input[type="password"],
     select,
     textarea {
-        @apply flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50;
+        @apply flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground;
     }
     select {
         @apply py-2 pr-8 appearance-none cursor-pointer;
@@ -183,16 +207,16 @@
         @apply absolute inset-0 h-full min-w-0 w-full max-w-full;
     }
     .btn-primary {
-        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90;
+        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:hover:bg-primary;
     }
     .btn-ghost {
-        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-4 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground;
+        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-4 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:hover:bg-transparent;
     }
     .btn-danger {
-        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-4 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10;
+        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-4 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:hover:bg-transparent;
     }
     .btn-secondary {
-        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-input bg-background px-4 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground;
+        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-input bg-background px-4 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:hover:bg-background;
     }
     .badge {
         @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors;

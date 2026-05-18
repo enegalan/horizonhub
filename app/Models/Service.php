@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property bool $enabled
@@ -66,6 +67,16 @@ class Service extends Model
         }
 
         return $this->getBaseUrl();
+    }
+
+    /**
+     * HTTP headers sent on outbound requests to this service.
+     *
+     * @return HasMany<ServiceHeader, $this>
+     */
+    public function headers(): HasMany
+    {
+        return $this->hasMany(ServiceHeader::class)->orderBy('id');
     }
 
     /**

@@ -183,7 +183,7 @@ class HorizonApiProxyService
         $cookieJar = new CookieJar;
 
         try {
-            $response = $this->private__newHorizonPendingRequest()
+            $response = $this->private__newHorizonPendingRequest('get', $service)
                 ->withOptions(['cookies' => $cookieJar])
                 ->get($dashboardUrl);
         } catch (\Throwable $e) {
@@ -298,7 +298,7 @@ class HorizonApiProxyService
 
         $httpMethod = \strtolower($method);
         $attempt = function () use ($service, $url, $httpMethod, $withDashboardSession): ?Response {
-            $request = $this->private__newHorizonPendingRequest($httpMethod);
+            $request = $this->private__newHorizonPendingRequest($httpMethod, $service);
 
             if ($withDashboardSession) {
                 $bootstrap = $this->private__bootstrapDashboardSession($service);
@@ -398,8 +398,9 @@ class HorizonApiProxyService
      * Build an HTTP client for Horizon calls with unified timeout and optional GET retries.
      *
      * @param string $httpMethod The HTTP method.
+     * @param Service|null $service The service.
      */
-    private function private__newHorizonPendingRequest(string $httpMethod = 'get'): PendingRequest
+    private function private__newHorizonPendingRequest(string $httpMethod, ?Service $service = null): PendingRequest
     {
         $httpMethod = \strtoupper($httpMethod);
         $timeoutSeconds = (int) config('horizonhub.api_timeout');
@@ -439,6 +440,16 @@ class HorizonApiProxyService
                 },
                 throw: false,
             );
+        }
+
+        if ($service !== null) {
+            $headers = [];
+
+            foreach ($service->headers as $header) {
+                $headers[$header->name] = $header->value ?? '';
+            }
+
+            $request = $request->withHeaders($headers);
         }
 
         return $request;

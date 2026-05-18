@@ -14,6 +14,38 @@ class HorizonApiProxyServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_dashboard_bootstrap_sends_service_headers(): void
+    {
+        Http::fake(function ($request) {
+            if ($request->method() === 'GET' && \str_ends_with($request->url(), '/horizon')) {
+                $this->assertContains('service-key', $request->header('X-Api-Key'));
+
+                return Http::response('<html><head><meta name="csrf-token" content="csrf-token"></head></html>', 200);
+            }
+
+            return Http::response(['ok' => true], 200);
+        });
+
+        \config()->set('horizonhub.horizon_paths.dashboard', '/horizon');
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.retry', '/jobs/retry/{id}');
+
+        $service = Service::create([
+            'name' => 'svc-dashboard-headers',
+            'base_url' => 'https://service-dashboard-headers.test',
+            'status' => 'online',
+        ]);
+
+        $service->headers()->create([
+            'name' => 'X-Api-Key',
+            'value' => 'service-key',
+        ]);
+
+        $result = (new HorizonApiProxyService)->retryJob($service, 'job-uuid');
+
+        $this->assertTrue($result['success']);
+    }
+
     public function test_failed_response_prefers_json_message_and_html_fallback_message(): void
     {
         Http::fake(function ($request) {
@@ -290,6 +322,33 @@ class HorizonApiProxyServiceTest extends TestCase
         $this->assertFalse($result['success']);
         $this->assertSame(502, $result['status'] ?? null);
         $this->assertSame('network down', $result['message'] ?? null);
+    }
+
+    public function test_ping_sends_configured_service_headers(): void
+    {
+        Http::fake(function ($request) {
+            $this->assertContains('Bearer test-token', $request->header('Authorization'));
+
+            return Http::response(['ok' => true], 200);
+        });
+
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.ping', '/stats');
+
+        $service = Service::create([
+            'name' => 'svc-custom-headers',
+            'base_url' => 'https://service-headers.test',
+            'status' => 'online',
+        ]);
+
+        $service->headers()->create([
+            'name' => 'Authorization',
+            'value' => 'Bearer test-token',
+        ]);
+
+        $result = (new HorizonApiProxyService)->ping($service);
+
+        $this->assertTrue($result['success']);
     }
 
     public function test_ping_still_works_when_service_is_disabled(): void

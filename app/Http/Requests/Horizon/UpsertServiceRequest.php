@@ -5,9 +5,12 @@ namespace App\Http\Requests\Horizon;
 use App\Models\Service;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpsertServiceRequest extends FormRequest
 {
+    private const HEADER_NAME_PATTERN = '/^[!#$%&\'*+.^_`|~0-9A-Za-z-]+$/';
+
     public function authorize(): bool
     {
         return true;
@@ -30,6 +33,64 @@ class UpsertServiceRequest extends FormRequest
             ],
             'base_url' => ['required', 'url'],
             'public_url' => ['nullable', 'url'],
+            'headers' => ['nullable', 'array'],
+            'headers.*.name' => ['nullable', 'string'],
+            'headers.*.value' => ['nullable', 'string'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $headers = $this->input('headers');
+
+            if (! \is_array($headers)) {
+                return;
+            }
+
+            $seen = [];
+            $reserved = config('horizonhub.service_reserved_header_names');
+
+            foreach ($headers as $index => $header) {
+                if (! \is_array($header)) {
+                    continue;
+                }
+
+                $name = \trim((string) ($header['name'] ?? ''));
+                $value = isset($header['value']) ? \trim((string) $header['value']) : '';
+
+                if ($name === '' && $value === '') {
+                    continue;
+                }
+
+                if ($name === '') {
+                    $validator->errors()->add("headers.$index.name", 'The name field is required when value is present.');
+
+                    continue;
+                }
+
+                if (! \preg_match(self::HEADER_NAME_PATTERN, $name)) {
+                    $validator->errors()->add("headers.$index.name", 'The name format is invalid.');
+
+                    continue;
+                }
+
+                $lower = \strtolower($name);
+
+                if (\in_array($lower, $reserved, true)) {
+                    $validator->errors()->add("headers.$index.name", 'This header name is reserved and cannot be set manually.');
+
+                    continue;
+                }
+
+                if (isset($seen[$lower])) {
+                    $validator->errors()->add("headers.$index.name", 'Duplicated header name.');
+
+                    continue;
+                }
+
+                $seen[$lower] = true;
+            }
+        });
     }
 }

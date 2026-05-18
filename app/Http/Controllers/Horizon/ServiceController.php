@@ -15,6 +15,17 @@ use Illuminate\Http\Request;
 class ServiceController extends Controller
 {
     /**
+     * Show the form to register a new service.
+     */
+    public function create(): View
+    {
+        return \view('horizon.services.form', [
+            'service' => new Service,
+            'header' => 'Register service',
+        ]);
+    }
+
+    /**
      * Delete a service.
      */
     public function destroy(Service $service): RedirectResponse
@@ -31,14 +42,16 @@ class ServiceController extends Controller
      */
     public function edit(Service $service): View
     {
-        return \view('horizon.services.edit', [
+        $service->load('headers');
+
+        return \view('horizon.services.form', [
             'service' => $service,
             'header' => 'Edit service',
         ]);
     }
 
     /**
-     * Display the list of services and registration form.
+     * Display the list of services.
      */
     public function index(): View
     {
@@ -87,13 +100,15 @@ class ServiceController extends Controller
     {
         $validated = $request->validated();
 
-        Service::create([
+        $service = Service::create([
             'name' => $validated['name'],
             'base_url' => \rtrim($validated['base_url'], '/'),
             'public_url' => ! empty($validated['public_url']) ? \rtrim($validated['public_url'], '/') : null,
             'status' => 'offline',
             'enabled' => true,
         ]);
+
+        $this->private__storeHeaders($service, $validated['headers'] ?? []);
 
         return redirect()
             ->route('horizon.services.index')
@@ -159,10 +174,39 @@ class ServiceController extends Controller
             'base_url' => \rtrim($validated['base_url'], '/'),
             'public_url' => ! empty($validated['public_url']) ? \rtrim($validated['public_url'], '/') : null,
         ]);
+
+        $service->headers()->delete();
+        $this->private__storeHeaders($service, $validated['headers'] ?? []);
+
         $horizonApi->resetFailureCooldown($service);
 
         return redirect()
             ->route('horizon.services.index')
             ->with('status', FlashStatus::success('Service updated.'));
+    }
+
+    /**
+     * Store the headers for the service.
+     */
+    private function private__storeHeaders(Service $service, array $headers): void
+    {
+        foreach ($headers as $header) {
+            if (! \is_array($header)) {
+                continue;
+            }
+
+            $name = \trim((string) ($header['name'] ?? ''));
+
+            if ($name === '') {
+                continue;
+            }
+
+            $value = isset($header['value']) ? \trim((string) $header['value']) : '';
+
+            $service->headers()->create([
+                'name' => $name,
+                'value' => $value === '' ? null : $value,
+            ]);
+        }
     }
 }
