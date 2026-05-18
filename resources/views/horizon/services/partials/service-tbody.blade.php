@@ -180,8 +180,15 @@
     <div class="card p-8 sm:col-span-2 xl:col-span-3">
         <x-empty-state
             title="No services"
-            description="Register a service above to connect your first Horizon instance."
+            description="Register a service to connect your first Horizon instance."
         >
+            <x-button
+                type="button"
+                class="mt-4 h-9 text-sm"
+                onclick="window.location.href='{{ route('horizon.services.create') }}'"
+            >
+                Register service
+            </x-button>
             <x-slot name="icon">
                 <x-heroicon-o-server-stack class="empty-state-icon" />
             </x-slot>

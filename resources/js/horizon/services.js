@@ -1,4 +1,48 @@
 /**
+ * Service create/edit form.
+ *
+ * @param {Array<{name: string, value: string}>} initialHeaders
+ * @returns {object}
+ */
+export function horizonServiceForm(initialHeaders) {
+    var headers = Array.isArray(initialHeaders) ? initialHeaders : [];
+
+    if (headers.length === 0) {
+        headers.push({ name: '', value: '' });
+    }
+
+    return {
+        headers: headers,
+
+        canAddHeader() {
+            for (var i = 0; i < this.headers.length; i++) {
+                if ((this.headers[i].name || '').trim() === '') {
+                    return false;
+                }
+            }
+
+            return true;
+        },
+
+        addHeader() {
+            if (!this.canAddHeader()) {
+                return;
+            }
+
+            this.headers.push({ name: '', value: '' });
+        },
+
+        removeHeader(index) {
+            if (this.headers.length > 1) {
+                this.headers.splice(index, 1);
+            } else {
+                this.headers[0] = { name: '', value: '' };
+            }
+        },
+    };
+}
+
+/**
  * Services index interactions (enable/disable toggle).
  */
 export function horizonServicesList() {

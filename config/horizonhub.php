@@ -42,6 +42,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Service reserved HTTP header names
+    |--------------------------------------------------------------------------
+    |
+    | Lowercase header names that must not be set manually on a service.
+    |
+    */
+    'service_reserved_header_names' => [
+        'connection',
+        'content-length',
+        'host',
+        'transfer-encoding',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Timeout
     |--------------------------------------------------------------------------
     |

@@ -5,7 +5,7 @@ import * as Turbo from '@hotwired/turbo';
 import { horizonJobsPage, horizonJobDetail, horizonJobRowRetry, initJsonTrees } from './horizon/jobs';
 import { horizonAlertsList, horizonAlertDetail, renderAlertDetailCharts } from './horizon/alerts';
 import { horizonDeleteConfirm } from './horizon/delete-confirm';
-import { horizonServicesList } from './horizon/services';
+import { horizonServiceForm, horizonServicesList } from './horizon/services';
 import { horizonMetricsPage, renderMetricsCharts } from './horizon/metrics';
 import { initTurboStream } from './lib/sse';
 import { createHttpHelpers } from './lib/http';
@@ -33,6 +33,7 @@ window.horizonJobRowRetry = horizonJobRowRetry;
 window.horizonAlertsList = horizonAlertsList;
 window.horizonAlertDetail = horizonAlertDetail;
 window.horizonDeleteConfirm = horizonDeleteConfirm;
+window.horizonServiceForm = horizonServiceForm;
 window.horizonServicesList = horizonServicesList;
 window.horizonMetricsPage = horizonMetricsPage;
 
