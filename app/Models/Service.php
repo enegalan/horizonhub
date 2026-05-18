@@ -112,4 +112,35 @@ class Service extends Model
     {
         return $query->where('enabled', true);
     }
+
+    /**
+     * Scope to services matching tag filters.
+     *
+     * @param Builder<Service> $query
+     * @param list<string> $tags
+     *
+     * @return Builder<Service>
+     */
+    public function scopeMatchingTags(Builder $query, array $tags): Builder
+    {
+        if ($tags === []) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $inner) use ($tags): void {
+            foreach ($tags as $tag) {
+                $inner->orWhereJsonContains('tags', $tag);
+            }
+        });
+    }
+
+    /**
+     * Normalize tags before persistence.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Service $service): void {
+            $service->tags = ServiceTagNormalizer::normalizeList($service->tags ?? []);
+        });
+    }
 }

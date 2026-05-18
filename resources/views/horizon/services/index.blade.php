@@ -24,6 +24,13 @@
 
             <x-session-flash />
 
+            <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
+                <x-service-tag-filter
+                    :all-tags="$allTags ?? []"
+                    :selected-tags="$selectedTags ?? []"
+                />
+            </div>
+
             <div class="grid gap-3 border-b border-border px-5 py-4 sm:grid-cols-3 sm:px-6">
                 <div
                     id="turbo-horizon-service-stats"

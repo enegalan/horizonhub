@@ -30,11 +30,24 @@
         if ($headersForForm === []) {
             $headersForForm[] = ['name' => '', 'value' => ''];
         }
+
+        $tagsForForm = [];
+        $oldTags = old('tags');
+
+        if (\is_array($oldTags)) {
+            foreach ($oldTags as $tag) {
+                if (\is_string($tag) && \trim($tag) !== '') {
+                    $tagsForForm[] = \trim($tag);
+                }
+            }
+        } elseif ($isEdit) {
+            $tagsForForm = $service->tags ?? [];
+        }
     @endphp
 
     <div
         class="mx-auto max-w-3xl space-y-6"
-        x-data="window.horizonServiceForm({!! \Illuminate\Support\Js::from($headersForForm) !!})"
+        x-data="window.horizonServiceForm({!! \Illuminate\Support\Js::from($headersForForm) !!}, {!! \Illuminate\Support\Js::from($tagsForForm) !!})"
     >
         <div class="card overflow-hidden">
             <x-page-hero
@@ -79,6 +92,46 @@
                             URL reachable from your browser.
                         </p>
                     </div>
+                </div>
+            </div>
+
+            <div class="card overflow-hidden">
+                <div class="border-b border-border px-5 py-4 sm:px-6">
+                    <h3 class="text-sm font-semibold text-foreground">Tags</h3>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Group services for filters.
+                    </p>
+                </div>
+                <div class="space-y-4 px-5 py-5 sm:px-6">
+                    <div class="flex flex-wrap gap-2" x-show="tags.length > 0">
+                        <template x-for="(tag, index) in tags" :key="'tag-' + index">
+                            <span class="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs text-foreground">
+                                <span x-text="tag"></span>
+                                <input type="hidden" x-bind:name="'tags[]'" x-bind:value="tag" />
+                                <button type="button" class="text-muted-foreground hover:text-foreground" @click="removeTag(index)" aria-label="Remove tag" no-ring>
+                                    <x-heroicon-o-x-mark class="h-3 w-3" />
+                                </button>
+                            </span>
+                        </template>
+                    </div>
+                    <div class="flex flex-wrap items-end gap-2">
+                        <div class="min-w-0 flex-1 space-y-2">
+                            <x-input-label for="service-tag-input">Add tag</x-input-label>
+                            <x-text-input
+                                id="service-tag-input"
+                                type="text"
+                                class="w-full"
+                                x-model="tagInput"
+                                placeholder="production"
+                                @keydown.enter.prevent="addTag()"
+                            />
+                        </div>
+                        <x-button type="button" variant="secondary" class="h-9 shrink-0 text-sm" @click="addTag()">
+                            Add
+                        </x-button>
+                    </div>
+                    @error('tags') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                    @error('tags.*') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                 </div>
             </div>
 

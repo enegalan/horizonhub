@@ -53,6 +53,7 @@
                             {{ $service->name }}
                         </a>
                         <p class="mt-1 truncate font-mono text-xs text-muted-foreground">{{ $service->getBaseUrl() ?: 'No base URL' }}</p>
+                        @include('horizon.services.partials.service-tags', ['tags' => $service->tags ?? [], 'class' => 'mt-2'])
                     </div>
                 </div>
                 <div class="flex shrink-0 flex-col items-end gap-1.5">

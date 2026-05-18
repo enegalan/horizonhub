@@ -10,27 +10,18 @@
             />
 
             <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
-                <div class="flex flex-wrap items-end gap-3">
-                    <div class="space-y-2">
-                        <x-input-label id="queues-index-services-label" for="queues-index-services">Services</x-input-label>
-                        <form method="GET" action="{{ route('horizon.queues.index') }}" data-turbo-frame="_top">
-                            <x-multiselect
-                                id="queues-index-services"
-                                labelled-by="queues-index-services-label"
-                                name="queue_services"
-                                class="w-full min-w-0 sm:w-56"
-                                :submit-on-change="true"
-                                :selected="$serviceIds ?? []"
-                                placeholder="All services"
-                                empty-message="No services found"
-                            >
-                                @foreach($services as $s)
-                                    <option value="{{ $s->id }}">{{ $s->name }}</option>
-                                @endforeach
-                            </x-multiselect>
-                        </form>
-                    </div>
-                </div>
+                <form method="GET" action="{{ route('horizon.queues.index') }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="_top" data-service-tag-filter="1">
+                    <x-service-tag-filter
+                        :all-tags="$allTags ?? []"
+                        :selected-tags="$selectedTags ?? []"
+                        :show-service-multiselect="true"
+                        :services="$services"
+                        :service-ids="$serviceIds ?? []"
+                        service-multiselect-id="queues-index-services"
+                        service-multiselect-name="queue_services"
+                        service-multiselect-label="Services"
+                    />
+                </form>
             </div>
 
             <div class="grid gap-3 border-b border-border px-5 py-4 sm:grid-cols-2 sm:px-6">

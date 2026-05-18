@@ -18,23 +18,17 @@
 
             <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
                 <div class="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
-                    <form method="GET" action="{{ route('horizon.jobs.index') }}" class="flex min-w-0 flex-1 flex-col flex-wrap gap-3 sm:flex-row sm:items-end" data-turbo-frame="_top">
-                        <div class="min-w-0 space-y-2 sm:max-w-none">
-                            <x-input-label id="jobs-index-services-label" for="jobs-index-services">Services</x-input-label>
-                            <x-multiselect
-                                id="jobs-index-services"
-                                labelled-by="jobs-index-services-label"
-                                name="serviceFilter"
-                                class="w-full min-w-0 sm:w-56"
-                                :selected="$filters['serviceIds'] ?? []"
-                                placeholder="All services"
-                                empty-message="No services found"
-                            >
-                                @foreach($services as $s)
-                                    <option value="{{ $s->id }}">{{ $s->name }} ({{ $s->status }})</option>
-                                @endforeach
-                            </x-multiselect>
-                        </div>
+                    <form method="GET" action="{{ route('horizon.jobs.index') }}" class="flex min-w-0 flex-1 flex-col flex-wrap gap-3 sm:flex-row sm:items-end" data-turbo-frame="_top" data-service-tag-filter="1">
+                        <x-service-tag-filter
+                            :all-tags="$allTags ?? []"
+                            :selected-tags="$selectedTags ?? []"
+                            :show-service-multiselect="true"
+                            :services="$services"
+                            :service-ids="$filters['serviceIds'] ?? []"
+                            service-multiselect-id="jobs-index-services"
+                            service-multiselect-name="serviceFilter"
+                            service-multiselect-label="Services"
+                        />
                         <div class="min-w-0 flex-1 space-y-2 sm:max-w-none">
                             <x-input-label for="jobs-index-search">Search</x-input-label>
                             <div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
