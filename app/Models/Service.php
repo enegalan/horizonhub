@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Services\Horizon\ServiceTagNormalizer;
+use Database\Factories\ServiceFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -10,10 +13,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property bool $enabled
  * @property int $horizon_failed_jobs_count
  * @property int $horizon_jobs_count
+ * @property list<string> $tags
  * @property string|null $horizon_status
  */
 class Service extends Model
 {
+    /** @use HasFactory<ServiceFactory> */
+    use HasFactory;
+
     /**
      * Default attribute values.
      *
@@ -21,6 +28,7 @@ class Service extends Model
      */
     protected $attributes = [
         'enabled' => true,
+        'tags' => '[]',
     ];
 
     /**
@@ -31,6 +39,7 @@ class Service extends Model
     protected $casts = [
         'enabled' => 'boolean',
         'last_seen_at' => 'datetime',
+        'tags' => 'array',
     ];
 
     /**
@@ -45,6 +54,7 @@ class Service extends Model
         'status',
         'enabled',
         'last_seen_at',
+        'tags',
     ];
 
     /**

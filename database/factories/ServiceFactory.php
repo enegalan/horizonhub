@@ -24,6 +24,7 @@ class ServiceFactory extends Factory
             'status' => 'online',
             'enabled' => true,
             'last_seen_at' => now(),
+            'tags' => [],
         ];
     }
 }

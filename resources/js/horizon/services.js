@@ -2,10 +2,12 @@
  * Service create/edit form.
  *
  * @param {Array<{name: string, value: string}>} initialHeaders
+ * @param {string[]} initialTags
  * @returns {object}
  */
-export function horizonServiceForm(initialHeaders) {
+export function horizonServiceForm(initialHeaders, initialTags) {
     var headers = Array.isArray(initialHeaders) ? initialHeaders : [];
+    var tags = Array.isArray(initialTags) ? initialTags.slice() : [];
 
     if (headers.length === 0) {
         headers.push({ name: '', value: '' });
@@ -13,6 +15,34 @@ export function horizonServiceForm(initialHeaders) {
 
     return {
         headers: headers,
+        tags: tags,
+        tagInput: '',
+
+        addTag() {
+            var value = (this.tagInput || '').trim();
+            if (value === '') {
+                return;
+            }
+
+            var normalized = value.toLowerCase().replace(/\s+/g, ' ');
+            if (this.tags.indexOf(normalized) !== -1) {
+                this.tagInput = '';
+                return;
+            }
+
+            if (this.tags.length >= 32) {
+                return;
+            }
+
+            this.tags.push(normalized);
+            this.tagInput = '';
+        },
+
+        removeTag(index) {
+            if (index >= 0 && index < this.tags.length) {
+                this.tags.splice(index, 1);
+            }
+        },
 
         canAddHeader() {
             for (var i = 0; i < this.headers.length; i++) {

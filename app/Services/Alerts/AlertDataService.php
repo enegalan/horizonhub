@@ -11,19 +11,33 @@ class AlertDataService
     /**
      * Load alerts for the index stream with list metadata.
      *
+     * @param list<int> $filterServiceIds Empty means no filter.
+     *
      * @return array{
      *     alerts: Collection<int, Alert>,
      *     alertStats: array{total: int, enabled: int, disabled: int},
      *     serviceLabelsByAlertId: array<int, list<string>>
      * }
      */
-    public function build(): array
+    public function build(array $filterServiceIds = []): array
     {
         $alerts = Alert::query()
             ->withCount('alertLogs')
             ->withMax('alertLogs', 'sent_at')
             ->orderByDesc('created_at')
             ->get();
+
+        if ($filterServiceIds !== []) {
+            $alerts = $alerts->filter(function (Alert $alert) use ($filterServiceIds): bool {
+                foreach ($filterServiceIds as $serviceId) {
+                    if ($alert->appliesToServiceId((int) $serviceId)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            })->values();
+        }
 
         $alertStats = [
             'total' => $alerts->count(),
@@ -56,6 +70,12 @@ class AlertDataService
 
                 if ($name !== null) {
                     $labels[] = $name;
+                }
+            }
+
+            foreach ($alert->service_tags as $tag) {
+                if (\is_string($tag) && $tag !== '') {
+                    $labels[] = "#$tag";
                 }
             }
 

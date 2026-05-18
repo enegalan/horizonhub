@@ -36,6 +36,8 @@ class UpsertServiceRequest extends FormRequest
             'headers' => ['nullable', 'array'],
             'headers.*.name' => ['nullable', 'string'],
             'headers.*.value' => ['nullable', 'string'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['string'],
         ];
     }
 

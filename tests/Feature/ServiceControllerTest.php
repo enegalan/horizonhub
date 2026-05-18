@@ -44,8 +44,12 @@ class ServiceControllerTest extends TestCase
             'name' => 'svc-b',
             'base_url' => 'https://svc-b.test/',
             'public_url' => 'https://public-b.test/',
+            'tags' => ['Production', ' mailing '],
         ])->assertRedirect(route('horizon.services.index'));
         $this->assertDatabaseHas('services', ['name' => 'svc-b', 'base_url' => 'https://svc-b.test', 'public_url' => 'https://public-b.test']);
+        $created = Service::query()->where('name', 'svc-b')->first();
+        $this->assertNotNull($created);
+        $this->assertSame(['mailing', 'production'], $created->tags);
 
         $this->put(route('horizon.services.update', ['service' => $service]), [
             'name' => 'svc-a-updated',

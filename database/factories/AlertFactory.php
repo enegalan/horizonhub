@@ -20,6 +20,7 @@ class AlertFactory extends Factory
         return [
             'name' => $this->faker->words(3, true),
             'service_ids' => [],
+            'service_tags' => [],
             'rule_type' => Alert::RULE_FAILURE_COUNT,
             'threshold' => ['count' => 1, 'minutes' => 5],
             'queue' => null,

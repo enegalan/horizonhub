@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Horizon\UpsertServiceRequest;
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
+use App\Services\Horizon\ServiceFilterService;
 use App\Support\FlashStatus;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -51,13 +52,13 @@ class ServiceController extends Controller
     /**
      * Display the list of services.
      */
-    public function index(): View
+    public function index(Request $request, ServiceFilterService $serviceFilter): View
     {
-        return \view('horizon.services.index', [
+        return \view('horizon.services.index', \array_merge([
             'services' => collect(),
             'defer' => true,
             'header' => 'Services',
-        ]);
+        ], $serviceFilter->viewData($request)));
     }
 
     /**
@@ -104,6 +105,7 @@ class ServiceController extends Controller
             'public_url' => ! empty($validated['public_url']) ? \rtrim($validated['public_url'], '/') : null,
             'status' => 'offline',
             'enabled' => true,
+            'tags' => $validated['tags'] ?? [],
         ]);
 
         $this->private__storeHeaders($service, $validated['headers'] ?? []);
@@ -171,6 +173,7 @@ class ServiceController extends Controller
             'name' => $validated['name'],
             'base_url' => \rtrim($validated['base_url'], '/'),
             'public_url' => ! empty($validated['public_url']) ? \rtrim($validated['public_url'], '/') : null,
+            'tags' => $validated['tags'] ?? [],
         ]);
 
         $service->headers()->delete();
