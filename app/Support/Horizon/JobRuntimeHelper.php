@@ -77,7 +77,7 @@ class JobRuntimeHelper
      */
     public static function parseJobTimestamp(mixed $value): ?Carbon
     {
-        if ($value === null || $value === '' || $value === false) {
+        if (blank($value)) {
             return null;
         }
 
@@ -113,7 +113,7 @@ class JobRuntimeHelper
             return $value;
         }
 
-        if ($value === null || $value === '') {
+        if (blank($value)) {
             return null;
         }
 

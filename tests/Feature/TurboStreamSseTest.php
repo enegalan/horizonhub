@@ -9,6 +9,7 @@ use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\AlertChartDataService;
 use App\Services\Horizon\HorizonApiProxyService;
+use App\Services\Horizon\ServiceFilterService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -55,7 +56,7 @@ class TurboStreamSseTest extends TestCase
         $reflection = new \ReflectionMethod($controller, 'private__buildAlertsStreams');
         $reflection->setAccessible(true);
 
-        $result = $reflection->invoke($controller);
+        $result = $reflection->invoke($controller, '');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="turbo-horizon-alert-stats" method="morph"', $result);
@@ -266,7 +267,7 @@ class TurboStreamSseTest extends TestCase
         $reflection = new \ReflectionMethod($controller, 'private__buildServicesStreams');
         $reflection->setAccessible(true);
 
-        $result = $reflection->invoke($controller);
+        $result = $reflection->invoke($controller, '');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="turbo-horizon-service-stats" method="morph"', $result);
@@ -277,18 +278,20 @@ class TurboStreamSseTest extends TestCase
     public function test_parse_service_ids_and_turbo_stream_tag_helper_branches(): void
     {
         $controller = $this->app->make(HorizonStreamsController::class);
+        $filter = $this->app->make(ServiceFilterService::class);
 
-        $parse = new \ReflectionMethod($controller, 'private__parseServiceIdsFromQuery');
-        $parse->setAccessible(true);
-        $this->assertSame([], $parse->invoke($controller, ''));
-        $this->assertSame([], $parse->invoke($controller, 'service_id=abc'));
+        $this->assertSame([], $filter->resolveFromQuery(''));
+        $this->assertSame([], $filter->resolveFromQuery('service_id=abc'));
 
         $service = Service::create([
             'name' => 'parse-svc',
             'base_url' => 'https://parse.test',
             'status' => 'online',
         ]);
-        $this->assertSame([$service->id], $parse->invoke($controller, 'queue_services[]=' . $service->id, 'queue_services'));
+        $this->assertSame([$service->id], $filter->resolveFromQuery('service_id[]=' . $service->id));
+
+        $service->update(['tags' => ['production']]);
+        $this->assertSame([$service->id], $filter->resolveFromQuery('service_tag[]=production'));
 
         $tag = new \ReflectionMethod(StreamController::class, 'turboStreamTag');
         $tag->setAccessible(true);

@@ -44,6 +44,7 @@
                     Status: <span class="font-medium text-foreground">{{ $serviceStatusLabel }}</span>
                 </span>
             </div>
+            @include('horizon.services.partials.service-tags', ['tags' => $service->tags ?? []])
             <div class="inline-flex flex-wrap items-center gap-1 rounded-lg border border-border bg-card p-1">
                 <x-button
                     variant="ghost"

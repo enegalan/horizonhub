@@ -9,48 +9,25 @@ use Illuminate\Http\Request;
 class ServiceRequest extends FormRequest
 {
     /**
-     * Read the first non-empty request/query value for the given keys (in order), then parse and restrict to existing services.
-     *
-     * @param list<string> $keys
+     * Parse `service_id` from the request and restrict to existing services.
      *
      * @return list<int>
      */
-    public static function existingIdsFromRequest(Request $request, array $keys): array
+    public static function existingIdsFromRequest(Request $request): array
     {
-        $raw = self::private__firstRawValueForKeys($request, $keys);
-        $serviceIds = self::parseIds($raw);
+        $raw = $request->input('service_id');
 
-        if ($serviceIds === []) {
+        if (blank($raw)) {
             return [];
         }
 
-        $existing = Service::query()->whereIn('id', $serviceIds)->pluck('id')->map(static fn ($id): int => (int) $id)->all();
+        $values = \is_array($raw) ? $raw : [$raw];
+        $serviceIds = \array_values(\array_unique($values));
+
+        $existing = Service::query()->whereIn('id', $serviceIds)->pluck('id')->all();
         \sort($existing);
 
         return $existing;
-    }
-
-    /**
-     * Collect positive integer ids from a scalar or array (e.g. query `param[]`).
-     *
-     * @return list<int>
-     */
-    public static function parseIds(mixed $raw): array
-    {
-        if ($raw === null) {
-            return [];
-        }
-        $values = \is_array($raw) ? $raw : [$raw];
-
-        $ids = \array_filter(
-            \array_map(
-                static fn ($value): int => \is_numeric($value) ? (int) $value : 0,
-                $values,
-            ),
-            static fn (int $id): bool => $id > 0,
-        );
-
-        return \array_values(\array_unique($ids));
     }
 
     /**
@@ -71,26 +48,8 @@ class ServiceRequest extends FormRequest
         return [
             'service_id' => ['nullable', 'array'],
             'service_id.*' => ['integer', 'exists:services,id'],
+            'service_tag' => ['nullable', 'array'],
+            'service_tag.*' => ['string'],
         ];
-    }
-
-    /**
-     * Get the first non-empty request/query value for the given keys (in order).
-     *
-     * @param list<string> $keys
-     */
-    private static function private__firstRawValueForKeys(Request $request, array $keys): mixed
-    {
-        foreach ($keys as $key) {
-            $candidate = $request->input($key, $request->query($key));
-
-            if ($candidate === null || $candidate === '' || (\is_array($candidate) && $candidate === [])) {
-                continue;
-            }
-
-            return $candidate;
-        }
-
-        return null;
     }
 }

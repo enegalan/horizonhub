@@ -2,7 +2,6 @@
 
 namespace App\Services\Horizon;
 
-use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
 use App\Support\DatetimeBoundaryParser;
 use App\Support\Horizon\JobCommandDataExtractor;
@@ -20,11 +19,17 @@ class HorizonJobListService
     private HorizonApiProxyService $horizonApi;
 
     /**
+     * The service filter service.
+     */
+    private ServiceFilterService $serviceFilter;
+
+    /**
      * The constructor.
      */
-    public function __construct(HorizonApiProxyService $horizonApi)
+    public function __construct(HorizonApiProxyService $horizonApi, ServiceFilterService $serviceFilter)
     {
         $this->horizonApi = $horizonApi;
+        $this->serviceFilter = $serviceFilter;
     }
 
     /**
@@ -42,7 +47,7 @@ class HorizonJobListService
      */
     public function buildAggregatedJobsIndexFromRequest(Request $request): array
     {
-        $serviceFilterIds = ServiceRequest::existingIdsFromRequest($request, ['serviceFilter']);
+        $serviceFilterIds = $this->serviceFilter->resolveServiceIds($request);
         $search = (string) $request->query('search', '');
 
         $perPage = (int) config('horizonhub.jobs_per_page');

@@ -12,7 +12,7 @@ class ServiceRequestServiceIdsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_existing_ids_from_request_uses_first_non_empty_key(): void
+    public function test_existing_ids_from_request_reads_service_id(): void
     {
         $s1 = Service::create([
             'name' => 'svc-a',
@@ -25,22 +25,14 @@ class ServiceRequestServiceIdsTest extends TestCase
             'status' => 'online',
         ]);
 
-        $request = Request::create('/x?first%5B%5D=' . $s2->id . '&second%5B%5D=' . $s1->id, 'GET');
+        $request = Request::create('/x', 'GET', [
+            'service_id' => [$s1->id, $s2->id],
+        ]);
 
-        $ids = ServiceRequest::existingIdsFromRequest($request, ['first', 'second']);
-        $this->assertSame([(int) $s2->id], $ids);
+        $ids = ServiceRequest::existingIdsFromRequest($request);
+        $this->assertSame([(int) $s1->id, (int) $s2->id], $ids);
 
-        $request2 = Request::create('/x?second%5B%5D=' . $s1->id, 'GET');
-        $ids2 = ServiceRequest::existingIdsFromRequest($request2, ['first', 'second']);
-        $this->assertSame([(int) $s1->id], $ids2);
-    }
-
-    public function test_parse_positive_int_ids_from_array_and_scalar(): void
-    {
-        $this->assertSame([1, 2], ServiceRequest::parseIds(['1', '2', '1']));
-        $this->assertSame([5], ServiceRequest::parseIds('5'));
-        $this->assertSame([], ServiceRequest::parseIds([]));
-        $this->assertSame([], ServiceRequest::parseIds('x'));
-        $this->assertSame([], ServiceRequest::parseIds(null));
+        $request2 = Request::create('/x', 'GET');
+        $this->assertSame([], ServiceRequest::existingIdsFromRequest($request2));
     }
 }

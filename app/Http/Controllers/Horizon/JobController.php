@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Horizon;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
+use App\Services\Horizon\ServiceFilterService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
@@ -13,23 +13,19 @@ class JobController extends Controller
     /**
      * Show the jobs index.
      */
-    public function index(Request $request): View
+    public function index(Request $request, ServiceFilterService $serviceFilter): View
     {
-        $serviceFilterIds = ServiceRequest::existingIdsFromRequest($request, ['serviceFilter']);
-        $search = (string) $request->query('search', '');
-
-        return \view('horizon.jobs.index', [
+        return \view('horizon.jobs.index', \array_merge([
             'jobsProcessing' => [],
             'jobsProcessed' => [],
             'jobsFailed' => [],
             'services' => Service::query()->enabled()->orderBy('name')->get(),
             'filters' => [
-                'serviceIds' => $serviceFilterIds,
-                'search' => $search,
+                'search' => (string) $request->query('search', ''),
             ],
             'defer' => true,
             'header' => 'Jobs',
-        ]);
+        ], $serviceFilter->viewData($request)));
     }
 
     /**

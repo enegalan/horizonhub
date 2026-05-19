@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Stream;
 
 use App\Http\Controllers\StreamController;
-use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Alert;
 use App\Models\NotificationProvider;
 use App\Models\Service;
@@ -16,6 +15,7 @@ use App\Services\Horizon\HorizonJobDetailService;
 use App\Services\Horizon\HorizonJobListService;
 use App\Services\Horizon\HorizonMetricsService;
 use App\Services\Horizon\MetricsDashboardDataService;
+use App\Services\Horizon\ServiceFilterService;
 use App\Services\Horizon\ServiceShowPageDataService;
 use App\Services\Horizon\ServiceStatsAttachmentService;
 use Illuminate\Http\Request;
@@ -70,6 +70,11 @@ class HorizonStreamsController extends StreamController
     private ProviderDeliveryStatsService $providerDeliveryStats;
 
     /**
+     * The service filter service.
+     */
+    private ServiceFilterService $serviceFilter;
+
+    /**
      * The service show page data service.
      */
     private ServiceShowPageDataService $serviceShowPageData;
@@ -82,7 +87,7 @@ class HorizonStreamsController extends StreamController
     /**
      * The constructor.
      */
-    public function __construct(MetricsDashboardDataService $metricsDashboard, DashboardDataService $dashboardData, HorizonMetricsService $metrics, HorizonApiProxyService $horizonApi, HorizonJobListService $jobList, HorizonJobDetailService $jobDetail, ServiceShowPageDataService $serviceShowPageData, ServiceStatsAttachmentService $serviceStats, AlertChartDataService $alertChartData, AlertDataService $alertIndexStreamData, ProviderDeliveryStatsService $providerDeliveryStats)
+    public function __construct(MetricsDashboardDataService $metricsDashboard, DashboardDataService $dashboardData, HorizonMetricsService $metrics, HorizonApiProxyService $horizonApi, HorizonJobListService $jobList, HorizonJobDetailService $jobDetail, ServiceShowPageDataService $serviceShowPageData, ServiceStatsAttachmentService $serviceStats, AlertChartDataService $alertChartData, AlertDataService $alertIndexStreamData, ProviderDeliveryStatsService $providerDeliveryStats, ServiceFilterService $serviceFilter)
     {
         $this->metricsDashboard = $metricsDashboard;
         $this->dashboardData = $dashboardData;
@@ -95,6 +100,7 @@ class HorizonStreamsController extends StreamController
         $this->alertChartData = $alertChartData;
         $this->alertIndexStreamData = $alertIndexStreamData;
         $this->providerDeliveryStats = $providerDeliveryStats;
+        $this->serviceFilter = $serviceFilter;
     }
 
     public function alerts(): StreamedResponse
@@ -145,9 +151,11 @@ class HorizonStreamsController extends StreamController
         return $this->runStream(fn (): string => $this->private__buildQueuesStreams($query));
     }
 
-    public function serviceList(): StreamedResponse
+    public function serviceList(Request $request): StreamedResponse
     {
-        return $this->runStream(fn (): string => $this->private__buildServicesStreams());
+        $query = $request->getQueryString() ?? '';
+
+        return $this->runStream(fn (): string => $this->private__buildServicesStreams($query));
     }
 
     public function serviceShow(Request $request, Service $service): StreamedResponse
@@ -317,7 +325,7 @@ class HorizonStreamsController extends StreamController
 
     private function private__buildMetricsStreams(string $query): string
     {
-        $d = $this->metricsDashboard->build($this->private__parseServiceIdsFromQuery($query));
+        $d = $this->metricsDashboard->build($this->serviceFilter->resolveFromQuery($query));
 
         $updates = [
             'metrics-value-jobs-minute' => e($d['jobsPastMinute'] ?? '—'),
@@ -375,7 +383,7 @@ class HorizonStreamsController extends StreamController
 
     private function private__buildQueuesStreams(string $query): string
     {
-        $serviceFilterIds = $this->private__parseServiceIdsFromQuery($query, 'queue_services');
+        $serviceFilterIds = $this->serviceFilter->resolveFromQuery($query);
         $queues = $this->metrics->buildQueuesCollectionForServiceFilter($serviceFilterIds);
 
         $queueCount = $queues->count();
@@ -403,9 +411,7 @@ class HorizonStreamsController extends StreamController
         $url = \route('horizon.services.show', ['service' => $service->id], true);
         $queryParams = [];
 
-        if ($query !== '') {
-            \parse_str($query, $queryParams);
-        }
+        \parse_str($query, $queryParams);
         $pageRequest = Request::create($url, 'GET', $queryParams);
 
         $d = $this->serviceShowPageData->build($service, $pageRequest, $this->horizonApi);
@@ -450,9 +456,16 @@ class HorizonStreamsController extends StreamController
     //  Services index
     // ------------------------------------------------------------------
 
-    private function private__buildServicesStreams(): string
+    private function private__buildServicesStreams(string $query): string
     {
-        $services = Service::query()->orderBy('name')->get();
+        $serviceIds = $this->serviceFilter->resolveFromQuery($query);
+        $servicesQuery = Service::query()->orderBy('name');
+
+        if ($serviceIds !== []) {
+            $servicesQuery->whereIn('id', $serviceIds);
+        }
+
+        $services = $servicesQuery->get();
         $this->serviceStats->attachHorizonStats($services, $this->horizonApi);
         $serviceStats = $this->serviceStats->buildListSummaryCounts($services);
 
@@ -463,21 +476,6 @@ class HorizonStreamsController extends StreamController
         ], 'morph');
 
         return \implode("\n", $streams);
-    }
-
-    /**
-     * @return list<int>
-     */
-    private function private__parseServiceIdsFromQuery(string $query, string $key = 'service_id'): array
-    {
-        if ($query === '') {
-            return [];
-        }
-
-        \parse_str($query, $params);
-        $raw = $params[$key] ?? null;
-
-        return ServiceRequest::parseIds($raw);
     }
 
     /**

@@ -6,13 +6,15 @@
     'emptyMessage' => 'No results',
     'labelledBy' => null,
     'ariaLabel' => null,
+    'searchable' => false,
 ])
 
 @php
     $selectedStrings = array_values(array_map('strval', (array) $selected));
     $wrapperClass = $attributes->get('class', '');
     $domId = $attributes->get('id');
-    $extraAttrs = $attributes->except(['class', 'id', 'labelledBy', 'aria-labelledby', 'ariaLabel', 'aria-label']);
+    $extraAttrs = $attributes->except(['class', 'id', 'labelledBy', 'aria-labelledby', 'ariaLabel', 'aria-label', 'searchable']);
+    $searchable = (bool) $searchable;
 @endphp
 <div
     class="relative {{ $wrapperClass }}"
@@ -25,6 +27,8 @@
         fieldName: {{ json_encode($name.'[]') }},
         selectedValues: {{ json_encode($selectedStrings) }},
         initialSnapshot: '',
+        searchable: {{ $searchable ? 'true' : 'false' }},
+        filterQuery: '',
         syncHiddenInputs() {
             var host = this.$refs.hiddenInputsHost;
             if (!host) return;
@@ -53,6 +57,14 @@
                 return { value: o.value, label: o.textContent.trim() };
             }).filter(function (o) { return o.value !== ''; });
         },
+        get filteredOptions() {
+            if (!this.searchable) return this.options;
+            var q = (this.filterQuery || '').trim().toLowerCase();
+            if (q === '') return this.options;
+            return this.options.filter(function (o) {
+                return o.label.toLowerCase().indexOf(q) !== -1;
+            });
+        },
         get summaryLabel() {
             if (this.options.length === 0) return this.emptyMessage;
             if (this.selectedValues.length === 0) return this.placeholder || 'All';
@@ -66,11 +78,15 @@
         placeholder: {{ json_encode($placeholder) }},
         emptyMessage: {{ json_encode($emptyMessage) }},
         openMenu() {
+            this.filterQuery = '';
             this.open = true;
             var self = this;
             this.$nextTick(function () {
                 self.updateAnchor();
                 self.bindReposition();
+                if (self.searchable && self.$refs.searchInput) {
+                    self.$refs.searchInput.focus();
+                }
             });
         },
         closeMenu() {
@@ -166,16 +182,32 @@
         x-transition:leave-start="opacity-100 scale-100"
         x-transition:leave-end="opacity-0 scale-95"
         x-bind:style="{ top: anchor.top + 'px', left: anchor.left + 'px', minWidth: Math.max(anchor.width, 192) + 'px' }"
-        class="fixed z-50 max-h-60 overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+        class="fixed z-50 flex max-h-[min(18rem,50vh)] flex-col overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md"
         role="listbox"
     >
+        <div x-show="searchable && options.length > 0" class="shrink-0 border-b border-border p-2" @click.stop>
+            <input
+                type="search"
+                x-ref="searchInput"
+                x-model="filterQuery"
+                placeholder="Search..."
+                class="flex h-8 w-full rounded-md border border-input bg-background px-2 text-sm shadow-sm"
+                autocomplete="off"
+            />
+        </div>
+        <div class="min-h-0 flex-1 overflow-y-auto p-1">
         <div
             x-show="options.length === 0"
             class="px-2 py-1.5 text-sm text-muted-foreground select-none"
             x-text="emptyMessage"
             role="presentation"
         ></div>
-        <template x-for="opt in options" :key="opt.value">
+        <div
+            x-show="searchable && options.length > 0 && filteredOptions.length === 0"
+            class="px-2 py-1.5 text-sm text-muted-foreground select-none"
+            role="presentation"
+        >No matches</div>
+        <template x-for="opt in (searchable ? filteredOptions : options)" :key="opt.value">
             <button
                 type="button"
                 @click.stop="toggle(opt.value)"
@@ -188,5 +220,6 @@
                 </span>
             </button>
         </template>
+        </div>
     </div>
 </div>

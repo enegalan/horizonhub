@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\HorizonJobListService;
+use App\Services\Horizon\ServiceFilterService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Tests\TestCase;
@@ -49,7 +50,7 @@ class HorizonJobListServiceRetryModalTest extends TestCase
             'status' => 'online',
         ]);
 
-        $list = new HorizonJobListService($api);
+        $list = new HorizonJobListService($api, new ServiceFilterService);
         $services = new Collection([$svc]);
 
         $page = $list->buildFailedJobsRetryModalPage($services, '', null, null, 1, 1);
@@ -91,7 +92,7 @@ class HorizonJobListServiceRetryModalTest extends TestCase
             'status' => 'online',
         ]);
 
-        $list = new HorizonJobListService($api);
+        $list = new HorizonJobListService($api, new ServiceFilterService);
         $services = new Collection([$svc]);
 
         $all = $list->buildFailedJobsRetryModalPage($services, '', null, null, 1, \PHP_INT_MAX);

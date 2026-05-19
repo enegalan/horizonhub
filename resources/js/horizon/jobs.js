@@ -97,6 +97,7 @@ export function horizonJobsPage(config) {
          */
         retryFilters: {
             service_ids: [],
+            service_tags: [],
             search: '',
             failed_at_range: '',
         },
@@ -107,6 +108,7 @@ export function horizonJobsPage(config) {
         openRetryModal() {
             this.retryModalSession = (this.retryModalSession || 0) + 1;
             this.retryFilters.service_ids = [];
+            this.retryFilters.service_tags = [];
             this.retryFilters.search = '';
             this.retryFilters.failed_at_range = '';
             this.retryModalMounted = true;
@@ -167,6 +169,14 @@ export function horizonJobsPage(config) {
                 serviceIds.forEach(function (id) {
                     if (id !== null && id !== '' && id !== undefined) {
                         params.append('service_ids[]', String(id));
+                    }
+                });
+            }
+            var serviceTags = this.retryFilters.service_tags;
+            if (Array.isArray(serviceTags)) {
+                serviceTags.forEach(function (tag) {
+                    if (tag !== null && tag !== '') {
+                        params.append('service_tag[]', String(tag));
                     }
                 });
             }

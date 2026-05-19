@@ -30,14 +30,21 @@ class DashboardDataService
      * Build the dashboard data.
      *
      * @param HorizonApiProxyService $horizonApi The horizon API proxy service.
+     * @param list<int> $serviceIds Empty means all services.
      *
      * @return array<string, mixed>
      */
-    public function build(HorizonApiProxyService $horizonApi): array
+    public function build(HorizonApiProxyService $horizonApi, array $serviceIds = []): array
     {
-        $metrics = $this->metricsDashboard->build([]);
+        $metrics = $this->metricsDashboard->build($serviceIds);
 
-        $services = Service::query()->orderBy('name')->get();
+        $servicesQuery = Service::query()->orderBy('name');
+
+        if ($serviceIds !== []) {
+            $servicesQuery->whereIn('id', $serviceIds);
+        }
+
+        $services = $servicesQuery->get();
         $this->serviceStats->attachHorizonStats($services, $horizonApi);
 
         $onlineCount = 0;
@@ -64,11 +71,16 @@ class DashboardDataService
             ($anyOffline ? 'bg-orange-500' :
                 ($anyStandBy ? 'bg-amber-500' : 'bg-emerald-500'));
 
-        $recentAlertLogs = AlertLog::query()
+        $recentAlertLogsQuery = AlertLog::query()
             ->with(['alert', 'service'])
             ->orderByDesc('sent_at')
-            ->limit(5)
-            ->get();
+            ->limit(5);
+
+        if ($serviceIds !== []) {
+            $recentAlertLogsQuery->whereIn('service_id', $serviceIds);
+        }
+
+        $recentAlertLogs = $recentAlertLogsQuery->get();
 
         $workloadRows = \is_array($metrics['workloadRows']) ? $metrics['workloadRows'] : [];
 

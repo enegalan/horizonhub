@@ -2,10 +2,14 @@
  * Service create/edit form.
  *
  * @param {Array<{name: string, value: string}>} initialHeaders
+ * @param {string[]} initialTags
+ * @param {string[]} existingTags
  * @returns {object}
  */
-export function horizonServiceForm(initialHeaders) {
+export function horizonServiceForm(initialHeaders, initialTags, existingTags) {
     var headers = Array.isArray(initialHeaders) ? initialHeaders : [];
+    var tags = Array.isArray(initialTags) ? initialTags.slice() : [];
+    var knownTags = Array.isArray(existingTags) ? existingTags.slice() : [];
 
     if (headers.length === 0) {
         headers.push({ name: '', value: '' });
@@ -13,6 +17,106 @@ export function horizonServiceForm(initialHeaders) {
 
     return {
         headers: headers,
+        tags: tags,
+        existingTags: knownTags,
+        tagInput: '',
+        tagSuggestionsOpen: false,
+        tagSuggestionHighlight: -1,
+        tagSuggestionsLimit: 15,
+        get tagSuggestions() {
+            var query = (this.tagInput || '').trim().toLowerCase();
+            var available = this.existingTags.filter(function (tag) {
+                return this.tags.indexOf(tag) === -1;
+            });
+
+            if (query !== '') {
+                available = available.filter(function (tag) {
+                    return tag.indexOf(query) !== -1;
+                });
+            }
+
+            return available.slice(0, this.tagSuggestionsLimit);
+        },
+
+        openTagSuggestions() {
+            this.tagSuggestionsOpen = true;
+            this.tagSuggestionHighlight = -1;
+        },
+
+        closeTagSuggestions() {
+            this.tagSuggestionsOpen = false;
+            this.tagSuggestionHighlight = -1;
+        },
+
+        highlightNextTagSuggestion() {
+            if (this.tagSuggestions.length === 0) {
+                return;
+            }
+
+            this.tagSuggestionsOpen = true;
+            if (this.tagSuggestionHighlight < this.tagSuggestions.length - 1) {
+                this.tagSuggestionHighlight += 1;
+            } else {
+                this.tagSuggestionHighlight = 0;
+            }
+        },
+
+        highlightPreviousTagSuggestion() {
+            var suggestions = this.tagSuggestions;
+            if (suggestions.length === 0) {
+                return;
+            }
+
+            this.tagSuggestionsOpen = true;
+            if (this.tagSuggestionHighlight > 0) {
+                this.tagSuggestionHighlight -= 1;
+            } else {
+                this.tagSuggestionHighlight = suggestions.length - 1;
+            }
+        },
+
+        hasHighlightedTagSuggestion() {
+            return this.tagSuggestionHighlight >= 0
+                && this.tagSuggestionHighlight < this.tagSuggestions.length;
+        },
+
+        selectHighlightedTagSuggestion() {
+            if (!this.hasHighlightedTagSuggestion()) {
+                return;
+            }
+
+            this.selectTagSuggestion(this.tagSuggestions[this.tagSuggestionHighlight]);
+        },
+
+        selectTagSuggestion(tag) {
+            this.tagInput = tag;
+            this.addTag();
+            this.closeTagSuggestions();
+        },
+
+        addTag() {
+            var value = (this.tagInput || '').trim();
+            if (value === '') {
+                return;
+            }
+
+            var normalized = value.toLowerCase().replace(/\s+/g, ' ');
+            if (this.tags.indexOf(normalized) !== -1) {
+                this.tagInput = '';
+                this.closeTagSuggestions();
+                return;
+            }
+
+            this.tags.push(normalized);
+            this.tagInput = '';
+            this.closeTagSuggestions();
+        },
+
+        removeTag(index) {
+            if (index >= 0 && index < this.tags.length) {
+                this.tags.splice(index, 1);
+            }
+        },
 
         canAddHeader() {
             for (var i = 0; i < this.headers.length; i++) {

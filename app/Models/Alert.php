@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Database\Factories\AlertFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,6 +14,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Alert extends Model
 {
+    /** @use HasFactory<AlertFactory> */
+    use HasFactory;
+
     public const RULE_AVG_EXECUTION_TIME = 'avg_execution_time';
 
     public const RULE_FAILURE_COUNT = 'failure_count';
@@ -91,7 +96,29 @@ class Alert extends Model
     }
 
     /**
-     * Scope to enabled services only.
+     * Service ids this alert should evaluate against.
+     *
+     * @return list<int>
+     */
+    public function resolvedServiceIds(): array
+    {
+        if ($this->service_ids === []) {
+            return Service::query()->enabled()->pluck('id')->all();
+        }
+
+        $ids = Service::query()
+            ->enabled()
+            ->whereIn('id', $this->service_ids)
+            ->pluck('id')
+            ->all();
+
+        \sort($ids);
+
+        return $ids;
+    }
+
+    /**
+     * Scope to enabled alerts only.
      *
      * @param Builder<Alert> $query
      *

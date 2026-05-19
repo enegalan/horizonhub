@@ -14,7 +14,7 @@ class JobControllerTest extends TestCase
     {
         $service = Service::query()->create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
 
-        $response = $this->get(route('horizon.jobs.index', ['search' => 'job', 'serviceFilter' => [$service->id]]));
+        $response = $this->get(route('horizon.jobs.index', ['search' => 'job', 'service_id' => [$service->id]]));
         $response->assertOk();
     }
 

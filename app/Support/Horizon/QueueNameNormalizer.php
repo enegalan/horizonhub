@@ -32,7 +32,7 @@ class QueueNameNormalizer
      */
     public static function normalize(?string $queue): ?string
     {
-        if ($queue === null || $queue === '') {
+        if (blank($queue)) {
             return $queue;
         }
 

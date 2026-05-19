@@ -58,7 +58,7 @@ final class HorizonJobsWindowFetcher
 
     private static function private__extractTimestamp(mixed $value): ?int
     {
-        if ($value === null || $value === '') {
+        if (blank($value)) {
             return null;
         }
 

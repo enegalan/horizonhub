@@ -276,7 +276,7 @@ final class AlertRuleEvaluationSupport
      */
     private function private__parseFailedAt(mixed $value): ?Carbon
     {
-        if ($value === null || $value === '') {
+        if (blank($value)) {
             return null;
         }
 

@@ -22,6 +22,8 @@ class FailedJobsListRequest extends FormRequest
             'service_id' => ['nullable', 'integer', 'exists:services,id'],
             'service_ids' => ['nullable', 'array'],
             'service_ids.*' => ['integer', 'exists:services,id'],
+            'service_tag' => ['nullable', 'array'],
+            'service_tag.*' => ['string'],
             'search' => ['nullable', 'string', 'max:255'],
             'date_from' => ['nullable', 'string', 'max:32', new RetryModalDateFilter],
             'date_to' => ['nullable', 'string', 'max:32', new RetryModalDateFilter],

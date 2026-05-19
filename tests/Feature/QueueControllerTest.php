@@ -22,7 +22,7 @@ class QueueControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertViewHas('defer', true);
-        $response->assertViewHas('serviceIds', []);
+        $response->assertViewHas('selectedServiceIds', []);
         $response->assertSee('queue-svc', false);
         $response->assertSee('id="turbo-tbody-horizon-queue-list"', false);
     }
@@ -36,10 +36,10 @@ class QueueControllerTest extends TestCase
         ]);
 
         $response = $this->get(route('horizon.queues.index', [
-            'queue_services' => [$service->id, 99999, '0'],
+            'service_id' => [$service->id, 99999, '0'],
         ]));
 
         $response->assertOk();
-        $response->assertViewHas('serviceIds', [$service->id]);
+        $response->assertViewHas('selectedServiceIds', [$service->id]);
     }
 }

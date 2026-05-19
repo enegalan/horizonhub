@@ -67,10 +67,16 @@ class JobActionController extends Controller
             $serviceIds = [$validated['service_id']];
         }
 
+        $tags = $request->query('service_tag', []);
+
         $servicesQuery = Service::query()->enabled()->whereNotNull('base_url');
 
         if (\count($serviceIds) > 0) {
             $servicesQuery->whereIn('id', $serviceIds);
+        }
+
+        if (\count($tags) > 0) {
+            $servicesQuery->matchingTags($tags);
         }
 
         /** @var Collection<int, Service> $services */

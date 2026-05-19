@@ -10,23 +10,16 @@
 
         <div class="card mb-6 overflow-hidden">
             <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
-                <form method="GET" action="{{ route('horizon.metrics') }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="_top">
-                    <div class="space-y-2">
-                        <x-input-label id="metrics-service-filter-label" for="metrics-service-filter">Services</x-input-label>
-                        <x-multiselect
-                            id="metrics-service-filter"
-                            labelled-by="metrics-service-filter-label"
-                            name="service_id"
-                            class="w-full min-w-0 sm:w-64"
-                            :selected="$serviceIds ?? []"
-                            placeholder="All services"
-                            empty-message="No services found"
-                        >
-                            @foreach(($services ?? collect()) as $service)
-                                <option value="{{ $service->id }}">{{ $service->name }}</option>
-                            @endforeach
-                        </x-multiselect>
-                    </div>
+                <form method="GET" action="{{ route('horizon.metrics') }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="_top" data-service-tag-filter="1">
+                    <x-service-tag-filter
+                        :all-tags="$allTags ?? []"
+                        :selected-tags="$selectedTags ?? []"
+                        :show-service-multiselect="true"
+                        :services="$services ?? collect()"
+                        :service-ids="$selectedServiceIds ?? []"
+                        service-multiselect-id="metrics-service-filter"
+                        service-multiselect-name="service_id"
+                    />
                     <x-button type="submit" class="h-9 shrink-0 text-sm">
                         Filter
                     </x-button>

@@ -18,23 +18,16 @@
 
             <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
                 <div class="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
-                    <form method="GET" action="{{ route('horizon.jobs.index') }}" class="flex min-w-0 flex-1 flex-col flex-wrap gap-3 sm:flex-row sm:items-end" data-turbo-frame="_top">
-                        <div class="min-w-0 space-y-2 sm:max-w-none">
-                            <x-input-label id="jobs-index-services-label" for="jobs-index-services">Services</x-input-label>
-                            <x-multiselect
-                                id="jobs-index-services"
-                                labelled-by="jobs-index-services-label"
-                                name="serviceFilter"
-                                class="w-full min-w-0 sm:w-56"
-                                :selected="$filters['serviceIds'] ?? []"
-                                placeholder="All services"
-                                empty-message="No services found"
-                            >
-                                @foreach($services as $s)
-                                    <option value="{{ $s->id }}">{{ $s->name }} ({{ $s->status }})</option>
-                                @endforeach
-                            </x-multiselect>
-                        </div>
+                    <form method="GET" action="{{ route('horizon.jobs.index') }}" class="flex min-w-0 flex-1 flex-col flex-wrap gap-3 sm:flex-row sm:items-end" data-turbo-frame="_top" data-service-tag-filter="1">
+                        <x-service-tag-filter
+                            :all-tags="$allTags ?? []"
+                            :selected-tags="$selectedTags ?? []"
+                            :show-service-multiselect="true"
+                            :services="$services"
+                            :service-ids="$selectedServiceIds ?? []"
+                            service-multiselect-id="jobs-index-services"
+                            service-multiselect-label="Services"
+                        />
                         <div class="min-w-0 flex-1 space-y-2 sm:max-w-none">
                             <x-input-label for="jobs-index-search">Search</x-input-label>
                             <div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
@@ -92,7 +85,7 @@
                                     <div class="min-w-0 space-y-0.5 sm:space-y-1">
                                         <h2 class="text-lg font-semibold leading-tight text-foreground sm:text-section-title">Retry failed jobs</h2>
                                         <p class="hidden max-w-2xl text-sm text-muted-foreground sm:block">
-                                            Filter by service, search, or failure time. Select jobs below, then retry in bulk.
+                                            Filter by service, tag, search, or failure time. Select jobs below, then retry in bulk.
                                         </p>
                                     </div>
                                 </div>
@@ -116,9 +109,9 @@
                             </div>
                             <form
                                 @submit.prevent="applyRetryModalFilters()"
-                                class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)_auto] lg:items-end"
+                                class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)_auto] xl:items-end"
                             >
-                                <template x-for="session in [retryModalSession]" :key="session">
+                                <template x-for="session in [retryModalSession]" :key="'retry-modal-services-' + session">
                                     <div class="min-w-0 space-y-2">
                                         <x-input-label id="retry-modal-services-label" for="retry-modal-services">Services</x-input-label>
                                         <x-multiselect
@@ -133,6 +126,26 @@
                                         >
                                             @foreach($services as $s)
                                                 <option value="{{ $s->id }}">{{ $s->name }} ({{ $s->status }})</option>
+                                            @endforeach
+                                        </x-multiselect>
+                                    </div>
+                                </template>
+                                <template x-for="session in [retryModalSession]" :key="'retry-modal-tags-' + session">
+                                    <div class="min-w-0 space-y-2">
+                                        <x-input-label id="retry-modal-tags-label" for="retry-modal-tags">Tags</x-input-label>
+                                        <x-multiselect
+                                            id="retry-modal-tags"
+                                            labelled-by="retry-modal-tags-label"
+                                            name="retryModalServiceTag"
+                                            class="w-full min-w-0"
+                                            :selected="[]"
+                                            placeholder="All tags"
+                                            empty-message="No tags defined"
+                                            searchable
+                                            @change="retryFilters.service_tags = $event.detail.values"
+                                        >
+                                            @foreach($allTags ?? [] as $tag)
+                                                <option value="{{ $tag }}">{{ $tag }}</option>
                                             @endforeach
                                         </x-multiselect>
                                     </div>
@@ -196,7 +209,7 @@
                                         class="text-xs text-muted-foreground"
                                         x-show="selectingAllFailed"
                                     >
-                                        Selecting all…
+                                        Selecting all...
                                     </span>
                                 </div>
                             </div>
@@ -378,7 +391,7 @@
                                     </span>
                                     <span x-cloak x-show="retrying" style="display: none" class="inline-flex items-center gap-1.5">
                                         <x-loader class="size-4" />
-                                        Retrying…
+                                        Retrying...
                                     </span>
                                 </x-button>
                             </div>

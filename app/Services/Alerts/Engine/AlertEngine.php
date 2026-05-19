@@ -86,18 +86,7 @@ class AlertEngine
         }
 
         try {
-            /** @var array<int, int> $serviceIds */
-            $serviceIds = $alert->service_ids;
-
-            if (empty($serviceIds)) {
-                $serviceIds = Service::query()->enabled()->pluck('id')->all();
-            } else {
-                $serviceIds = Service::query()
-                    ->enabled()
-                    ->whereIn('id', $serviceIds)
-                    ->pluck('id')
-                    ->all();
-            }
+            $serviceIds = $alert->resolvedServiceIds();
 
             if (empty($serviceIds)) {
                 $errorMessage = 'No enabled services to evaluate alert (enable at least one service).';
@@ -170,16 +159,10 @@ class AlertEngine
 
         foreach ($alerts as $alert) {
             try {
-                $serviceIds = $alert->service_ids;
-
-                if (empty($serviceIds)) {
-                    $serviceIds = $enabledServiceIds;
-                } else {
-                    $serviceIds = \array_values(\array_intersect(
-                        $serviceIds,
-                        $enabledServiceIds,
-                    ));
-                }
+                $serviceIds = \array_values(\array_intersect(
+                    $alert->resolvedServiceIds(),
+                    $enabledServiceIds,
+                ));
 
                 if (empty($serviceIds)) {
                     Log::warning('Horizon Hub: no enabled services to evaluate alert', ['alert_id' => $alert->id]);
