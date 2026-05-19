@@ -103,11 +103,9 @@ class HorizonStreamsController extends StreamController
         $this->serviceFilter = $serviceFilter;
     }
 
-    public function alerts(Request $request): StreamedResponse
+    public function alerts(): StreamedResponse
     {
-        $query = $request->getQueryString() ?? '';
-
-        return $this->runStream(fn (): string => $this->private__buildAlertsStreams($query));
+        return $this->runStream(fn (): string => $this->private__buildAlertsStreams());
     }
 
     public function alertShow(Alert $alert): StreamedResponse
@@ -194,7 +192,7 @@ class HorizonStreamsController extends StreamController
     //  Alerts index
     // ------------------------------------------------------------------
 
-    private function private__buildAlertsStreams(string $query): string
+    private function private__buildAlertsStreams(): string
     {
         $payload = $this->alertIndexStreamData->build();
 
