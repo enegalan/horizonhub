@@ -211,8 +211,7 @@ class HorizonStreamsController extends StreamController
 
     private function private__buildDashboardStreams(string $query): string
     {
-        $serviceIds = $this->serviceFilter->resolveFromQuery($query);
-        $d = $this->dashboardData->build($this->horizonApi, $serviceIds);
+        $d = $this->dashboardData->build($this->horizonApi, []);
 
         $updates = [
             'dashboard-value-jobs-minute' => e($d['jobsPastMinute'] ?? '—'),
@@ -414,9 +413,7 @@ class HorizonStreamsController extends StreamController
         $url = \route('horizon.services.show', ['service' => $service->id], true);
         $queryParams = [];
 
-        if ($query !== '') {
-            \parse_str($query, $queryParams);
-        }
+        \parse_str($query, $queryParams);
         $pageRequest = Request::create($url, 'GET', $queryParams);
 
         $d = $this->serviceShowPageData->build($service, $pageRequest, $this->horizonApi);

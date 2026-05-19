@@ -19,18 +19,12 @@ var _reconnectDebounceTimer = null;
  */
 export function initTurboStream() {
     window.addEventListener('horizonhub-hotreload-changed', onHotReloadChanged);
-
-    window.__horizonHubRefreshStreamReconnect = function () {
-        scheduleStreamReconnect();
-    };
-
     document.addEventListener('turbo:before-visit', function () {
         closeStream();
     });
     document.addEventListener('turbo:load', function () {
         scheduleStreamReconnect();
     });
-
     scheduleStreamReconnect();
 }
 

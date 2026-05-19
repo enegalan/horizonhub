@@ -175,7 +175,7 @@ export function horizonJobsPage(config) {
             var serviceTags = this.retryFilters.service_tags;
             if (Array.isArray(serviceTags)) {
                 serviceTags.forEach(function (tag) {
-                    if (tag !== null && tag !== '' && tag !== undefined) {
+                    if (tag !== null && tag !== '') {
                         params.append('service_tag[]', String(tag));
                     }
                 });

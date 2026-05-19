@@ -25,10 +25,15 @@
             <x-session-flash />
 
             <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
-                <x-service-tag-filter
-                    :all-tags="$allTags ?? []"
-                    :selected-tags="$selectedTags ?? []"
-                />
+                <form method="GET" action="{{ route('horizon.services.index') }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="_top" data-service-tag-filter="1" data-service-tag-filter-manual="1">
+                    <x-service-tag-filter
+                        :all-tags="$allTags ?? []"
+                        :selected-tags="$selectedTags ?? []"
+                    />
+                    <x-button type="submit" class="h-9 shrink-0 text-sm">
+                        Search
+                    </x-button>
+                </form>
             </div>
 
             <div class="grid gap-3 border-b border-border px-5 py-4 sm:grid-cols-3 sm:px-6">

@@ -7,7 +7,6 @@ import { horizonAlertsList, horizonAlertDetail, renderAlertDetailCharts } from '
 import { horizonDeleteConfirm } from './horizon/delete-confirm';
 import { horizonServiceForm, horizonServicesList } from './horizon/services';
 import { horizonMetricsPage, renderMetricsCharts } from './horizon/metrics';
-import { initServiceTagFilters } from './horizon/service-tag-filter';
 import { initTurboStream } from './lib/sse';
 import { createHttpHelpers } from './lib/http';
 import { formatDatetimeElements } from './lib/datetime-format';
@@ -54,7 +53,6 @@ document.addEventListener('turbo:load', function () {
     schedule(function () {
         formatDatetimeElements();
     });
-    initServiceTagFilters();
     mountToaster();
 });
 
@@ -64,7 +62,6 @@ onDocumentReady(function () {
     schedule(function () {
         formatDatetimeElements();
     });
-    initServiceTagFilters();
     initTurboStream();
 });
 

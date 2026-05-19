@@ -12,12 +12,6 @@
                 description="Live health and workload across your connected Horizon services."
                 class="border-b-0"
             />
-            <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
-                <x-service-tag-filter
-                    :all-tags="$allTags ?? []"
-                    :selected-tags="$selectedTags ?? []"
-                />
-            </div>
         </div>
 
         <x-kpi-grid gradient>

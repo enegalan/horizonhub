@@ -10,7 +10,7 @@
             />
 
             <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
-                <form method="GET" action="{{ route('horizon.queues.index') }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="_top" data-service-tag-filter="1">
+                <form method="GET" action="{{ route('horizon.queues.index') }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="_top" data-service-tag-filter="1" data-service-tag-filter-manual="1">
                     <x-service-tag-filter
                         :all-tags="$allTags ?? []"
                         :selected-tags="$selectedTags ?? []"
@@ -20,6 +20,9 @@
                         service-multiselect-id="queues-index-services"
                         service-multiselect-label="Services"
                     />
+                    <x-button type="submit" class="h-9 shrink-0 text-sm">
+                        Search
+                    </x-button>
                 </form>
             </div>
 

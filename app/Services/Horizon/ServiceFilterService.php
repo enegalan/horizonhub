@@ -13,13 +13,10 @@ class ServiceFilterService
      */
     public function resolveFromQuery(string $query): array
     {
-        if ($query === '') {
-            return [];
-        }
 
         \parse_str($query, $params);
 
-        return $this->resolveServiceIds(Request::create('/', 'GET', \is_array($params) ? $params : []));
+        return $this->resolveServiceIds(Request::create('/', 'GET', $params));
     }
 
     /**
@@ -34,10 +31,6 @@ class ServiceFilterService
         $serviceIds = ServiceRequest::existingIdsFromRequest($request);
 
         $tags = $request->query('service_tag', []);
-
-        if ($tags === [] && $serviceIds === []) {
-            return [];
-        }
 
         if ($tags === []) {
             return $serviceIds;
