@@ -15,18 +15,14 @@ class ServiceRequest extends FormRequest
      */
     public static function existingIdsFromRequest(Request $request): array
     {
-        $raw = $request->input('service_id', []);
+        $raw = $request->input('service_id');
 
-        if (empty($raw)) {
+        if (blank($raw)) {
             return [];
         }
 
         $values = \is_array($raw) ? $raw : [$raw];
         $serviceIds = \array_values(\array_unique($values));
-
-        if ($serviceIds === []) {
-            return [];
-        }
 
         $existing = Service::query()->whereIn('id', $serviceIds)->pluck('id')->all();
         \sort($existing);
