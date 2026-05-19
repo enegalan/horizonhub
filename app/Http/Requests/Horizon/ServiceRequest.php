@@ -17,11 +17,11 @@ class ServiceRequest extends FormRequest
     {
         $raw = $request->input('service_id', []);
 
-        if (empty($raw) || (\is_array($raw) && $raw === [])) {
+        if (empty($raw)) {
             return [];
         }
 
-        $values = $raw === null ? [] : (\is_array($raw) ? $raw : [$raw]);
+        $values = \is_array($raw) ? $raw : [$raw];
         $serviceIds = \array_values(\array_unique($values));
 
         if ($serviceIds === []) {
