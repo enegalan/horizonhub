@@ -209,7 +209,7 @@ class HorizonStreamsController extends StreamController
 
     private function private__buildDashboardStreams(): string
     {
-        $d = $this->dashboardData->build($this->horizonApi, []);
+        $d = $this->dashboardData->build($this->horizonApi);
 
         $updates = [
             'dashboard-value-jobs-minute' => e($d['jobsPastMinute'] ?? '—'),
