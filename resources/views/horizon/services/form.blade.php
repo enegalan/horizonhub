@@ -47,7 +47,7 @@
 
     <div
         class="mx-auto max-w-3xl space-y-6"
-        x-data="window.horizonServiceForm({!! \Illuminate\Support\Js::from($headersForForm) !!}, {!! \Illuminate\Support\Js::from($tagsForForm) !!})"
+        x-data="window.horizonServiceForm({!! \Illuminate\Support\Js::from($headersForForm) !!}, {!! \Illuminate\Support\Js::from($tagsForForm) !!}, {!! \Illuminate\Support\Js::from($existingTags ?? []) !!})"
     >
         <div class="card overflow-hidden">
             <x-page-hero
@@ -95,7 +95,7 @@
                 </div>
             </div>
 
-            <div class="card overflow-hidden">
+            <div class="card">
                 <div class="border-b border-border px-5 py-4 sm:px-6">
                     <h3 class="text-sm font-semibold text-foreground">Tags</h3>
                     <p class="mt-1 text-sm text-muted-foreground">
@@ -114,8 +114,8 @@
                             </span>
                         </template>
                     </div>
-                    <div class="flex flex-wrap items-end gap-2">
-                        <div class="min-w-0 flex-1 space-y-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="relative min-w-0 flex-1 space-y-2" @click.outside="closeTagSuggestions()">
                             <x-input-label for="service-tag-input">Add tag</x-input-label>
                             <x-text-input
                                 id="service-tag-input"
@@ -123,8 +123,40 @@
                                 class="w-full"
                                 x-model="tagInput"
                                 placeholder="production"
-                                @keydown.enter.prevent="addTag()"
+                                autocomplete="off"
+                                role="combobox"
+                                aria-autocomplete="list"
+                                aria-controls="service-tag-suggestions"
+                                x-bind:aria-expanded="tagSuggestionsOpen && tagSuggestions.length > 0 ? 'true' : 'false'"
+                                @focus="openTagSuggestions()"
+                                @input="openTagSuggestions()"
+                                @keydown.arrow-down.prevent="highlightNextTagSuggestion()"
+                                @keydown.arrow-up.prevent="highlightPreviousTagSuggestion()"
+                                @keydown.escape="closeTagSuggestions()"
+                                @keydown.enter.prevent="hasHighlightedTagSuggestion() ? selectHighlightedTagSuggestion() : addTag()"
                             />
+                            <ul
+                                id="service-tag-suggestions"
+                                role="listbox"
+                                class="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-border bg-background py-1 shadow-md"
+                                x-show="tagSuggestionsOpen && tagSuggestions.length > 0"
+                                x-cloak
+                            >
+                                <template x-for="(suggestion, index) in tagSuggestions" :key="'tag-suggestion-' + suggestion">
+                                    <li role="option">
+                                        <button
+                                            type="button"
+                                            class="flex w-full px-3 py-2 text-left text-sm text-foreground hover:bg-muted/60"
+                                            x-bind:class="{ 'bg-muted/60': tagSuggestionHighlight === index }"
+                                            x-text="suggestion"
+                                            @mousedown.prevent="selectTagSuggestion(suggestion)"
+                                        ></button>
+                                    </li>
+                                </template>
+                            </ul>
+                            <p class="text-xs text-muted-foreground" x-show="existingTags.length > 0">
+                                Pick an existing tag from the list or type a new one.
+                            </p>
                         </div>
                         <x-button type="button" variant="secondary" class="h-9 shrink-0 text-sm" @click="addTag()">
                             Add
