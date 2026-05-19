@@ -28,13 +28,13 @@ class ModelAndProviderTest extends TestCase
         $this->assertTrue($alert->appliesToServiceId($s1->id));
         $this->assertFalse($alert->appliesToServiceId(999));
 
-        $globalAlert = Alert::query()->create([
-            'name' => 'global',
+        $unscopedAlert = Alert::query()->create([
+            'name' => 'unscoped',
             'service_ids' => [],
             'rule_type' => Alert::RULE_FAILURE_COUNT,
             'enabled' => true,
         ]);
-        $this->assertTrue($globalAlert->appliesToServiceId($s1->id));
+        $this->assertFalse($unscopedAlert->appliesToServiceId($s1->id));
 
         $defaultScopeAlert = new Alert([
             'name' => 'defaults',

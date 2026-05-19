@@ -48,7 +48,7 @@
                             @if(\count($serviceNames) > 0)
                                 {{ \implode(', ', $serviceNames) }}
                             @else
-                                Any service
+                                No services selected
                             @endif
                         </dd>
                     </div>
