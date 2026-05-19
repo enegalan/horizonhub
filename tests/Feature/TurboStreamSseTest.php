@@ -71,7 +71,7 @@ class TurboStreamSseTest extends TestCase
         $reflection = new \ReflectionMethod($controller, 'private__buildDashboardStreams');
         $reflection->setAccessible(true);
 
-        $result = $reflection->invoke($controller, '');
+        $result = $reflection->invoke($controller);
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="dashboard-value-jobs-minute"', $result);

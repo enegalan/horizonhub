@@ -113,11 +113,9 @@ class HorizonStreamsController extends StreamController
         return $this->runStream(fn (): string => $this->private__buildAlertShowStreams($alert));
     }
 
-    public function dashboard(Request $request): StreamedResponse
+    public function dashboard(): StreamedResponse
     {
-        $query = $request->getQueryString() ?? '';
-
-        return $this->runStream(fn (): string => $this->private__buildDashboardStreams($query));
+        return $this->runStream(fn (): string => $this->private__buildDashboardStreams());
     }
 
     public function jobs(Request $request): StreamedResponse
@@ -209,7 +207,7 @@ class HorizonStreamsController extends StreamController
     //  Dashboard
     // ------------------------------------------------------------------
 
-    private function private__buildDashboardStreams(string $query): string
+    private function private__buildDashboardStreams(): string
     {
         $d = $this->dashboardData->build($this->horizonApi, []);
 
