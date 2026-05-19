@@ -65,15 +65,12 @@ class AlertControllerTest extends TestCase
             'ruleTypes' => [Alert::RULE_FAILURE_COUNT => 'Failure count in window'],
             'selectedProviderIds' => [$provider->id],
             'selectedServiceIds' => [$service->id],
-            'selectedServiceTags' => [],
-            'allTags' => [],
             'header' => 'Edit alert',
         ]);
         $upsert->method('validateAlert')->willReturn([
             'alert' => [
                 'name' => 'new-alert',
                 'service_ids' => [$service->id],
-                'service_tags' => ['production'],
                 'rule_type' => Alert::RULE_FAILURE_COUNT,
                 'threshold' => ['count' => 1, 'minutes' => 5],
                 'queue' => null,

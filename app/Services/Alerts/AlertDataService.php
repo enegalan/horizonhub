@@ -73,12 +73,6 @@ class AlertDataService
                 }
             }
 
-            foreach ($alert->service_tags as $tag) {
-                if (\is_string($tag) && $tag !== '') {
-                    $labels[] = "#$tag";
-                }
-            }
-
             $labelsByAlertId[$alert->id] = $labels;
         }
 

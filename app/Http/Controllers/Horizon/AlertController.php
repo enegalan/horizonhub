@@ -9,7 +9,6 @@ use App\Models\Service;
 use App\Services\Alerts\AlertEvaluationBatchService;
 use App\Services\Alerts\AlertUpsertService;
 use App\Services\Alerts\Engine\AlertEngine;
-use App\Services\Horizon\ServiceFilterService;
 use App\Support\Alerts\AlertDeliveryLogPresenter;
 use App\Support\FlashStatus;
 use Illuminate\Contracts\View\View;
@@ -97,14 +96,14 @@ class AlertController extends Controller
     /**
      * Display the list of alerts.
      */
-    public function index(Request $request, ServiceFilterService $serviceFilter): View
+    public function index(): View
     {
-        return \view('horizon.alerts.index', \array_merge([
+        return \view('horizon.alerts.index', [
             'alerts' => collect(),
             'defer' => true,
             'evaluateAllAlertsVisible' => Alert::query()->enabled()->exists(),
             'header' => 'Alerts',
-        ], $serviceFilter->viewData($request)));
+        ]);
     }
 
     /**

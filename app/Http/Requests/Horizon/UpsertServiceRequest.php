@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Horizon;
 
 use App\Models\Service;
+use App\Services\Horizon\ServiceTagNormalizer;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -94,5 +95,18 @@ class UpsertServiceRequest extends FormRequest
                 $seen[$lower] = true;
             }
         });
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $tags = $this->input('tags', null);
+
+        if (! \is_array($tags)) {
+            return;
+        }
+
+        $this->merge([
+            'tags' => ServiceTagNormalizer::normalizeList($tags),
+        ]);
     }
 }

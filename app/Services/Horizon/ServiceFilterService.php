@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 
 class ServiceFilterService
 {
-
     /**
      * @return list<int>
      */

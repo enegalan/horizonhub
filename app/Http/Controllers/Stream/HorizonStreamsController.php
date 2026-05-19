@@ -196,8 +196,7 @@ class HorizonStreamsController extends StreamController
 
     private function private__buildAlertsStreams(string $query): string
     {
-        $serviceIds = $this->serviceFilter->resolveFromQuery($query);
-        $payload = $this->alertIndexStreamData->build($serviceIds);
+        $payload = $this->alertIndexStreamData->build();
 
         $streams = [];
         $this->pushViewStreams($streams, [

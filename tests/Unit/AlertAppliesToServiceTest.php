@@ -18,7 +18,6 @@ class AlertAppliesToServiceTest extends TestCase
         $service = Service::factory()->create();
         $alert = Alert::factory()->create([
             'service_ids' => [],
-            'service_tags' => [],
         ]);
 
         $this->assertTrue($alert->appliesToServiceId($service->id));
@@ -31,7 +30,6 @@ class AlertAppliesToServiceTest extends TestCase
         $other = Service::factory()->create();
         $alert = Alert::factory()->create([
             'service_ids' => [$service->id],
-            'service_tags' => [],
         ]);
 
         $this->assertTrue($alert->appliesToServiceId($service->id));
@@ -39,33 +37,15 @@ class AlertAppliesToServiceTest extends TestCase
     }
 
     #[Test]
-    public function applies_when_service_has_all_alert_tags(): void
+    public function resolved_enabled_service_ids_returns_explicit_selection(): void
     {
-        $service = Service::factory()->create(['tags' => ['production', 'mailing']]);
-        $partial = Service::factory()->create(['tags' => ['production']]);
-        $alert = Alert::factory()->create([
-            'service_ids' => [],
-            'service_tags' => ['production', 'mailing'],
-        ]);
-
-        $this->assertTrue($alert->appliesToServiceId($service->id));
-        $this->assertFalse($alert->appliesToServiceId($partial->id));
-    }
-
-    #[Test]
-    public function resolved_enabled_service_ids_unions_explicit_and_tag_matches(): void
-    {
-        $explicit = Service::factory()->create(['tags' => ['local']]);
-        $tagOnly = Service::factory()->create(['tags' => ['production', 'mailing']]);
-        Service::factory()->create(['tags' => ['production'], 'enabled' => false]);
+        $included = Service::factory()->create();
+        Service::factory()->create(['enabled' => false]);
 
         $alert = Alert::factory()->create([
-            'service_ids' => [$explicit->id],
-            'service_tags' => ['production', 'mailing'],
+            'service_ids' => [$included->id],
         ]);
 
-        $ids = $alert->resolvedServiceIds();
-
-        $this->assertSame([$explicit->id, $tagOnly->id], $ids);
+        $this->assertSame([$included->id], $alert->resolvedServiceIds());
     }
 }

@@ -4,7 +4,6 @@ namespace App\Services\Horizon;
 
 class ServiceTagNormalizer
 {
-
     /**
      * Normalize, dedupe, and cap a list of tags.
      *

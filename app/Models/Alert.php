@@ -11,7 +11,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property list<int> $service_ids
- * @property list<string> $service_tags
  */
 class Alert extends Model
 {
@@ -37,7 +36,6 @@ class Alert extends Model
      */
     protected $attributes = [
         'service_ids' => '[]',
-        'service_tags' => '[]',
     ];
 
     /**
@@ -48,7 +46,6 @@ class Alert extends Model
     protected $casts = [
         'threshold' => 'array',
         'service_ids' => 'array',
-        'service_tags' => 'array',
         'enabled' => 'boolean',
         'email_interval_minutes' => 'integer',
     ];
@@ -61,7 +58,6 @@ class Alert extends Model
     protected $fillable = [
         'name',
         'service_ids',
-        'service_tags',
         'rule_type',
         'threshold',
         'queue',
@@ -83,25 +79,11 @@ class Alert extends Model
      */
     public function appliesToServiceId(int $serviceId): bool
     {
-        if ($this->service_ids === [] && $this->service_tags === []) {
+        if ($this->service_ids === []) {
             return true;
         }
 
-        if ($this->service_ids !== [] && \in_array($serviceId, $this->service_ids, true)) {
-            return true;
-        }
-
-        if ($this->service_tags === []) {
-            return false;
-        }
-
-        $service = Service::query()->whereKey($serviceId)->first(['id', 'tags', 'enabled']);
-
-        if ($service === null || ! $service->enabled) {
-            return false;
-        }
-
-        return [] === \array_diff($this->service_tags, $service->tags);
+        return \in_array($serviceId, $this->service_ids, true);
     }
 
     /**
@@ -120,33 +102,17 @@ class Alert extends Model
      */
     public function resolvedServiceIds(): array
     {
-        if ($this->service_ids === [] && $this->service_tags === []) {
+        if ($this->service_ids === []) {
             return Service::query()->enabled()->pluck('id')->map(static fn ($id): int => (int) $id)->all();
         }
 
-        $ids = [];
+        $ids = Service::query()
+            ->enabled()
+            ->whereIn('id', $this->service_ids)
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
 
-        if ($this->service_ids !== []) {
-            $explicit = Service::query()
-                ->enabled()
-                ->whereIn('id', $this->service_ids)
-                ->pluck('id')
-                ->map(static fn ($id): int => (int) $id)
-                ->all();
-            $ids = \array_merge($ids, $explicit);
-        }
-
-        if ($this->service_tags !== []) {
-            $tagQuery = Service::query()->enabled();
-
-            foreach ($this->service_tags as $tag) {
-                $tagQuery->whereJsonContains('tags', $tag);
-            }
-
-            $ids = \array_merge($ids, $tagQuery->pluck('id')->map(static fn ($id): int => (int) $id)->all());
-        }
-
-        $ids = \array_values(\array_unique($ids));
         \sort($ids);
 
         return $ids;

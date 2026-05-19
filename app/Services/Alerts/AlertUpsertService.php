@@ -39,8 +39,6 @@ class AlertUpsertService
             'ruleTypes' => $ruleTypes,
             'selectedProviderIds' => $alert->exists ? $alert->notificationProviders()->pluck('notification_providers.id')->all() : [],
             'selectedServiceIds' => $alert->service_ids,
-            'selectedServiceTags' => $alert->service_tags,
-            'allTags' => Service::query()->enabled()->get(['tags'])->pluck('tags')->flatten()->unique()->sort()->values()->all(),
             'header' => $header,
         ];
     }
@@ -115,8 +113,6 @@ class AlertUpsertService
             'rule_type' => 'required|in:' . implode(',', $ruleTypes),
             'service_ids' => 'nullable|array',
             'service_ids.*' => 'integer|exists:services,id',
-            'service_tags' => 'nullable|array',
-            'service_tags.*' => 'string',
             'queue' => 'nullable|string|max:255',
             'job_type' => 'nullable|string|max:255',
             'job_patterns' => 'nullable|array',
@@ -232,7 +228,6 @@ class AlertUpsertService
         $alertData = [
             'name' => $validated['name'] ?? null,
             'service_ids' => $serviceIds,
-            'service_tags' => $validated['service_tags'] ?? [],
             'rule_type' => $ruleType,
             'threshold' => $threshold,
             'queue' => $queueColumn,
