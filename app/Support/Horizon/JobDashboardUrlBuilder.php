@@ -15,13 +15,13 @@ class JobDashboardUrlBuilder
      */
     public static function build(?Service $service, ?string $jobUuid, ?string $jobStatus): ?string
     {
-        if ($service === null || $jobUuid === null || $jobUuid === '') {
+        if ($service === null || blank($jobUuid)) {
             return null;
         }
 
         $dashboardBase = $service->getPublicUrl();
 
-        if ($dashboardBase === '') {
+        if (blank($dashboardBase)) {
             return null;
         }
         $encodedUuid = \urlencode($jobUuid);
