@@ -111,7 +111,7 @@ class AlertUpsertService
         ];
         $baseRules = [
             'rule_type' => 'required|in:' . implode(',', $ruleTypes),
-            'service_ids' => 'nullable|array',
+            'service_ids' => 'required|array|min:1',
             'service_ids.*' => 'integer|exists:services,id',
             'queue' => 'nullable|string|max:255',
             'job_type' => 'nullable|string|max:255',

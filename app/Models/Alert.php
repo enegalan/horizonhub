@@ -80,7 +80,7 @@ class Alert extends Model
     public function appliesToServiceId(int $serviceId): bool
     {
         if ($this->service_ids === []) {
-            return true;
+            return false;
         }
 
         return \in_array($serviceId, $this->service_ids, true);
@@ -103,7 +103,7 @@ class Alert extends Model
     public function resolvedServiceIds(): array
     {
         if ($this->service_ids === []) {
-            return Service::query()->enabled()->pluck('id')->all();
+            return [];
         }
 
         $ids = Service::query()

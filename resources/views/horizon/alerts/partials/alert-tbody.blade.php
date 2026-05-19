@@ -76,7 +76,7 @@
                         @if(\count($serviceLabels) > 0)
                             {{ \count($serviceLabels) === 1 ? $serviceLabels[0] : \implode(', ', $serviceLabels) }}
                         @else
-                            All services
+                            No services selected
                         @endif
                     </p>
                 </div>

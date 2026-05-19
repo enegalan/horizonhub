@@ -61,6 +61,12 @@
             queueOptionalSectionOpen: {!! \Illuminate\Support\Js::from($queueOptionalSectionOpenDefault) !!},
             jobOptionalSectionOpen: {!! \Illuminate\Support\Js::from($jobOptionalSectionOpenDefault) !!},
             jobTypeOptionalSectionOpen: {!! \Illuminate\Support\Js::from($jobTypeOptionalSectionOpenDefault) !!},
+            allServicesSelected: false,
+            init() {
+                this.$nextTick(() => {
+                    this.syncAllServicesSelected();
+                });
+            },
             addJobPattern() {
                 this.jobPatterns.push('');
             },
@@ -96,6 +102,29 @@
                 if (input && !input.disabled) {
                     input.click();
                 }
+            },
+            serviceCheckboxInputs() {
+                if (!this.$refs.serviceCheckboxList) {
+                    return [];
+                }
+                return Array.from(this.$refs.serviceCheckboxList.querySelectorAll('.checkbox-root input[type=checkbox]'));
+            },
+            syncAllServicesSelected() {
+                var inputs = this.serviceCheckboxInputs();
+                this.allServicesSelected = inputs.length > 0 && inputs.every(function (input) {
+                    return input.checked;
+                });
+            },
+            toggleAllServices() {
+                var inputs = this.serviceCheckboxInputs();
+                if (inputs.length === 0) {
+                    return;
+                }
+                var selectAll = !this.allServicesSelected;
+                inputs.forEach(function (input) {
+                    input.checked = selectAll;
+                });
+                this.syncAllServicesSelected();
             }
         }"
     >
@@ -130,13 +159,24 @@
                         @error('name') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
                     <div class="space-y-2">
-                        <x-input-label>Services</x-input-label>
-                        <p class="text-xs text-muted-foreground">Select one or more services. Leave all unchecked to apply to all services.</p>
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <x-input-label>Services</x-input-label>
+                            @if($services->isNotEmpty())
+                                <x-button
+                                    type="button"
+                                    variant="secondary"
+                                    class="h-8 text-xs"
+                                    @click="toggleAllServices()"
+                                    x-text="allServicesSelected ? 'Unselect all' : 'Select all'"
+                                />
+                            @endif
+                        </div>
+                        <p class="text-xs text-muted-foreground">Select at least one service. This alert only applies to the services you choose.</p>
                         @php
                             $oldServiceIds = old('service_ids', $selectedServiceIds);
                             $oldServiceIds = \is_array($oldServiceIds) ? \array_map('intval', $oldServiceIds) : [];
                         @endphp
-                        <div class="space-y-2">
+                        <div class="space-y-2" x-ref="serviceCheckboxList" @change="syncAllServicesSelected()">
                             @foreach($services as $s)
                                 <div
                                     class="flex cursor-pointer items-center gap-3 rounded-xl border border-border px-3 py-2.5 transition-colors hover:bg-muted/50"
