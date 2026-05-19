@@ -26,7 +26,6 @@
                             :services="$services"
                             :service-ids="$selectedServiceIds ?? []"
                             service-multiselect-id="jobs-index-services"
-                            service-multiselect-name="serviceFilter"
                             service-multiselect-label="Services"
                         />
                         <div class="min-w-0 flex-1 space-y-2 sm:max-w-none">
@@ -112,7 +111,7 @@
                                 @submit.prevent="applyRetryModalFilters()"
                                 class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)_auto] xl:items-end"
                             >
-                                <template x-for="session in [retryModalSession]" :key="session">
+                                <template x-for="session in [retryModalSession]" :key="'retry-modal-services-' + session">
                                     <div class="min-w-0 space-y-2">
                                         <x-input-label id="retry-modal-services-label" for="retry-modal-services">Services</x-input-label>
                                         <x-multiselect
@@ -130,6 +129,8 @@
                                             @endforeach
                                         </x-multiselect>
                                     </div>
+                                </template>
+                                <template x-for="session in [retryModalSession]" :key="'retry-modal-tags-' + session">
                                     <div class="min-w-0 space-y-2">
                                         <x-input-label id="retry-modal-tags-label" for="retry-modal-tags">Tags</x-input-label>
                                         <x-multiselect

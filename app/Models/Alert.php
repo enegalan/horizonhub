@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Services\Horizon\ServiceTagNormalizer;
 use Database\Factories\AlertFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -163,15 +162,5 @@ class Alert extends Model
     public function scopeEnabled($query)
     {
         return $query->where('enabled', true);
-    }
-
-    /**
-     * Normalize service_tags before persistence.
-     */
-    protected static function booted(): void
-    {
-        static::saving(function (Alert $alert): void {
-            $alert->service_tags = ServiceTagNormalizer::normalizeList($alert->service_tags ?? []);
-        });
     }
 }

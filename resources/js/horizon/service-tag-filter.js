@@ -42,17 +42,13 @@ export function initServiceTagFilters() {
                 url.searchParams.append("service_tag[]", tag);
             });
 
-        var serviceInputNames = ["service_id[]", "serviceFilter[]", "queue_services[]"];
-        serviceInputNames.forEach(function (inputName) {
-            var paramBase = inputName.replace("[]", "");
-            url.searchParams.delete(paramBase);
-            url.searchParams.delete(inputName);
-            readHiddenInputValues(root, inputName)
-                .sort()
-                .forEach(function (id) {
-                    url.searchParams.append(inputName, id);
-                });
-        });
+        url.searchParams.delete("service_id");
+        url.searchParams.delete("service_id[]");
+        readHiddenInputValues(root, "service_id[]")
+            .sort()
+            .forEach(function (id) {
+                url.searchParams.append("service_id[]", id);
+            });
 
         window.history.replaceState({}, "", url.toString());
 

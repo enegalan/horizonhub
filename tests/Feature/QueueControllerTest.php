@@ -36,7 +36,7 @@ class QueueControllerTest extends TestCase
         ]);
 
         $response = $this->get(route('horizon.queues.index', [
-            'queue_services' => [$service->id, 99999, '0'],
+            'service_id' => [$service->id, 99999, '0'],
         ]));
 
         $response->assertOk();

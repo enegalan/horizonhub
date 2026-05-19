@@ -47,7 +47,7 @@ class HorizonJobListServiceCoverageTest extends TestCase
 
         $request = Request::create('/horizon/jobs', 'GET', [
             'search' => 'Job',
-            'serviceFilter' => [$s1->id, $s2->id],
+            'service_id' => [$s1->id, $s2->id],
             'page_processing' => 1,
             'page_processed' => 1,
             'page_failed' => 1,

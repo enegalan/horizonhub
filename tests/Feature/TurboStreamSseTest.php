@@ -288,7 +288,7 @@ class TurboStreamSseTest extends TestCase
             'base_url' => 'https://parse.test',
             'status' => 'online',
         ]);
-        $this->assertSame([$service->id], $filter->resolveFromQuery('queue_services[]=' . $service->id));
+        $this->assertSame([$service->id], $filter->resolveFromQuery('service_id[]=' . $service->id));
 
         $service->update(['tags' => ['production']]);
         $this->assertSame([$service->id], $filter->resolveFromQuery('service_tag[]=production'));

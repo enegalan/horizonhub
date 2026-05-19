@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Services\Horizon\ServiceTagNormalizer;
 use Database\Factories\ServiceFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -56,35 +55,6 @@ class Service extends Model
         'last_seen_at',
         'tags',
     ];
-
-    /**
-     * Distinct tags across services (uses model casts, not raw JSON pluck).
-     *
-     * @return list<string>
-     */
-    public static function distinctTags(bool $enabledOnly = false): array
-    {
-        $query = self::query();
-
-        if ($enabledOnly) {
-            $query->enabled();
-        }
-
-        $tags = [];
-
-        foreach ($query->get(['tags']) as $service) {
-            foreach ($service->tags as $tag) {
-                if (\is_string($tag) && $tag !== '') {
-                    $tags[$tag] = $tag;
-                }
-            }
-        }
-
-        $list = \array_values($tags);
-        \sort($list);
-
-        return $list;
-    }
 
     /**
      * Get the base URL of the service.
@@ -152,24 +122,10 @@ class Service extends Model
      */
     public function scopeMatchingTags(Builder $query, array $tags): Builder
     {
-        if ($tags === []) {
-            return $query;
-        }
-
         return $query->where(function (Builder $inner) use ($tags): void {
             foreach ($tags as $tag) {
                 $inner->orWhereJsonContains('tags', $tag);
             }
-        });
-    }
-
-    /**
-     * Normalize tags before persistence.
-     */
-    protected static function booted(): void
-    {
-        static::saving(function (Service $service): void {
-            $service->tags = ServiceTagNormalizer::normalizeList($service->tags ?? []);
         });
     }
 }

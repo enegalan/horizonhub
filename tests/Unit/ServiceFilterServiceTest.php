@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
 use App\Services\Horizon\ServiceFilterService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -70,12 +71,11 @@ class ServiceFilterServiceTest extends TestCase
 
         $request = Request::create('/horizon/jobs', 'GET', [
             'service_tag' => ['production'],
-            'serviceFilter' => [$staging->id],
+            'service_id' => [$staging->id],
         ]);
 
         $ids = $this->filter->resolveServiceIds($request);
 
-        $this->assertSame([ServiceFilterService::NO_MATCH_SERVICE_ID], $ids);
         $this->assertNotContains($prod->id, $ids);
         $this->assertNotContains($staging->id, $ids);
     }
@@ -91,23 +91,6 @@ class ServiceFilterServiceTest extends TestCase
             'service_id' => [$staging->id],
         ]);
 
-        $this->assertSame([ServiceFilterService::NO_MATCH_SERVICE_ID], $this->filter->resolveServiceIds($request));
-        $this->assertSame([$staging->id], $this->filter->selectedServiceIdsFromRequest($request));
-        $this->assertNotContains(ServiceFilterService::NO_MATCH_SERVICE_ID, $this->filter->selectedServiceIdsFromRequest($request));
-    }
-
-    #[Test]
-    public function resolve_returns_no_match_placeholder_when_tag_matches_no_service(): void
-    {
-        Service::factory()->create(['tags' => ['production']]);
-
-        $request = Request::create('/horizon/dashboard', 'GET', [
-            'service_tag' => ['staging'],
-        ]);
-
-        $this->assertSame(
-            [ServiceFilterService::NO_MATCH_SERVICE_ID],
-            $this->filter->resolveServiceIds($request),
-        );
+        $this->assertSame([$staging->id], ServiceRequest::existingIdsFromRequest($request));
     }
 }

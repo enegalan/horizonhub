@@ -40,7 +40,7 @@ class AlertUpsertService
             'selectedProviderIds' => $alert->exists ? $alert->notificationProviders()->pluck('notification_providers.id')->all() : [],
             'selectedServiceIds' => $alert->service_ids,
             'selectedServiceTags' => $alert->service_tags,
-            'allTags' => Service::distinctTags(true),
+            'allTags' => Service::query()->enabled()->get(['tags'])->pluck('tags')->flatten()->unique()->sort()->values()->all(),
             'header' => $header,
         ];
     }

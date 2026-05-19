@@ -18,7 +18,6 @@
                         :services="$services"
                         :service-ids="$selectedServiceIds ?? []"
                         service-multiselect-id="queues-index-services"
-                        service-multiselect-name="queue_services"
                         service-multiselect-label="Services"
                     />
                 </form>
