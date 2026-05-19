@@ -190,7 +190,7 @@
                 type="search"
                 x-ref="searchInput"
                 x-model="filterQuery"
-                placeholder="Search…"
+                placeholder="Search..."
                 class="flex h-8 w-full rounded-md border border-input bg-background px-2 text-sm shadow-sm"
                 autocomplete="off"
             />

@@ -209,7 +209,7 @@
                                         class="text-xs text-muted-foreground"
                                         x-show="selectingAllFailed"
                                     >
-                                        Selecting all…
+                                        Selecting all...
                                     </span>
                                 </div>
                             </div>
@@ -391,7 +391,7 @@
                                     </span>
                                     <span x-cloak x-show="retrying" style="display: none" class="inline-flex items-center gap-1.5">
                                         <x-loader class="size-4" />
-                                        Retrying…
+                                        Retrying...
                                     </span>
                                 </x-button>
                             </div>
