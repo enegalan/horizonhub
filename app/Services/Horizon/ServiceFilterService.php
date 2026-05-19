@@ -46,7 +46,6 @@ class ServiceFilterService
         $tagIds = Service::query()
             ->matchingTags($tags)
             ->pluck('id')
-            ->map(static fn ($id): int => (int) $id)
             ->all();
 
         if ($serviceIds === []) {

@@ -103,14 +103,13 @@ class Alert extends Model
     public function resolvedServiceIds(): array
     {
         if ($this->service_ids === []) {
-            return Service::query()->enabled()->pluck('id')->map(static fn ($id): int => (int) $id)->all();
+            return Service::query()->enabled()->pluck('id')->all();
         }
 
         $ids = Service::query()
             ->enabled()
             ->whereIn('id', $this->service_ids)
             ->pluck('id')
-            ->map(static fn ($id): int => (int) $id)
             ->all();
 
         \sort($ids);
