@@ -21,6 +21,7 @@
             'hover:border-red-500/45 dark:hover:border-red-400/50' => $isEnabled && ! $isOnline && ! $isStandBy,
         ])
         data-stream-row-id="svc-{{ (int) $service->id }}"
+        data-horizon-stream-sig="{{ $service->getTurboStreamSig() }}"
         data-service-connectivity="{{ $serviceStatus }}"
     >
         <div

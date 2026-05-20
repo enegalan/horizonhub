@@ -5,7 +5,10 @@
  *
  * Table rows: only direct td/th with data-column-id are compared and updated.
  * Use data-stream-preserve-client on a cell to keep the live DOM (e.g. CSRF tokens in forms).
- * Mark any subtree that client JS rewrites after load (e.g. JSON tree) with data-stream-preserve-client
+ * Mark any subtree that client JS rewrites after load (e.g. JSON tree) with data-stream-preserve-client.
+ * For keyed merges, nodes with data-last-seen-at / data-wait-seconds keep client-filled text when the attribute value is unchanged.
+ * Keyed roots may set data-horizon-stream-sig on the server; when it matches the live node, innerHTML merge is skipped.
+ * Redundant replace/update (including unchanged application/json script payloads) is skipped before Turbo mutates the DOM.
  */
 
 import { parseJson } from "./parse";
@@ -147,6 +150,41 @@ function cloneNormalizedForStreamCompare(el) {
 }
 
 /**
+ * @param {Element} root
+ * @returns {HTMLScriptElement[]}
+ */
+function private__jsonScriptsIn(root) {
+    if (!root || root.nodeType !== 1) {
+        return [];
+    }
+    var tag = root.tagName ? String(root.tagName).toUpperCase() : '';
+    if (tag === 'SCRIPT' && String(root.getAttribute('type') || '') === 'application/json') {
+        return [root];
+    }
+    return Array.prototype.slice.call(root.querySelectorAll('script[type="application/json"]'));
+}
+
+/**
+ * @param {Element} liveRoot
+ * @param {Element} incomingRoot
+ * @returns {boolean}
+ */
+function private__streamJsonScriptPayloadsEqual(liveRoot, incomingRoot) {
+    var live = private__jsonScriptsIn(liveRoot);
+    var incoming = private__jsonScriptsIn(incomingRoot);
+    if (!live.length || live.length !== incoming.length) {
+        return false;
+    }
+    var i;
+    for (i = 0; i < live.length; i++) {
+        if (live[i].textContent.trim() !== incoming[i].textContent.trim()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
  * Whether an incoming `update` would produce the same effective markup as the live target.
  * @param {Element} targetEl
  * @param {HTMLTemplateElement} templateEl
@@ -173,6 +211,9 @@ function isRedundantUpdate(targetEl, templateEl) {
 
     var wrap = document.createElement('div');
     wrap.innerHTML = incomingHtml;
+    if (private__streamJsonScriptPayloadsEqual(targetEl, wrap)) {
+        return true;
+    }
     return (
         cloneNormalizedForStreamCompare(targetEl).innerHTML === cloneNormalizedForStreamCompare(wrap).innerHTML
     );
@@ -197,6 +238,9 @@ function isRedundantReplace(targetEl, templateEl) {
     }
     if (children.length === 1) {
         var onlyChild = children[0];
+        if (private__streamJsonScriptPayloadsEqual(targetEl, onlyChild)) {
+            return true;
+        }
         return (
             cloneNormalizedForStreamCompare(targetEl).outerHTML ===
             cloneNormalizedForStreamCompare(onlyChild).outerHTML
@@ -333,9 +377,6 @@ function mergeTableRowCells(existingRow, incomingRow) {
         if (etd.hasAttribute('data-stream-preserve-client')) {
             continue;
         }
-        if (String(etd.getAttribute('data-wait-seconds')) === String(itd.getAttribute('data-wait-seconds'))) {
-            continue;
-        }
         mergeGenericKeyedChild(etd, itd);
         changed = true;
     }
@@ -372,26 +413,32 @@ function private__stageKeyedChildWithClientPreservation(existing, incoming) {
  */
 function mergeGenericKeyedChild(existing, incoming) {
     var staged = private__stageKeyedChildWithClientPreservation(existing, incoming);
+    var datetimeAttrs = ['data-last-seen-at', 'data-wait-seconds'];
+    for (var a = 0; a < datetimeAttrs.length; a++) {
+        var attrName = datetimeAttrs[a];
+        var ex = existing.querySelectorAll('[' + attrName + ']');
+        var st = staged.querySelectorAll('[' + attrName + ']');
+        for (var i = 0; i < ex.length && i < st.length; i++) {
+            if (String(ex[i].getAttribute(attrName) || '') !== String(st[i].getAttribute(attrName) || '')) {
+                continue;
+            }
+            if (String(ex[i].textContent || '').trim() === '') {
+                continue;
+            }
+            st[i].textContent = ex[i].textContent;
+        }
+    }
+    var incomingSig = incoming.getAttribute('data-horizon-stream-sig');
+    var existingSig = existing.getAttribute('data-horizon-stream-sig');
+    if (incomingSig && existingSig && String(incomingSig) === String(existingSig)) {
+        return false;
+    }
     var changed = false;
     var nextHtml = staged.innerHTML;
 
     if (existing.innerHTML !== nextHtml) {
         existing.innerHTML = nextHtml;
         changed = true;
-    }
-
-    var attrs = ['data-wait-seconds', 'data-last-seen-at'];
-    for (var attr of attrs) {
-        if (incoming.hasAttribute(attr)) {
-            var nextValue = String(incoming.getAttribute(attr));
-            if (existing.getAttribute(attr) !== nextValue) {
-                existing.setAttribute(attr, nextValue);
-                changed = true;
-            }
-        } else if (existing.hasAttribute(attr)) {
-            existing.removeAttribute(attr);
-            changed = true;
-        }
     }
     return changed;
 }
@@ -400,7 +447,7 @@ function mergeGenericKeyedChild(existing, incoming) {
  * Merge keyed child.
  * @param {Element} existingChild
  * @param {Element} incomingChild
- * @returns {void}
+ * @returns {boolean}
  */
 function mergeKeyedChild(existingChild, incomingChild) {
     const isExistingTableRow = existingChild && existingChild.tagName && String(existingChild.tagName).toUpperCase() === 'TR';
@@ -432,7 +479,7 @@ function findKeyedDirectChild(container, rowId) {
  * Sync structural child by ID.
  * @param {Element} domChild
  * @param {Element} incChild
- * @returns {void}
+ * @returns {boolean}
  */
 function syncStructuralChildById(domChild, incChild) {
     var changed = false;
