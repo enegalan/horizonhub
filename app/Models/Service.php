@@ -79,42 +79,6 @@ class Service extends Model
     }
 
     /**
-     * Stable fingerprint for the services list card (SSE merge skip). Keep aligned with service-tbody fields.
-     */
-    public function getTurboStreamSig(): string
-    {
-        $tags = $this->tags ?? [];
-
-        if (! \is_array($tags)) {
-            $tags = [];
-        }
-        $tags = \array_values($tags);
-        \sort($tags);
-
-        $lastSeenKey = null;
-
-        if ($this->last_seen_at !== null) {
-            $lastSeenKey = $this->last_seen_at->copy()->startOfMinute()->toIso8601String();
-        }
-
-        $payload = [
-            'id' => (int) $this->id,
-            'name' => (string) ($this->name ?? ''),
-            'base_url' => (string) ($this->base_url ?? ''),
-            'public_url' => (string) ($this->public_url ?? ''),
-            'status' => \strtolower((string) ($this->status ?? '')),
-            'horizon_status' => (string) ($this->horizon_status ?? ''),
-            'enabled' => (bool) ($this->enabled ?? true),
-            'horizon_jobs_count' => (int) ($this->horizon_jobs_count ?? 0),
-            'horizon_failed_jobs_count' => (int) ($this->horizon_failed_jobs_count ?? 0),
-            'last_seen_minute' => $lastSeenKey,
-            'tags' => $tags,
-        ];
-
-        return \hash('sha256', \json_encode($payload, \JSON_THROW_ON_ERROR));
-    }
-
-    /**
      * HTTP headers sent on outbound requests to this service.
      *
      * @return HasMany<ServiceHeader, $this>
