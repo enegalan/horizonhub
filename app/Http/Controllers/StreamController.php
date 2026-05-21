@@ -16,7 +16,8 @@ abstract class StreamController extends Controller
     /**
      * Append a turbo-stream tag to the streams array.
      *
-     * @param array<string, string> &$streams
+     * @param-out list<string> $streams
+     * @param list<string> $streams
      */
     protected function appendTurboStream(array &$streams, string $action, string $target, string $content, ?string $streamMethod = null): void
     {
@@ -30,7 +31,8 @@ abstract class StreamController extends Controller
     /**
      * Push stream updates to the streams array.
      *
-     * @param array<string, string> &$streams
+     * @param-out list<string> $streams
+     * @param list<string> $streams
      * @param array<string, string> $updates
      */
     protected function pushStreamUpdates(array &$streams, array $updates, ?string $streamMethod = null): void
@@ -47,7 +49,8 @@ abstract class StreamController extends Controller
     /**
      * Push view streams to the streams array.
      *
-     * @param array<string, string> &$streams
+     * @param-out list<string> $streams
+     * @param list<string> $streams
      * @param array<string, array<string, mixed>> $views
      */
     protected function pushViewStreams(array &$streams, array $views, ?string $streamMethod = null): void
