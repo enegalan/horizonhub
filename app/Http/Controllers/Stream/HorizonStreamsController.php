@@ -14,7 +14,6 @@ use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\HorizonJobDetailService;
 use App\Services\Horizon\HorizonJobListService;
 use App\Services\Horizon\HorizonMetricsService;
-use App\Services\Horizon\MetricsDashboardDataService;
 use App\Services\Horizon\ServiceFilterService;
 use App\Services\Horizon\ServiceShowPageDataService;
 use App\Services\Horizon\ServiceStatsAttachmentService;
@@ -60,11 +59,6 @@ class HorizonStreamsController extends StreamController
     private HorizonMetricsService $metrics;
 
     /**
-     * The metrics dashboard data service.
-     */
-    private MetricsDashboardDataService $metricsDashboard;
-
-    /**
      * The provider delivery stats service.
      */
     private ProviderDeliveryStatsService $providerDeliveryStats;
@@ -87,9 +81,8 @@ class HorizonStreamsController extends StreamController
     /**
      * The constructor.
      */
-    public function __construct(MetricsDashboardDataService $metricsDashboard, DashboardDataService $dashboardData, HorizonMetricsService $metrics, HorizonApiProxyService $horizonApi, HorizonJobListService $jobList, HorizonJobDetailService $jobDetail, ServiceShowPageDataService $serviceShowPageData, ServiceStatsAttachmentService $serviceStats, AlertChartDataService $alertChartData, AlertDataService $alertIndexStreamData, ProviderDeliveryStatsService $providerDeliveryStats, ServiceFilterService $serviceFilter)
+    public function __construct(DashboardDataService $dashboardData, HorizonMetricsService $metrics, HorizonApiProxyService $horizonApi, HorizonJobListService $jobList, HorizonJobDetailService $jobDetail, ServiceShowPageDataService $serviceShowPageData, ServiceStatsAttachmentService $serviceStats, AlertChartDataService $alertChartData, AlertDataService $alertIndexStreamData, ProviderDeliveryStatsService $providerDeliveryStats, ServiceFilterService $serviceFilter)
     {
-        $this->metricsDashboard = $metricsDashboard;
         $this->dashboardData = $dashboardData;
         $this->metrics = $metrics;
         $this->horizonApi = $horizonApi;
@@ -325,7 +318,7 @@ class HorizonStreamsController extends StreamController
 
     private function private__buildMetricsStreams(string $query): string
     {
-        $d = $this->metricsDashboard->build($this->serviceFilter->resolveFromQuery($query));
+        $d = $this->metrics->buildMetricsDashboardData($this->serviceFilter->resolveFromQuery($query));
 
         $updates = [
             'metrics-value-jobs-minute' => e($d['jobsPastMinute'] ?? '—'),

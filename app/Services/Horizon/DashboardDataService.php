@@ -8,9 +8,9 @@ use App\Models\Service;
 class DashboardDataService
 {
     /**
-     * The metrics dashboard data service.
+     * The Horizon metrics service.
      */
-    private MetricsDashboardDataService $metricsDashboard;
+    private HorizonMetricsService $metrics;
 
     /**
      * The service stats attachment service.
@@ -20,9 +20,9 @@ class DashboardDataService
     /**
      * The constructor.
      */
-    public function __construct(MetricsDashboardDataService $metricsDashboard, ServiceStatsAttachmentService $serviceStats)
+    public function __construct(HorizonMetricsService $metrics, ServiceStatsAttachmentService $serviceStats)
     {
-        $this->metricsDashboard = $metricsDashboard;
+        $this->metrics = $metrics;
         $this->serviceStats = $serviceStats;
     }
 
@@ -36,7 +36,7 @@ class DashboardDataService
      */
     public function build(HorizonApiProxyService $horizonApi, array $serviceIds = []): array
     {
-        $metrics = $this->metricsDashboard->build($serviceIds);
+        $metrics = $this->metrics->buildMetricsDashboardData($serviceIds);
 
         $servicesQuery = Service::query()->orderBy('name');
 

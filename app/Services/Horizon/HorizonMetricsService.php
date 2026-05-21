@@ -65,6 +65,93 @@ class HorizonMetricsService
     }
 
     /**
+     * Build dashboard/metrics page data from live Horizon API reads.
+     *
+     * @param list<int> $serviceIds
+     *
+     * @return array{
+     *     metricsChartData: array<string, mixed>,
+     *     jobsPastMinute: mixed,
+     *     jobsPastHour: mixed,
+     *     failedPastSevenDays: mixed,
+     *     failureRate24h: array<string, mixed>,
+     *     jobRuntimesLast24h: mixed,
+     *     failureRateOverTime: mixed,
+     *     jobsVolumeLast24h: mixed,
+     *     workloadRows: mixed,
+     *     supervisorsRows: mixed,
+     *     workloadSummary: string,
+     *     supervisorsSummary: string,
+     *     waitByQueue: mixed,
+     *     hasRuntimeChart: bool,
+     *     hasFailureRateChart: bool,
+     *     hasJobsVolumeChart: bool,
+     *     hasServiceChart: bool
+     * }
+     */
+    public function buildMetricsDashboardData(array $serviceIds): array
+    {
+        $throughput = $this->getThroughputTotalsForServiceIds($serviceIds);
+        $jobsPastMinute = $throughput['jobsPastMinute'];
+        $jobsPastHour = $throughput['jobsPastHour'];
+        $failedPastSevenDays = $throughput['failedPastSevenDays'];
+        $failureRate24h = $this->getFailureRate24h($serviceIds);
+        $jobRuntimesLast24h = $this->getJobRuntimesLast24h($serviceIds);
+        $failureRateOverTime = $this->getFailureRateOverTime($serviceIds);
+        $jobsVolumeLast24h = $this->getJobsVolumeLast24h($serviceIds);
+        $workloadRows = $this->getWorkloadData($serviceIds);
+        $supervisorsRows = $this->getSupervisorsData($serviceIds);
+
+        $totalQueues = \count($workloadRows);
+        $totalJobs = 0;
+
+        foreach ($workloadRows as $row) {
+            $totalJobs += (int) $row['jobs'];
+        }
+
+        $workloadSummary = "$totalQueues queue(s), $totalJobs job(s) total";
+
+        $totalSupervisors = \count($supervisorsRows);
+        $onlineSupervisors = 0;
+
+        foreach ($supervisorsRows as $row) {
+            if ($row['status'] === 'online') {
+                $onlineSupervisors++;
+            }
+        }
+        $supervisorsSummary = "$totalSupervisors supervisor(s), $onlineSupervisors online";
+
+        $waitByQueue = $this->getWaitByQueueChartData($workloadRows);
+
+        $metricsChartData = [
+            'jobsVolumeLast24h' => $jobsVolumeLast24h,
+            'jobRuntimesLast24h' => $jobRuntimesLast24h,
+            'failureRateOverTime' => $failureRateOverTime,
+            'waitByQueue' => $waitByQueue,
+        ];
+
+        return [
+            'metricsChartData' => $metricsChartData,
+            'jobsPastMinute' => $jobsPastMinute,
+            'jobsPastHour' => $jobsPastHour,
+            'failedPastSevenDays' => $failedPastSevenDays,
+            'failureRate24h' => $failureRate24h,
+            'jobRuntimesLast24h' => $jobRuntimesLast24h,
+            'failureRateOverTime' => $failureRateOverTime,
+            'jobsVolumeLast24h' => $jobsVolumeLast24h,
+            'workloadRows' => $workloadRows,
+            'supervisorsRows' => $supervisorsRows,
+            'workloadSummary' => $workloadSummary,
+            'supervisorsSummary' => $supervisorsSummary,
+            'waitByQueue' => $waitByQueue,
+            'hasRuntimeChart' => true,
+            'hasFailureRateChart' => true,
+            'hasJobsVolumeChart' => true,
+            'hasServiceChart' => $waitByQueue !== null && $waitByQueue['queues'] !== [],
+        ];
+    }
+
+    /**
      * Workload rows as queue list rows for the queues UI and SSE partials.
      *
      * @param list<int> $serviceFilterIds

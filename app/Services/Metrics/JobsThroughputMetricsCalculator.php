@@ -134,17 +134,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
             $data = $response['data'] ?? null;
 
             if ($response['success'] && \is_array($data)) {
-                $jobs_per_minute = isset($data['jobsPerMinute']) ? (float) $data['jobsPerMinute'] : 0.0;
-
-                if ($jobs_per_minute > 0) {
-                    return (int) \round($jobs_per_minute);
-                }
-                $recent = isset($data['recentJobs']) ? (int) $data['recentJobs'] : 0;
-                $period = isset($data['periods']['recentJobs']) ? (int) $data['periods']['recentJobs'] : 60;
-
-                if ($recent >= 0 && $period > 0) {
-                    return (int) \round($recent / $period);
-                }
+                return $this->private__jobsPastMinuteFromStatsData($data);
             }
 
             return 0;
@@ -160,9 +150,35 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
         $total = 0;
 
         foreach ($services as $svc) {
-            $total += $this->getJobsPastMinute($svc);
+            $response = $this->horizonApi->getStats($svc);
+            $data = $response['data'] ?? null;
+
+            if ($response['success'] && \is_array($data)) {
+                $total += $this->private__jobsPastMinuteFromStatsData($data);
+            }
         }
 
         return $total;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function private__jobsPastMinuteFromStatsData(array $data): int
+    {
+        $jobsPerMinute = isset($data['jobsPerMinute']) ? (float) $data['jobsPerMinute'] : 0.0;
+
+        if ($jobsPerMinute > 0) {
+            return (int) \round($jobsPerMinute);
+        }
+
+        $recent = isset($data['recentJobs']) ? (int) $data['recentJobs'] : 0;
+        $period = isset($data['periods']['recentJobs']) ? (int) $data['periods']['recentJobs'] : 60;
+
+        if ($recent >= 0 && $period > 0) {
+            return (int) \round($recent / $period);
+        }
+
+        return 0;
     }
 }

@@ -33,21 +33,17 @@ class ServiceStatsAttachmentService
             }
 
             $response = $horizonApi->getStats($service);
-
             $data = null;
 
             if ($response['success'] && isset($response['data'])) {
                 $data = $response['data'];
             }
-            $snap = [
-                'failedJobs' => $data && isset($data['failedJobs']) ? (int) $data['failedJobs'] : 0,
-                'recentJobs' => $data && isset($data['recentJobs']) ? (int) $data['recentJobs'] : 0,
-                'status' => $data && isset($data['status']) && (string) $data['status'] !== '' ? (string) $data['status'] : null,
-            ];
 
-            $service->horizon_failed_jobs_count = $snap['failedJobs'];
-            $service->horizon_jobs_count = $snap['recentJobs'];
-            $service->horizon_status = $snap['status'];
+            $service->horizon_failed_jobs_count = $data && isset($data['failedJobs']) ? (int) $data['failedJobs'] : 0;
+            $service->horizon_jobs_count = $data && isset($data['recentJobs']) ? (int) $data['recentJobs'] : 0;
+            $service->horizon_status = $data && isset($data['status']) && (string) $data['status'] !== ''
+                ? (string) $data['status']
+                : null;
         }
     }
 
