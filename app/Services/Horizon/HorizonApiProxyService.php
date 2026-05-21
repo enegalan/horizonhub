@@ -573,5 +573,4 @@ class HorizonApiProxyService
             Cache::put($this->private__failureCooldownCacheKey($service), true, \now()->addSeconds($seconds));
         }
     }
-
 }
