@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
@@ -13,6 +14,14 @@ use Tests\TestCase;
 class HorizonApiProxyServiceTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function tearDown(): void
+    {
+        Cache::flush();
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
 
     public function test_dashboard_bootstrap_sends_service_headers(): void
     {
@@ -177,6 +186,69 @@ class HorizonApiProxyServiceTest extends TestCase
         $this->assertFalse($result['success']);
         $this->assertSame(429, $result['status'] ?? null);
         $this->assertSame('Rate limited by upstream', $result['message'] ?? null);
+    }
+
+    public function test_get_refreshes_after_hot_reload_interval_elapsed(): void
+    {
+        $calls = 0;
+        Http::fake(function () use (&$calls) {
+            $calls++;
+
+            return Http::response(['failedJobs' => $calls, 'recentJobs' => 2], 200);
+        });
+
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.ping', '/stats');
+        \config()->set('horizonhub.hot_reload_interval', 1.0);
+
+        $service = Service::create([
+            'name' => 'svc-hot-reload-expiry',
+            'base_url' => 'https://service-hot-reload-expiry.test',
+            'status' => 'online',
+        ]);
+
+        Cache::flush();
+
+        $proxy = new HorizonApiProxyService;
+
+        $first = $proxy->getStats($service);
+        $this->assertTrue($first['success']);
+        $this->assertSame(1, (int) ($first['data']['failedJobs'] ?? 0));
+
+        \sleep(2);
+
+        $second = $proxy->getStats($service);
+        $this->assertTrue($second['success']);
+        $this->assertSame(2, (int) ($second['data']['failedJobs'] ?? 0));
+        $this->assertSame(2, $calls);
+    }
+
+    public function test_get_reuses_successful_response_within_hot_reload_interval(): void
+    {
+        $calls = 0;
+        Http::fake(function () use (&$calls) {
+            $calls++;
+
+            return Http::response(['failedJobs' => 1, 'recentJobs' => 2], 200);
+        });
+
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.ping', '/stats');
+        \config()->set('horizonhub.hot_reload_interval', 1.0);
+
+        $service = Service::create([
+            'name' => 'svc-hot-reload-cache',
+            'base_url' => 'https://service-hot-reload-cache.test',
+            'status' => 'online',
+        ]);
+
+        Cache::flush();
+
+        $proxy = new HorizonApiProxyService;
+
+        $this->assertTrue($proxy->getStats($service)['success']);
+        $this->assertTrue($proxy->getStats($service)['success']);
+        $this->assertSame(1, $calls);
     }
 
     public function test_get_stats_returns_error_when_service_is_disabled(): void

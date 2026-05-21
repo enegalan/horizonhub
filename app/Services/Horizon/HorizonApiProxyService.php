@@ -297,6 +297,53 @@ class HorizonApiProxyService
         $url = "$base/" . \ltrim($path, '/');
 
         $httpMethod = \strtolower($method);
+
+        $hotReloadPathCacheKey = $httpMethod === 'get' && ! $withDashboardSession && ! $allowWhenDisabled
+            ? $this->private__hotReloadPathCacheKey($service, $path)
+            : null;
+
+        if ($hotReloadPathCacheKey !== null) {
+            $cached = Cache::get($hotReloadPathCacheKey);
+
+            if ($cached === null) {
+                $lockSeconds = (int) config('horizonhub.api_timeout');
+                $lock = Cache::lock("$hotReloadPathCacheKey:fill", $lockSeconds);
+
+                try {
+                    $lock->block($lockSeconds);
+                    $cached = Cache::get($hotReloadPathCacheKey);
+                } finally {
+                    $lock->release();
+                }
+            }
+
+            if ($cached !== null) {
+                if (config('app.debug')) {
+                    Log::info('Horizon Hub: Horizon API call (cache hit)', [
+                        'service_id' => $service->id ?? null,
+                        'service_name' => $service->name ?? null,
+                        'url' => $url,
+                        'http_method' => $httpMethod,
+                        'with_dashboard_session' => $withDashboardSession,
+                        'allow_when_disabled' => $allowWhenDisabled,
+                    ]);
+                }
+
+                return $cached;
+            }
+        }
+
+        if (config('app.debug')) {
+            Log::info('Horizon Hub: Horizon API call', [
+                'service_id' => $service->id ?? null,
+                'service_name' => $service->name ?? null,
+                'url' => $url,
+                'http_method' => $httpMethod,
+                'with_dashboard_session' => $withDashboardSession,
+                'allow_when_disabled' => $allowWhenDisabled,
+            ]);
+        }
+
         $attempt = function () use ($service, $url, $httpMethod, $withDashboardSession): ?Response {
             $request = $this->private__newHorizonPendingRequest($httpMethod, $service);
 
@@ -348,6 +395,10 @@ class HorizonApiProxyService
             if ($result['success'] === true) {
                 Cache::forget($this->private__failureCooldownCacheKey($service));
 
+                if ($hotReloadPathCacheKey !== null) {
+                    Cache::put($hotReloadPathCacheKey, $result, \now()->addSeconds((float) config('horizonhub.hot_reload_interval')));
+                }
+
                 return $result;
             }
 
@@ -392,6 +443,17 @@ class HorizonApiProxyService
     private function private__failureCooldownCacheKey(Service $service): string
     {
         return "horizonhub:horizon-api-failure-cooldown:{$service->id}";
+    }
+
+    /**
+     * Get the cache key for the hot-reload path.
+     *
+     * @param Service $service The service.
+     * @param string $path The path.
+     */
+    private function private__hotReloadPathCacheKey(Service $service, string $path): string
+    {
+        return "horizonhub:horizon-api-hot-reload-path:{$service->id}:$path";
     }
 
     /**
@@ -511,4 +573,5 @@ class HorizonApiProxyService
             Cache::put($this->private__failureCooldownCacheKey($service), true, \now()->addSeconds($seconds));
         }
     }
+
 }
