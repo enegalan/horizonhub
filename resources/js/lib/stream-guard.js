@@ -1,14 +1,13 @@
 /**
- * Core Turbo Stream handling for the Horizon Hub SSE pipeline:
- * target resolution, redundant update/replace skipping, and incremental patching
- * of keyed direct children (tables, lists, or any opt-in container).
+ * Turbo Stream guards for the Horizon Hub SSE pipeline.
  *
- * Table rows: only direct td/th with data-column-id are compared and updated.
- * Use data-stream-preserve-client on a cell to keep the live DOM (e.g. CSRF tokens in forms).
- * Mark any subtree that client JS rewrites after load (e.g. JSON tree) with data-stream-preserve-client
+ * Contract (server + markup):
+ * 1. PHP omits unchanged turbo-stream payloads per target (StreamController fingerprints).
+ * 2. List/table targets use data-turbo-stream-patch-children + stable data-stream-row-id on direct children.
+ * 3. Client-owned UI inside streamed rows uses data-stream-preserve-client.
+ *
+ * Client flow: incremental row patch when opted-in → otherwise Turbo render (unchanged payloads omitted in PHP).
  */
-
-import { parseJson } from "./parse";
 
 /**
  * DOM node addressed by a turbo-stream's `target` attribute.
@@ -16,380 +15,161 @@ import { parseJson } from "./parse";
  * @returns {Element|null}
  */
 export function getTurboStreamTargetElement(streamElement) {
-    var targetAttr = String(streamElement.getAttribute('target') || '').trim();
-    if (!targetAttr) {
+    var targetId = String(streamElement.getAttribute('target') || '').trim();
+    if (!targetId) {
         return null;
     }
-
-    var raw = String(targetAttr).trim();
-    if (!raw) {
-        return null;
+    if (targetId.charAt(0) === '#') {
+        targetId = targetId.slice(1);
     }
-    var targetId = raw.charAt(0) === '#' ? raw.slice(1) : raw;
-    var byId = document.getElementById(targetId);
-    if (byId) {
-        return byId;
-    }
-
-    return document.querySelector(targetId);
+    return document.getElementById(targetId) || document.querySelector(targetId);
 }
 
 /**
  * Render turbo stream with guards.
  * @param {Element} streamElement
  * @param {function(Element): void} originalRender
- * @returns {'incremental-changed'|'incremental-unchanged'|'skipped'|'rendered'}
+ * @returns {'incremental-changed'|'incremental-unchanged'|'rendered'}
  */
 export function renderTurboStreamWithGuards(streamElement, originalRender) {
-    preserveJobsSectionsOpenState(streamElement);
     var patchOutcome = tryApplyIncrementalStreamPatch(streamElement);
     if (patchOutcome === 'incremental-changed' || patchOutcome === 'incremental-unchanged') {
         return patchOutcome;
-    }
-    if (isStreamUpdateRedundant(streamElement)) {
-        return 'skipped';
     }
     originalRender(streamElement);
     return 'rendered';
 }
 
 /**
- * Preserve open/closed state for jobs stack sections across replace/update streams.
+ * Read the context of a turbo stream element.
  * @param {Element} streamElement
- * @returns {void}
+ * @returns {{ action: string, method: string, targetEl: Element, templateEl: HTMLTemplateElement }|null}
  */
-function preserveJobsSectionsOpenState(streamElement) {
-    var target = String(streamElement.getAttribute('target') || '').trim();
-    if (target !== 'horizon-jobs-stack') {
-        return;
-    }
-    var action = String(streamElement.getAttribute('action') || '').toLowerCase();
-    if (action !== 'replace' && action !== 'update') {
-        return;
-    }
-
-    var liveStack = document.getElementById('horizon-jobs-stack');
-    var templateEl = streamElement.querySelector('template');
-    if (!liveStack || !templateEl) {
-        return;
-    }
-
-    var openBySection = {};
-    try {
-        var raw = window.localStorage ? window.localStorage.getItem('horizon_jobs_sections') : null;
-        var parsed = parseJson(raw);
-        if (parsed && typeof parsed === 'object') {
-            Object.keys(parsed).forEach(function (key) {
-                openBySection[String(key)] = !!parsed[key];
-            });
-        }
-    } catch (_e) {
-    }
-
-    var liveDetails = liveStack.querySelectorAll('details[data-section-key]');
-    liveDetails.forEach(function (el) {
-        var key = String(el.getAttribute('data-section-key') || '').trim();
-        if (!key || typeof openBySection[key] === 'boolean') {
-            return;
-        }
-        openBySection[key] = !!el.open;
-    });
-
-    var holder = document.createElement('div');
-    holder.innerHTML = templateEl.innerHTML;
-    var incomingDetails = holder.querySelectorAll('details[data-section-key]');
-    incomingDetails.forEach(function (el) {
-        var key = String(el.getAttribute('data-section-key') || '').trim();
-        if (!key || typeof openBySection[key] !== 'boolean') {
-            return;
-        }
-        if (openBySection[key]) {
-            el.setAttribute('open', '');
-        } else {
-            el.removeAttribute('open');
-        }
-    });
-    templateEl.innerHTML = holder.innerHTML;
-}
-
-/**
- * Remove whitespace-only text nodes so Blade/indented HTML compares to live DOM consistently.
- * @param {Node} node
- * @returns {void}
- */
-function stripWhitespaceOnlyTextNodes(node) {
-    var child = node.firstChild;
-    while (child) {
-        var next = child.nextSibling;
-        if (child.nodeType === Node.TEXT_NODE) {
-            if (/^\s*$/.test(String(child.textContent || ''))) {
-                node.removeChild(child);
-            }
-        } else if (child.nodeType === Node.ELEMENT_NODE) {
-            stripWhitespaceOnlyTextNodes(child);
-        }
-        child = next;
-    }
-}
-
-/**
- * Clone subtree, drop client-expanded bodies under [data-stream-preserve-client], strip ignorable whitespace.
- * @param {Element} el
- * @returns {Element}
- */
-function cloneNormalizedForStreamCompare(el) {
-    var clone = el.cloneNode(true);
-    clone.querySelectorAll('[data-stream-preserve-client]').forEach(function (host) {
-        host.innerHTML = '';
-    });
-    stripWhitespaceOnlyTextNodes(clone);
-    return clone;
-}
-
-/**
- * Whether an incoming `update` would produce the same effective markup as the live target.
- * @param {Element} targetEl
- * @param {HTMLTemplateElement} templateEl
- * @returns {boolean}
- */
-function isRedundantUpdate(targetEl, templateEl) {
-    var incomingHtml = templateEl.innerHTML;
-    if (targetEl.innerHTML === incomingHtml) {
-        return true;
-    }
-
-    var scratch = document.createElement('div');
-    scratch.innerHTML = incomingHtml;
-
-    var incomingStreamSig = scratch.querySelector('[data-horizon-stream-sig]');
-    var existingStreamSig = targetEl.querySelector('[data-horizon-stream-sig]');
-    if (incomingStreamSig && existingStreamSig) {
-        var sigA = String(incomingStreamSig.getAttribute('data-horizon-stream-sig') || '');
-        var sigB = String(existingStreamSig.getAttribute('data-horizon-stream-sig') || '');
-        if (sigA !== '' && sigA === sigB) {
-            return true;
-        }
-    }
-
-    var wrap = document.createElement('div');
-    wrap.innerHTML = incomingHtml;
-    return (
-        cloneNormalizedForStreamCompare(targetEl).innerHTML === cloneNormalizedForStreamCompare(wrap).innerHTML
-    );
-}
-
-/**
- * Whether an incoming `replace` would swap in an equivalent subtree.
- * @param {Element} targetEl
- * @param {HTMLTemplateElement} templateEl
- * @returns {boolean}
- */
-function isRedundantReplace(targetEl, templateEl) {
-    var fragment = templateEl.content;
-    if (!fragment || !fragment.childNodes.length) {
-        return false;
-    }
-    var holder = document.createElement('div');
-    holder.appendChild(fragment.cloneNode(true));
-    var children = holder.children;
-    if (children.length === 0) {
-        return false;
-    }
-    if (children.length === 1) {
-        var onlyChild = children[0];
-        return (
-            cloneNormalizedForStreamCompare(targetEl).outerHTML ===
-            cloneNormalizedForStreamCompare(onlyChild).outerHTML
-        );
-    }
-    var incoming = '';
-    var i;
-    for (i = 0; i < children.length; i++) {
-        incoming += cloneNormalizedForStreamCompare(children[i]).outerHTML;
-    }
-    return cloneNormalizedForStreamCompare(targetEl).outerHTML === incoming;
-}
-
-/**
- * True when applying this turbo-stream would be redundant (DOM already matches).
- * Only `update` and `replace` are evaluated; other actions return false.
- * @param {Element} streamElement
- * @returns {boolean}
- */
-function isStreamUpdateRedundant(streamElement) {
-    var action = String(streamElement.getAttribute('action') || '').toLowerCase();
-    if (action !== 'update' && action !== 'replace') {
-        return false;
-    }
+function readStreamContext(streamElement) {
     var templateEl = streamElement.querySelector('template');
     if (!templateEl || templateEl.tagName !== 'TEMPLATE') {
-        return false;
+        return null;
     }
     var targetEl = getTurboStreamTargetElement(streamElement);
     if (!targetEl) {
-        return false;
+        return null;
     }
-
-    if (action === 'update') {
-        return isRedundantUpdate(targetEl, templateEl);
-    }
-
-    return isRedundantReplace(targetEl, templateEl);
+    return {
+        action: String(streamElement.getAttribute('action') || '').toLowerCase(),
+        method: String(streamElement.getAttribute('method') || '').toLowerCase(),
+        targetEl: targetEl,
+        templateEl: templateEl,
+    };
 }
 
 /**
- * Create a parser container for an element.
+ * Normalize markup for stream comparison.
+ * @param {Element} el
+ * @returns {string}
+ */
+function streamSig(el) {
+    return String(el.getAttribute('data-horizon-stream-sig') || '');
+}
+
+/**
+ * Create a container element for parsing a stream template.
  * @param {Element} el
  * @returns {Element}
  */
 function createParserContainerForElement(el) {
     var tag = el.tagName ? String(el.tagName).toUpperCase() : 'DIV';
-    if (tag === 'TBODY' || tag === 'THEAD' || tag === 'TFOOT') {
-        return document.createElement(tag);
-    }
-    if (tag === 'UL' || tag === 'OL') {
+    if (tag === 'TBODY' || tag === 'THEAD' || tag === 'TFOOT' || tag === 'UL' || tag === 'OL') {
         return document.createElement(tag);
     }
     return document.createElement('DIV');
 }
 
 /**
- * Get the keyed direct children of a container.
- * @param {Element} container
- * @returns {Element[]}
+ * Map direct children by key attribute.
+ * @param {Element} parent
+ * @param {string} keyAttr
+ * @param {function(Element): boolean} [isKeyedChild]
+ * @returns {{ list: Element[], map: Map<string, Element> }}
  */
-function getKeyedDirectChildren(container) {
-    var out = [];
-    var ch = container.children;
-    var i;
-    for (i = 0; i < ch.length; i++) {
-        if (ch[i].nodeType === 1 && ch[i].hasAttribute('data-stream-row-id')) {
-            out.push(ch[i]);
+function collectDirectKeyed(parent, keyAttr, isKeyedChild) {
+    var list = [];
+    var map = new Map();
+    for (let i = 0; i < parent.children.length; i++) {
+        if (parent.children[i].nodeType !== 1 || (isKeyedChild && !isKeyedChild(parent.children[i])) || !parent.children[i].hasAttribute(keyAttr)) {
+            continue;
         }
+        var key = parent.children[i].getAttribute(keyAttr);
+        if (!key) {
+            continue;
+        }
+        list.push(parent.children[i]);
+        map.set(key, parent.children[i]);
     }
-    return out;
+    return { list: list, map: map };
 }
 
 /**
- * Direct table cells (td/th) on a row with data-column-id. Avoids `:scope` on rows parsed
- * outside the document, which can return no matches and force a whole-row fallback.
- * @param {HTMLTableRowElement} tr
- * @returns {HTMLTableCellElement[]}
- */
-function getDirectTableCellsWithColumnId(tr) {
-    var out = [];
-    var ch = tr.children;
-    var i;
-    for (i = 0; i < ch.length; i++) {
-        var cell = ch[i];
-        var tn = cell.tagName ? String(cell.tagName).toUpperCase() : '';
-        if ((tn === 'TD' || tn === 'TH') && cell.hasAttribute('data-column-id')) {
-            out.push(cell);
-        }
-    }
-    return out;
-}
-
-/**
- * Find a direct table cell by column ID.
- * @param {HTMLTableRowElement} tr
- * @param {string} columnId
- * @returns {HTMLTableCellElement|null}
- */
-function findDirectTableCellByColumnId(tr, columnId) {
-    var cells = getDirectTableCellsWithColumnId(tr);
-    var i;
-    for (i = 0; i < cells.length; i++) {
-        if (cells[i].getAttribute('data-column-id') === columnId) {
-            return cells[i];
-        }
-    }
-    return null;
-}
-
-/**
- * Merge table row cells.
- * @param {HTMLTableRowElement} existingRow
- * @param {HTMLTableRowElement} incomingRow
- * @returns {void}
- */
-function mergeTableRowCells(existingRow, incomingRow) {
-    var changed = false;
-    var incomingTds = getDirectTableCellsWithColumnId(incomingRow);
-    var j;
-    for (j = 0; j < incomingTds.length; j++) {
-        var itd = incomingTds[j];
-        var col = itd.getAttribute('data-column-id');
-        if (!col) {
-            continue;
-        }
-        if (itd.hasAttribute('data-stream-preserve-client')) {
-            continue;
-        }
-        var etd = findDirectTableCellByColumnId(existingRow, col);
-        if (!etd) {
-            continue;
-        }
-        if (etd.hasAttribute('data-stream-preserve-client')) {
-            continue;
-        }
-        if (String(etd.getAttribute('data-wait-seconds')) === String(itd.getAttribute('data-wait-seconds'))) {
-            continue;
-        }
-        mergeGenericKeyedChild(etd, itd);
-        changed = true;
-    }
-    return changed;
-}
-
-/**
- * Copy live client-owned subtrees into an incoming keyed child before merge.
- * @param {Element} existing
- * @param {Element} incoming
- * @returns {Element}
- */
-function private__stageKeyedChildWithClientPreservation(existing, incoming) {
-    var staged = incoming.cloneNode(true);
-    var existingHosts = existing.querySelectorAll('[data-stream-preserve-client]');
-    var stagedHosts = staged.querySelectorAll('[data-stream-preserve-client]');
-    var i;
-
-    for (i = 0; i < existingHosts.length; i++) {
-        if (!stagedHosts[i]) {
-            continue;
-        }
-        stagedHosts[i].replaceWith(existingHosts[i].cloneNode(true));
-    }
-
-    return staged;
-}
-
-/**
- * Merge generic keyed child.
+ * Apply incoming markup onto an existing node while preserving client-owned bits.
  * @param {Element} existing
  * @param {Element} incoming
  * @returns {boolean}
  */
-function mergeGenericKeyedChild(existing, incoming) {
-    var staged = private__stageKeyedChildWithClientPreservation(existing, incoming);
-    var changed = false;
-    var nextHtml = staged.innerHTML;
-
-    if (existing.innerHTML !== nextHtml) {
-        existing.innerHTML = nextHtml;
-        changed = true;
+function mergePreservedSubtree(existing, incoming) {
+    if (incoming.hasAttribute('data-stream-preserve-client') || existing.hasAttribute('data-stream-preserve-client')) {
+        return false;
+    }
+    if (streamSig(incoming) !== '' && streamSig(incoming) === streamSig(existing)) {
+        return false;
     }
 
-    var attrs = ['data-wait-seconds', 'data-last-seen-at'];
-    for (var attr of attrs) {
-        if (incoming.hasAttribute(attr)) {
-            var nextValue = String(incoming.getAttribute(attr));
-            if (existing.getAttribute(attr) !== nextValue) {
-                existing.setAttribute(attr, nextValue);
-                changed = true;
+    var staged = incoming.cloneNode(true); // Clone incoming to avoid modifying the original
+    var existingHosts = existing.querySelectorAll('[data-stream-preserve-client]');
+    var stagedHosts = staged.querySelectorAll('[data-stream-preserve-client]');
+    for (let i = 0; i < existingHosts.length; i++) {
+        if (stagedHosts[i]) {
+            stagedHosts[i].replaceWith(existingHosts[i].cloneNode(true));
+        }
+    }
+
+    var datetimeAttrs = ['data-last-seen-at', 'data-wait-seconds'];
+    for (let a = 0; a < datetimeAttrs.length; a++) {
+        var existingNodes = existing.querySelectorAll('[' + datetimeAttrs[a] + ']');
+        var stagedNodes = staged.querySelectorAll('[' + datetimeAttrs[a] + ']');
+        for (let n = 0; n < existingNodes.length && n < stagedNodes.length; n++) {
+            if (String(existingNodes[n].getAttribute(datetimeAttrs[a]) || '') !== String(stagedNodes[n].getAttribute(datetimeAttrs[a]) || '')) {
+                continue;
             }
-        } else if (existing.hasAttribute(attr)) {
-            existing.removeAttribute(attr);
+            if (String(existingNodes[n].textContent || '').trim() === '') {
+                continue;
+            }
+            stagedNodes[n].textContent = existingNodes[n].textContent;
+        }
+    }
+    if (existing.innerHTML === staged.innerHTML) {
+        return false;
+    }
+    existing.innerHTML = staged.innerHTML;
+    return true;
+}
+
+/**
+ * Merge pairs of direct children that share the same key attribute.
+ * @param {Element} existingParent
+ * @param {Element} incomingParent
+ * @param {string} keyAttr
+ * @returns {boolean}
+ */
+function mergeDirectChildrenByKey(existingParent, incomingParent, keyAttr) {
+    function isDirectTableCellWithColumnId(node) {
+        var tn = node.tagName ? String(node.tagName).toUpperCase() : '';
+        return (tn === 'TD' || tn === 'TH') && node.hasAttribute('data-column-id');
+    }
+    var existingByKey = collectDirectKeyed(existingParent, keyAttr, isDirectTableCellWithColumnId).map;
+    var incomingList = collectDirectKeyed(incomingParent, keyAttr, isDirectTableCellWithColumnId).list;
+    var changed = false;
+    for (let i = 0; i < incomingList.length; i++) {
+        var existingChild = existingByKey.get(incomingList[i].getAttribute(keyAttr));
+        if (existingChild && mergePreservedSubtree(existingChild, incomingList[i])) {
             changed = true;
         }
     }
@@ -400,150 +180,87 @@ function mergeGenericKeyedChild(existing, incoming) {
  * Merge keyed child.
  * @param {Element} existingChild
  * @param {Element} incomingChild
- * @returns {void}
+ * @returns {boolean}
  */
 function mergeKeyedChild(existingChild, incomingChild) {
-    const isExistingTableRow = existingChild && existingChild.tagName && String(existingChild.tagName).toUpperCase() === 'TR';
-    const isIncomingTableRow = incomingChild && incomingChild.tagName && String(incomingChild.tagName).toUpperCase() === 'TR';
-    if (isExistingTableRow && isIncomingTableRow) {
-        return mergeTableRowCells(existingChild, incomingChild);
+    var tag = existingChild.tagName ? String(existingChild.tagName).toUpperCase() : '';
+    if (tag === 'TR' && String(incomingChild.tagName || '').toUpperCase() === 'TR') {
+        return mergeDirectChildrenByKey(existingChild, incomingChild, 'data-column-id');
     }
-    return mergeGenericKeyedChild(existingChild, incomingChild);
+    return mergePreservedSubtree(existingChild, incomingChild);
 }
 
 /**
- * Find a keyed direct child.
- * @param {Element} container
- * @param {string} rowId
- * @returns {Element|null}
+ * @param {Element[]} keyedChildren
+ * @returns {boolean}
  */
-function findKeyedDirectChild(container, rowId) {
-    var keyed = getKeyedDirectChildren(container);
-    var i;
-    for (i = 0; i < keyed.length; i++) {
-        if (keyed[i].getAttribute('data-stream-row-id') === rowId) {
-            return keyed[i];
+function hasUniqueRowIds(keyedChildren) {
+    var seen = new Set();
+    for (let i = 0; i < keyedChildren.length; i++) {
+        var id = keyedChildren[i].getAttribute('data-stream-row-id');
+        if (!id || seen.has(id)) {
+            return false;
+        }
+        seen.add(id);
+    }
+    return true;
+}
+
+/**
+ * @param {Element[]} existingKeyed
+ * @param {Element[]} incomingKeyed
+ * @returns {boolean}
+ */
+function rowIdsAreValidAndMatching(existingKeyed, incomingKeyed) {
+    if (existingKeyed.length !== incomingKeyed.length || existingKeyed.length === 0) {
+        return false;
+    }
+    if (!hasUniqueRowIds(incomingKeyed) || !hasUniqueRowIds(existingKeyed)) {
+        return false;
+    }
+    var incomingIds = new Set();
+    for (let i = 0; i < incomingKeyed.length; i++) {
+        incomingIds.add(incomingKeyed[i].getAttribute('data-stream-row-id'));
+    }
+    for (let j = 0; j < existingKeyed.length; j++) {
+        if (!incomingIds.has(existingKeyed[j].getAttribute('data-stream-row-id'))) {
+            return false;
         }
     }
-    return null;
+    return true;
 }
 
 /**
- * Sync structural child by ID.
- * @param {Element} domChild
- * @param {Element} incChild
- * @returns {void}
- */
-function syncStructuralChildById(domChild, incChild) {
-    var changed = false;
-    if (domChild.innerHTML !== incChild.innerHTML) {
-        domChild.innerHTML = incChild.innerHTML;
-        changed = true;
-    }
-    if (incChild.hasAttribute('style')) {
-        var ns = incChild.getAttribute('style') || '';
-        if (domChild.getAttribute('style') !== ns) {
-            domChild.setAttribute('style', ns);
-            changed = true;
-        }
-    } else if (domChild.hasAttribute('style')) {
-        domChild.removeAttribute('style');
-        changed = true;
-    }
-    return changed;
-}
-
-/**
- * When the stream target opts in, patch keyed direct children in place instead of morphing the whole subtree.
- * Works for tbody, div lists, ul/ol, etc., as long as the server sends the same set of `data-stream-row-id` values.
+ * Try to apply an incremental stream patch to a stream element.
  * @param {Element} streamElement
  * @returns {false|'incremental-unchanged'|'incremental-changed'}
  */
 function tryApplyIncrementalStreamPatch(streamElement) {
-    var action = String(streamElement.getAttribute('action') || '').toLowerCase();
-    var method = String(streamElement.getAttribute('method') || '').toLowerCase();
-    if (action !== 'update' || method !== 'morph') {
+    var ctx = readStreamContext(streamElement);
+    if (!ctx || ctx.action !== 'update' || ctx.method !== 'morph') {
         return false;
     }
-    var templateEl = streamElement.querySelector('template');
-    if (!templateEl || templateEl.tagName !== 'TEMPLATE') {
-        return false;
-    }
-    var targetEl = getTurboStreamTargetElement(streamElement);
-    if (!targetEl || !targetEl.hasAttribute('data-turbo-stream-patch-children')) {
+    if (!ctx.targetEl.hasAttribute('data-turbo-stream-patch-children')) {
         return false;
     }
 
-    var holder = createParserContainerForElement(targetEl);
-    holder.innerHTML = templateEl.innerHTML;
+    var holder = createParserContainerForElement(ctx.targetEl);
+    holder.innerHTML = ctx.templateEl.innerHTML;
 
-    var incomingKeyed = getKeyedDirectChildren(holder);
-    if (incomingKeyed.length === 0) {
+    var incomingKeyed = collectDirectKeyed(holder, 'data-stream-row-id').list;
+    var existingKeyed = collectDirectKeyed(ctx.targetEl, 'data-stream-row-id').list;
+    if (!rowIdsAreValidAndMatching(existingKeyed, incomingKeyed)) {
         return false;
-    }
-
-    var incomingKeySet = new Set();
-    var i;
-    for (i = 0; i < incomingKeyed.length; i++) {
-        var rk = incomingKeyed[i].getAttribute('data-stream-row-id');
-        if (rk) {
-            incomingKeySet.add(rk);
-        }
-    }
-    if (incomingKeySet.size !== incomingKeyed.length) {
-        return false;
-    }
-
-    var existingKeyed = getKeyedDirectChildren(targetEl);
-    var existingKeySet = new Set();
-    for (i = 0; i < existingKeyed.length; i++) {
-        var ek = existingKeyed[i].getAttribute('data-stream-row-id');
-        if (ek) {
-            existingKeySet.add(ek);
-        }
-    }
-
-    if (incomingKeySet.size !== existingKeySet.size) {
-        return false;
-    }
-    for (var k of incomingKeySet) {
-        if (!existingKeySet.has(k)) {
-            return false;
-        }
     }
 
     var anyChanged = false;
-
-    var ch = holder.children;
-    for (i = 0; i < ch.length; i++) {
-        var node = ch[i];
-        if (node.nodeType !== 1 || node.hasAttribute('data-stream-row-id')) {
-            continue;
-        }
-        var sid = node.getAttribute('id');
-        if (!sid) {
-            continue;
-        }
-        var domChild = document.getElementById(sid);
-        if (!domChild || !targetEl.contains(domChild)) {
-            continue;
-        }
-        if (syncStructuralChildById(domChild, node)) {
-            anyChanged = true;
-        }
-    }
-
-    for (i = 0; i < incomingKeyed.length; i++) {
-        var incChild = incomingKeyed[i];
-        var rowId = incChild.getAttribute('data-stream-row-id');
-        if (!rowId) {
-            continue;
-        }
-        var curChild = findKeyedDirectChild(targetEl, rowId);
-        if (!curChild) {
+    var existingByRowId = collectDirectKeyed(ctx.targetEl, 'data-stream-row-id').map;
+    for (let r = 0; r < incomingKeyed.length; r++) {
+        var existingChild = existingByRowId.get(incomingKeyed[r].getAttribute('data-stream-row-id'));
+        if (!existingChild) {
             return false;
         }
-        if (mergeKeyedChild(curChild, incChild)) {
+        if (mergeKeyedChild(existingChild, incomingKeyed[r])) {
             anyChanged = true;
         }
     }

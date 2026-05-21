@@ -44,9 +44,6 @@ function private__formatQueueWaitElements(root) {
         if (!text) return;
 
         text = text.replace(/^(.)/g, function ($1) { return $1.toUpperCase(); });
-        if (el.textContent.trim() === text) {
-            return;
-        }
         el.textContent = text;
     });
 }

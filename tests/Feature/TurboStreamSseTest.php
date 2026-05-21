@@ -28,7 +28,6 @@ class TurboStreamSseTest extends TestCase
 
         $this->mock(AlertChartDataService::class, function ($mock): void {
             $mock->shouldReceive('buildChart')
-                ->times(3)
                 ->andReturn([
                     'xAxis' => [],
                     'sent' => [],
@@ -273,6 +272,7 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('target="turbo-horizon-service-stats" method="morph"', $result);
         $this->assertStringContainsString('target="turbo-tbody-horizon-service-list" method="morph"', $result);
         $this->assertStringContainsString('action="update"', $result);
+        $this->assertStringContainsString('data-horizon-stream-sig="', $result);
     }
 
     public function test_parse_service_ids_and_turbo_stream_tag_helper_branches(): void

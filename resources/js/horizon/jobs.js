@@ -393,7 +393,7 @@ export function horizonJobsPage(config) {
          * @returns {void}
          */
         applyFailedJobShiftRangeOnRows(from, to) {
-            for (var i = from; i <= to; i++) {
+            for (let i = from; i <= to; i++) {
                 var job = this.failedJobs[i];
                 if (!job || !job.uuid) {
                     continue;
@@ -413,7 +413,7 @@ export function horizonJobsPage(config) {
                 return;
             }
             var end = Math.min(to, jobs.length - 1);
-            for (var i = from; i <= end; i++) {
+            for (let i = from; i <= end; i++) {
                 var job = jobs[i];
                 if (!job || !job.id) {
                     continue;
@@ -666,14 +666,13 @@ function postSingleJobRetry(retryUrl, component, toastMessage) {
 function buildRetryPaginationSlider(current, last, onEachSide) {
     var w = onEachSide;
     var slider = [];
-    var i;
     if (last <= (w * 2 + 3)) {
-        for (i = 1; i <= last; i++) {
+        for (let i = 1; i <= last; i++) {
             slider.push(i);
         }
     } else if (current <= w + 2) {
         var end = Math.min(w * 2 + 2, last);
-        for (i = 1; i <= end; i++) {
+        for (let i = 1; i <= end; i++) {
             slider.push(i);
         }
         slider.push('...');
@@ -682,13 +681,13 @@ function buildRetryPaginationSlider(current, last, onEachSide) {
         slider.push(1);
         slider.push('...');
         var start = Math.max(1, last - w * 2 - 1);
-        for (i = start; i <= last; i++) {
+        for (let i = start; i <= last; i++) {
             slider.push(i);
         }
     } else {
         slider.push(1);
         slider.push('...');
-        for (i = current - w; i <= current + w; i++) {
+        for (let i = current - w; i <= current + w; i++) {
             slider.push(i);
         }
         slider.push('...');

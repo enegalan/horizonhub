@@ -530,7 +530,7 @@ export function renderAlertDetailCharts() {
         };
     }
 
-    for (var i = 0; i < ALERT_DETAIL_CHARTS.length; i++) {
+    for (let i = 0; i < ALERT_DETAIL_CHARTS.length; i++) {
         var { key, id } = ALERT_DETAIL_CHARTS[i];
         var chartData = data[key];
         if (!chartData) continue;

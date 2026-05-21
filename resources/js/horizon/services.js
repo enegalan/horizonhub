@@ -119,7 +119,7 @@ export function horizonServiceForm(initialHeaders, initialTags, existingTags) {
         },
 
         canAddHeader() {
-            for (var i = 0; i < this.headers.length; i++) {
+            for (let i = 0; i < this.headers.length; i++) {
                 if ((this.headers[i].name || '').trim() === '') {
                     return false;
                 }

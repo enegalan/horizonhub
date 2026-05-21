@@ -178,10 +178,10 @@ class HorizonStreamsController extends StreamController
         $statsHtml = \view('horizon.alerts.partials.detail-stats', [
             'chartData' => $chartData,
         ])->render();
-        $streams[] = $this->turboStreamTag('update', 'alert-detail-stats', $statsHtml, 'morph');
+        $this->appendTurboStream($streams, 'update', 'alert-detail-stats', $statsHtml, 'morph');
 
         $chartJson = \json_encode($chartData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        $streams[] = $this->turboStreamTag('replace', 'alert-detail-chart-data', '<div id="alert-detail-chart-data"><script type="application/json" id="alert-detail-chart-data-json">' . $chartJson . '</script></div>');
+        $this->appendTurboStream($streams, 'replace', 'alert-detail-chart-data', '<div id="alert-detail-chart-data"><script type="application/json" id="alert-detail-chart-data-json">' . $chartJson . '</script></div>');
 
         return \implode("\n", $streams);
     }
@@ -341,10 +341,10 @@ class HorizonStreamsController extends StreamController
         $failureRateHtml = \view('horizon.metrics.partials.failure-rate-value', [
             'failureRate24h' => $d['failureRate24h'],
         ])->render();
-        $streams[] = $this->turboStreamTag('update', 'metrics-value-failure-rate', $failureRateHtml);
+        $this->appendTurboStream($streams, 'update', 'metrics-value-failure-rate', $failureRateHtml);
 
         $chartJson = \json_encode($d['metricsChartData'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        $streams[] = $this->turboStreamTag('replace', 'metrics-chart-data', '<script type="application/json" id="metrics-chart-data">' . $chartJson . '</script>');
+        $this->appendTurboStream($streams, 'replace', 'metrics-chart-data', '<script type="application/json" id="metrics-chart-data">' . $chartJson . '</script>');
 
         $views = [
             'metrics-workload-body' => ['view' => 'horizon.metrics.partials.workload-tbody', 'data' => ['workloadRows' => $d['workloadRows']]],
@@ -396,10 +396,11 @@ class HorizonStreamsController extends StreamController
 
         $tbodyHtml = \view('horizon.queues.partials.queue-tbody', ['queues' => $queues])->render();
 
-        return \implode("\n", [
-            $this->turboStreamTag('update', 'turbo-horizon-queue-stats', $statsHtml, 'morph'),
-            $this->turboStreamTag('update', 'turbo-tbody-horizon-queue-list', $tbodyHtml, 'morph'),
-        ]);
+        $streams = [];
+        $this->appendTurboStream($streams, 'update', 'turbo-horizon-queue-stats', $statsHtml, 'morph');
+        $this->appendTurboStream($streams, 'update', 'turbo-tbody-horizon-queue-list', $tbodyHtml, 'morph');
+
+        return \implode("\n", $streams);
     }
 
     // ------------------------------------------------------------------
@@ -498,12 +499,12 @@ class HorizonStreamsController extends StreamController
                 'showServiceColumn' => $showServiceColumn,
                 'pageService' => $pageService,
             ])->render();
-            $streams[] = $this->turboStreamTag('update', "turbo-tbody-$bodyKey", $tbodyHtml, 'morph');
-            $streams[] = $this->turboStreamTag('update', "job-count-$bodyKey", \e((string) $paginator->total()));
+            $this->appendTurboStream($streams, 'update', "turbo-tbody-$bodyKey", $tbodyHtml, 'morph');
+            $this->appendTurboStream($streams, 'update', "job-count-$bodyKey", \e((string) $paginator->total()));
             $paginationHtml = \view('horizon.jobs.partials.job-list-section-pagination', [
                 'paginator' => $paginator,
             ])->render();
-            $streams[] = $this->turboStreamTag('update', "job-pagination-$bodyKey", $paginationHtml, 'morph');
+            $this->appendTurboStream($streams, 'update', "job-pagination-$bodyKey", $paginationHtml, 'morph');
         }
 
         return $streams;

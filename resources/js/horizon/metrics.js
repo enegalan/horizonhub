@@ -213,7 +213,7 @@ function initMetricsCharts() {
                         formatter: function (params) {
                             if (!params || !params.length) return '';
                             var blocks = [];
-                            for (var i = 0; i < params.length; i++) {
+                            for (let i = 0; i < params.length; i++) {
                                 var param = params[i];
                                 var v = param.value;
                                 if (!v || v.length < 2) continue;
