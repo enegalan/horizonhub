@@ -145,7 +145,7 @@ function getLegendSelectedFromChart(chart) {
         var opt = chart.getOption();
         if (!opt || opt.legend === undefined) return null;
         var legends = Array.isArray(opt.legend) ? opt.legend : [opt.legend];
-        for (var i = 0; i < legends.length; i++) {
+        for (let i = 0; i < legends.length; i++) {
             var leg = legends[i];
             if (leg && leg.selected && typeof leg.selected === 'object' && Object.keys(leg.selected).length) {
                 return Object.assign({}, leg.selected);
@@ -166,7 +166,7 @@ function getLegendSelectedFromChart(chart) {
 function mergeLegendSelectedIntoOptions(options, previousSelected) {
     if (!previousSelected || !options || !options.legend || !Array.isArray(options.legend.data) || options.legend.data.length === 0) return;
     var selected = {};
-    for (var i = 0; i < options.legend.data.length; i++) {
+    for (let i = 0; i < options.legend.data.length; i++) {
         var name = options.legend.data[i];
         if (Object.prototype.hasOwnProperty.call(previousSelected, name)) {
             selected[name] = !!previousSelected[name];

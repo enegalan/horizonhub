@@ -89,8 +89,7 @@ import { parseJson } from '../lib/parse';
         if (current.length !== desired.length) {
             return false;
         }
-        var i;
-        for (i = 0; i < current.length; i++) {
+        for (let i = 0; i < current.length; i++) {
             if (current[i] !== desired[i]) {
                 return false;
             }
@@ -107,7 +106,7 @@ import { parseJson } from '../lib/parse';
     function getDirectColumnCells(row, tag) {
         var want = String(tag).toUpperCase();
         var out = [];
-        for (var c = row.firstElementChild; c; c = c.nextElementSibling) {
+        for (let c = row.firstElementChild; c; c = c.nextElementSibling) {
             var tn = c.tagName ? c.tagName.toUpperCase() : '';
             if (tn === want && c.hasAttribute('data-column-id')) {
                 out.push(c);
@@ -141,13 +140,12 @@ import { parseJson } from '../lib/parse';
         if (currentHead.length !== expectedOrder.length) {
             return false;
         }
-        var i;
-        for (i = 0; i < expectedOrder.length; i++) {
+        for (let i = 0; i < expectedOrder.length; i++) {
             if (currentHead[i].getAttribute('data-column-id') !== expectedOrder[i]) {
                 return false;
             }
         }
-        for (i = 0; i < expectedOrder.length; i++) {
+        for (let i = 0; i < expectedOrder.length; i++) {
             var colId = expectedOrder[i];
             var th = thsById[colId];
             var w = state.widths[colId];
@@ -158,7 +156,7 @@ import { parseJson } from '../lib/parse';
         }
         var columnOrder = expectedOrder.slice();
         var bodyRows = table.querySelectorAll('tbody tr');
-        for (var r = 0; r < bodyRows.length; r++) {
+        for (let r = 0; r < bodyRows.length; r++) {
             var tr = bodyRows[r];
             var cur = getDirectColumnCells(tr, 'TD').map(function (td) {
                 return td.getAttribute('data-column-id');
@@ -166,7 +164,7 @@ import { parseJson } from '../lib/parse';
             if (cur.length !== columnOrder.length) {
                 return false;
             }
-            for (var c = 0; c < columnOrder.length; c++) {
+            for (let c = 0; c < columnOrder.length; c++) {
                 if (cur[c] !== columnOrder[c]) {
                     return false;
                 }
