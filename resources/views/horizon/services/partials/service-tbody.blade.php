@@ -11,6 +11,35 @@
             ? \strtolower((string) $service->horizon_status)
             : '';
         $dashboardUrl = $service->getPublicUrl().config('horizonhub.horizon_paths.dashboard');
+        $tags = $service->tags ?? [];
+
+        if (! \is_array($tags)) {
+            $tags = [];
+        }
+        $tags = \array_values($tags);
+        \sort($tags);
+
+        $lastSeenKey = null;
+
+        if ($service->last_seen_at !== null) {
+            $lastSeenKey = $service->last_seen_at->copy()->startOfMinute()->toIso8601String();
+        }
+
+        $payload = [
+            'id' => (int) $service->id,
+            'name' => (string) ($service->name),
+            'base_url' => (string) ($service->base_url),
+            'public_url' => (string) ($service->public_url),
+            'status' => $serviceStatus,
+            'horizon_status' => $horizonStatus,
+            'enabled' => $isEnabled,
+            'horizon_jobs_count' => (int) ($service->horizon_jobs_count ?? 0),
+            'horizon_failed_jobs_count' => (int) ($service->horizon_failed_jobs_count ?? 0),
+            'last_seen_minute' => $lastSeenKey,
+            'tags' => $tags,
+        ];
+
+        $streamSig = \hash('sha256', \json_encode($payload, \JSON_THROW_ON_ERROR));
     @endphp
     <article
         @class([
@@ -21,6 +50,7 @@
             'hover:border-red-500/45 dark:hover:border-red-400/50' => $isEnabled && ! $isOnline && ! $isStandBy,
         ])
         data-stream-row-id="svc-{{ (int) $service->id }}"
+        data-horizon-stream-sig="{{ $streamSig }}"
         data-service-connectivity="{{ $serviceStatus }}"
     >
         <div
