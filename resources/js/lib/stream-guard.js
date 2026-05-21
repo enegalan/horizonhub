@@ -8,7 +8,7 @@
  * Mark any subtree that client JS rewrites after load (e.g. JSON tree) with data-stream-preserve-client.
  * For keyed merges, nodes with data-last-seen-at / data-wait-seconds keep client-filled text when the attribute value is unchanged.
  * Keyed roots may set data-horizon-stream-sig on the server; when it matches the live node, innerHTML merge is skipped.
- * Redundant replace/update (including unchanged application/json script payloads) is skipped before Turbo mutates the DOM.
+ * Redundant replace/update is skipped before Turbo mutates the DOM.
  */
 
 import { parseJson } from "./parse";
@@ -136,7 +136,7 @@ function stripWhitespaceOnlyTextNodes(node) {
 }
 
 /**
- * Clone subtree, drop client-expanded bodies under [data-stream-preserve-client], strip ignorable whitespace.
+ * Clone subtree, drop client-expanded bodies under [data-stream-preserve-client], trim application/json script bodies, strip ignorable whitespace.
  * @param {Element} el
  * @returns {Element}
  */
@@ -145,43 +145,15 @@ function cloneNormalizedForStreamCompare(el) {
     clone.querySelectorAll('[data-stream-preserve-client]').forEach(function (host) {
         host.innerHTML = '';
     });
+    var rootTag = clone.tagName ? String(clone.tagName).toUpperCase() : '';
+    if (rootTag === 'SCRIPT' && String(clone.getAttribute('type') || '') === 'application/json') {
+        clone.textContent = String(clone.textContent || '').trim();
+    }
+    clone.querySelectorAll('script[type="application/json"]').forEach(function (script) {
+        script.textContent = String(script.textContent || '').trim();
+    });
     stripWhitespaceOnlyTextNodes(clone);
     return clone;
-}
-
-/**
- * @param {Element} root
- * @returns {HTMLScriptElement[]}
- */
-function private__jsonScriptsIn(root) {
-    if (!root || root.nodeType !== 1) {
-        return [];
-    }
-    var tag = root.tagName ? String(root.tagName).toUpperCase() : '';
-    if (tag === 'SCRIPT' && String(root.getAttribute('type') || '') === 'application/json') {
-        return [root];
-    }
-    return Array.prototype.slice.call(root.querySelectorAll('script[type="application/json"]'));
-}
-
-/**
- * @param {Element} liveRoot
- * @param {Element} incomingRoot
- * @returns {boolean}
- */
-function private__streamJsonScriptPayloadsEqual(liveRoot, incomingRoot) {
-    var live = private__jsonScriptsIn(liveRoot);
-    var incoming = private__jsonScriptsIn(incomingRoot);
-    if (!live.length || live.length !== incoming.length) {
-        return false;
-    }
-    var i;
-    for (i = 0; i < live.length; i++) {
-        if (live[i].textContent.trim() !== incoming[i].textContent.trim()) {
-            return false;
-        }
-    }
-    return true;
 }
 
 /**
@@ -209,13 +181,8 @@ function isRedundantUpdate(targetEl, templateEl) {
         }
     }
 
-    var wrap = document.createElement('div');
-    wrap.innerHTML = incomingHtml;
-    if (private__streamJsonScriptPayloadsEqual(targetEl, wrap)) {
-        return true;
-    }
     return (
-        cloneNormalizedForStreamCompare(targetEl).innerHTML === cloneNormalizedForStreamCompare(wrap).innerHTML
+        cloneNormalizedForStreamCompare(targetEl).innerHTML === cloneNormalizedForStreamCompare(scratch).innerHTML
     );
 }
 
@@ -238,9 +205,6 @@ function isRedundantReplace(targetEl, templateEl) {
     }
     if (children.length === 1) {
         var onlyChild = children[0];
-        if (private__streamJsonScriptPayloadsEqual(targetEl, onlyChild)) {
-            return true;
-        }
         return (
             cloneNormalizedForStreamCompare(targetEl).outerHTML ===
             cloneNormalizedForStreamCompare(onlyChild).outerHTML

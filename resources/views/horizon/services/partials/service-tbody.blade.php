@@ -1,6 +1,5 @@
 @php
     /** @var \App\Models\Service $service */
-    
 @endphp
 @forelse($services as $service)
     @php
