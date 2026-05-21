@@ -70,9 +70,6 @@ document.addEventListener('turbo:before-stream-render', function (e) {
     e.detail.render = function (streamElement) {
         if (!streamElement || !streamElement.getAttribute || (typeof document !== 'undefined' && document.visibilityState !== 'visible')) return;
         var outcome = renderTurboStreamWithGuards(streamElement, original);
-        if (outcome === 'skipped') {
-            return;
-        }
         var syncRoot = getTurboStreamTargetElement(streamElement);
         schedule(function () {
             formatDatetimeElements(syncRoot);

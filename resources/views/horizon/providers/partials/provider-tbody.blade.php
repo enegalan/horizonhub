@@ -7,10 +7,21 @@
         $configSummary = $isSlack
             ? ($provider->getWebhookUrl() ?: 'No webhook configured')
             : (\implode(', ', $provider->getToEmails()) ?: 'No recipients configured');
+        $emailsForSig = $provider->getToEmails();
+        \sort($emailsForSig);
+
+        $streamSig = \hash('sha256', \json_encode([
+            'id' => (int) $provider->id,
+            'name' => (string) ($provider->name ?? ''),
+            'type' => (string) ($provider->type ?? ''),
+            'webhook_url' => $isSlack ? (string) $provider->getWebhookUrl() : '',
+            'to_emails' => $isSlack ? [] : $emailsForSig,
+        ], \JSON_THROW_ON_ERROR));
     @endphp
     <article
         class="card group relative overflow-hidden transition-colors hover:border-primary/30"
         data-stream-row-id="prv-{{ (int) $provider->id }}"
+        data-horizon-stream-sig="{{ $streamSig }}"
     >
         <div
             @class([

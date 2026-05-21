@@ -6,6 +6,30 @@
         $serviceLabels = isset($serviceLabelsByAlertId) ? ($serviceLabelsByAlertId[$alert->id] ?? []) : [];
         $queuePatterns = isset($alert->threshold['queue_patterns']) && \is_array($alert->threshold['queue_patterns']) ? $alert->threshold['queue_patterns'] : [];
         $jobPatterns = isset($alert->threshold['job_patterns']) && \is_array($alert->threshold['job_patterns']) ? $alert->threshold['job_patterns'] : [];
+        $queuePatternsForSig = \array_values($queuePatterns);
+        $jobPatternsForSig = \array_values($jobPatterns);
+        \sort($queuePatternsForSig);
+        \sort($jobPatternsForSig);
+        $serviceLabelsForSig = \array_values($serviceLabels);
+        \sort($serviceLabelsForSig);
+
+        $lastTriggeredAt = $alert->alert_logs_max_sent_at ?? null;
+        if ($lastTriggeredAt !== null) {
+            $lastTriggeredAt = \Carbon\Carbon::parse($lastTriggeredAt)->toIso8601String();
+        }
+
+        $streamSig = \hash('sha256', \json_encode([
+            'id' => (int) $alert->id,
+            'name' => (string) ($alert->name ?? ''),
+            'enabled' => (bool) $alert->enabled,
+            'rule_type' => (string) ($alert->rule_type ?? ''),
+            'queue' => (string) ($alert->queue ?? ''),
+            'job_type' => (string) ($alert->job_type ?? ''),
+            'queue_patterns' => $queuePatternsForSig,
+            'job_patterns' => $jobPatternsForSig,
+            'service_labels' => $serviceLabelsForSig,
+            'last_triggered_at' => $lastTriggeredAt,
+        ], \JSON_THROW_ON_ERROR));
         $queueSummary = \count($queuePatterns) > 1
             ? $queuePatterns[0] . ' (+' . (\count($queuePatterns) - 1) . ')'
             : (\count($queuePatterns) === 1 ? $queuePatterns[0] : ($alert->queue ?? 'All queues'));
@@ -18,6 +42,7 @@
     <article
         class="card group relative overflow-hidden transition-colors hover:border-primary/30"
         data-stream-row-id="alt-{{ (int) $alert->id }}"
+        data-horizon-stream-sig="{{ $streamSig }}"
     >
         <div
             @class([
