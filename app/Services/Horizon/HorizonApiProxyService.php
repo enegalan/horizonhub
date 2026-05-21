@@ -319,7 +319,7 @@ class HorizonApiProxyService
 
             if ($cached !== null) {
                 if (config('app.debug')) {
-                    Log::info('Horizon Hub: Horizon API call (cache hit)', [
+                    Log::debug('Horizon Hub: Horizon API call (cache hit)', [
                         'service_id' => $service->id ?? null,
                         'service_name' => $service->name ?? null,
                         'url' => $url,
@@ -334,7 +334,7 @@ class HorizonApiProxyService
         }
 
         if (config('app.debug')) {
-            Log::info('Horizon Hub: Horizon API call', [
+            Log::debug('Horizon Hub: Horizon API call', [
                 'service_id' => $service->id ?? null,
                 'service_name' => $service->name ?? null,
                 'url' => $url,
