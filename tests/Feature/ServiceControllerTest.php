@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
+use App\Support\FormDrawer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -35,10 +36,12 @@ class ServiceControllerTest extends TestCase
         $this->get(route('horizon.services.index'))->assertOk();
         Service::factory()->create(['tags' => ['production']]);
 
-        $this->get(route('horizon.services.create'))
+        $formDrawerHeaders = ['Turbo-Frame' => FormDrawer::FRAME_ID];
+
+        $this->get(route('horizon.services.create'), $formDrawerHeaders)
             ->assertOk()
             ->assertSee('production', false);
-        $this->get(route('horizon.services.edit', ['service' => $service]))
+        $this->get(route('horizon.services.edit', ['service' => $service]), $formDrawerHeaders)
             ->assertOk()
             ->assertSee('production', false);
         $this->get(route('horizon.services.show', ['service' => $service]))

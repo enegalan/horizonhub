@@ -68,16 +68,15 @@
                         <span class="hidden text-xs sm:inline">Test</span>
                     </x-button>
                 </form>
-                <x-button
+                <x-form-drawer-link
+                    :href="route('horizon.services.edit', $service)"
                     variant="ghost"
-                    type="button"
-                    onclick="window.location.href='{{ route('horizon.services.edit', $service) }}'"
                     class="h-8 gap-1.5 px-2 sm:px-3"
                     aria-label="Edit service"
                 >
                     <x-heroicon-o-pencil-square class="size-4 shrink-0" />
                     <span class="hidden text-xs sm:inline">Edit</span>
-                </x-button>
+                </x-form-drawer-link>
                 <x-button
                     variant="ghost"
                     type="button"
@@ -119,7 +118,7 @@
         </div>
 
         <div class="card mb-4">
-            <div class="flex items-center justify-between border-b border-border px-4 py-3">
+            <div class="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
                 <h3 class="text-section-title text-foreground">Current workload</h3>
                 <p id="service-show-workload-count" class="text-xs text-muted-foreground">
                     @if($workloadQueues->count() > 0)

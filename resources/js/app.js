@@ -1,5 +1,6 @@
 import './bootstrap';
 import './components/resizable-table';
+import './components/form-drawer';
 import * as echarts from 'echarts';
 import * as Turbo from '@hotwired/turbo';
 import { horizonJobsPage, horizonJobDetail, horizonJobRowRetry, initJsonTrees } from './horizon/jobs';

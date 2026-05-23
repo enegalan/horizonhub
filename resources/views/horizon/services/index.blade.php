@@ -12,13 +12,9 @@
                 description="Register each Horizon deployment, monitor its health, and open its dashboard when you need to inspect queues and workers."
             >
                 <x-slot:actions>
-                    <x-button
-                        type="button"
-                        class="h-9 shrink-0 text-sm"
-                        onclick="window.location.href='{{ route('horizon.services.create') }}'"
-                    >
+                    <x-form-drawer-link :href="route('horizon.services.create')" class="h-9 shrink-0 text-sm">
                         Register service
-                    </x-button>
+                    </x-form-drawer-link>
                 </x-slot:actions>
             </x-page-hero>
 

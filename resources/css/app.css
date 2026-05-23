@@ -349,6 +349,58 @@ td[data-column-id="actions"] > div {
     @apply justify-center;
 }
 
+.form-drawer-shell {
+    @apply pointer-events-none fixed inset-0 z-[60] flex justify-end;
+    visibility: hidden;
+}
+.form-drawer-shell.form-drawer-shell--open,
+.form-drawer-shell.form-drawer-shell--closing {
+    visibility: visible;
+}
+.form-drawer-shell.form-drawer-shell--open {
+    @apply pointer-events-auto;
+}
+.form-drawer-shell.form-drawer-shell--closing {
+    pointer-events: none;
+}
+.form-drawer-backdrop {
+    @apply pointer-events-none absolute inset-0 bg-black/40 opacity-0 backdrop-blur-sm;
+    transition: opacity 300ms ease-out;
+}
+.form-drawer-shell.form-drawer-shell--open:not(.form-drawer-shell--closing) .form-drawer-backdrop {
+    @apply pointer-events-auto opacity-100;
+}
+.form-drawer-shell.form-drawer-shell--closing .form-drawer-backdrop {
+    opacity: 0;
+}
+.form-drawer-panel {
+    @apply relative z-10 flex h-full w-full max-w-lg flex-col border-l border-border bg-card shadow-soft-lg;
+    transform: translateX(100%);
+    transition: transform 300ms ease-out;
+}
+.form-drawer-shell.form-drawer-shell--open:not(.form-drawer-shell--closing) .form-drawer-panel {
+    transform: translateX(0);
+}
+.form-drawer-shell.form-drawer-shell--closing .form-drawer-panel {
+    transform: translateX(100%);
+}
+@media (prefers-reduced-motion: reduce) {
+    .form-drawer-panel,
+    .form-drawer-backdrop {
+        transition: none !important;
+    }
+}
+.form-drawer-panel turbo-frame,
+turbo-frame#form-drawer {
+    @apply flex min-h-0 flex-1 flex-col;
+}
+.form-drawer-body {
+    @apply min-h-full bg-card;
+}
+.form-drawer-scroll {
+    @apply min-h-0;
+}
+
 @layer components {
     .notyf__toast.hub-notyf {
         @apply rounded-lg border text-sm shadow-soft-lg;

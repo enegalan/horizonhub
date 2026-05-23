@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.form-drawer')
 
 @section('content')
     @php
@@ -7,17 +7,8 @@
         $currentType = old('type', $provider->type ?? \App\Models\NotificationProvider::TYPE_SLACK);
     @endphp
 
-    <div class="mx-auto max-w-3xl space-y-6" x-data="{ type: '{{ $currentType }}' }">
-        <div class="card overflow-hidden">
-            <x-page-hero
-                :eyebrow="$isEdit ? 'Update provider' : 'Create provider'"
-                :title="$isEdit ? 'Edit notification provider' : 'New notification provider'"
-                description="Pick a delivery channel, give it a recognizable name, and add the destination details your alerts will use."
-            />
-
-        </div>
-
-        <form method="POST" action="{{ $action }}" class="space-y-6">
+    <div class="space-y-6" x-data="{ type: '{{ $currentType }}' }">
+        <form method="POST" action="{{ $action }}" class="space-y-6" data-turbo-frame="form-drawer">
             @csrf
             @if($isEdit)
                 @method('PUT')
@@ -158,12 +149,7 @@
                 >
                     {{ $isEdit ? 'Save changes' : 'Create provider' }}
                 </x-button>
-                <x-button
-                    variant="ghost"
-                    type="button"
-                    class="h-9 text-sm"
-                    onclick="window.location.href='{{ route('horizon.providers.index') }}'"
-                >
+                <x-button variant="ghost" type="button" class="h-9 text-sm" data-form-drawer-close>
                     Cancel
                 </x-button>
             </div>

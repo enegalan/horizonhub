@@ -146,17 +146,16 @@
                         <span>Evaluate</span>
                     </span>
                 </x-button>
-                <x-button
+                <x-form-drawer-link
+                    :href="route('horizon.alerts.edit', $alert)"
                     variant="ghost"
-                    type="button"
                     class="h-8 min-h-8 px-2.5 text-xs"
                     aria-label="Edit"
                     title="Edit"
-                    onclick="window.location.href='{{ route('horizon.alerts.edit', $alert) }}'"
                 >
                     <x-heroicon-o-pencil-square class="size-4" />
                     <span>Edit</span>
-                </x-button>
+                </x-form-drawer-link>
                 <x-button
                     variant="ghost"
                     type="button"
@@ -180,13 +179,9 @@
             <x-slot name="icon">
                 <x-heroicon-o-bell class="empty-state-icon" />
             </x-slot>
-            <x-button
-                type="button"
-                class="mt-3 h-9 text-sm"
-                onclick="window.location.href='{{ route('horizon.alerts.create') }}'"
-            >
+            <x-form-drawer-link :href="route('horizon.alerts.create')" class="mt-3 h-9 text-sm">
                 New alert
-            </x-button>
+            </x-form-drawer-link>
         </x-empty-state>
     </div>
 @endforelse

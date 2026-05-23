@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.form-drawer')
 
 @section('content')
     @php
@@ -53,7 +53,7 @@
     @endphp
 
     <div
-        class="mx-auto max-w-3xl space-y-6"
+        class="space-y-6"
         x-data="{
             ruleType: {!! \Illuminate\Support\Js::from(old('rule_type', $alert->rule_type ?? 'failure_count')) !!},
             jobPatterns: {!! \Illuminate\Support\Js::from($jobPatternsForForm) !!},
@@ -128,19 +128,13 @@
             }
         }"
     >
-        <form method="POST" action="{{ $action }}" class="space-y-6">
+        <form method="POST" action="{{ $action }}" class="space-y-6" data-turbo-frame="form-drawer">
             @csrf
             @if($isEdit)
                 @method('PUT')
             @endif
 
             <div id="alert-section-rule" class="card overflow-hidden">
-                <x-page-hero
-                    :eyebrow="$isEdit ? 'Update alert' : 'Create alert'"
-                    :title="$isEdit ? 'Edit alert rule' : 'New alert rule'"
-                    description="Choose what Horizon should watch, when it should fire, and which providers should receive the notification."
-                />
-
                 <div class="border-b border-border px-5 py-4 sm:px-6">
                     <h3 class="text-sm font-semibold text-foreground">Rule</h3>
                     <p class="mt-1 text-sm text-muted-foreground">Scope the alert to services, queues, and jobs, then set the trigger threshold.</p>
@@ -528,12 +522,7 @@
                 >
                     {{ $isEdit ? 'Save changes' : 'Create alert' }}
                 </x-button>
-                <x-button
-                    variant="ghost"
-                    type="button"
-                    class="h-9 text-sm"
-                    onclick="window.location.href='{{ route('horizon.alerts.index') }}'"
-                >
+                <x-button variant="ghost" type="button" class="h-9 text-sm" data-form-drawer-close>
                     Cancel
                 </x-button>
             </div>

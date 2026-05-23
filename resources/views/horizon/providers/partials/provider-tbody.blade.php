@@ -76,15 +76,14 @@
             </div>
 
             <div class="mt-4 flex items-center justify-end gap-2" data-stream-preserve-client>
-                <x-button
+                <x-form-drawer-link
+                    :href="route('horizon.providers.edit', $provider)"
                     variant="ghost"
-                    type="button"
                     class="h-8 min-h-8 px-2.5 text-xs"
-                    onclick="window.location.href='{{ route('horizon.providers.edit', $provider) }}'"
                 >
                     <x-heroicon-o-pencil-square class="size-4" />
                     <span>Edit</span>
-                </x-button>
+                </x-form-drawer-link>
                 <x-button
                     variant="ghost"
                     type="button"
@@ -108,13 +107,9 @@
             <x-slot name="icon">
                 <x-heroicon-o-megaphone class="empty-state-icon" />
             </x-slot>
-            <x-button
-                type="button"
-                class="mt-3 h-9 text-sm"
-                onclick="window.location.href='{{ route('horizon.providers.create') }}'"
-            >
+            <x-form-drawer-link :href="route('horizon.providers.create')" class="mt-3 h-9 text-sm">
                 New provider
-            </x-button>
+            </x-form-drawer-link>
         </x-empty-state>
     </div>
 @endforelse
