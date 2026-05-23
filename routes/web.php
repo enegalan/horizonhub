@@ -34,10 +34,14 @@ Route::prefix('horizon')->name('horizon.')->group(function (): void {
 
     // Services routes...
     Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
-    Route::get('/services/create', [ServiceController::class, 'create'])->name('services.create');
+    Route::get('/services/create', [ServiceController::class, 'create'])
+        ->middleware('form.drawer:horizon.services.index')
+        ->name('services.create');
     Route::post('/services', [ServiceController::class, 'store'])->name('services.store');
     Route::get('/services/{service}', [ServiceController::class, 'show'])->name('services.show');
-    Route::get('/services/{service}/edit', [ServiceController::class, 'edit'])->name('services.edit');
+    Route::get('/services/{service}/edit', [ServiceController::class, 'edit'])
+        ->middleware('form.drawer:horizon.services.index')
+        ->name('services.edit');
     Route::put('/services/{service}', [ServiceController::class, 'update'])->name('services.update');
     Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
     Route::post('/services/{service}/test-connection', [ServiceController::class, 'testConnection'])->name('services.test-connection');
@@ -45,10 +49,14 @@ Route::prefix('horizon')->name('horizon.')->group(function (): void {
 
     // Alerts routes...
     Route::get('/alerts', [AlertController::class, 'index'])->name('alerts.index');
-    Route::get('/alerts/create', [AlertController::class, 'create'])->name('alerts.create');
+    Route::get('/alerts/create', [AlertController::class, 'create'])
+        ->middleware('form.drawer:horizon.alerts.index')
+        ->name('alerts.create');
     Route::post('/alerts', [AlertController::class, 'store'])->name('alerts.store');
     Route::get('/alerts/{alert}', [AlertController::class, 'show'])->name('alerts.show');
-    Route::get('/alerts/{alert}/edit', [AlertController::class, 'edit'])->name('alerts.edit');
+    Route::get('/alerts/{alert}/edit', [AlertController::class, 'edit'])
+        ->middleware('form.drawer:horizon.alerts.index')
+        ->name('alerts.edit');
     Route::put('/alerts/{alert}', [AlertController::class, 'update'])->name('alerts.update');
     Route::delete('/alerts/{alert}', [AlertController::class, 'destroy'])->name('alerts.destroy');
     Route::post('/alerts/logs/{log}/retry', [AlertController::class, 'retryLog'])->name('alerts.logs.retry');
@@ -59,9 +67,13 @@ Route::prefix('horizon')->name('horizon.')->group(function (): void {
 
     // Providers routes...
     Route::get('/providers', [ProviderController::class, 'index'])->name('providers.index');
-    Route::get('/providers/create', [ProviderController::class, 'create'])->name('providers.create');
+    Route::get('/providers/create', [ProviderController::class, 'create'])
+        ->middleware('form.drawer:horizon.providers.index')
+        ->name('providers.create');
     Route::post('/providers', [ProviderController::class, 'store'])->name('providers.store');
-    Route::get('/providers/{provider}/edit', [ProviderController::class, 'edit'])->name('providers.edit');
+    Route::get('/providers/{provider}/edit', [ProviderController::class, 'edit'])
+        ->middleware('form.drawer:horizon.providers.index')
+        ->name('providers.edit');
     Route::put('/providers/{provider}', [ProviderController::class, 'update'])->name('providers.update');
     Route::delete('/providers/{provider}', [ProviderController::class, 'destroy'])->name('providers.destroy');
 });

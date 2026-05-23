@@ -32,13 +32,9 @@
                             </span>
                         </x-button>
                     @endif
-                    <x-button
-                        type="button"
-                        class="h-9 shrink-0 text-sm"
-                        onclick="window.location.href='{{ route('horizon.alerts.create') }}'"
-                    >
+                    <x-form-drawer-link :href="route('horizon.alerts.create')" class="h-9 shrink-0 text-sm">
                         New alert
-                    </x-button>
+                    </x-form-drawer-link>
                 </x-slot:actions>
             </x-page-hero>
 

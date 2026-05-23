@@ -10,6 +10,7 @@ use App\Services\Alerts\AlertChartDataService;
 use App\Services\Alerts\AlertEvaluationBatchService;
 use App\Services\Alerts\AlertUpsertService;
 use App\Services\Alerts\Engine\AlertEngine;
+use App\Support\FormDrawer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -82,7 +83,9 @@ class AlertControllerTest extends TestCase
         ]);
         $this->app->instance(AlertUpsertService::class, $upsert);
 
-        $this->get(route('horizon.alerts.edit', ['alert' => $alert]))->assertOk();
+        $this->get(route('horizon.alerts.edit', ['alert' => $alert]), [
+            'Turbo-Frame' => FormDrawer::FRAME_ID,
+        ])->assertOk();
         $this->get(route('horizon.alerts.show', ['alert' => $alert]))->assertOk();
         $this->post(route('horizon.alerts.evaluate', ['alert' => $alert]))->assertOk()->assertJsonPath('alert_id', $alert->id);
 
@@ -137,7 +140,9 @@ class AlertControllerTest extends TestCase
         ]);
 
         $this->get(route('horizon.alerts.index'))->assertOk();
-        $this->get(route('horizon.alerts.create'))->assertOk();
+        $this->get(route('horizon.alerts.create'), [
+            'Turbo-Frame' => FormDrawer::FRAME_ID,
+        ])->assertOk();
     }
 
     public function test_retry_log_calls_engine_only_for_failed_logs(): void

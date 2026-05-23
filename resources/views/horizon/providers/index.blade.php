@@ -12,13 +12,9 @@
                 description="Connect Slack or email destinations once, then attach them to alert rules when you need to notify a team."
             >
                 <x-slot:actions>
-                    <x-button
-                        type="button"
-                        class="h-9 shrink-0 text-sm"
-                        onclick="window.location.href='{{ route('horizon.providers.create') }}'"
-                    >
+                    <x-form-drawer-link :href="route('horizon.providers.create')" class="h-9 shrink-0 text-sm">
                         New provider
-                    </x-button>
+                    </x-form-drawer-link>
                 </x-slot:actions>
             </x-page-hero>
 

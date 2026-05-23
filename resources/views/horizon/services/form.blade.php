@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.form-drawer')
 
 @section('content')
     @php
@@ -46,20 +46,10 @@
     @endphp
 
     <div
-        class="mx-auto max-w-3xl space-y-6"
+        class="space-y-6"
         x-data="window.horizonServiceForm({!! \Illuminate\Support\Js::from($headersForForm) !!}, {!! \Illuminate\Support\Js::from($tagsForForm) !!}, {!! \Illuminate\Support\Js::from($existingTags ?? []) !!})"
     >
-        <div class="card overflow-hidden">
-            <x-page-hero
-                :eyebrow="$isEdit ? 'Update service' : 'Register service'"
-                :title="$isEdit ? 'Edit service' : 'Register service'"
-                :description="$isEdit
-                    ? 'Update the URLs and HTTP headers Horizon Hub uses to reach this deployment.'
-                    : 'Add the internal URL and optional HTTP headers Horizon Hub should use to collect metrics and events.'"
-            />
-        </div>
-
-        <form method="POST" action="{{ $action }}" class="space-y-6">
+        <form method="POST" action="{{ $action }}" class="space-y-6" data-turbo-frame="form-drawer">
             @csrf
             @if($isEdit)
                 @method('PUT')
@@ -241,7 +231,7 @@
                 <x-button type="submit" class="h-9 text-sm relative inline-flex items-center justify-center">
                     {{ $isEdit ? 'Save changes' : 'Register service' }}
                 </x-button>
-                <x-button variant="ghost" type="button" class="h-9 text-sm" onclick="window.location.href='{{ route('horizon.services.index') }}'">
+                <x-button variant="ghost" type="button" class="h-9 text-sm" data-form-drawer-close>
                     Cancel
                 </x-button>
             </div>

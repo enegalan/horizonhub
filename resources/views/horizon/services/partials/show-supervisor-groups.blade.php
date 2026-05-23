@@ -1,7 +1,7 @@
 @if(isset($supervisorGroups) && $supervisorGroups->isNotEmpty())
     @foreach($supervisorGroups as $groupName => $groupSupervisors)
         <div class="card mb-4">
-            <div class="flex items-center justify-between border-b border-border px-4 py-3">
+            <div class="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
                 <h3 class="text-section-title text-foreground">{{ $groupName }}</h3>
                 <p class="text-xs text-muted-foreground">{{ $groupSupervisors->count() }} supervisor(s)</p>
             </div>
