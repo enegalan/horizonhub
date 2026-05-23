@@ -223,7 +223,7 @@
                                     <x-loader class="size-6 text-primary" />
                                 </div>
 
-                                <div class="overflow-x-auto overscroll-x-contain">
+                                <div class="table-scroll">
                                 <x-table
                                     :wrap="false"
                                     resizable-key="horizon-retry-modal-failed-jobs"

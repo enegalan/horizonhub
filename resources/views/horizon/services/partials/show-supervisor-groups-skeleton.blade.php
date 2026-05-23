@@ -3,7 +3,7 @@
         <x-skeleton.text class="h-6 w-40" />
         <x-skeleton.text class="h-4 w-28" />
     </div>
-    <div class="overflow-x-auto">
+    <div class="table-scroll">
         <table class="min-w-full overflow-hidden">
             <thead>
                 <tr class="border-b border-border bg-muted/50">

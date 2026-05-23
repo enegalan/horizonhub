@@ -26,7 +26,7 @@
 @endphp
 
 @if($wrap)
-<div {{ $attributes->class('overflow-x-auto') }}>
+<div {{ $attributes->class('table-scroll') }}>
     <table
         class="{{ $tableClasses }}"
         @if($resizableKey) data-resizable-table="{{ $resizableKey }}" @endif
