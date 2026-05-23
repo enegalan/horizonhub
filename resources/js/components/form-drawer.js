@@ -60,37 +60,13 @@ function closeFormDrawer(immediate) {
     formDrawerCloseTimer = window.setTimeout(clearFormDrawer, FORM_DRAWER_CLOSE_MS);
 }
 
-function openFormDrawerFromQuery() {
-    const params = new URLSearchParams(window.location.search);
-    var drawerPath = params.get('drawer');
-    if (!drawerPath) {
-        return false;
-    }
-
-    if (drawerPath.charAt(0) !== '/') {
-        drawerPath = '/' + drawerPath;
-    }
-
-    params.delete('drawer');
-    var search = params.toString();
-    history.replaceState(
-        null,
-        '',
-        window.location.pathname + (search ? '?' + search : '') + window.location.hash,
-    );
-
-    var frame = getFormDrawerFrame();
-    if (!frame) {
-        return false;
-    }
-
-    frame.src = drawerPath;
-
-    return true;
-}
-
 document.addEventListener('turbo:load', function () {
-    if (!openFormDrawerFromQuery() && !formDrawerIsOpen()) {
+    const frame = getFormDrawerFrame();
+    if (frame && frame.getAttribute('src')) {
+        return;
+    }
+
+    if (!formDrawerIsOpen()) {
         clearFormDrawer();
     }
 });
@@ -104,7 +80,7 @@ document.addEventListener('turbo:frame-load', function (event) {
         return;
     }
 
-    var shell = getFormDrawerShell();
+    const shell = getFormDrawerShell();
     if (shell) {
         shell.classList.remove(FORM_DRAWER_CLOSING);
         shell.classList.add(FORM_DRAWER_OPEN);

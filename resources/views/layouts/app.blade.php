@@ -75,10 +75,16 @@
             </div>
         </div>
 
+        @php
+            $formDrawerSrc = \App\Support\FormDrawer::pullFrameSrc();
+        @endphp
         <div id="form-drawer-shell" class="form-drawer-shell">
             <div class="form-drawer-backdrop" data-form-drawer-close aria-hidden="true"></div>
             <aside class="form-drawer-panel" role="dialog" aria-modal="true" aria-label="Form panel">
-                <turbo-frame id="form-drawer"></turbo-frame>
+                <turbo-frame
+                    id="form-drawer"
+                    @if ($formDrawerSrc) src="{{ $formDrawerSrc }}" @endif
+                ></turbo-frame>
             </aside>
         </div>
     </body>

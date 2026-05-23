@@ -37,4 +37,25 @@ class FormDrawerTest extends TestCase
 
         $this->assertFalse(FormDrawer::inFrame($request));
     }
+
+    public function test_pull_frame_src_builds_url_from_flashed_route(): void
+    {
+        session()->flash('form_drawer_open', [
+            'route' => 'horizon.services.create',
+            'params' => [],
+        ]);
+
+        $this->assertSame(route('horizon.services.create'), FormDrawer::pullFrameSrc());
+        $this->assertNull(FormDrawer::pullFrameSrc());
+    }
+
+    public function test_pull_frame_src_returns_null_for_invalid_route(): void
+    {
+        session()->flash('form_drawer_open', [
+            'route' => 'not.a.real.route',
+            'params' => [],
+        ]);
+
+        $this->assertNull(FormDrawer::pullFrameSrc());
+    }
 }

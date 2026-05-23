@@ -12,9 +12,9 @@ class RedirectFormToDrawer
     public function handle(Request $request, Closure $next, string $indexRoute): Response
     {
         if ($request->isMethod('GET') && ! FormDrawer::inFrame($request)) {
-            return redirect()->route($indexRoute, [
-                'drawer' => '/' . ltrim($request->path(), '/'),
-            ]);
+            FormDrawer::flashPendingOpen($request);
+
+            return redirect()->route($indexRoute);
         }
 
         return $next($request);
