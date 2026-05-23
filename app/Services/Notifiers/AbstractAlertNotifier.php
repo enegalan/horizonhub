@@ -6,6 +6,7 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Notifiers\Contracts\AlertNotifier;
+use App\Support\Alerts\AlertRuleCatalog;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -39,58 +40,120 @@ abstract class AbstractAlertNotifier implements AlertNotifier
     }
 
     /**
+     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events
+     *
+     * @return array<string, mixed>
+     */
+    protected function buildNotification(Alert $alert, array $events): array
+    {
+        $service = Service::find((int) ($events[0]['service_id']));
+
+        $enrichedEvents = $this->enrichEvents($events);
+
+        $serviceId = (int) $enrichedEvents[0]['service_id'];
+        $serviceName = (string) $serviceId;
+
+        if ($service !== null) {
+            $serviceId = $service->id;
+            $serviceName = $service->name;
+        }
+
+        $events = [];
+        $previewLines = (int) config('horizonhub.failed_job_exception_preview_lines');
+
+        foreach ($enrichedEvents as $index => $event) {
+            $eventServiceId = (int) $event['service_id'];
+            $jobUuid = ! empty($event['job_uuid']) ? (string) $event['job_uuid'] : null;
+            $full = $event['exception'];
+            $preview = $full;
+            $expandable = false;
+
+            if (! empty($full)) {
+                $lines = \preg_split("/\r\n|\n|\r/", $full) ?: [];
+
+                if (\count($lines) > $previewLines) {
+                    $preview = \implode("\n", \array_slice($lines, 0, $previewLines));
+                    $expandable = true;
+                }
+            } else {
+                $full = null;
+                $preview = null;
+            }
+            $events[] = [
+                'index' => $index + 1,
+                'job_uuid' => $jobUuid,
+                'triggered_at' => (string) $event['triggered_at'],
+                'job_class' => $event['job_class'] ?? null,
+                'queue' => $event['queue'] ?? null,
+                'failed_at' => $event['failed_at'] ?? null,
+                'attempts' => $event['attempts'] ?? null,
+                'exception' => $full,
+                'exceptionPreview' => $preview,
+                'exceptionExpandable' => $expandable,
+                'jobUrl' => ($jobUuid !== null && $eventServiceId > 0)
+                    ? \route('horizon.jobs.show', ['job' => $jobUuid, 'service_id' => $eventServiceId], absolute: true)
+                    : null,
+            ];
+        }
+        $hasJobDetails = false;
+
+        foreach ($events as $event) {
+            if (! empty($event['job_uuid']) || ! empty($event['job_class']) || ! empty($event['queue']) || ! empty($event['failed_at']) || ! empty($event['exceptionPreview'])) {
+                $hasJobDetails = true;
+                break;
+            }
+        }
+        $detectedAt = $enrichedEvents[0]['triggered_at'] ?? null;
+        $name = \trim((string) ($alert->name ?? ''));
+
+        return [
+            'alertName' => $name !== '' ? $name : "Alert #{$alert->id}",
+            'ruleLabel' => AlertRuleCatalog::ruleTypeLabels()[$alert->rule_type] ?? $alert->rule_type,
+            'condition' => AlertRuleCatalog::conditionSummary($alert, $detectedAt),
+            'serviceName' => $serviceName,
+            'serviceUrl' => $serviceId > 0 ? \route('horizon.services.show', ['service' => $serviceId], absolute: true) : null,
+            'alertUrl' => \route('horizon.alerts.show', ['alert' => $alert], absolute: true),
+            'appName' => (string) config('app.name'),
+            'totalEventCount' => \count($events),
+            'hasJobDetails' => $hasJobDetails,
+            'detectedAt' => $detectedAt,
+            'sentAt' => \now()->format('Y-m-d H:i:s T'),
+            'events' => $events,
+        ];
+    }
+
+    /**
      * Enrich events with job details from the Horizon API.
      *
      * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events The events.
-     * @param int $maxEvents The max events.
-     * @param int $exceptionMaxLength The exception max length.
      *
      * @return array<int, array{service_id: int, job_uuid: string|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}>
      */
-    protected function enrichEvents(array $events, int $maxEvents, int $exceptionMaxLength): array
+    protected function enrichEvents(array $events): array
     {
-        $eventsToEnrich = \count($events) > $maxEvents
-            ? \array_slice($events, 0, $maxEvents)
-            : $events;
-
         $enriched = [];
-        $jobUuids = \array_values(\array_filter(\array_column($eventsToEnrich, 'job_uuid')));
+        $jobUuids = \array_values(\array_filter(\array_column($events, 'job_uuid')));
         $service = null;
 
-        if (! empty($eventsToEnrich)) {
-            $serviceId = (int) ($eventsToEnrich[0]['service_id'] ?? 0);
+        if (! empty($events)) {
+            $serviceId = (int) ($events[0]['service_id'] ?? 0);
             $service = Service::find($serviceId);
         }
         $jobs = (empty($jobUuids) || ! $service) ? \collect() : $this->getJobs($service, $jobUuids);
 
-        foreach ($eventsToEnrich as $event) {
-            $jobUuid = isset($event['job_uuid']) ? (string) $event['job_uuid'] : null;
+        foreach ($events as $event) {
+            $jobUuid = ! empty($event['job_uuid']) ? (string) $event['job_uuid'] : null;
             $job = $jobUuid ? $jobs->get($jobUuid) : null;
-
-            $jobClass = null;
-            $queue = null;
-            $failedAt = null;
-            $exception = null;
-            $attempts = null;
-
-            if ($job) {
-                $jobClass = $job->name ?? 'Unknown';
-                $queue = $job->queue ?? null;
-                $failedAt = $job?->failed_at->format('Y-m-d H:i:s T');
-                $rawException = $job->exception ?? '';
-                $exception = $rawException !== '' ? $this->truncateException($rawException, $exceptionMaxLength) : null;
-                $attempts = $job->attempts ?? null;
-            }
 
             $enriched[] = [
                 'service_id' => (int) $event['service_id'],
                 'job_uuid' => $jobUuid,
                 'triggered_at' => $event['triggered_at'],
-                'job_class' => $jobClass,
-                'queue' => $queue,
-                'failed_at' => $failedAt,
-                'exception' => $exception,
-                'attempts' => $attempts,
+                'job_class' => $job?->name,
+                'queue' => $job?->queue,
+                'failed_at' => $job?->failed_at?->format('Y-m-d H:i:s T'),
+                'exception' => $job?->exception,
+                'attempts' => $job?->attempts,
             ];
         }
 
@@ -110,7 +173,7 @@ abstract class AbstractAlertNotifier implements AlertNotifier
         $jobs = \collect();
 
         foreach ($jobUuids as $jobUuid) {
-            if ($jobUuid === '') {
+            if (empty($jobUuid)) {
                 continue;
             }
             $response = $this->horizonApi->getJob($service, $jobUuid);
@@ -140,27 +203,5 @@ abstract class AbstractAlertNotifier implements AlertNotifier
         }
 
         return $jobs;
-    }
-
-    /**
-     * Truncate exception text to the given maximum length.
-     *
-     * @param string $text The text.
-     * @param int $maxLength The max length.
-     */
-    protected function truncateException(string $text, int $maxLength): string
-    {
-        if (\strlen($text) <= $maxLength) {
-            return $text;
-        }
-
-        $truncated = \substr($text, 0, $maxLength);
-        $lastNewLine = \strrpos($truncated, "\n");
-
-        if ($lastNewLine !== false) {
-            $truncated = \substr($truncated, 0, $lastNewLine);
-        }
-
-        return \rtrim($truncated) . "\n\n...";
     }
 }

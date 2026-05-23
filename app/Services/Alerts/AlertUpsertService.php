@@ -5,6 +5,7 @@ namespace App\Services\Alerts;
 use App\Models\Alert;
 use App\Models\NotificationProvider;
 use App\Models\Service;
+use App\Support\Alerts\AlertRuleCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -22,14 +23,7 @@ class AlertUpsertService
     {
         $services = Service::query()->enabled()->orderBy('name')->get();
         $providers = NotificationProvider::orderBy('type')->orderBy('name')->get();
-        $ruleTypes = [
-            Alert::RULE_FAILURE_COUNT => 'Failure count in window',
-            Alert::RULE_AVG_EXECUTION_TIME => 'Avg execution time exceeded',
-            Alert::RULE_QUEUE_BLOCKED => 'Queue blocked',
-            Alert::RULE_WORKER_OFFLINE => 'Worker offline',
-            Alert::RULE_SUPERVISOR_OFFLINE => 'Supervisor offline',
-            Alert::RULE_HORIZON_OFFLINE => 'Horizon offline',
-        ];
+        $ruleTypes = AlertRuleCatalog::ruleTypeLabels();
         $header = $alert->exists ? 'Edit alert' : 'New alert';
 
         return [
@@ -101,14 +95,7 @@ class AlertUpsertService
      */
     public function validateAlert(Request $request): array
     {
-        $ruleTypes = [
-            Alert::RULE_FAILURE_COUNT,
-            Alert::RULE_AVG_EXECUTION_TIME,
-            Alert::RULE_QUEUE_BLOCKED,
-            Alert::RULE_WORKER_OFFLINE,
-            Alert::RULE_SUPERVISOR_OFFLINE,
-            Alert::RULE_HORIZON_OFFLINE,
-        ];
+        $ruleTypes = \array_keys(AlertRuleCatalog::ruleTypeLabels());
         $baseRules = [
             'rule_type' => 'required|in:' . implode(',', $ruleTypes),
             'service_ids' => 'required|array|min:1',

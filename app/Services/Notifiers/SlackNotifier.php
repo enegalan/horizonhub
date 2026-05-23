@@ -3,26 +3,11 @@
 namespace App\Services\Notifiers;
 
 use App\Models\Alert;
-use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
 use Illuminate\Support\Facades\Http;
 
 class SlackNotifier extends AbstractAlertNotifier
 {
-    /**
-     * Maximum number of events to include in the Slack message.
-     *
-     * @var int
-     */
-    private const MAX_EVENTS_IN_SLACK = 10;
-
-    /**
-     * Maximum length of exception text in the Slack message.
-     *
-     * @var int
-     */
-    private const SLACK_EXCEPTION_MAX_LENGTH = 500;
-
     /**
      * Construct the Slack notifier.
      */
@@ -42,94 +27,132 @@ class SlackNotifier extends AbstractAlertNotifier
     {
         $webhookUrl = $config['webhook_url'] ?? '';
 
-        if ($webhookUrl === '' || empty($events)) {
+        if (empty($webhookUrl) || empty($events)) {
             return;
         }
 
-        $first = $events[0];
-        $serviceId = (int) $first['service_id'];
-        $service = Service::find($serviceId);
-        $count = \count($events);
+        $notification = $this->buildNotification($alert, $events);
 
-        $lines = [
-            \sprintf('🚨 *[Horizon Hub]* *Alert:* %s | *Service:* %s', $alert->rule_type, $service ? $service->name : (string) $serviceId),
+        Http::post($webhookUrl, $this->private__slackPayload($notification));
+    }
+
+    /**
+     * Build the Slack button.
+     *
+     * @param string $label The label.
+     * @param string $url The URL.
+     * @param string $actionId The action ID.
+     *
+     * @return array The Slack button.
+     */
+    private static function private__slackButton(string $label, string $url, string $actionId): array
+    {
+        return [
+            'type' => 'button',
+            'text' => ['type' => 'plain_text', 'text' => $label, 'emoji' => true],
+            'url' => $url,
+            'action_id' => $actionId,
+        ];
+    }
+
+    /**
+     * Build the Slack event.
+     *
+     * @param array $event The event.
+     * @param bool $multi Whether the event is multi.
+     *
+     * @return array The Slack event.
+     */
+    private static function private__slackEvent(array $event, bool $multi): array
+    {
+        $title = $event['job_class'] ?? $event['job_uuid'] ?? 'Unknown job';
+        $lines = ['*' . ($multi ? "Event {$event['index']}" : 'Failed job') . ":* `{$title}`"];
+
+        foreach (['Queue' => $event['queue'], 'Failed at' => $event['failed_at'], 'Attempts' => $event['attempts'], 'Triggered at' => $event['triggered_at'] ?: null] as $label => $value) {
+            if (empty($value)) {
+                continue;
+            }
+            $lines[] = "*{$label}:* {$value}";
+        }
+
+        if (! empty($event['exceptionPreview'])) {
+            $lines[] = "*Exception:*\n```{$event['exceptionPreview']}```";
+
+            if (! empty($event['exceptionExpandable']) && ! empty($event['jobUrl'])) {
+                $lines[] = "<{$event['jobUrl']}|Show more>";
+            }
+        }
+
+        $section = ['type' => 'section', 'text' => ['type' => 'mrkdwn', 'text' => \implode("\n", $lines)]];
+
+        if (! empty($event['jobUrl'])) {
+            $section['accessory'] = self::private__slackButton('View job', $event['jobUrl'], 'view_job_' . $event['index']);
+        }
+
+        return $section;
+    }
+
+    /**
+     * Build the Slack payload.
+     *
+     * @param array $notification The notification.
+     *
+     * @return array The Slack payload.
+     */
+    private function private__slackPayload(array $notification): array
+    {
+        $fields = [
+            ['type' => 'mrkdwn', 'text' => "*Rule:*\n{$notification['ruleLabel']}"],
+            ['type' => 'mrkdwn', 'text' => "*Service:*\n{$notification['serviceName']}"],
+            ['type' => 'mrkdwn', 'text' => "*Condition:*\n{$notification['condition']}"],
         ];
 
-        if ($alert->rule_type === 'failure_count') {
-            $threshold = $alert->threshold ?? [];
-            $thresholdCount = (int) ($threshold['count'] ?? config('horizonhub.alerts.default_count'));
-            $thresholdMinutes = (int) ($threshold['minutes'] ?? config('horizonhub.alerts.default_minutes'));
-            $queueName = $alert->queue ?? null;
-
-            $condition = \sprintf(
-                '📌 *Condition:* >= %d failures in last %d minutes',
-                $thresholdCount,
-                $thresholdMinutes,
-            );
-
-            if ($queueName !== null && $queueName !== '') {
-                $condition .= " (_queue:_ $queueName)";
-            }
-
-            $lines[] = $condition;
+        if ($notification['totalEventCount'] > 1) {
+            $fields[] = ['type' => 'mrkdwn', 'text' => "*Events:*\n{$notification['totalEventCount']}"];
         }
 
-        if ($alert->rule_type === 'horizon_offline') {
-            $lines[] = '📌 *Condition:* Horizon is not running for this service.';
-            $lines[] = '🕐 *Detected at:* ' . $first['triggered_at'];
-        } else {
-            $lines[] = "📊 *Events:* $count";
+        $blocks = [
+            [
+                'type' => 'header',
+                'text' => ['type' => 'plain_text', 'text' => "{$notification['appName']} – {$notification['alertName']}", 'emoji' => true],
+            ],
+            ['type' => 'section', 'fields' => $fields],
+        ];
 
-            $enrichedEvents = $this->enrichEvents($events, self::MAX_EVENTS_IN_SLACK, self::SLACK_EXCEPTION_MAX_LENGTH);
+        if ($notification['hasJobDetails']) {
+            $blocks[] = ['type' => 'divider'];
+            $multi = $notification['totalEventCount'] > 1;
 
-            foreach ($enrichedEvents as $event) {
-                $jobUuid = isset($event['job_uuid']) && $event['job_uuid'] !== '' ? $event['job_uuid'] : null;
-                $triggeredAt = $event['triggered_at'];
-                $jobClass = $event['job_class'] ?? null;
-                $queue = $event['queue'] ?? null;
-                $failedAt = $event['failed_at'] ?? null;
-                $attempts = $event['attempts'] ?? null;
-                $exception = $event['exception'] ?? null;
-
-                if ($jobClass !== null) {
-                    $line = "❌ *Job:* $jobClass";
-                } elseif ($jobUuid !== null) {
-                    $line = "❌ *Job UUID:* $jobUuid";
-                } else {
-                    $line = '❌ *Job:* unknown';
-                }
-
-                if ($queue !== null) {
-                    $line .= " (_queue:_ $queue)";
-                }
-
-                if ($triggeredAt !== '') {
-                    $line .= " _at_ $triggeredAt";
-                }
-
-                $lines[] = $line;
-
-                if ($failedAt !== null) {
-                    $lines[] = "   🕐 *failed_at:* $failedAt";
-                }
-
-                if ($attempts !== null) {
-                    $lines[] = "   🔄 *attempts:* $attempts";
-                }
-
-                if ($exception !== null && $exception !== '') {
-                    $lines[] = "   ⚠️ *exception:* $exception";
-                }
+            foreach ($notification['events'] as $event) {
+                $blocks[] = self::private__slackEvent($event, $multi);
             }
-
-            if ($count > self::MAX_EVENTS_IN_SLACK) {
-                $lines[] = '📎 ... and *' . ($count - self::MAX_EVENTS_IN_SLACK) . '* more';
-            }
+        } elseif ($notification['detectedAt'] !== null) {
+            $blocks[] = ['type' => 'context', 'elements' => [['type' => 'mrkdwn', 'text' => "Detected at {$notification['detectedAt']}"]]];
         }
-        $text = \implode("\n", $lines);
 
-        Http::post($webhookUrl, [
-            'text' => $text,
-        ]);
+        $actions = [self::private__slackButton('View alert', $notification['alertUrl'], 'view_alert')];
+
+        if (! empty($notification['serviceUrl'])) {
+            $actions[] = self::private__slackButton('View service', $notification['serviceUrl'], 'view_service');
+        }
+
+        $blocks[] = ['type' => 'divider'];
+        $blocks[] = ['type' => 'actions', 'elements' => $actions];
+        $blocks[] = ['type' => 'context', 'elements' => [['type' => 'mrkdwn', 'text' => "Sent at {$notification['sentAt']}"]]];
+
+        $text = [
+            "{$notification['appName']} alert: {$notification['alertName']}",
+            $notification['ruleLabel'],
+            $notification['serviceName'],
+            $notification['condition'],
+        ];
+
+        if ($notification['totalEventCount'] > 1) {
+            $text[] = "{$notification['totalEventCount']} events";
+        }
+
+        $text[] = $notification['alertUrl'];
+
+        return ['blocks' => $blocks, 'text' => \implode(' | ', $text)];
     }
 }

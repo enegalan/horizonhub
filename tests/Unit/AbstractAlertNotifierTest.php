@@ -13,10 +13,39 @@ class AbstractAlertNotifierTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_send_and_enrich_events_and_truncate_exception_paths(): void
+    public function test_enrich_events_includes_all_batch_events(): void
     {
         $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);
         $alert = Alert::query()->create(['name' => 'a', 'rule_type' => Alert::RULE_FAILURE_COUNT, 'enabled' => true]);
+
+        $api = $this->createMock(HorizonApiProxyService::class);
+        $api->method('getJob')->willReturn(['success' => false]);
+
+        $notifier = new class($api) extends AbstractAlertNotifier
+        {
+            public function sendBatched(Alert $alert, array $events, array $config): void {}
+        };
+
+        $events = [];
+
+        for ($i = 0; $i < 12; $i++) {
+            $events[] = [
+                'service_id' => $service->id,
+                'job_uuid' => null,
+                'triggered_at' => now()->toIso8601String(),
+            ];
+        }
+
+        $enriched = (new \ReflectionMethod($notifier, 'enrichEvents'))->invoke($notifier, $events);
+
+        $this->assertCount(12, $enriched);
+    }
+
+    public function test_send_and_enrich_events_preserves_full_exception_text(): void
+    {
+        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);
+        $alert = Alert::query()->create(['name' => 'a', 'rule_type' => Alert::RULE_FAILURE_COUNT, 'enabled' => true]);
+        $exception = "line1\nline2\nline3\nline4\nline5\nline6";
 
         $api = $this->createMock(HorizonApiProxyService::class);
         $api->method('getJob')->willReturn([
@@ -25,7 +54,7 @@ class AbstractAlertNotifierTest extends TestCase
                 'name' => 'App\\Jobs\\Demo',
                 'queue' => 'default',
                 'failed_at' => now()->toIso8601String(),
-                'exception' => "line1\nline2\nline3",
+                'exception' => $exception,
                 'attempts' => 2,
             ],
         ]);
@@ -36,12 +65,7 @@ class AbstractAlertNotifierTest extends TestCase
 
             public function sendBatched(Alert $alert, array $events, array $config): void
             {
-                $this->captured = $this->enrichEvents($events, 5, 10);
-            }
-
-            public function public__truncate(string $text, int $max): string
-            {
-                return $this->truncateException($text, $max);
+                $this->captured = $this->enrichEvents($events);
             }
         };
 
@@ -50,8 +74,7 @@ class AbstractAlertNotifierTest extends TestCase
         $this->assertSame('App\\Jobs\\Demo', $notifier->captured[0]['job_class']);
         $this->assertSame('default', $notifier->captured[0]['queue']);
         $this->assertSame(2, $notifier->captured[0]['attempts']);
-
-        $truncated = $notifier->public__truncate("abc\ndef\nghi", 7);
-        $this->assertStringContainsString('...', $truncated);
+        $this->assertSame($exception, $notifier->captured[0]['exception']);
+        $this->assertStringNotContainsString('...', (string) $notifier->captured[0]['exception']);
     }
 }
