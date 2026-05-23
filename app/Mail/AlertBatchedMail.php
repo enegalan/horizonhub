@@ -3,7 +3,6 @@
 namespace App\Mail;
 
 use App\Models\Alert;
-use App\Models\Service;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -20,39 +19,20 @@ class AlertBatchedMail extends Mailable
     public Alert $alert;
 
     /**
-     * The enriched events.
+     * The notification.
+     */
+    public array $notification;
+
+    /**
+     * Create a new alert batched mail instance.
      *
-     * @var array<int, array{service_id: int, job_uuid: string|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}>
+     * @param Alert $alert The alert.
+     * @param array $notification The notification.
      */
-    public array $enrichedEvents;
-
-    /**
-     * The mail subject.
-     */
-    public string $mailSubject;
-
-    /**
-     * The service.
-     */
-    public ?Service $service;
-
-    /**
-     * Total number of events (may exceed count of enrichedEvents when capped).
-     */
-    public int $totalEventCount;
-
-    /**
-     * Construct the alert batched mail.
-     *
-     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}> $enrichedEvents
-     */
-    public function __construct(Alert $alert, array $enrichedEvents, ?Service $service, string $mailSubject, int $totalEventCount)
+    public function __construct(Alert $alert, array $notification)
     {
         $this->alert = $alert;
-        $this->enrichedEvents = $enrichedEvents;
-        $this->service = $service;
-        $this->mailSubject = $mailSubject;
-        $this->totalEventCount = $totalEventCount;
+        $this->notification = $notification;
     }
 
     /**
@@ -63,6 +43,7 @@ class AlertBatchedMail extends Mailable
         return new Content(
             view: 'emails.alert-batched',
             text: 'emails.alert-batched-text',
+            with: ['mailSubject' => $this->private__emailSubject($this->notification)],
         );
     }
 
@@ -72,7 +53,25 @@ class AlertBatchedMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: $this->mailSubject,
+            subject: $this->private__emailSubject($this->notification),
         );
+    }
+
+    /**
+     * Get the email subject.
+     *
+     * @param array $notification The notification.
+     *
+     * @return string The email subject.
+     */
+    private function private__emailSubject(array $notification): string
+    {
+        $subject = "[{$notification['appName']}] {$notification['alertName']}: {$notification['ruleLabel']} – {$notification['serviceName']}";
+
+        if ($notification['totalEventCount'] > 1) {
+            $subject .= " ({$notification['totalEventCount']} events)";
+        }
+
+        return $subject;
     }
 }

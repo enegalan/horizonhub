@@ -1,19 +1,16 @@
-{{ config('app.name') }} Alert
+{{ $notification['appName'] }} – {{ $notification['alertName'] }}
 
-{{ $alert->rule_type }}
-@if($service)
-· {{ $service->name }}
-@endif
-@if($totalEventCount > 1)
-· {{ $totalEventCount }} events
-@endif
-@if($totalEventCount > count($enrichedEvents))
-
-Showing first {{ count($enrichedEvents) }} of {{ $totalEventCount }}. View full list: {{ route('horizon.alerts.show', $alert) }}
+{{ $notification['ruleLabel'] }}
+· {{ $notification['serviceName'] }}
+@if($notification['totalEventCount'] > 1)
+· {{ $notification['totalEventCount'] }} events
 @endif
 
-@foreach($enrichedEvents as $index => $ev)
----- {{ $totalEventCount > 1 ? 'Event ' . ($index + 1) : 'Failed job' }} ----
+Condition: {{ $notification['condition'] }}
+
+@if($notification['hasJobDetails'])
+@foreach($notification['events'] as $ev)
+---- {{ $notification['totalEventCount'] > 1 ? 'Event ' . $ev['index'] : 'Failed job' }} ----
 @if(!empty($ev['job_class']))
 Job: {{ $ev['job_class'] }}
 @endif
@@ -26,15 +23,38 @@ Failed at: {{ $ev['failed_at'] }}
 @if(isset($ev['attempts']) && $ev['attempts'] !== null)
 Attempts: {{ $ev['attempts'] }}
 @endif
-@if(isset($ev['job_uuid']) && $ev['job_uuid'])
+@if(!empty($ev['triggered_at']))
+Triggered at: {{ $ev['triggered_at'] }}
+@endif
+@if(!empty($ev['job_uuid']))
 Job UUID: {{ $ev['job_uuid'] }}
 @endif
-@if(!empty($ev['exception']))
+@if(!empty($ev['exceptionPreview']))
 
 Exception:
-{{ $ev['exception'] }}
+{{ $ev['exceptionPreview'] }}
+@endif
+@if(!empty($ev['exceptionExpandable']) && !empty($ev['jobUrl']))
+Show more: {{ $ev['jobUrl'] }}
+@endif
+@if(!empty($ev['jobUrl']))
+View job: {{ $ev['jobUrl'] }}
 @endif
 
 @endforeach
+@else
+@if(!empty($notification['detectedAt']))
+Detected at: {{ $notification['detectedAt'] }}
+@endif
+@if($notification['totalEventCount'] > 1)
+Events: {{ $notification['totalEventCount'] }}
+@endif
 
-Sent at {{ now()->format('Y-m-d H:i:s T') }}
+@endif
+
+View alert: {{ $notification['alertUrl'] }}
+@if(!empty($notification['serviceUrl']))
+View service: {{ $notification['serviceUrl'] }}
+@endif
+
+Sent at {{ $notification['sentAt'] }}

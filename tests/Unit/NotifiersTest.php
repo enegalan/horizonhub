@@ -30,7 +30,10 @@ class NotifiersTest extends TestCase
         Mail::assertNothingSent();
 
         $notifier->sendBatched($alert, $events, ['to' => ['ops@example.com']]);
-        Mail::assertSent(AlertBatchedMail::class);
+        Mail::assertSent(AlertBatchedMail::class, function (AlertBatchedMail $mail): bool {
+            return isset($mail->notification['ruleLabel'])
+                && $mail->notification['ruleLabel'] === 'Failure count in window';
+        });
     }
 
     public function test_slack_notifier_builds_failure_count_payload_with_enriched_event_details(): void
@@ -64,12 +67,15 @@ class NotifiersTest extends TestCase
         $notifier->sendBatched($alert, $events, ['webhook_url' => 'https://hooks.slack.test/abc']);
 
         Http::assertSent(function ($request) {
-            $text = (string) data_get($request->data(), 'text', '');
+            $blocks = (array) data_get($request->data(), 'blocks', []);
+            $encoded = \json_encode($blocks);
 
-            return str_contains($text, 'Condition')
-                && str_contains($text, 'critical')
-                && str_contains($text, 'attempts')
-                && str_contains($text, 'exception');
+            return \is_string($encoded)
+                && str_contains($encoded, 'Failure count in window')
+                && str_contains($encoded, 'critical')
+                && str_contains($encoded, 'Attempts')
+                && str_contains($encoded, 'fatal')
+                && str_contains($encoded, 'View alert');
         });
     }
 
@@ -86,6 +92,9 @@ class NotifiersTest extends TestCase
         Http::assertNothingSent();
 
         $notifier->sendBatched($alert, $events, ['webhook_url' => 'https://hooks.slack.test/abc']);
-        Http::assertSentCount(1);
+        Http::assertSent(function ($request) {
+            return \is_array(data_get($request->data(), 'blocks'))
+                && \is_string(data_get($request->data(), 'text'));
+        });
     }
 }
