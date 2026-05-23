@@ -52,6 +52,7 @@ abstract class AbstractAlertNotifier implements AlertNotifier
 
         $serviceId = (int) $enrichedEvents[0]['service_id'];
         $serviceName = (string) $serviceId;
+
         if ($service !== null) {
             $serviceId = $service->id;
             $serviceName = $service->name;
@@ -141,7 +142,7 @@ abstract class AbstractAlertNotifier implements AlertNotifier
         $jobs = (empty($jobUuids) || ! $service) ? \collect() : $this->getJobs($service, $jobUuids);
 
         foreach ($events as $event) {
-            $jobUuid = !empty($event['job_uuid']) ? (string) $event['job_uuid'] : null;
+            $jobUuid = ! empty($event['job_uuid']) ? (string) $event['job_uuid'] : null;
             $job = $jobUuid ? $jobs->get($jobUuid) : null;
 
             $enriched[] = [
