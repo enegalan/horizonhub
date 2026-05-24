@@ -49,6 +49,14 @@
         },
         destroy() {
             this.unbindReposition();
+            this.removePanel();
+        },
+        removePanel() {
+            this.open = false;
+            var panel = this.$refs.panel;
+            if (panel && panel.parentNode) {
+                panel.parentNode.removeChild(panel);
+            }
         },
         get options() {
             var sel = this.$refs.optionSource;
@@ -158,7 +166,7 @@
             }
         },
     }"
-    @click.away="closeMenu()"
+    @click.window="handleOutsideClick($event)"
 >
     <select x-ref="optionSource" multiple class="sr-only" tabindex="-1" aria-hidden="true">
         {{ $slot }}
@@ -179,20 +187,21 @@
         <x-heroicon-o-chevron-down class="h-4 w-4 shrink-0 opacity-50" />
     </button>
 
-    <div
-        x-ref="panel"
-        x-teleport="body"
-        x-show="open"
-        x-transition:enter="transition ease-out duration-100"
-        x-transition:enter-start="opacity-0 scale-95"
-        x-transition:enter-end="opacity-100 scale-100"
-        x-transition:leave="transition ease-in duration-75"
-        x-transition:leave-start="opacity-100 scale-100"
-        x-transition:leave-end="opacity-0 scale-95"
-        x-bind:style="{ top: anchor.top + 'px', left: anchor.left + 'px', minWidth: Math.max(anchor.width, 192) + 'px' }"
-        class="fixed z-[70] flex max-h-[min(18rem,50vh)] flex-col overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md"
-        role="listbox"
-    >
+    <template x-teleport="body">
+        <div
+            x-ref="panel"
+            x-show="open"
+            x-cloak
+            x-transition:enter="transition ease-out duration-100"
+            x-transition:enter-start="opacity-0 scale-95"
+            x-transition:enter-end="opacity-100 scale-100"
+            x-transition:leave="transition ease-in duration-75"
+            x-transition:leave-start="opacity-100 scale-100"
+            x-transition:leave-end="opacity-0 scale-95"
+            x-bind:style="{ top: anchor.top + 'px', left: anchor.left + 'px', minWidth: Math.max(anchor.width, 192) + 'px' }"
+            class="fixed z-[70] flex max-h-[min(18rem,50vh)] flex-col overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md"
+            role="listbox"
+        >
         <div x-show="searchable && options.length > 0" class="shrink-0 border-b border-border p-2" @click.stop>
             <input
                 type="search"
@@ -229,5 +238,6 @@
             </button>
         </template>
         </div>
-    </div>
+        </div>
+    </template>
 </div>

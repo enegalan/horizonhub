@@ -75,6 +75,14 @@
         },
         destroy() {
             this.unbindReposition();
+            this.removePanel();
+        },
+        removePanel() {
+            this.open = false;
+            var panel = this.$refs.panel;
+            if (panel && panel.parentNode) {
+                panel.parentNode.removeChild(panel);
+            }
         },
         choose(opt) {
             this.selectedValue = opt.value;
@@ -115,18 +123,19 @@
         <x-heroicon-o-chevron-down class="h-4 w-4 shrink-0 opacity-50" />
     </button>
 
-    <div x-ref="panel"
-        x-teleport="body"
-        x-show="open"
-        x-transition:enter="transition ease-out duration-100"
-        x-transition:enter-start="opacity-0 scale-95"
-        x-transition:enter-end="opacity-100 scale-100"
-        x-transition:leave="transition ease-in duration-75"
-        x-transition:leave-start="opacity-100 scale-100"
-        x-transition:leave-end="opacity-0 scale-95"
-        x-bind:style="{ top: anchor.top + 'px', left: anchor.left + 'px', minWidth: Math.max(anchor.width, 128) + 'px' }"
-        class="fixed z-[70] max-h-60 overflow-auto rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"
-        role="listbox">
+    <template x-teleport="body">
+        <div x-ref="panel"
+            x-show="open"
+            x-cloak
+            x-transition:enter="transition ease-out duration-100"
+            x-transition:enter-start="opacity-0 scale-95"
+            x-transition:enter-end="opacity-100 scale-100"
+            x-transition:leave="transition ease-in duration-75"
+            x-transition:leave-start="opacity-100 scale-100"
+            x-transition:leave-end="opacity-0 scale-95"
+            x-bind:style="{ top: anchor.top + 'px', left: anchor.left + 'px', minWidth: Math.max(anchor.width, 128) + 'px' }"
+            class="fixed z-[70] max-h-60 overflow-auto rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"
+            role="listbox">
         <div
             x-show="dataOptions.length === 0"
             class="px-2 py-1.5 text-sm text-muted-foreground select-none"
@@ -146,5 +155,6 @@
                 </span>
             </button>
         </template>
-    </div>
+        </div>
+    </template>
 </div>
