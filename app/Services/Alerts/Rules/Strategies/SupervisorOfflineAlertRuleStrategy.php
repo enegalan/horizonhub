@@ -46,7 +46,7 @@ final class SupervisorOfflineAlertRuleStrategy implements AlertRuleStrategyInter
 
         $service = Service::find($serviceId);
 
-        if (! $service || ! $service->getBaseUrl()) {
+        if (empty($service?->getBaseUrl())) {
             return false;
         }
 

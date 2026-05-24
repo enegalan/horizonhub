@@ -27,7 +27,7 @@ class AlertDataService
             ->orderByDesc('created_at')
             ->get();
 
-        if ($filterServiceIds !== []) {
+        if (! empty($filterServiceIds)) {
             $alerts = $alerts->filter(function (Alert $alert) use ($filterServiceIds): bool {
                 foreach ($filterServiceIds as $serviceId) {
                     if ($alert->appliesToServiceId((int) $serviceId)) {
@@ -68,7 +68,7 @@ class AlertDataService
             foreach ($alert->service_ids as $serviceId) {
                 $name = $serviceNamesById[$serviceId] ?? null;
 
-                if ($name !== null) {
+                if (! empty($name)) {
                     $labels[] = $name;
                 }
             }

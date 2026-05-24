@@ -28,7 +28,7 @@
             {{ isset($row['jobs']) ? (int) $row['jobs'] : 0 }}
         </td>
         <td class="px-4 py-2.5 text-sm text-muted-foreground text-right" data-column-id="processes">
-            @if(isset($row['processes']) && $row['processes'] !== null)
+            @if(!empty($row['processes']))
                 {{ (int) $row['processes'] }}
             @else
                 –

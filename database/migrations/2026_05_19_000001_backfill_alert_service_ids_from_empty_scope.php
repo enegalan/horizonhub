@@ -10,7 +10,7 @@ return new class extends Migration
     {
         $enabledServiceIds = Service::query()->enabled()->pluck('id')->all();
 
-        if ($enabledServiceIds === []) {
+        if (empty($enabledServiceIds)) {
             return;
         }
 
@@ -19,7 +19,7 @@ return new class extends Migration
         Alert::query()
             ->orderBy('id')
             ->each(function (Alert $alert) use ($enabledServiceIds): void {
-                if ($alert->service_ids !== []) {
+                if (! empty($alert->service_ids)) {
                     return;
                 }
 

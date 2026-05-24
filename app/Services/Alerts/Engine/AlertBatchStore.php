@@ -41,7 +41,7 @@ class AlertBatchStore
     {
         $value = Cache::get(self::SENT_AT_CACHE_PREFIX . $alert->id);
 
-        if ($value === null) {
+        if (empty($value)) {
             return null;
         }
 
@@ -104,14 +104,10 @@ class AlertBatchStore
      */
     public function shouldSendNow(Alert $alert): bool
     {
-        $intervalMinutes = $alert->email_interval_minutes !== null ? (int) $alert->email_interval_minutes : 0;
+        $intervalMinutes = ! empty($alert->email_interval_minutes) ? (int) $alert->email_interval_minutes : 0;
         $lastSentAt = $this->getLastSentAt($alert);
 
-        if ($intervalMinutes === 0) {
-            return true;
-        }
-
-        if ($lastSentAt === null) {
+        if ($intervalMinutes === 0 || empty($lastSentAt)) {
             return true;
         }
 

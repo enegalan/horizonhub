@@ -16,15 +16,7 @@ class ServiceStatsAttachmentService
     public function attachHorizonStats(iterable $services, HorizonApiProxyService $horizonApi): void
     {
         foreach ($services as $service) {
-            if (! $service->enabled) {
-                $service->horizon_failed_jobs_count = 0;
-                $service->horizon_jobs_count = 0;
-                $service->horizon_status = null;
-
-                continue;
-            }
-
-            if (! $service->getBaseUrl()) {
+            if (! $service->enabled || empty($service->getBaseUrl())) {
                 $service->horizon_failed_jobs_count = 0;
                 $service->horizon_jobs_count = 0;
                 $service->horizon_status = null;
@@ -39,11 +31,9 @@ class ServiceStatsAttachmentService
                 $data = $response['data'];
             }
 
-            $service->horizon_failed_jobs_count = $data && isset($data['failedJobs']) ? (int) $data['failedJobs'] : 0;
-            $service->horizon_jobs_count = $data && isset($data['recentJobs']) ? (int) $data['recentJobs'] : 0;
-            $service->horizon_status = $data && isset($data['status']) && (string) $data['status'] !== ''
-                ? (string) $data['status']
-                : null;
+            $service->horizon_failed_jobs_count = (int) ($data['failedJobs'] ?? 0);
+            $service->horizon_jobs_count = (int) ($data['recentJobs'] ?? 0);
+            $service->horizon_status = ! empty($data['status']) ? (string) $data['status'] : null;
         }
     }
 

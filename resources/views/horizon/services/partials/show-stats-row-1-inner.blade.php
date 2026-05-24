@@ -11,7 +11,7 @@
         $horizonStatusLabel = 'Inactive';
     } else {
         $horizonStatusColor = 'bg-slate-400';
-        $horizonStatusLabel = $horizonStatus !== null && $horizonStatus !== '' ? (string) $horizonStatus : 'Unknown';
+        $horizonStatusLabel = !empty($horizonStatus) ? (string) $horizonStatus : 'Unknown';
     }
 @endphp
 <x-stat-card label="Horizon status" tone="{{ $hs === 'active' || $hs === 'running' ? 'emerald' : ($hs === 'inactive' ? 'amber' : 'neutral') }}">

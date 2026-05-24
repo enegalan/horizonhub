@@ -42,7 +42,7 @@ final class HorizonOfflineAlertRuleStrategy implements AlertRuleStrategyInterfac
     {
         $service = Service::find($serviceId);
 
-        if (! $service || ! $service->getBaseUrl()) {
+        if (empty($service?->getBaseUrl())) {
             return false;
         }
 

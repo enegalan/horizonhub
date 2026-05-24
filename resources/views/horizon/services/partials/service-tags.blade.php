@@ -4,7 +4,7 @@
         $serviceTags = [];
     }
 @endphp
-@if($serviceTags !== [])
+@if(! empty($serviceTags))
     <div @class(['flex flex-wrap gap-1.5', $class ?? null])>
         @foreach($serviceTags as $tag)
             @if(\is_string($tag) && $tag !== '')

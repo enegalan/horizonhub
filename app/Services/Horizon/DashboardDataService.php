@@ -40,7 +40,7 @@ class DashboardDataService
 
         $servicesQuery = Service::query()->orderBy('name');
 
-        if ($serviceIds !== []) {
+        if (! empty($serviceIds)) {
             $servicesQuery->whereIn('id', $serviceIds);
         }
 
@@ -76,7 +76,7 @@ class DashboardDataService
             ->orderByDesc('sent_at')
             ->limit(5);
 
-        if ($serviceIds !== []) {
+        if (! empty($serviceIds)) {
             $recentAlertLogsQuery->whereIn('service_id', $serviceIds);
         }
 

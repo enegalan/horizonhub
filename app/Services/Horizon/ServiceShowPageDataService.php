@@ -135,7 +135,7 @@ class ServiceShowPageDataService
 
                     $name = isset($supervisor['name']) ? (string) $supervisor['name'] : '';
 
-                    if ($name === '') {
+                    if (blank($name)) {
                         continue;
                     }
 

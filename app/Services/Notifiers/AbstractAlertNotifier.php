@@ -173,7 +173,7 @@ abstract class AbstractAlertNotifier implements AlertNotifier
         $jobs = \collect();
 
         foreach ($jobUuids as $jobUuid) {
-            if (empty($jobUuid)) {
+            if (blank($jobUuid)) {
                 continue;
             }
             $response = $this->horizonApi->getJob($service, $jobUuid);

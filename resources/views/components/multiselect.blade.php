@@ -102,6 +102,13 @@
                 this.openMenu();
             }
         },
+        handleOutsideClick(event) {
+            if (!this.open) return;
+            var target = event.target;
+            if (this.$refs.trigger && this.$refs.trigger.contains(target)) return;
+            if (this.$refs.panel && this.$refs.panel.contains(target)) return;
+            this.closeMenu();
+        },
         updateAnchor() {
             var trigger = this.$refs.trigger;
             if (!trigger) return;
@@ -163,7 +170,7 @@
         x-ref="trigger"
         @if($domId) id="{{ $domId }}" @endif
         @if($labelledBy) aria-labelledby="{{ $labelledBy }}" @elseif($ariaLabel) aria-label="{{ $ariaLabel }}" @endif
-        @click="toggleMenu()"
+        @click.stop="toggleMenu()"
         :aria-expanded="open"
         aria-haspopup="listbox"
         class="btn-ghost flex h-9 w-full min-w-[8rem] items-center justify-between whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground [&>span]:line-clamp-1"
@@ -174,6 +181,7 @@
 
     <div
         x-ref="panel"
+        x-teleport="body"
         x-show="open"
         x-transition:enter="transition ease-out duration-100"
         x-transition:enter-start="opacity-0 scale-95"
@@ -182,7 +190,7 @@
         x-transition:leave-start="opacity-100 scale-100"
         x-transition:leave-end="opacity-0 scale-95"
         x-bind:style="{ top: anchor.top + 'px', left: anchor.left + 'px', minWidth: Math.max(anchor.width, 192) + 'px' }"
-        class="fixed z-50 flex max-h-[min(18rem,50vh)] flex-col overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md"
+        class="fixed z-[70] flex max-h-[min(18rem,50vh)] flex-col overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md"
         role="listbox"
     >
         <div x-show="searchable && options.length > 0" class="shrink-0 border-b border-border p-2" @click.stop>
@@ -216,7 +224,7 @@
             >
                 <span class="block truncate text-left" x-text="opt.label"></span>
                 <span x-show="isSelected(opt.value)" class="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
-                    <x-heroicon-o-check class="h-3.5 w-3.5" />
+                    <x-icons.check class="size-3.5" />
                 </span>
             </button>
         </template>

@@ -36,35 +36,37 @@ final class AvgExecutionTimeAlertRuleStrategy implements AlertRuleStrategyInterf
 
         $service = Service::find($serviceId);
 
-        if (! $service || ! $service->getBaseUrl()) {
+        if (empty($service?->getBaseUrl())) {
             return ['triggered' => false, 'job_uuids' => []];
         }
 
         $cutoff = \now()->subMinutes($minutes);
-        $jobs = $this->support->matchingCompletedJobsInWindow($alert, $service, $cutoff);
 
-        $durations = $jobs->map(function ($job) use ($cutoff) {
-            $completedRaw = $job['completed_at'] ?? null;
-            $queuedRaw = $job['pushedAt'] ?? null;
+        $durations = $this->support
+            ->matchingCompletedJobsInWindow($alert, $service, $cutoff)
+            ->map(function ($job) use ($cutoff) {
+                $completedRaw = $job['completed_at'] ?? null;
+                $queuedRaw = $job['pushedAt'] ?? null;
 
-            if (! \is_string($completedRaw) || $completedRaw === '' || ! \is_string($queuedRaw) || $queuedRaw === '') {
-                return null;
-            }
+                if (! \is_string($completedRaw) || $completedRaw === '' || ! \is_string($queuedRaw) || $queuedRaw === '') {
+                    return null;
+                }
 
-            try {
-                $completed = Carbon::parse($completedRaw);
-                $queued = Carbon::parse($queuedRaw);
-            } catch (\Throwable $e) {
-                return null;
-            }
+                try {
+                    $completed = Carbon::parse($completedRaw);
+                    $queued = Carbon::parse($queuedRaw);
+                } catch (\Throwable $e) {
+                    return null;
+                }
 
-            if ($completed->lt($cutoff)) {
-                return null;
-            }
-            $seconds = $queued->diffInSeconds($completed, false);
+                if ($completed->lt($cutoff)) {
+                    return null;
+                }
 
-            return $seconds >= 0 ? $seconds : null;
-        })->filter(static fn ($v) => $v !== null);
+                $seconds = $queued->diffInSeconds($completed, false);
+
+                return $seconds >= 0 ? $seconds : null;
+            })->filter(static fn ($v) => $v !== null);
 
         if ($durations->isEmpty()) {
             return ['triggered' => false, 'job_uuids' => []];

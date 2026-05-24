@@ -34,9 +34,7 @@ final class AlertRuleEvaluationSupport
     {
         return $jobs
             ->map(function ($job) {
-                $id = $job['id'] ?? null;
-
-                return $id !== null && $id !== '' ? (string) $id : null;
+                return ! empty($job['id']) ? (string) $job['id'] : null;
             })
             ->filter()
             ->values()
@@ -96,7 +94,7 @@ final class AlertRuleEvaluationSupport
     {
         $patterns = $this->resolveQueuePatterns($alert);
 
-        if ($patterns === []) {
+        if (empty($patterns)) {
             return true;
         }
         $queue = (string) ($job['queue'] ?? '');
@@ -133,7 +131,7 @@ final class AlertRuleEvaluationSupport
                 }
             }
 
-            if ($completedAt === null || $completedAt->lt($cutoff)) {
+            if (empty($completedAt) || $completedAt->lt($cutoff)) {
                 return false;
             }
 
@@ -184,11 +182,11 @@ final class AlertRuleEvaluationSupport
             }
         }
 
-        if ($patterns !== []) {
+        if (! empty($patterns)) {
             return \array_values(\array_unique($patterns));
         }
 
-        if ($alert->job_type !== null && (string) $alert->job_type !== '') {
+        if (! empty($alert->job_type)) {
             return [(string) $alert->job_type];
         }
 
@@ -237,7 +235,7 @@ final class AlertRuleEvaluationSupport
     {
         $patterns = $this->resolveJobPatterns($alert);
 
-        if ($patterns === []) {
+        if (empty($patterns)) {
             return true;
         }
         $haystack = $this->private__jobPayloadHaystack($job);

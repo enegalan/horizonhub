@@ -147,7 +147,7 @@ class HorizonMetricsService
             'hasRuntimeChart' => true,
             'hasFailureRateChart' => true,
             'hasJobsVolumeChart' => true,
-            'hasServiceChart' => $waitByQueue !== null && $waitByQueue['queues'] !== [],
+            'hasServiceChart' => ! empty($waitByQueue['queues']),
         ];
     }
 
@@ -162,7 +162,7 @@ class HorizonMetricsService
     {
         $workloadRows = $this->getWorkloadData($serviceFilterIds);
 
-        if ($serviceFilterIds !== []) {
+        if (! empty($serviceFilterIds)) {
             $allowedServiceIds = \array_fill_keys($serviceFilterIds, true);
             $workloadRows = \array_values(\array_filter(
                 $workloadRows,
@@ -177,7 +177,7 @@ class HorizonMetricsService
             $workloadRows,
         )));
 
-        $servicesById = $serviceIds === []
+        $servicesById = empty($serviceIds)
             ? \collect()
             : Service::whereIn('id', $serviceIds)->get()->keyBy('id');
 
@@ -302,7 +302,7 @@ class HorizonMetricsService
      */
     public function getThroughputTotalsForServiceIds(array $serviceIds): array
     {
-        if ($serviceIds === []) {
+        if (empty($serviceIds)) {
             return [
                 'jobsPastMinute' => $this->getJobsPastMinute(null),
                 'jobsPastHour' => $this->getJobsPastHour(null),
@@ -362,7 +362,7 @@ class HorizonMetricsService
             }
         }
 
-        if ($waits === []) {
+        if (empty($waits)) {
             return null;
         }
         \arsort($waits, \SORT_NUMERIC);

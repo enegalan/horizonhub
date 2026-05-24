@@ -14,7 +14,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
      */
     public function getFailedPastSevenDays(?Service $service = null): int
     {
-        if ($service !== null && $service->getBaseUrl()) {
+        if (! empty($service?->getBaseUrl())) {
             $response = $this->horizonApi->getStats($service);
             $data = $response['data'] ?? null;
 
@@ -55,7 +55,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
      */
     public function getJobsPastHour(?Service $service = null): int
     {
-        if ($service !== null && $service->getBaseUrl()) {
+        if (! empty($service?->getBaseUrl())) {
             $response = $this->horizonApi->getStats($service);
             $data = $response['data'] ?? null;
 
@@ -129,7 +129,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
      */
     public function getJobsPastMinute(?Service $service = null): int
     {
-        if ($service !== null && $service->getBaseUrl()) {
+        if (! empty($service?->getBaseUrl())) {
             $response = $this->horizonApi->getStats($service);
             $data = $response['data'] ?? null;
 

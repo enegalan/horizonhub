@@ -32,7 +32,7 @@ class FormDrawer
 
         $routeName = $route->getName();
 
-        if (! \is_string($routeName) || $routeName === '') {
+        if (! \is_string($routeName) || blank($routeName)) {
             return;
         }
 

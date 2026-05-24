@@ -35,7 +35,7 @@ final class FailureCountAlertRuleStrategy implements AlertRuleStrategyInterface
 
         $service = Service::find($serviceId);
 
-        if (! $service || ! $service->getBaseUrl()) {
+        if (empty($service?->getBaseUrl())) {
             return ['triggered' => false, 'job_uuids' => []];
         }
 

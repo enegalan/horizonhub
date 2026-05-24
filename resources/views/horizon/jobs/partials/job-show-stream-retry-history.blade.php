@@ -36,7 +36,7 @@
                 @endphp
                 <tr class="transition-colors hover:bg-muted/30">
                     <td class="px-4 py-2.5 text-sm text-primary truncate max-w-[180px]" data-column-id="uuid">
-                        @if(isset($retryJob['id']) && \is_string($retryJob['id']) && $retryJob['id'] !== '' && $job->service)
+                        @if(!empty($retryJob['id']) && \is_string($retryJob['id']) && $job->service)
                             <a class="link" href="{{ route('horizon.jobs.show', ['job' => $retryJob['id'], 'service_id' => $job->service->id]) }}" data-turbo-action="replace">{{ $retryJob['id'] }}</a>
                         @else
                             {{ $retryJob['id'] ?? '–' }}
@@ -49,7 +49,7 @@
                             <span class="badge-success">{{ $retryStatus }}</span>
                         @elseif($retryStatus === 'processing')
                             <span class="badge-warning">{{ $retryStatus }}</span>
-                        @elseif($retryStatus !== null)
+                        @elseif(!empty($retryStatus))
                             <span class="badge-muted">{{ $retryStatus }}</span>
                         @else
                             –

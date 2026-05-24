@@ -138,7 +138,7 @@ class AlertController extends Controller
             ->with('service')
             ->orderByDesc('sent_at');
 
-        if ($serviceFilter !== null && $serviceFilter !== '') {
+        if (! empty($serviceFilter)) {
             $logsQuery->where('service_id', (int) $serviceFilter);
         }
 
@@ -153,7 +153,7 @@ class AlertController extends Controller
         $selectedLogId = $request->query('log');
         $selectedLog = null;
 
-        if ($selectedLogId !== null) {
+        if (! empty($selectedLogId)) {
             $selectedLog = AlertLog::with('service')
                 ->where('alert_id', $alert->id)
                 ->find($selectedLogId);
@@ -181,7 +181,7 @@ class AlertController extends Controller
             'initialDeliveryLogPayload' => AlertDeliveryLogPresenter::payloadFromLog($selectedLog),
             'filters' => [
                 'status' => $statusFilter,
-                'service_id' => $serviceFilter !== null ? (string) $serviceFilter : '',
+                'service_id' => ! empty($serviceFilter) ? (string) $serviceFilter : '',
                 'per_page' => $perPage,
             ],
             'header' => $alertName,

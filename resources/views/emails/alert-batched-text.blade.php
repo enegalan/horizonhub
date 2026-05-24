@@ -20,7 +20,7 @@ Queue: {{ $ev['queue'] }}
 @if(!empty($ev['failed_at']))
 Failed at: {{ $ev['failed_at'] }}
 @endif
-@if(isset($ev['attempts']) && $ev['attempts'] !== null)
+@if(!empty($ev['attempts']))
 Attempts: {{ $ev['attempts'] }}
 @endif
 @if(!empty($ev['triggered_at']))

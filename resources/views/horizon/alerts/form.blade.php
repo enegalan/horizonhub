@@ -13,14 +13,14 @@
             foreach ($oldJobPatterns as $v) {
                 $jobPatternsForForm[] = \is_string($v) ? $v : '';
             }
-        } elseif (isset($thresholdForm['job_patterns']) && \is_array($thresholdForm['job_patterns']) && $thresholdForm['job_patterns'] !== []) {
+        } elseif (! empty($thresholdForm['job_patterns']) && \is_array($thresholdForm['job_patterns'])) {
             $jobPatternsForForm = \array_values(\array_map('strval', $thresholdForm['job_patterns']));
         }
-        if ($jobPatternsForForm === []) {
+        if (empty($jobPatternsForForm)) {
             $jobPatternsForForm = [''];
         }
         $jobTypeValueForForm = old('job_type');
-        if ($jobTypeValueForForm === null) {
+        if (empty($jobTypeValueForForm)) {
             $storedJobPatterns = $thresholdForm['job_patterns'] ?? [];
             $hasStoredJobPatterns = \is_array($storedJobPatterns)
                 && \count(\array_filter($storedJobPatterns, static fn ($x) => \is_string($x) && \trim($x) !== '')) > 0;
@@ -32,12 +32,12 @@
             foreach ($oldQueuePatterns as $v) {
                 $queuePatternsForForm[] = \is_string($v) ? $v : '';
             }
-        } elseif (isset($thresholdForm['queue_patterns']) && \is_array($thresholdForm['queue_patterns']) && $thresholdForm['queue_patterns'] !== []) {
+        } elseif (! empty($thresholdForm['queue_patterns']) && \is_array($thresholdForm['queue_patterns'])) {
             $queuePatternsForForm = \array_values(\array_map('strval', $thresholdForm['queue_patterns']));
-        } elseif ($alert->queue !== null && (string) $alert->queue !== '') {
+        } elseif (! empty($alert->queue)) {
             $queuePatternsForForm = [(string) $alert->queue];
         }
-        if ($queuePatternsForForm === []) {
+        if (empty($queuePatternsForForm)) {
             $queuePatternsForForm = [''];
         }
         $queueOptionalSectionOpenDefault = \count(\array_filter(

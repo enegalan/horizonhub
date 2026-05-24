@@ -91,7 +91,7 @@ abstract class HorizonMetricsComputation
 
             $queue = QueueNameNormalizer::normalize((string) $queues);
 
-            return $queue !== null && $queue !== '' ? [$queue] : [];
+            return ! empty($queue) ? [$queue] : [];
         }
 
         $normalizedQueues = [];
@@ -138,13 +138,13 @@ abstract class HorizonMetricsComputation
     {
         $servicesQuery = Service::query()->enabled()->whereNotNull('base_url');
 
-        if ($serviceScope !== []) {
+        if (! empty($serviceScope)) {
             $ids = \array_values(\array_unique(\array_filter(
                 \array_map(static fn ($v): int => (int) $v, $serviceScope),
                 static fn (int $id): bool => $id > 0,
             )));
 
-            if ($ids === []) {
+            if (empty($ids)) {
                 return new Collection;
             }
             $servicesQuery->whereIn('id', $ids);
@@ -154,7 +154,7 @@ abstract class HorizonMetricsComputation
             $servicesQuery->orderBy('name');
         }
 
-        if ($selectColumns !== []) {
+        if (! empty($selectColumns)) {
             return $servicesQuery->get($selectColumns);
         }
 

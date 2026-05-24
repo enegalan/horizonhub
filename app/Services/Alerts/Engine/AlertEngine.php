@@ -123,7 +123,7 @@ class AlertEngine
 
         try {
             $lastSentAtAfter = $this->batchStore->getLastSentAt($alert);
-            $delivered = $lastSentAtAfter !== null && ($lastSentAtBefore === null || ! $lastSentAtAfter->eq($lastSentAtBefore));
+            $delivered = ! empty($lastSentAtAfter) && (empty($lastSentAtBefore) || ! $lastSentAtAfter->eq($lastSentAtBefore));
         } catch (\Throwable $e) {
             Log::error('Horizon Hub: evaluate alert failed while checking delivery', [
                 'alert_id' => $alert->id,

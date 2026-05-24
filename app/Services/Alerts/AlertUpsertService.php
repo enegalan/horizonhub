@@ -47,9 +47,9 @@ class AlertUpsertService
      */
     public function mergeJobTypeIntoPatterns(array $patterns, ?string $jobType): array
     {
-        $jt = $jobType !== null ? \trim($jobType) : '';
+        $jt = ! empty($jobType) ? \trim($jobType) : '';
 
-        if ($jt === '' || \in_array($jt, $patterns, true)) {
+        if (blank($jt) || \in_array($jt, $patterns, true)) {
             return $patterns;
         }
         $merged = $patterns;
@@ -182,49 +182,49 @@ class AlertUpsertService
         $patternRuleTypes = [Alert::RULE_FAILURE_COUNT, Alert::RULE_AVG_EXECUTION_TIME];
         $queuePatternRuleTypes = [Alert::RULE_FAILURE_COUNT, Alert::RULE_AVG_EXECUTION_TIME, Alert::RULE_QUEUE_BLOCKED];
 
-        if (\in_array($ruleType, $patternRuleTypes, true)) {
-            if ($jobPatterns !== []) {
-                $threshold['job_patterns'] = $jobPatterns;
-            }
+        if (\in_array($ruleType, $patternRuleTypes, true) && ! empty($jobPatterns)) {
+            $threshold['job_patterns'] = $jobPatterns;
         }
+
         $queuePatternsMerged = $queuePatterns;
 
-        if ($queuePatternsMerged === [] && ! empty($validated['queue'])) {
+        if (empty($queuePatternsMerged) && ! empty($validated['queue'])) {
             $queuePatternsMerged = [(string) $validated['queue']];
         }
 
-        if (\in_array($ruleType, $queuePatternRuleTypes, true)) {
-            if ($queuePatternsMerged !== []) {
-                $threshold['queue_patterns'] = $queuePatternsMerged;
-            }
+        if (\in_array($ruleType, $queuePatternRuleTypes, true) && ! empty($queuePatternsMerged)) {
+            $threshold['queue_patterns'] = $queuePatternsMerged;
         }
 
         $queueColumn = null;
 
-        if (\in_array($ruleType, $queuePatternRuleTypes, true) && $queuePatternsMerged !== []) {
+        if (\in_array($ruleType, $queuePatternRuleTypes, true) && ! empty($queuePatternsMerged)) {
             $queueColumn = $queuePatternsMerged[0];
         } elseif (! empty($validated['queue'])) {
             $queueColumn = (string) $validated['queue'];
         }
 
-        $jobTypeColumn = $jobPatterns === [] ? null : Str::limit(\implode(', ', $jobPatterns), 252);
+        $jobTypeColumn = null;
+
+        if (! empty($jobPatterns)) {
+            $jobTypeColumn = Str::limit(\implode(', ', $jobPatterns), 252);
+        }
+
         $serviceIds = \array_values(\array_unique(\array_map('intval', $validated['service_ids'] ?? [])));
         $serviceIds = \array_values(\array_filter($serviceIds, static fn (int $serviceId): bool => $serviceId > 0));
         \sort($serviceIds);
 
-        $alertData = [
-            'name' => $validated['name'] ?? null,
-            'service_ids' => $serviceIds,
-            'rule_type' => $ruleType,
-            'threshold' => $threshold,
-            'queue' => $queueColumn,
-            'job_type' => $jobTypeColumn,
-            'enabled' => (bool) $validated['enabled'],
-            'email_interval_minutes' => (int) $validated['email_interval_minutes'],
-        ];
-
         return [
-            'alert' => $alertData,
+            'alert' => [
+                'name' => $validated['name'] ?? null,
+                'service_ids' => $serviceIds,
+                'rule_type' => $ruleType,
+                'threshold' => $threshold,
+                'queue' => $queueColumn,
+                'job_type' => $jobTypeColumn,
+                'enabled' => (bool) $validated['enabled'],
+                'email_interval_minutes' => (int) $validated['email_interval_minutes'],
+            ],
             'provider_ids' => $validated['provider_ids'],
         ];
     }

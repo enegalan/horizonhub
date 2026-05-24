@@ -24,7 +24,7 @@ abstract class StreamController extends Controller
     {
         $tag = $this->turboStreamTag($action, $target, $content, $streamMethod);
 
-        if ($tag !== null) {
+        if (! empty($tag)) {
             $streams[] = $tag;
         }
     }
@@ -42,7 +42,7 @@ abstract class StreamController extends Controller
         foreach ($updates as $target => $content) {
             $tag = $this->turboStreamTag('update', $target, $content, $streamMethod);
 
-            if ($tag !== null) {
+            if (! empty($tag)) {
                 $streams[] = $tag;
             }
         }
@@ -98,7 +98,7 @@ abstract class StreamController extends Controller
 
                 $turboHtml = $turboStreamCallback();
 
-                if ($turboHtml !== null && $turboHtml !== '') {
+                if (! empty($turboHtml)) {
                     $lines = \explode("\n", $turboHtml);
 
                     foreach ($lines as $line) {
@@ -155,7 +155,7 @@ abstract class StreamController extends Controller
 
         $open = '<turbo-stream action="' . e($action) . '" target="' . e($target) . '"';
 
-        if ($streamMethod !== null && $streamMethod !== '') {
+        if (! empty($streamMethod)) {
             $open .= ' method="' . e($streamMethod) . '"';
         }
 

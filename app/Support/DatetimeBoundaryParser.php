@@ -13,7 +13,7 @@ final class DatetimeBoundaryParser
      */
     public static function parseLower(?string $value): ?Carbon
     {
-        if ($value === null || \trim($value) === '') {
+        if (empty($value)) {
             return null;
         }
         $trimmed = \trim($value);
@@ -38,7 +38,7 @@ final class DatetimeBoundaryParser
      */
     public static function parseUpper(?string $value): ?Carbon
     {
-        if ($value === null || \trim($value) === '') {
+        if ($value === null || blank($value)) {
             return null;
         }
         $trimmed = \trim($value);

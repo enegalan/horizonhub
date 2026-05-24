@@ -19,7 +19,7 @@ class JobCommandDataExtractor
 
         $data = $payload['data'];
 
-        if (! isset($data['command']) || ! \is_string($data['command']) || $data['command'] === '') {
+        if (! isset($data['command']) || ! \is_string($data['command']) || blank($data['command'])) {
             return null;
         }
 

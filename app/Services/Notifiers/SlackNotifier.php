@@ -27,7 +27,7 @@ class SlackNotifier extends AbstractAlertNotifier
     {
         $webhookUrl = $config['webhook_url'] ?? '';
 
-        if (empty($webhookUrl) || empty($events)) {
+        if (blank($webhookUrl) || empty($events)) {
             return;
         }
 

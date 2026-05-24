@@ -32,7 +32,7 @@ class ServiceFilterService
 
         $tags = $request->query('service_tag', []);
 
-        if ($tags === []) {
+        if (empty($tags) || ! \is_array($tags)) {
             return $serviceIds;
         }
 
@@ -41,7 +41,7 @@ class ServiceFilterService
             ->pluck('id')
             ->all();
 
-        if ($serviceIds === []) {
+        if (empty($serviceIds)) {
             return $tagIds;
         }
 

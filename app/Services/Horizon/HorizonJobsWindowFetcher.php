@@ -104,7 +104,7 @@ final class HorizonJobsWindowFetcher
             }
             $batch = $response['data']['jobs'] ?? [];
 
-            if (! \is_array($batch) || $batch === []) {
+            if (! \is_array($batch) || empty($batch)) {
                 break;
             }
             $oldestInBatch = null;

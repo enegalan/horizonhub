@@ -305,7 +305,7 @@ class HorizonApiProxyService
         if ($hotReloadPathCacheKey !== null) {
             $cached = Cache::get($hotReloadPathCacheKey);
 
-            if ($cached === null) {
+            if (empty($cached)) {
                 $lockSeconds = (int) config('horizonhub.api_timeout');
                 $lock = Cache::lock("$hotReloadPathCacheKey:fill", $lockSeconds);
 
@@ -350,7 +350,7 @@ class HorizonApiProxyService
             if ($withDashboardSession) {
                 $bootstrap = $this->private__bootstrapDashboardSession($service);
 
-                if ($bootstrap === null) {
+                if (empty($bootstrap)) {
                     return null;
                 }
                 $request = $request

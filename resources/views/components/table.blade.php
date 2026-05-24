@@ -12,10 +12,10 @@
 
 @php
     $bodyBag = $bodyAttributes ?? new \Illuminate\View\ComponentAttributeBag();
-    if ($bodyId !== null && $bodyId !== '') {
+    if (!empty($bodyId)) {
         $bodyBag = $bodyBag->merge(['id' => $bodyId]);
     }
-    if ($bodyKey !== null && $bodyKey !== '') {
+    if (!empty($bodyKey)) {
         $bodyBag = $bodyBag->merge(['data-table-body' => $bodyKey]);
     }
     if ($streamPatchChildren) {

@@ -21,7 +21,7 @@
         ],
         default => [
             'container' => 'border-emerald-500/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200',
-            'icon' => 'heroicon-o-check-circle',
+            'icon' => 'icons.check-circle',
             'iconClass' => 'text-emerald-600 dark:text-emerald-400',
             'buttonClass' => 'text-emerald-800 hover:bg-emerald-500/15 dark:text-emerald-300',
             'role' => 'status',

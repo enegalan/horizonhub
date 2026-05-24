@@ -54,7 +54,7 @@ class HorizonJobListService
 
         $servicesQuery = Service::query()->enabled()->whereNotNull('base_url');
 
-        if ($serviceFilterIds !== []) {
+        if (! empty($serviceFilterIds)) {
             $servicesQuery->whereIn('id', $serviceFilterIds);
         }
 
@@ -301,15 +301,15 @@ class HorizonJobListService
             $aTime = $a['failed_at'];
             $bTime = $b['failed_at'];
 
-            if ($aTime === null && $bTime === null) {
+            if (empty($aTime) && empty($bTime)) {
                 return 0;
             }
 
-            if ($aTime === null) {
+            if (empty($aTime)) {
                 return 1;
             }
 
-            if ($bTime === null) {
+            if (empty($bTime)) {
                 return -1;
             }
 
@@ -342,10 +342,6 @@ class HorizonJobListService
 
             foreach ($rawJobs as $job) {
                 $row = $this->private__mapRawJobToListRow(\is_array($job) ? $job : [], $service, $status);
-
-                if ($row === null) {
-                    continue;
-                }
 
                 if (! $this->private__matchesSearch($row, $search)) {
                     continue;
@@ -390,7 +386,7 @@ class HorizonJobListService
 
             $batch = $data['jobs'] ?? [];
 
-            if (! \is_array($batch) || $batch === []) {
+            if (! \is_array($batch) || empty($batch)) {
                 break;
             }
 
@@ -527,7 +523,7 @@ class HorizonJobListService
      */
     private function private__matchesSearch(object $row, string $search): bool
     {
-        if ($search === '') {
+        if (!$row || $search === '') {
             return true;
         }
 

@@ -18,7 +18,7 @@ final class RetryModalDateFilter implements ValidationRule
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        if ($value === null || $value === '') {
+        if (blank($value)) {
             return;
         }
 
@@ -27,20 +27,21 @@ final class RetryModalDateFilter implements ValidationRule
 
             return;
         }
-        $trimmed = \trim($value);
 
-        if ($trimmed === '') {
+        $value = \trim($value);
+
+        if ($value === '') {
             return;
         }
 
-        if (\preg_match('/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/', $trimmed) !== 1) {
+        if (\preg_match('/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/', $value) !== 1) {
             $fail(__('validation.date', ['attribute' => $attribute]));
 
             return;
         }
 
         try {
-            Carbon::parse($trimmed);
+            Carbon::parse($value);
         } catch (\Throwable) {
             $fail(__('validation.date', ['attribute' => $attribute]));
         }

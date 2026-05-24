@@ -28,7 +28,7 @@ class UpsertProviderRequest extends FormRequest
                 }
             }
 
-            if ($emails === []) {
+            if (empty($emails)) {
                 \abort(422, 'Email recipients are required.');
             }
 

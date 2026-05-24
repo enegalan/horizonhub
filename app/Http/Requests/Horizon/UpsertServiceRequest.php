@@ -62,11 +62,11 @@ class UpsertServiceRequest extends FormRequest
                 $name = \trim((string) ($header['name'] ?? ''));
                 $value = isset($header['value']) ? \trim((string) $header['value']) : '';
 
-                if ($name === '' && $value === '') {
+                if (blank($name) && blank($value)) {
                     continue;
                 }
 
-                if ($name === '') {
+                if (blank($name)) {
                     $validator->errors()->add("headers.$index.name", 'The name field is required when value is present.');
 
                     continue;

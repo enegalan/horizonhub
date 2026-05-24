@@ -79,10 +79,6 @@ class Alert extends Model
      */
     public function appliesToServiceId(int $serviceId): bool
     {
-        if ($this->service_ids === []) {
-            return false;
-        }
-
         return \in_array($serviceId, $this->service_ids, true);
     }
 
@@ -102,7 +98,7 @@ class Alert extends Model
      */
     public function resolvedServiceIds(): array
     {
-        if ($this->service_ids === []) {
+        if (empty($this->service_ids)) {
             return [];
         }
 

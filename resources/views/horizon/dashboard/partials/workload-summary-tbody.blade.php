@@ -26,14 +26,14 @@
         <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground break-all" data-column-id="queue">{{ $row['queue'] ?? '' }}</td>
         <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="jobs">{{ isset($row['jobs']) ? (int) $row['jobs'] : 0 }}</td>
         <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="processes">
-            @if(isset($row['processes']) && $row['processes'] !== null)
+            @if(! empty($row['processes']))
                 {{ (int) $row['processes'] }}
             @else
                 –
             @endif
         </td>
         <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="wait">
-            @if(isset($row['wait']) && $row['wait'] !== null)
+            @if(! empty($row['wait']))
                 @php($waitSeconds = (float) $row['wait'])
                 <span data-wait-seconds="{{ $waitSeconds }}">
                     {{ number_format($waitSeconds, 2, '.', '') }} s

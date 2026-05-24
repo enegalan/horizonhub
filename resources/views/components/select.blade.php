@@ -47,6 +47,13 @@
                 this.openMenu();
             }
         },
+        handleOutsideClick(event) {
+            if (!this.open) return;
+            var target = event.target;
+            if (this.$refs.trigger && this.$refs.trigger.contains(target)) return;
+            if (this.$refs.panel && this.$refs.panel.contains(target)) return;
+            this.closeMenu();
+        },
         updateAnchor() {
             var trigger = this.$refs.trigger;
             if (!trigger) return;
@@ -85,12 +92,12 @@
         $nextTick(sync);
         $watch('open', (open) => { if (open) sync(); });
     "
-    @click.away="closeMenu()"
+    @click.window="handleOutsideClick($event)"
     >
     <select x-ref="hidden"
         {{ $selectAttrs->merge(['class' => 'sr-only']) }}>
         @if($placeholder !== '')
-            <option value="" @selected($selected === null || $selected === '')>{{ $placeholder }}</option>
+            <option value="" @selected(empty($selected))>{{ $placeholder }}</option>
         @endif
         @foreach($options as $value => $label)
             <option value="{{ $value }}" @selected($selected !== null && (string) $value === (string) $selected)>{{ $label }}</option>
@@ -100,7 +107,7 @@
 
     <button type="button"
         x-ref="trigger"
-        @click="toggleMenu()"
+        @click.stop="toggleMenu()"
         :aria-expanded="open"
         aria-haspopup="listbox"
         class="btn-ghost flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground [&>span]:line-clamp-1">
@@ -109,6 +116,7 @@
     </button>
 
     <div x-ref="panel"
+        x-teleport="body"
         x-show="open"
         x-transition:enter="transition ease-out duration-100"
         x-transition:enter-start="opacity-0 scale-95"
@@ -117,7 +125,7 @@
         x-transition:leave-start="opacity-100 scale-100"
         x-transition:leave-end="opacity-0 scale-95"
         x-bind:style="{ top: anchor.top + 'px', left: anchor.left + 'px', minWidth: Math.max(anchor.width, 128) + 'px' }"
-        class="fixed z-50 max-h-60 overflow-auto rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"
+        class="fixed z-[70] max-h-60 overflow-auto rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"
         role="listbox">
         <div
             x-show="dataOptions.length === 0"
@@ -134,7 +142,7 @@
                 role="option" no-ring>
                 <span class="block truncate" x-text="opt.label"></span>
                 <span x-show="opt.value === selectedValue" class="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
-                    <x-heroicon-o-check class="h-3.5 w-3.5" />
+                    <x-icons.check class="size-3.5" />
                 </span>
             </button>
         </template>

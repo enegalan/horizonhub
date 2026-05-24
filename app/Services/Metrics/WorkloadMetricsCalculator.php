@@ -65,7 +65,7 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
 
                     $name = isset($supervisor['name']) ? (string) $supervisor['name'] : '';
 
-                    if ($name === '') {
+                    if (blank($name)) {
                         continue;
                     }
 
@@ -153,29 +153,25 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
      */
     public function getWorkloadForService(Service $service): array
     {
-        if ($service->getBaseUrl() === '') {
+        if (empty($service->getBaseUrl())) {
             return [];
         }
 
         $response = $this->horizonApi->getWorkload($service);
         $payload = $response['data'] ?? null;
 
-        if (! $response['success'] || $payload === null) {
+        if (! $response['success'] || empty($payload)) {
             return [];
         }
 
         $data = $payload['data'] ?? $payload['workload'] ?? null;
 
-        if ($data === null || ! \is_array($data)) {
+        if (empty($data) || ! \is_array($data)) {
             if (isset($payload[0]) && \is_array($payload[0]) && isset($payload[0]['name'])) {
                 $data = $payload;
             } else {
                 return [];
             }
-        }
-
-        if ($data === []) {
-            return [];
         }
 
         $rows = [];
@@ -187,13 +183,13 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
 
             $queueName = '';
 
-            if (isset($row['name']) && (string) $row['name'] !== '') {
+            if (! empty($row['name'])) {
                 $queueName = (string) $row['name'];
             }
 
             $queueName = QueueNameNormalizer::normalize($queueName) ?? $queueName;
 
-            if ($queueName === '') {
+            if (empty($queueName)) {
                 continue;
             }
 

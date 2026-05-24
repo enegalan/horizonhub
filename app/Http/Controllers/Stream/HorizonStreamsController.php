@@ -243,15 +243,12 @@ class HorizonStreamsController extends StreamController
         }
 
         $response = $this->horizonApi->getJob($service, $routeJobUuid);
-        $jobData = [];
 
-        if ($response['success'] && isset($response['data']) && $response['data'] !== []) {
-            $jobData = $response['data'];
-        } else {
+        if (! $response['success'] || empty($response['data'])) {
             return null;
         }
 
-        $jobView = $this->jobDetail->buildShowViewData($service, $jobData);
+        $jobView = $this->jobDetail->buildShowViewData($service, $response['data']);
 
         $exception = ($jobView->exception ?? null) ? html_entity_decode((string) $jobView->exception, ENT_QUOTES | ENT_HTML401, 'UTF-8') : null;
         $exceptionTrace = $exception ? (\preg_split("/\r\n|\n|\r/", $exception) ?: []) : [];
@@ -455,7 +452,7 @@ class HorizonStreamsController extends StreamController
         $serviceIds = $this->serviceFilter->resolveFromQuery($query);
         $servicesQuery = Service::query()->orderBy('name');
 
-        if ($serviceIds !== []) {
+        if (! empty($serviceIds)) {
             $servicesQuery->whereIn('id', $serviceIds);
         }
 

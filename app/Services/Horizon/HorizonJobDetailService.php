@@ -59,7 +59,7 @@ class HorizonJobDetailService
                 ];
             }
         }
-        $retries = $retriedBy !== [] ? \count($retriedBy) : null;
+        $retries = ! empty($retriedBy) ? \count($retriedBy) : null;
 
         $context = null;
 

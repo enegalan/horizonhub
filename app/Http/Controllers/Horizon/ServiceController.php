@@ -207,7 +207,7 @@ class ServiceController extends Controller
 
             $name = \trim((string) ($header['name'] ?? ''));
 
-            if ($name === '') {
+            if (blank($name)) {
                 continue;
             }
 
@@ -215,7 +215,7 @@ class ServiceController extends Controller
 
             $service->headers()->create([
                 'name' => $name,
-                'value' => $value === '' ? null : $value,
+                'value' => blank($value) ? null : $value,
             ]);
         }
     }

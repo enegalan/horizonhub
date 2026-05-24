@@ -27,7 +27,7 @@
             }
         }
 
-        if ($headersForForm === []) {
+        if (empty($headersForForm)) {
             $headersForForm[] = ['name' => '', 'value' => ''];
         }
 
