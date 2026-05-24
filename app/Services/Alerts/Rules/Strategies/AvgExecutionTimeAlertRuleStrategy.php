@@ -3,6 +3,7 @@
 namespace App\Services\Alerts\Rules\Strategies;
 
 use App\Models\Alert;
+use App\Models\Service;
 use App\Services\Alerts\Rules\AlertRuleEvaluationSupport;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
 use App\Support\Alerts\AlertRuleStrategySupport;
@@ -39,7 +40,7 @@ final class AvgExecutionTimeAlertRuleStrategy implements AlertRuleStrategyInterf
         $maxSeconds = (float) ($threshold['seconds'] ?? config('horizonhub.alerts.default_seconds'));
         $minutes = $this->private__thresholdMinutes($alert);
 
-        $service = $this->private__resolveServiceForEvaluation($serviceId);
+        $service = Service::find($serviceId);
 
         if ($service === null) {
             return ['triggered' => false, 'job_uuids' => []];

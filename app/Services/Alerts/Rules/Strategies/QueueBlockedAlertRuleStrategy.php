@@ -3,6 +3,7 @@
 namespace App\Services\Alerts\Rules\Strategies;
 
 use App\Models\Alert;
+use App\Models\Service;
 use App\Services\Alerts\Rules\AlertRuleEvaluationSupport;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
 use App\Support\Alerts\AlertRuleStrategySupport;
@@ -38,7 +39,7 @@ final class QueueBlockedAlertRuleStrategy implements AlertRuleStrategyInterface
     private function private__evaluateQueueBlocked(Alert $alert, int $serviceId): bool
     {
         $minutes = $this->private__thresholdMinutes($alert, 30);
-        $service = $this->private__resolveServiceForEvaluation($serviceId);
+        $service = Service::find($serviceId);
 
         if ($service === null) {
             return false;
