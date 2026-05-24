@@ -7,12 +7,14 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Validation\ValidationException;
 
 /**
  * @property bool $enabled
  * @property int $horizon_failed_jobs_count
  * @property int $horizon_jobs_count
  * @property list<string> $tags
+ * @property string $base_url
  * @property string|null $horizon_status
  */
 class Service extends Model
@@ -61,7 +63,7 @@ class Service extends Model
      */
     public function getBaseUrl(): string
     {
-        return \rtrim($this->base_url ?? '', '/');
+        return \rtrim((string) $this->base_url, '/');
     }
 
     /**
@@ -125,6 +127,22 @@ class Service extends Model
         return $query->where(function (Builder $inner) use ($tags): void {
             foreach ($tags as $tag) {
                 $inner->orWhereJsonContains('tags', $tag);
+            }
+        });
+    }
+
+    /**
+     * Normalize and validate base_url before every save.
+     */
+    protected static function booted(): void
+    {
+        static::saving(static function (Service $service): void {
+            $service->base_url = \rtrim((string) ($service->base_url ?? ''), '/');
+
+            if ($service->base_url === '') {
+                throw ValidationException::withMessages([
+                    'base_url' => ['The base URL is required.'],
+                ]);
             }
         });
     }

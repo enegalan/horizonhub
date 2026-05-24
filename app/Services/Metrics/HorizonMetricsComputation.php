@@ -129,7 +129,7 @@ abstract class HorizonMetricsComputation
     /**
      * Get services that can provide Horizon metrics.
      *
-     * @param array<string, mixed> $serviceScope The service scope. Empty = all services with base_url; non-empty = restrict by id.
+     * @param array<string, mixed> $serviceScope The service scope. Empty = all enabled services; non-empty = restrict by id.
      * @param bool $orderByName The order by name.
      * @param array<int, string> $selectColumns The select columns.
      *
@@ -137,7 +137,7 @@ abstract class HorizonMetricsComputation
      */
     protected function private__getServicesForMetrics(array $serviceScope = [], bool $orderByName = false, array $selectColumns = []): Collection
     {
-        $servicesQuery = Service::query()->enabled()->whereNotNull('base_url');
+        $servicesQuery = Service::query()->enabled();
 
         if (! empty($serviceScope)) {
             $ids = \array_values(\array_unique(\array_filter(

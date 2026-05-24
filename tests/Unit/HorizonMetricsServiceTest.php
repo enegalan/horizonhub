@@ -510,21 +510,6 @@ class HorizonMetricsServiceTest extends TestCase
         $this->assertSame([], $metrics->getWorkloadForService($service));
     }
 
-    public function test_get_workload_for_service_returns_empty_without_base_url(): void
-    {
-        $api = $this->createMock(HorizonApiProxyService::class);
-        $api->expects($this->never())->method('getWorkload');
-
-        $service = Service::create([
-            'name' => 'svc-b',
-            'base_url' => '',
-            'status' => 'online',
-        ]);
-
-        $metrics = $this->private__makeHorizonMetricsService($api);
-        $this->assertSame([], $metrics->getWorkloadForService($service));
-    }
-
     public function test_queue_name_normalizer_does_not_strip_when_leading_segment_starts_with_digit(): void
     {
         $this->assertSame('1queue:jobs', QueueNameNormalizer::normalize('1queue:jobs'));

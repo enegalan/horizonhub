@@ -67,7 +67,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
      */
     public function getJobsPastMinute(?Service $service = null): int
     {
-        if (! empty($service?->getBaseUrl())) {
+        if ($service !== null) {
             $data = HorizonStatsReader::dataFromResponse($this->horizonApi->getStats($service));
 
             return $data !== null ? HorizonStatsReader::jobsPastMinute($data) : 0;
@@ -98,7 +98,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
      */
     private function private__sumStatsField(?Service $service, string $field): int
     {
-        if (! empty($service?->getBaseUrl())) {
+        if ($service !== null) {
             $data = HorizonStatsReader::dataFromResponse($this->horizonApi->getStats($service));
 
             if ($data === null || ! isset($data[$field])) {

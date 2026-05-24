@@ -69,7 +69,7 @@ class JobActionController extends Controller
 
         $tags = $request->query('service_tag', []);
 
-        $servicesQuery = Service::query()->enabled()->whereNotNull('base_url');
+        $servicesQuery = Service::query()->enabled();
 
         if (\count($serviceIds) > 0) {
             $servicesQuery->whereIn('id', $serviceIds);
@@ -176,7 +176,6 @@ class JobActionController extends Controller
         $failed = 0;
 
         $servicesById = Service::query()
-            ->whereNotNull('base_url')
             ->whereIn('id', \array_values(\array_unique(\array_column($jobs, 'service_id'))))
             ->get()
             ->keyBy('id');

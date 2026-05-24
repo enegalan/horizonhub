@@ -40,15 +40,14 @@ class JobDashboardUrlBuilderTest extends TestCase
     }
 
     #[Test]
-    public function it_returns_null_when_required_values_are_missing(): void
+    public function it_returns_null_when_service_or_job_uuid_is_missing(): void
     {
         $service = new Service;
         $service->forceFill([
-            'base_url' => '',
+            'base_url' => 'http://example.test',
             'public_url' => null,
         ]);
 
-        $this->assertNull(JobDashboardUrlBuilder::build($service, 'abc-123', 'processed'));
         $this->assertNull(JobDashboardUrlBuilder::build(null, 'abc-123', 'processed'));
         $this->assertNull(JobDashboardUrlBuilder::build($service, '', 'processed'));
     }

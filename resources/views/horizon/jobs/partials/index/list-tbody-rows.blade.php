@@ -62,7 +62,7 @@
             @include('horizon.jobs.partials.index.row-actions', [
                 'job' => $job,
                 'pageService' => $pageService,
-                'showRetry' => $kind === 'failed' && $job->service && ! empty($job->service->getBaseUrl()),
+                'showRetry' => $kind === 'failed' && $job->service,
             ])
         </td>
     </tr>

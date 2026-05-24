@@ -4,7 +4,7 @@
     <div
         x-data="window.horizonJobDetail({
             retryUrl: '{{ route('horizon.jobs.retry', ['uuid' => $job->uuid ?? '', 'service_id' => optional($job->service)->id ?? 0]) }}',
-            canRetry: {{ ($job->service ?? null) && ! empty($job->service->getBaseUrl()) && ($job->status ?? '') === 'failed' ? 'true' : 'false' }},
+            canRetry: {{ ($job->service ?? null) && ($job->status ?? '') === 'failed' ? 'true' : 'false' }},
         })"
         x-init="typeof init === 'function' ? init() : null"
         id="horizon-job-detail"

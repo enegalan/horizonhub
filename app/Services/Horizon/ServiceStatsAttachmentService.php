@@ -17,7 +17,7 @@ class ServiceStatsAttachmentService
     public function attachHorizonStats(iterable $services, HorizonApiProxyService $horizonApi): void
     {
         foreach ($services as $service) {
-            if (! $service->enabled || empty($service->getBaseUrl())) {
+            if (! $service->enabled) {
                 $service->horizon_failed_jobs_count = 0;
                 $service->horizon_jobs_count = 0;
                 $service->horizon_status = null;

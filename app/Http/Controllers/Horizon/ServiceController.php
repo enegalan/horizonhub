@@ -126,12 +126,6 @@ class ServiceController extends Controller
      */
     public function testConnection(Service $service, HorizonApiProxyService $horizonApi): RedirectResponse
     {
-        if (! $service->base_url) {
-            return redirect()
-                ->back()
-                ->with('status', FlashStatus::warning('Service has no base URL configured.'));
-        }
-
         $result = $horizonApi->ping($service);
 
         if ($result['success']) {

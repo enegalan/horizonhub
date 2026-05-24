@@ -20,10 +20,6 @@ class JobDashboardUrlBuilder
         }
 
         $dashboardBase = $service->getPublicUrl();
-
-        if (blank($dashboardBase)) {
-            return null;
-        }
         $encodedUuid = \urlencode($jobUuid);
 
         $jobPath = match ((string) $jobStatus) {
