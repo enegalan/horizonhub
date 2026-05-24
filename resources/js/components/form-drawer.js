@@ -1,3 +1,5 @@
+import { refreshStream } from '../lib/sse';
+
 const FORM_DRAWER_FRAME_ID = 'form-drawer';
 const FORM_DRAWER_SHELL_ID = 'form-drawer-shell';
 const FORM_DRAWER_OPEN = 'form-drawer-shell--open';
@@ -76,7 +78,12 @@ document.addEventListener('turbo:before-visit', function () {
 });
 
 document.addEventListener('turbo:frame-load', function (event) {
-    if (!event.target || event.target.id !== FORM_DRAWER_FRAME_ID || !event.target.innerHTML.trim()) {
+    if (!event.target || event.target.id !== FORM_DRAWER_FRAME_ID) {
+        return;
+    }
+
+    if (!event.target.innerHTML.trim()) {
+        closeFormDrawer(true);
         return;
     }
 
@@ -89,6 +96,16 @@ document.addEventListener('turbo:frame-load', function (event) {
     if (window.Alpine && typeof window.Alpine.initTree === 'function') {
         window.Alpine.initTree(event.target);
     }
+});
+
+document.addEventListener('turbo:submit-end', function (event) {
+    if (!event.target || event.target.getAttribute('data-turbo-frame') !== FORM_DRAWER_FRAME_ID || !event.detail?.success) {
+        return;
+    }
+
+    closeFormDrawer(true);
+
+    refreshStream();
 });
 
 document.addEventListener('click', function (event) {

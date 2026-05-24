@@ -4,7 +4,7 @@ import { connectStreamSource, disconnectStreamSource } from '@hotwired/turbo';
  * Whether Horizon Hub hot reload (SSE refresh) is enabled.
  * @returns {boolean}
  */
-export function isHotReloadEnabled() {
+function isHotReloadEnabled() {
     return localStorage.getItem('horizonhub_hotreload') !== 'false';
 }
 
@@ -18,7 +18,9 @@ var _reconnectDebounceTimer = null;
  * @returns {void}
  */
 export function initTurboStream() {
-    window.addEventListener('horizonhub-hotreload-changed', onHotReloadChanged);
+    window.addEventListener('horizonhub-hotreload-changed', function () {
+        refreshStream();
+    });
     document.addEventListener('turbo:before-visit', function () {
         closeStream();
     });
@@ -120,11 +122,7 @@ function scheduleStreamReconnect() {
     _reconnectDebounceTimer = window.setTimeout(function () {
         _reconnectDebounceTimer = null;
         closeStream();
-        if (isHotReloadEnabled()) {
-            openStream();
-        } else {
-            openStreamOneShot();
-        }
+        openStream();
     }, 50);
 }
 
@@ -133,6 +131,10 @@ function scheduleStreamReconnect() {
  * @returns {void}
  */
 function openStream() {
+    if (!isHotReloadEnabled()) {
+        openStreamOneShot();
+        return;
+    }
     var url = buildStreamUrl();
     if (!url) return;
     _eventSource = new EventSource(url);
@@ -188,12 +190,9 @@ function openStreamOneShot() {
 
 /**
  * Handle hot-reload toggle from sidebar switch.
- * @param {CustomEvent} e
  * @returns {void}
  */
-function onHotReloadChanged(e) {
+export function refreshStream() {
     closeStream();
-    if (e.detail && e.detail.enabled === true) {
-        openStream();
-    }
+    openStream();
 }
