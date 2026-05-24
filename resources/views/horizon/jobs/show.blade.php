@@ -11,6 +11,6 @@
         data-horizon-job-detail-root="1"
         data-horizon-job-uuid="{{ ! empty($job->uuid ?? null) ? e($job->uuid) : '' }}"
     >
-        @include('horizon.jobs.partials.job-show-body')
+        @include('horizon.jobs.partials.show.body')
     </div>
 @endsection

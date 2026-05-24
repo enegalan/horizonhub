@@ -40,7 +40,7 @@
                             </div>
                         @endfor
                     @else
-                        @include('horizon.queues.partials.queue-page-stats-inner', [
+                        @include('horizon.queues.partials.index.stats', [
                             'queueCount' => $queueCount ?? 0,
                             'totalJobs' => $totalJobs ?? 0,
                         ])
@@ -67,7 +67,7 @@
                         <th class="table-header px-4 py-2.5" data-column-id="job_count">Pending jobs</th>
                     </tr>
                 </x-slot:head>
-                @include('horizon.queues.partials.queue-tbody', [
+                @include('horizon.queues.partials.index.tbody', [
                     'queues' => $queues,
                     'defer' => $defer ?? false,
                 ])

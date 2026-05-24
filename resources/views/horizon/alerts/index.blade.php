@@ -26,8 +26,8 @@
                             data-alert-evaluate-all-status-url="{{ route('horizon.alerts.evaluations.status', ['evaluationId' => '__EVALUATION_ID__']) }}"
                         >
                             <span class="inline-flex items-center gap-2">
-                                <x-heroicon-o-bell class="size-4 alert-evaluate-btn-icon" />
-                                <x-heroicon-o-arrow-path class="size-4 animate-spin alert-evaluate-btn-spinner hidden" />
+                                <x-icons.bell class="size-4 alert-evaluate-btn-icon" />
+                                <x-icons.arrow-path class="size-4 animate-spin alert-evaluate-btn-spinner hidden" />
                                 <span data-alert-evaluate-all-label>Evaluate all alerts</span>
                             </span>
                         </x-button>
@@ -49,7 +49,7 @@
                     @if(!empty($defer))
                         <x-skeleton.metric-columns />
                     @else
-                        @include('horizon.alerts.partials.alert-stats')
+                        @include('horizon.alerts.partials.index.stats')
                     @endif
                 </div>
             </div>
@@ -63,12 +63,12 @@
                     @if(!empty($defer))
                         <x-skeleton.card-grid />
                     @else
-                        @include('horizon.alerts.partials.alert-tbody', ['alerts' => $alerts])
+                        @include('horizon.alerts.partials.index.tbody', ['alerts' => $alerts])
                     @endif
                 </div>
             </div>
         </div>
 
-        @include('horizon.alerts.partials.delete-alert-confirm-modal')
+        @include('horizon.alerts.partials.index.delete-confirm-modal')
     </div>
 @endsection

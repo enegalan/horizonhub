@@ -99,7 +99,7 @@
                                 <span x-text="tag"></span>
                                 <input type="hidden" x-bind:name="'tags[]'" x-bind:value="tag" />
                                 <button type="button" class="text-muted-foreground hover:text-foreground" @click="removeTag(index)" aria-label="Remove tag" no-ring>
-                                    <x-heroicon-o-x-mark class="h-3 w-3" />
+                                    <x-icons.x-mark class="h-3 w-3" />
                                 </button>
                             </span>
                         </template>

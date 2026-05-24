@@ -11,7 +11,7 @@
                 aria-label="Close"
                 data-form-drawer-close="panel"
             >
-                <x-heroicon-o-x-mark class="size-5" />
+                <x-icons.x-mark class="size-5" />
             </x-button>
         </div>
         <div class="form-drawer-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 sm:px-5 sm:py-5">

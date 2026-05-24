@@ -17,7 +17,7 @@
         />
 
         <div id="alert-detail-stats" data-alert-detail-stats>
-            @include('horizon.alerts.partials.detail-stats', [
+            @include('horizon.alerts.partials.show.stats', [
                 'chartData' => $chartData ?? null,
                 'defer' => $defer ?? false,
             ])
@@ -220,7 +220,7 @@
                                                 title="View delivery log"
                                                 x-on:click="openDeliveryLogModal({{ \Illuminate\Support\Js::from(\App\Support\Alerts\AlertDeliveryLogPresenter::payloadFromLog($log)) }})"
                                             >
-                                                <x-heroicon-o-document-text class="size-4" />
+                                                <x-icons.document-text class="size-4" />
                                             </x-button>
                                             @if($log->status === 'failed')
                                                 <form method="POST" action="{{ route('horizon.alerts.logs.retry', $log) }}">
@@ -232,7 +232,7 @@
                                                         aria-label="Retry delivery"
                                                         title="Retry delivery"
                                                     >
-                                                        <x-heroicon-o-arrow-path class="size-4" />
+                                                        <x-icons.arrow-path class="size-4" />
                                                     </x-button>
                                                 </form>
                                             @endif
@@ -247,7 +247,7 @@
                                             description="When this alert triggers, sent and failed notifications will appear here."
                                         >
                                             <x-slot name="icon">
-                                                <x-heroicon-o-bell class="empty-state-icon" />
+                                                <x-icons.bell class="empty-state-icon" />
                                             </x-slot>
                                         </x-empty-state>
                                     </td>

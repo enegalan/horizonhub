@@ -53,7 +53,7 @@
                 @if(!empty($defer))
                     <x-skeleton.text class="h-8 w-24" />
                 @else
-                    @include('horizon.metrics.partials.failure-rate-value', ['failureRate24h' => $failureRate24h ?? null])
+                    @include('horizon.metrics.partials.index.failure-rate-value', ['failureRate24h' => $failureRate24h ?? null])
                 @endif
             </x-stat-card>
         </x-kpi-grid>
@@ -66,7 +66,7 @@
                         <div id="metrics-loader-jobs-volume-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ empty($defer) ? 'display:none;' : '' }}">
                             <x-loader class="size-8 text-muted-foreground" />
                         </div>
-                        @include('horizon.metrics.partials.chart-empty-overlay', ['overlayId' => 'metrics-empty-jobs-volume-chart'])
+                        @include('horizon.metrics.partials.index.chart-empty-overlay', ['overlayId' => 'metrics-empty-jobs-volume-chart'])
                         <div id="jobs-volume-last-24h-chart" class="chart-canvas"></div>
                     </div>
                 </div>
@@ -77,7 +77,7 @@
                         <div id="metrics-loader-failure-rate-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ empty($defer) ? 'display:none;' : '' }}">
                             <x-loader class="size-8 text-muted-foreground" />
                         </div>
-                        @include('horizon.metrics.partials.chart-empty-overlay', ['overlayId' => 'metrics-empty-failure-rate-chart'])
+                        @include('horizon.metrics.partials.index.chart-empty-overlay', ['overlayId' => 'metrics-empty-failure-rate-chart'])
                         <div id="failure-rate-chart" class="chart-canvas"></div>
                     </div>
                 </div>
@@ -89,7 +89,7 @@
                         <div id="metrics-loader-runtime-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ empty($defer) ? 'display:none;' : '' }}">
                             <x-loader class="size-8 text-muted-foreground" />
                         </div>
-                        @include('horizon.metrics.partials.chart-empty-overlay', ['overlayId' => 'metrics-empty-runtime-chart'])
+                        @include('horizon.metrics.partials.index.chart-empty-overlay', ['overlayId' => 'metrics-empty-runtime-chart'])
                         <div id="runtime-chart" class="chart-canvas"></div>
                     </div>
                 </div>
@@ -100,7 +100,7 @@
                         <div id="metrics-loader-service-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ empty($defer) ? 'display:none;' : '' }}">
                             <x-loader class="size-8 text-muted-foreground" />
                         </div>
-                        @include('horizon.metrics.partials.chart-empty-overlay', ['overlayId' => 'metrics-empty-service-chart'])
+                        @include('horizon.metrics.partials.index.chart-empty-overlay', ['overlayId' => 'metrics-empty-service-chart'])
                         <div id="service-distribution-chart" class="chart-canvas"></div>
                     </div>
                 </div>
@@ -130,7 +130,7 @@
                     @if(!empty($defer))
                         <x-skeleton.table-rows rows="5" columns="5" />
                     @else
-                        @include('horizon.metrics.partials.workload-tbody', ['workloadRows' => $workloadRows ?? null])
+                        @include('horizon.metrics.partials.index.workload-tbody', ['workloadRows' => $workloadRows ?? null])
                     @endif
                 </x-table>
             </div>
@@ -159,7 +159,7 @@
                     @if(!empty($defer))
                         <x-skeleton.table-rows rows="4" columns="5" />
                     @else
-                        @include('horizon.metrics.partials.supervisors-tbody', ['supervisorsRows' => $supervisorsRows ?? null])
+                        @include('horizon.metrics.partials.index.supervisors-tbody', ['supervisorsRows' => $supervisorsRows ?? null])
                     @endif
                 </x-table>
             </div>

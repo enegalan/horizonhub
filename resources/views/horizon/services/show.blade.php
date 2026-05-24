@@ -44,7 +44,7 @@
                     Status: <span class="font-medium text-foreground">{{ $serviceStatusLabel }}</span>
                 </span>
             </div>
-            @include('horizon.services.partials.service-tags', ['tags' => $service->tags ?? []])
+            @include('horizon.services.partials.tags', ['tags' => $service->tags ?? []])
             <div class="inline-flex flex-wrap items-center gap-1 rounded-lg border border-border bg-card p-1">
                 <x-button
                     variant="ghost"
@@ -53,7 +53,7 @@
                     class="h-8 gap-1.5 px-2 sm:px-3"
                     aria-label="Open Horizon dashboard"
                 >
-                    <x-heroicon-o-window class="size-4 shrink-0" />
+                    <x-icons.window class="size-4 shrink-0" />
                     <span class="hidden text-xs sm:inline">Horizon</span>
                 </x-button>
                 <form method="POST" action="{{ route('horizon.services.test-connection', $service) }}" class="inline-flex">
@@ -64,7 +64,7 @@
                         class="h-8 gap-1.5 px-2 sm:px-3"
                         aria-label="Test connection"
                     >
-                        <x-heroicon-o-signal class="size-4 shrink-0" />
+                        <x-icons.signal class="size-4 shrink-0" />
                         <span class="hidden text-xs sm:inline">Test</span>
                     </x-button>
                 </form>
@@ -74,7 +74,7 @@
                     class="h-8 gap-1.5 px-2 sm:px-3"
                     aria-label="Edit service"
                 >
-                    <x-heroicon-o-pencil-square class="size-4 shrink-0" />
+                    <x-icons.pencil-square class="size-4 shrink-0" />
                     <span class="hidden text-xs sm:inline">Edit</span>
                 </x-form-drawer-link>
                 <x-button
@@ -84,7 +84,7 @@
                     aria-label="Delete service"
                     @click="openDeleteServiceModal()"
                 >
-                    <x-heroicon-o-trash class="size-4 shrink-0" />
+                    <x-icons.trash class="size-4 shrink-0" />
                     <span class="hidden text-xs sm:inline">Delete</span>
                 </x-button>
             </div>
@@ -92,17 +92,17 @@
 
         <div id="service-show-stats-row-1" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
             @if(!empty($defer))
-                @include('horizon.services.partials.show-stats-row-1-skeleton')
+                @include('horizon.services.partials.show.skeletons.stats-row-1')
             @else
-                @include('horizon.services.partials.show-stats-row-1-inner')
+                @include('horizon.services.partials.show.stats-row-1')
             @endif
         </div>
 
         <div id="service-show-stats-row-2" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
             @if(!empty($defer))
-                @include('horizon.services.partials.show-stats-row-2-skeleton')
+                @include('horizon.services.partials.show.skeletons.stats-row-2')
             @else
-                @include('horizon.services.partials.show-stats-row-2-inner')
+                @include('horizon.services.partials.show.stats-row-2')
             @endif
         </div>
 
@@ -110,9 +110,9 @@
             <h3 class="text-section-title text-foreground mb-2">Supervisors</h3>
             <div id="service-show-supervisors-panel">
                 @if(!empty($defer))
-                    @include('horizon.services.partials.show-supervisors-panel-skeleton')
+                    @include('horizon.services.partials.show.skeletons.supervisors-panel')
                 @else
-                    @include('horizon.services.partials.show-supervisors-panel-inner')
+                    @include('horizon.services.partials.show.supervisors-panel')
                 @endif
             </div>
         </div>
@@ -144,16 +144,16 @@
                 @if(!empty($defer))
                     <x-skeleton.table-rows rows="5" columns="4" />
                 @else
-                    @include('horizon.services.partials.show-workload-tbody', ['workloadQueues' => $workloadQueues])
+                    @include('horizon.services.partials.show.workload-tbody', ['workloadQueues' => $workloadQueues])
                 @endif
             </x-table>
         </div>
 
         <div id="service-show-supervisor-groups">
             @if(!empty($defer))
-                @include('horizon.services.partials.show-supervisor-groups-skeleton')
+                @include('horizon.services.partials.show.skeletons.supervisor-groups')
             @else
-                @include('horizon.services.partials.show-supervisor-groups')
+                @include('horizon.services.partials.show.supervisor-groups')
             @endif
         </div>
 
@@ -174,7 +174,7 @@
                     </form>
                 </div>
             </div>
-            @include('horizon.jobs.partials.job-list-collapsible-stack', [
+            @include('horizon.jobs.partials.index.list-collapsible-stack', [
                 'jobsProcessing' => $jobsProcessing,
                 'jobsProcessed' => $jobsProcessed,
                 'jobsFailed' => $jobsFailed,
@@ -187,6 +187,6 @@
         </div>
         </x-turbo::frame>
 
-        @include('horizon.services.partials.delete-service-confirm-modal', ['detailService' => $service])
+        @include('horizon.services.partials.index.delete-confirm-modal', ['detailService' => $service])
     </div>
 @endsection

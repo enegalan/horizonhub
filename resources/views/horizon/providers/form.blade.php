@@ -61,7 +61,7 @@
                         >
                         <div class="flex items-start gap-3">
                             <div class="flex size-11 shrink-0 items-center justify-center rounded-xl border border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300">
-                                <x-heroicon-o-envelope class="size-5" />
+                                <x-icons.envelope class="size-5" />
                             </div>
                             <div class="min-w-0">
                                 <p class="text-sm font-semibold text-foreground">Email</p>
@@ -99,7 +99,7 @@
                         :class="type === 'slack' ? 'border-violet-500/20 bg-violet-500/5' : 'border-border bg-muted/20'"
                     >
                         <div class="mb-3 flex items-center gap-2">
-                            <x-heroicon-o-link class="size-4 text-violet-700 dark:text-violet-300" />
+                            <x-icons.link class="size-4 text-violet-700 dark:text-violet-300" />
                             <p class="text-sm font-medium text-foreground">Slack webhook</p>
                         </div>
                         <div class="space-y-2">
@@ -123,7 +123,7 @@
                         :class="type === 'email' ? 'border-sky-500/20 bg-sky-500/5' : 'border-border bg-muted/20'"
                     >
                         <div class="mb-3 flex items-center gap-2">
-                            <x-heroicon-o-users class="size-4 text-sky-700 dark:text-sky-300" />
+                            <x-icons.users class="size-4 text-sky-700 dark:text-sky-300" />
                             <p class="text-sm font-medium text-foreground">Email recipients</p>
                         </div>
                         <div class="space-y-2">

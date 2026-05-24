@@ -7,7 +7,6 @@
     "license": "MIT",
     "require": {
         "php": "^8.4",
-        "blade-ui-kit/blade-heroicons": "^2.1",
         "hotwired-laravel/turbo-laravel": "^2.6",
         "laravel/framework": "^13.5",
         "laravel/tinker": "^3.0.2"

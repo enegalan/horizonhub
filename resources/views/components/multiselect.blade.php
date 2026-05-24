@@ -184,7 +184,7 @@
         class="btn-ghost flex h-9 w-full min-w-[8rem] items-center justify-between whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground [&>span]:line-clamp-1"
     >
         <span x-text="summaryLabel" class="block truncate text-left"></span>
-        <x-heroicon-o-chevron-down class="h-4 w-4 shrink-0 opacity-50" />
+        <x-icons.chevron-down class="h-4 w-4 shrink-0 opacity-50" />
     </button>
 
     <template x-teleport="body">

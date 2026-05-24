@@ -7,14 +7,14 @@
     $variantConfig = match ($variant) {
         'error' => [
             'container' => 'border-rose-500/30 bg-rose-500/10 text-rose-900 dark:text-rose-200',
-            'icon' => 'heroicon-o-x-circle',
+            'icon' => 'icons.x-circle',
             'iconClass' => 'text-rose-600 dark:text-rose-400',
             'buttonClass' => 'text-rose-800 hover:bg-rose-500/15 dark:text-rose-300',
             'role' => 'alert',
         ],
         'warning' => [
             'container' => 'border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200',
-            'icon' => 'heroicon-o-exclamation-triangle',
+            'icon' => 'icons.exclamation-triangle',
             'iconClass' => 'text-amber-600 dark:text-amber-400',
             'buttonClass' => 'text-amber-800 hover:bg-amber-500/15 dark:text-amber-300',
             'role' => 'status',
@@ -47,6 +47,6 @@
         aria-label="Dismiss"
         @click="visible = false"
     >
-        <x-heroicon-o-x-mark class="size-4" />
+        <x-icons.x-mark class="size-4" />
     </button>
 </div>

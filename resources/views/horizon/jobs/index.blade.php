@@ -47,14 +47,14 @@
                     </form>
                     <div class="flex shrink-0 items-end gap-2">
                         <x-button type="button" variant="secondary" class="h-9 text-sm" @click="openRetryModal()">
-                            <x-heroicon-o-arrow-path class="size-4" />
+                            <x-icons.arrow-path class="size-4" />
                             Retry failed jobs
                         </x-button>
                     </div>
                 </div>
             </div>
 
-            @include('horizon.jobs.partials.job-list-collapsible-stack', [
+            @include('horizon.jobs.partials.index.list-collapsible-stack', [
                 'jobsProcessing' => $jobsProcessing,
                 'jobsProcessed' => $jobsProcessed,
                 'jobsFailed' => $jobsFailed,
@@ -80,7 +80,7 @@
                             <div class="relative flex items-start justify-between gap-2 sm:gap-3">
                                 <div class="flex min-w-0 items-start gap-2.5 sm:gap-4">
                                     <div class="flex size-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-sm sm:size-11">
-                                        <x-heroicon-o-arrow-path class="size-4 sm:size-6" />
+                                        <x-icons.arrow-path class="size-4 sm:size-6" />
                                     </div>
                                     <div class="min-w-0 space-y-0.5 sm:space-y-1">
                                         <h2 class="text-lg font-semibold leading-tight text-foreground sm:text-section-title">Retry failed jobs</h2>
@@ -95,7 +95,7 @@
                                     aria-label="Close"
                                     @click="closeRetryModal()"
                                 >
-                                    <x-heroicon-o-x-mark class="size-5" />
+                                    <x-icons.x-mark class="size-5" />
                                 </button>
                             </div>
                         </div>
@@ -104,7 +104,7 @@
                     <div class="flex min-w-0 flex-col gap-3 sm:gap-4">
                         <section class="shrink-0 rounded-lg border border-border bg-muted/20 p-3 sm:p-4">
                             <div class="mb-3 flex items-center gap-2">
-                                <x-heroicon-o-funnel class="size-4 text-primary" />
+                                <x-icons.funnel class="size-4 text-primary" />
                                 <h3 class="text-sm font-medium text-foreground">Filters</h3>
                             </div>
                             <form
@@ -173,7 +173,7 @@
                                 </div>
                                 <div class="flex items-end sm:col-span-2 sm:justify-end lg:col-span-1 lg:justify-start">
                                     <x-button type="submit" class="h-9 w-full shrink-0 whitespace-nowrap sm:w-auto">
-                                        <x-heroicon-o-magnifying-glass class="size-4 shrink-0" />
+                                        <x-icons.magnifying-glass class="size-4 shrink-0" />
                                         Search
                                     </x-button>
                                 </div>
@@ -183,7 +183,7 @@
                         <section class="rounded-lg border border-border bg-card">
                             <div class="flex shrink-0 flex-col gap-2 border-b border-border bg-muted/25 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-4">
                                 <div class="flex min-w-0 items-center gap-2">
-                                    <x-heroicon-o-exclamation-triangle class="size-4 shrink-0 text-destructive" />
+                                    <x-icons.exclamation-triangle class="size-4 shrink-0 text-destructive" />
                                     <h3 class="text-sm font-medium text-foreground">Matching failed jobs</h3>
                                 </div>
                                 <div class="flex flex-wrap items-center gap-2 text-xs sm:justify-end">
@@ -262,7 +262,7 @@
                                                     class="py-10 sm:py-12"
                                                 >
                                                     <x-slot:icon>
-                                                        <x-heroicon-o-inbox class="empty-state-icon mx-auto" />
+                                                        <x-icons.inbox class="empty-state-icon mx-auto" />
                                                     </x-slot:icon>
                                                 </x-empty-state>
                                             </td>
@@ -385,7 +385,7 @@
                                     @click="retrySelected()"
                                 >
                                     <span x-show="!retrying" class="inline-flex items-center justify-center gap-1.5">
-                                        <x-heroicon-o-arrow-path class="size-4 shrink-0" />
+                                        <x-icons.arrow-path class="size-4 shrink-0" />
                                         <span class="sm:hidden" x-text="'Retry (' + selectedFailedJobs.length + ')'"></span>
                                         <span class="hidden sm:inline" x-text="'Retry selected (' + selectedFailedJobs.length + ')'"></span>
                                     </span>

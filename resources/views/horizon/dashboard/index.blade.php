@@ -42,7 +42,7 @@
                         <x-skeleton.text class="size-4 shrink-0 rounded-full" />
                         <x-skeleton.text class="h-8 w-20" />
                     @else
-                        @include('horizon.dashboard.partials.kpi-services-online-inner')
+                        @include('horizon.dashboard.partials.index.kpi-services-online')
                     @endif
                 </div>
             </x-stat-card>
@@ -69,7 +69,7 @@
                             </div>
                         @endfor
                     @else
-                        @include('horizon.dashboard.partials.service-health-grid', ['services' => $services ?? null])
+                        @include('horizon.dashboard.partials.index.service-health-grid', ['services' => $services ?? null])
                     @endif
                 </div>
             </div>
@@ -99,7 +99,7 @@
                     @if(!empty($defer))
                         <x-skeleton.table-rows rows="5" columns="4" />
                     @else
-                        @include('horizon.dashboard.partials.recent-alerts-tbody', ['recentAlertLogs' => $recentAlertLogs ?? null])
+                        @include('horizon.dashboard.partials.index.recent-alerts-tbody', ['recentAlertLogs' => $recentAlertLogs ?? null])
                     @endif
                 </x-table>
             </div>
@@ -128,7 +128,7 @@
                     @if(!empty($defer))
                         <x-skeleton.table-rows rows="5" columns="5" />
                     @else
-                        @include('horizon.dashboard.partials.workload-summary-tbody', ['workloadRows' => $workloadRows ?? []])
+                        @include('horizon.dashboard.partials.index.workload-summary-tbody', ['workloadRows' => $workloadRows ?? []])
                     @endif
                 </x-table>
             </div>

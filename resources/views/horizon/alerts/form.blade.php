@@ -500,7 +500,7 @@
                                         @if($isSlackProvider)
                                             <x-icons.slack class="size-4" />
                                         @else
-                                            <x-heroicon-o-envelope class="size-4" />
+                                            <x-icons.envelope class="size-4" />
                                         @endif
                                     </div>
                                     <div class="min-w-0">

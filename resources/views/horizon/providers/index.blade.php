@@ -29,7 +29,7 @@
                     @if(!empty($defer))
                         <x-skeleton.metric-columns />
                     @else
-                        @include('horizon.providers.partials.provider-stats')
+                        @include('horizon.providers.partials.index.stats')
                     @endif
                 </div>
             </div>
@@ -43,12 +43,12 @@
                     @if(!empty($defer))
                         <x-skeleton.card-grid />
                     @else
-                        @include('horizon.providers.partials.provider-tbody', ['providers' => $providers])
+                        @include('horizon.providers.partials.index.tbody', ['providers' => $providers])
                     @endif
                 </div>
             </div>
         </div>
 
-        @include('horizon.providers.partials.delete-provider-confirm-modal')
+        @include('horizon.providers.partials.index.delete-confirm-modal')
     </div>
 @endsection

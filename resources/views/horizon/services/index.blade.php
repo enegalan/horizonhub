@@ -41,7 +41,7 @@
                     @if(!empty($defer))
                         <x-skeleton.metric-columns />
                     @else
-                        @include('horizon.services.partials.service-stats')
+                        @include('horizon.services.partials.index.stats')
                     @endif
                 </div>
             </div>
@@ -55,12 +55,12 @@
                     @if(!empty($defer))
                         <x-skeleton.card-grid />
                     @else
-                        @include('horizon.services.partials.service-tbody', ['services' => $services])
+                        @include('horizon.services.partials.index.tbody', ['services' => $services])
                     @endif
                 </div>
             </div>
         </div>
 
-        @include('horizon.services.partials.delete-service-confirm-modal')
+        @include('horizon.services.partials.index.delete-confirm-modal')
     </div>
 @endsection
