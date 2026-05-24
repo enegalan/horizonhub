@@ -4,6 +4,12 @@
 
 These instructions apply to the whole repository.
 
+## Product documentation
+
+- [docs/horizonhub.md](docs/horizonhub.md) — product overview, integration model, architecture decisions summary, FAQ
+- [docs/guide.md](docs/guide.md) — end-user guide for all UI features
+- [docs/decisions/](docs/decisions/) — canonical accepted and rejected ADRs (see workspace decisions guardrails)
+
 ## Tech stack
 
 - PHP 8.4+
