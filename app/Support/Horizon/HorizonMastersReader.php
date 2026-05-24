@@ -66,7 +66,7 @@ final class HorizonMastersReader
 
                 $processes = null;
 
-                if (\is_array($supervisor['processes'])) {
+                if (isset($supervisor['processes']) && \is_array($supervisor['processes'])) {
                     $sum = 0;
 
                     foreach ($supervisor['processes'] as $value) {
