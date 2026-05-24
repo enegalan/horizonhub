@@ -523,7 +523,7 @@ class HorizonJobListService
      */
     private function private__matchesSearch(object $row, string $search): bool
     {
-        if (!$row || $search === '') {
+        if (! $row || $search === '') {
             return true;
         }
 

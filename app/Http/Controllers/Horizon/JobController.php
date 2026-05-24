@@ -31,19 +31,8 @@ class JobController extends Controller
     /**
      * Show a single job detail.
      */
-    public function show(Request $request, string $job): View
+    public function show(string $job): View
     {
-        $serviceId = (int) $request->query('service_id');
-
-        $service = Service::query()
-            ->whereKey($serviceId)
-            ->whereNotNull('base_url')
-            ->first();
-
-        if ($service === null) {
-            \abort(404);
-        }
-
         return \view('horizon.jobs.show', [
             'job' => (object) [
                 'uuid' => $job,
@@ -64,7 +53,7 @@ class JobController extends Controller
                 'context' => null,
                 'command_data' => [],
                 'payload' => [],
-                'service' => $service,
+                'service' => null,
             ],
             'defer' => true,
             'exception' => [],

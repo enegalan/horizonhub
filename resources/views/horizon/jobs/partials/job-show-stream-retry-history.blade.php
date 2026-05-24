@@ -37,7 +37,7 @@
                 <tr class="transition-colors hover:bg-muted/30">
                     <td class="px-4 py-2.5 text-sm text-primary truncate max-w-[180px]" data-column-id="uuid">
                         @if(!empty($retryJob['id']) && \is_string($retryJob['id']) && $job->service)
-                            <a class="link" href="{{ route('horizon.jobs.show', ['job' => $retryJob['id'], 'service_id' => $job->service->id]) }}" data-turbo-action="replace">{{ $retryJob['id'] }}</a>
+                            <a class="link" href="{{ route('horizon.jobs.show', ['job' => $retryJob['id']]) }}" data-turbo-action="replace">{{ $retryJob['id'] }}</a>
                         @else
                             {{ $retryJob['id'] ?? '–' }}
                         @endif

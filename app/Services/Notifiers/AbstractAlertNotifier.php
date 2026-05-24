@@ -90,8 +90,8 @@ abstract class AbstractAlertNotifier implements AlertNotifier
                 'exception' => $full,
                 'exceptionPreview' => $preview,
                 'exceptionExpandable' => $expandable,
-                'jobUrl' => ($jobUuid !== null && $eventServiceId > 0)
-                    ? \route('horizon.jobs.show', ['job' => $jobUuid, 'service_id' => $eventServiceId], absolute: true)
+                'jobUrl' => $jobUuid !== null
+                    ? \route('horizon.jobs.show', ['job' => $jobUuid], absolute: true)
                     : null,
             ];
         }

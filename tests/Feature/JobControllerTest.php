@@ -18,13 +18,9 @@ class JobControllerTest extends TestCase
         $response->assertOk();
     }
 
-    public function test_show_redirects_to_dashboard_for_invalid_service_and_renders_for_valid_service(): void
+    public function test_show_renders_job_detail_shell_without_service_id(): void
     {
-        $service = Service::query()->create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
-
-        $this->get(route('horizon.jobs.show', ['job' => 'x', 'service_id' => 99999]))->assertRedirect(route('horizon.index'));
-
-        $response = $this->get(route('horizon.jobs.show', ['job' => 'job-1', 'service_id' => $service->id]));
+        $response = $this->get(route('horizon.jobs.show', ['job' => 'job-1']));
 
         $response->assertOk();
         $html = (string) $response->getContent();

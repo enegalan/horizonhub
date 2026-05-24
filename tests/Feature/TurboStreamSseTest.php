@@ -110,7 +110,7 @@ class TurboStreamSseTest extends TestCase
         $reflection = new \ReflectionMethod($controller, 'private__buildJobShowStreams');
         $reflection->setAccessible(true);
 
-        $result = $reflection->invoke($controller, $jobUuid, (int) $service->id);
+        $result = $reflection->invoke($controller, $jobUuid);
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="horizon-job-detail-meta"', $result);
@@ -124,9 +124,9 @@ class TurboStreamSseTest extends TestCase
         $reflection = new \ReflectionMethod($controller, 'private__buildJobShowStreams');
         $reflection->setAccessible(true);
 
-        $this->assertNull($reflection->invoke($controller, 'uuid-x', 999999));
+        $this->assertNull($reflection->invoke($controller, 'uuid-x'));
 
-        $service = Service::create([
+        Service::create([
             'name' => 'stream-job-null',
             'base_url' => 'https://horizon-api-stream-null.test',
             'status' => 'online',
@@ -138,7 +138,7 @@ class TurboStreamSseTest extends TestCase
         $reflection = new \ReflectionMethod($controller, 'private__buildJobShowStreams');
         $reflection->setAccessible(true);
 
-        $this->assertNull($reflection->invoke($controller, 'uuid-y', $service->id));
+        $this->assertNull($reflection->invoke($controller, 'uuid-y'));
     }
 
     public function test_build_jobs_index_streams_returns_per_section_tbody_updates(): void
@@ -376,7 +376,7 @@ class TurboStreamSseTest extends TestCase
                 ]);
         });
 
-        $response = $this->get('/horizon/streams/horizon/jobs/' . $jobUuid . '?service_id=' . $service->id);
+        $response = $this->get('/horizon/streams/horizon/jobs/' . $jobUuid);
 
         $this->assertStringStartsWith('text/event-stream', $response->headers->get('Content-Type'));
     }

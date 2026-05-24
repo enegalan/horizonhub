@@ -13,6 +13,7 @@ use App\Services\Horizon\DashboardDataService;
 use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\HorizonJobDetailService;
 use App\Services\Horizon\HorizonJobListService;
+use App\Services\Horizon\HorizonJobServiceResolver;
 use App\Services\Horizon\HorizonMetricsService;
 use App\Services\Horizon\ServiceFilterService;
 use App\Services\Horizon\ServiceShowPageDataService;
@@ -54,6 +55,11 @@ class HorizonStreamsController extends StreamController
     private HorizonJobListService $jobList;
 
     /**
+     * The horizon job service resolver.
+     */
+    private HorizonJobServiceResolver $jobServiceResolver;
+
+    /**
      * The metrics service.
      */
     private HorizonMetricsService $metrics;
@@ -81,13 +87,14 @@ class HorizonStreamsController extends StreamController
     /**
      * The constructor.
      */
-    public function __construct(DashboardDataService $dashboardData, HorizonMetricsService $metrics, HorizonApiProxyService $horizonApi, HorizonJobListService $jobList, HorizonJobDetailService $jobDetail, ServiceShowPageDataService $serviceShowPageData, ServiceStatsAttachmentService $serviceStats, AlertChartDataService $alertChartData, AlertDataService $alertIndexStreamData, ProviderDeliveryStatsService $providerDeliveryStats, ServiceFilterService $serviceFilter)
+    public function __construct(DashboardDataService $dashboardData, HorizonMetricsService $metrics, HorizonApiProxyService $horizonApi, HorizonJobListService $jobList, HorizonJobDetailService $jobDetail, HorizonJobServiceResolver $jobServiceResolver, ServiceShowPageDataService $serviceShowPageData, ServiceStatsAttachmentService $serviceStats, AlertChartDataService $alertChartData, AlertDataService $alertIndexStreamData, ProviderDeliveryStatsService $providerDeliveryStats, ServiceFilterService $serviceFilter)
     {
         $this->dashboardData = $dashboardData;
         $this->metrics = $metrics;
         $this->horizonApi = $horizonApi;
         $this->jobList = $jobList;
         $this->jobDetail = $jobDetail;
+        $this->jobServiceResolver = $jobServiceResolver;
         $this->serviceShowPageData = $serviceShowPageData;
         $this->serviceStats = $serviceStats;
         $this->alertChartData = $alertChartData;
@@ -118,11 +125,9 @@ class HorizonStreamsController extends StreamController
         return $this->runStream(fn (): string => $this->private__buildJobsIndexStreams($query));
     }
 
-    public function jobShow(Request $request, string $job): StreamedResponse
+    public function jobShow(string $job): StreamedResponse
     {
-        $serviceId = (int) $request->query('service_id');
-
-        return $this->runStream(fn (): ?string => $this->private__buildJobShowStreams($job, $serviceId));
+        return $this->runStream(fn (): ?string => $this->private__buildJobShowStreams($job));
     }
 
     public function metrics(Request $request): StreamedResponse
@@ -231,24 +236,16 @@ class HorizonStreamsController extends StreamController
     //  Job show
     // ------------------------------------------------------------------
 
-    private function private__buildJobShowStreams(string $routeJobUuid, int $serviceId): ?string
+    private function private__buildJobShowStreams(string $routeJobUuid): ?string
     {
-        $service = Service::query()
-            ->whereKey($serviceId)
-            ->whereNotNull('base_url')
-            ->first();
+        $resolved = $this->jobServiceResolver->resolve($routeJobUuid);
 
-        if ($service === null) {
+        if ($resolved === null) {
             return null;
         }
 
-        $response = $this->horizonApi->getJob($service, $routeJobUuid);
-
-        if (! $response['success'] || empty($response['data'])) {
-            return null;
-        }
-
-        $jobView = $this->jobDetail->buildShowViewData($service, $response['data']);
+        $service = $resolved['service'];
+        $jobView = $this->jobDetail->buildShowViewData($service, $resolved['data']);
 
         $exception = ($jobView->exception ?? null) ? html_entity_decode((string) $jobView->exception, ENT_QUOTES | ENT_HTML401, 'UTF-8') : null;
         $exceptionTrace = $exception ? (\preg_split("/\r\n|\n|\r/", $exception) ?: []) : [];
