@@ -1,5 +1,3 @@
-import { refreshStream } from '../lib/sse';
-
 const FORM_DRAWER_FRAME_ID = 'form-drawer';
 const FORM_DRAWER_SHELL_ID = 'form-drawer-shell';
 const FORM_DRAWER_OPEN = 'form-drawer-shell--open';

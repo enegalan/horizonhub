@@ -19,7 +19,8 @@ var _reconnectDebounceTimer = null;
  */
 export function initTurboStream() {
     window.addEventListener('horizonhub-hotreload-changed', function () {
-        refreshStream();
+        closeStream();
+        openStream();
     });
     document.addEventListener('turbo:before-visit', function () {
         closeStream();
@@ -186,13 +187,4 @@ function openStreamOneShot() {
     };
 
     _oneShotSafetyTimer = window.setTimeout(cleanupOneShot, SSE_BACKOFF_MAX_MS);
-}
-
-/**
- * Handle hot-reload toggle from sidebar switch.
- * @returns {void}
- */
-export function refreshStream() {
-    closeStream();
-    openStream();
 }
