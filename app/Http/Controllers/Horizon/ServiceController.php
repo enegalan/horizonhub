@@ -8,7 +8,6 @@ use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\ServiceFilterService;
 use App\Support\FlashStatus;
-use App\Support\FormDrawer;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -113,12 +112,9 @@ class ServiceController extends Controller
 
         $this->private__storeHeaders($service, $validated['headers'] ?? []);
 
-        return FormDrawer::onRedirect(
-            redirect()
-                ->route('horizon.services.index')
-                ->with('status', FlashStatus::success('Service created.')),
-            $request,
-        );
+        return redirect()
+            ->route('horizon.services.index')
+            ->with('status', FlashStatus::success('Service created.'));
     }
 
     /**
@@ -181,12 +177,9 @@ class ServiceController extends Controller
 
         $horizonApi->resetFailureCooldown($service);
 
-        return FormDrawer::onRedirect(
-            redirect()
-                ->route('horizon.services.index')
-                ->with('status', FlashStatus::success('Service updated.')),
-            $request,
-        );
+        return redirect()
+            ->route('horizon.services.index')
+            ->with('status', FlashStatus::success('Service updated.'));
     }
 
     /**

@@ -1,5 +1,3 @@
-import { refreshStream } from '../lib/sse';
-
 const FORM_DRAWER_FRAME_ID = 'form-drawer';
 const FORM_DRAWER_SHELL_ID = 'form-drawer-shell';
 const FORM_DRAWER_OPEN = 'form-drawer-shell--open';
@@ -99,13 +97,11 @@ document.addEventListener('turbo:frame-load', function (event) {
 });
 
 document.addEventListener('turbo:submit-end', function (event) {
-    if (!event.target || event.target.getAttribute('data-turbo-frame') !== FORM_DRAWER_FRAME_ID || !event.detail?.success) {
+    if (!event.detail?.success || !event.target?.closest || !event.target.closest('#' + FORM_DRAWER_FRAME_ID)) {
         return;
     }
 
     closeFormDrawer(true);
-
-    refreshStream();
 });
 
 document.addEventListener('click', function (event) {

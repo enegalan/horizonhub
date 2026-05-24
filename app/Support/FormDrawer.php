@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class FormDrawer
@@ -50,21 +49,6 @@ class FormDrawer
     public static function inFrame(Request $request): bool
     {
         return $request->header('Turbo-Frame') === self::FRAME_ID;
-    }
-
-    /**
-     * On redirect, set the Turbo-Frame header to _top if the request is in a form drawer frame.
-     *
-     * @param RedirectResponse $response The response.
-     * @param Request $request The request.
-     */
-    public static function onRedirect(RedirectResponse $response, Request $request): RedirectResponse
-    {
-        if (self::inFrame($request)) {
-            $response->header('Turbo-Frame', '_top');
-        }
-
-        return $response;
     }
 
     /**

@@ -11,7 +11,6 @@ use App\Services\Alerts\AlertUpsertService;
 use App\Services\Alerts\Engine\AlertEngine;
 use App\Support\Alerts\AlertDeliveryLogPresenter;
 use App\Support\FlashStatus;
-use App\Support\FormDrawer;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -197,12 +196,9 @@ class AlertController extends Controller
         $alert = Alert::create($data['alert']);
         $alert->notificationProviders()->sync($data['provider_ids']);
 
-        return FormDrawer::onRedirect(
-            redirect()
-                ->route('horizon.alerts.index')
-                ->with('status', FlashStatus::success('Alert created.')),
-            $request,
-        );
+        return redirect()
+            ->route('horizon.alerts.index')
+            ->with('status', FlashStatus::success('Alert created.'));
     }
 
     /**
@@ -228,11 +224,8 @@ class AlertController extends Controller
         $alert->update($data['alert']);
         $alert->notificationProviders()->sync($data['provider_ids']);
 
-        return FormDrawer::onRedirect(
-            redirect()
-                ->route('horizon.alerts.index')
-                ->with('status', FlashStatus::success('Alert updated.')),
-            $request,
-        );
+        return redirect()
+            ->route('horizon.alerts.index')
+            ->with('status', FlashStatus::success('Alert updated.'));
     }
 }

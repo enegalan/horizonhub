@@ -128,7 +128,7 @@
             }
         }"
     >
-        <form method="POST" action="{{ $action }}" class="space-y-6" data-turbo-frame="form-drawer">
+        <form method="POST" action="{{ $action }}" class="space-y-6" data-turbo-frame="_top">
             @csrf
             @if($isEdit)
                 @method('PUT')

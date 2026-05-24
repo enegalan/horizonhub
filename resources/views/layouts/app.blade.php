@@ -66,6 +66,7 @@
                     </div>
                 </header>
             @endif
+                <x-session-flash class="shrink-0 border-b border-border" />
                 <main class="min-w-0 flex-1 px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
                     @yield('content')
                     @isset($slot)

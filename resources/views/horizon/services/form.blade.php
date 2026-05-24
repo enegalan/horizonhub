@@ -49,7 +49,7 @@
         class="space-y-6"
         x-data="window.horizonServiceForm({!! \Illuminate\Support\Js::from($headersForForm) !!}, {!! \Illuminate\Support\Js::from($tagsForForm) !!}, {!! \Illuminate\Support\Js::from($existingTags ?? []) !!})"
     >
-        <form method="POST" action="{{ $action }}" class="space-y-6" data-turbo-frame="form-drawer">
+        <form method="POST" action="{{ $action }}" class="space-y-6" data-turbo-frame="_top">
             @csrf
             @if($isEdit)
                 @method('PUT')

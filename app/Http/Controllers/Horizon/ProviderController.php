@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Horizon\UpsertProviderRequest;
 use App\Models\NotificationProvider;
 use App\Support\FlashStatus;
-use App\Support\FormDrawer;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 
@@ -59,12 +58,9 @@ class ProviderController extends Controller
     {
         NotificationProvider::create($request->normalizedProviderData());
 
-        return FormDrawer::onRedirect(
-            redirect()
-                ->route('horizon.providers.index')
-                ->with('status', FlashStatus::success('Provider created.')),
-            $request,
-        );
+        return redirect()
+            ->route('horizon.providers.index')
+            ->with('status', FlashStatus::success('Provider created.'));
     }
 
     /**
@@ -74,12 +70,9 @@ class ProviderController extends Controller
     {
         $provider->update($request->normalizedProviderData());
 
-        return FormDrawer::onRedirect(
-            redirect()
-                ->route('horizon.providers.index')
-                ->with('status', FlashStatus::success('Provider updated.')),
-            $request,
-        );
+        return redirect()
+            ->route('horizon.providers.index')
+            ->with('status', FlashStatus::success('Provider updated.'));
     }
 
     /**

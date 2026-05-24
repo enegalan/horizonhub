@@ -39,19 +39,6 @@ class TurboFormResponseTest extends TestCase
         $response->assertStatus(303);
     }
 
-    public function test_service_store_from_form_drawer_redirects_with_turbo_frame_top(): void
-    {
-        $response = $this->post(route('horizon.services.store'), [
-            'name' => 'Drawer Service',
-            'base_url' => 'https://example.com',
-        ], [
-            'Turbo-Frame' => FormDrawer::FRAME_ID,
-        ]);
-
-        $response->assertRedirect(route('horizon.services.index'));
-        $this->assertSame('_top', $response->headers->get('Turbo-Frame'));
-    }
-
     public function test_service_store_returns_302_for_non_turbo_request(): void
     {
         $serviceName = 'Test Service Non-Turbo';

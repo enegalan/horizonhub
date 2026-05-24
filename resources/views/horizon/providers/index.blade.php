@@ -18,8 +18,6 @@
                 </x-slot:actions>
             </x-page-hero>
 
-            <x-session-flash />
-
             <div class="grid gap-3 border-b border-border px-5 py-4 sm:grid-cols-3 sm:px-6">
                 <div
                     id="turbo-horizon-provider-stats"

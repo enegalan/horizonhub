@@ -15,8 +15,6 @@
             ['label' => $service->name],
         ]" />
 
-        <x-session-flash class="mb-4 rounded-md border" />
-
         @if(! $service->enabled)
             <div class="mb-4 rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
                 This service is disabled. {{ config('app.name') }} will not poll its API or include it in metrics and alerts until you enable it again from the

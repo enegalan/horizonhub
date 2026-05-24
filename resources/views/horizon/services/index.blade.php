@@ -18,8 +18,6 @@
                 </x-slot:actions>
             </x-page-hero>
 
-            <x-session-flash />
-
             <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
                 <form method="GET" action="{{ route('horizon.services.index') }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="_top" data-service-tag-filter="1" data-service-tag-filter-manual="1">
                     <x-service-tag-filter
