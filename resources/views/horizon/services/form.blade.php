@@ -49,7 +49,7 @@
         class="space-y-6"
         x-data="window.horizonServiceForm({!! \Illuminate\Support\Js::from($headersForForm) !!}, {!! \Illuminate\Support\Js::from($tagsForForm) !!}, {!! \Illuminate\Support\Js::from($existingTags ?? []) !!})"
     >
-        <form method="POST" action="{{ $action }}" class="space-y-6" data-turbo-frame="_top">
+        <form method="POST" action="{{ $action }}" class="space-y-6" data-turbo-frame="form-drawer">
             @csrf
             @if($isEdit)
                 @method('PUT')
@@ -93,7 +93,7 @@
                     </p>
                 </div>
                 <div class="space-y-4 px-5 py-5 sm:px-6">
-                    <div class="flex max-h-36 flex-wrap gap-2 overflow-y-auto rounded-md border border-border/60 p-2" x-show="tags.length > 0">
+                    <div class="flex max-h-36 flex-wrap gap-2 overflow-y-auto rounded-md" x-show="tags.length > 0">
                         <template x-for="(tag, index) in tags" :key="'tag-' + index">
                             <span class="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs text-foreground">
                                 <span x-text="tag"></span>
@@ -104,7 +104,7 @@
                             </span>
                         </template>
                     </div>
-                    <div class="flex flex-wrap items-center gap-2">
+                    <div class="flex flex-wrap items-end gap-2">
                         <div class="relative min-w-0 flex-1 space-y-2" @click.outside="closeTagSuggestions()">
                             <x-input-label for="service-tag-input">Add tag</x-input-label>
                             <x-text-input

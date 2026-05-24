@@ -8,7 +8,7 @@
     @endphp
 
     <div class="space-y-6" x-data="{ type: '{{ $currentType }}' }">
-        <form method="POST" action="{{ $action }}" class="space-y-6" data-turbo-frame="_top">
+        <form method="POST" action="{{ $action }}" class="space-y-6" data-turbo-frame="form-drawer">
             @csrf
             @if($isEdit)
                 @method('PUT')

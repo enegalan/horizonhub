@@ -128,7 +128,7 @@
             }
         }"
     >
-        <form method="POST" action="{{ $action }}" class="space-y-6" data-turbo-frame="_top">
+        <form method="POST" action="{{ $action }}" class="space-y-6" data-turbo-frame="form-drawer">
             @csrf
             @if($isEdit)
                 @method('PUT')
@@ -466,7 +466,12 @@
                     @if($providers->isEmpty())
                         <p class="text-sm text-amber-600 dark:text-amber-400">
                             No providers yet.
-                            <a href="{{ route('horizon.providers.index') }}" class="link" data-turbo-action="replace">Create a provider</a>
+                            <a
+                                href="{{ route('horizon.providers.index') }}"
+                                class="link"
+                                data-turbo-frame="_top"
+                                data-turbo-action="replace"
+                            >Create a provider</a>
                             on the Providers page first.
                         </p>
                     @else

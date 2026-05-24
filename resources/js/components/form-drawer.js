@@ -1,3 +1,5 @@
+import { refreshStream } from '../lib/sse';
+
 const FORM_DRAWER_FRAME_ID = 'form-drawer';
 const FORM_DRAWER_SHELL_ID = 'form-drawer-shell';
 const FORM_DRAWER_OPEN = 'form-drawer-shell--open';
@@ -75,6 +77,33 @@ document.addEventListener('turbo:before-visit', function () {
     clearFormDrawer();
 });
 
+document.addEventListener('turbo:submit-end', function (event) {
+    if (!event.target || event.target.tagName !== 'FORM' || event.target.getAttribute('data-turbo-frame') !== FORM_DRAWER_FRAME_ID) {
+        return;
+    }
+
+    const fetchResponse = event.detail?.fetchResponse;
+
+    if (!event.detail?.success || !fetchResponse?.redirected) {
+        return;
+    }
+
+    fetchResponse.responseHTML.then(function (html) {
+        if (!html || !window.Turbo?.visit) {
+            return;
+        }
+
+        window.Turbo.visit(fetchResponse.location, {
+            action: 'replace',
+            response: {
+                statusCode: fetchResponse.statusCode,
+                responseHTML: html,
+                redirected: fetchResponse.redirected,
+            },
+        });
+    });
+});
+
 document.addEventListener('turbo:frame-load', function (event) {
     if (!event.target || event.target.id !== FORM_DRAWER_FRAME_ID) {
         return;
@@ -94,14 +123,6 @@ document.addEventListener('turbo:frame-load', function (event) {
     if (window.Alpine && typeof window.Alpine.initTree === 'function') {
         window.Alpine.initTree(event.target);
     }
-});
-
-document.addEventListener('turbo:submit-end', function (event) {
-    if (!event.detail?.success || !event.target?.closest || !event.target.closest('#' + FORM_DRAWER_FRAME_ID)) {
-        return;
-    }
-
-    closeFormDrawer(true);
 });
 
 document.addEventListener('click', function (event) {
