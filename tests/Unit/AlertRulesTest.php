@@ -49,7 +49,7 @@ class AlertRulesTest extends TestCase
         $inWindow = $support->filterFailedJobsInWindow($jobs, now()->subMinutes(10));
         $this->assertCount(1, $inWindow);
         $this->assertSame(['j1'], $support->collectTriggeringJobUuids($inWindow->values()));
-        $this->assertTrue($support->failedJobRowMatches($alert, $inWindow->first()));
+        $this->assertTrue($support->jobRowMatches($alert, $inWindow->first()));
     }
 
     public function test_failure_count_strategy_handles_threshold_and_service_guards(): void
@@ -78,12 +78,12 @@ class AlertRulesTest extends TestCase
         ]);
         $support = new AlertRuleEvaluationSupport(new HorizonJobsWindowFetcher($api));
         $strategy = new FailureCountAlertRuleStrategy($support);
-        $result = $strategy->evaluateWithTriggeringJobs($alert, $service->id, null);
+        $result = $strategy->evaluateWithTriggeringJobs($alert, $service->id);
 
         $this->assertTrue($result['triggered']);
         $this->assertSame(['x1', 'x2'], $result['job_uuids']);
 
-        $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, 999999, null)['triggered']);
+        $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, 999999)['triggered']);
     }
 
     public function test_other_strategies_cover_normal_and_edge_paths(): void
@@ -153,22 +153,22 @@ class AlertRulesTest extends TestCase
         $support = new AlertRuleEvaluationSupport(new HorizonJobsWindowFetcher($api));
 
         $avg = new AvgExecutionTimeAlertRuleStrategy($support);
-        $this->assertTrue($avg->evaluateWithTriggeringJobs($avgAlert, $service->id, null)['triggered']);
+        $this->assertTrue($avg->evaluateWithTriggeringJobs($avgAlert, $service->id)['triggered']);
 
         $queueBlocked = new QueueBlockedAlertRuleStrategy($support);
-        $this->assertFalse($queueBlocked->evaluateWithTriggeringJobs($queueAlert, $service->id, null)['triggered']);
+        $this->assertFalse($queueBlocked->evaluateWithTriggeringJobs($queueAlert, $service->id)['triggered']);
 
         $worker = new WorkerOfflineAlertRuleStrategy;
-        $this->assertTrue($worker->evaluateWithTriggeringJobs($workerAlert, $service->id, null)['triggered']);
+        $this->assertTrue($worker->evaluateWithTriggeringJobs($workerAlert, $service->id)['triggered']);
 
         $supervisor = new SupervisorOfflineAlertRuleStrategy($api);
-        $this->assertTrue($supervisor->evaluateWithTriggeringJobs($supAlert, $service->id, null)['triggered']);
+        $this->assertTrue($supervisor->evaluateWithTriggeringJobs($supAlert, $service->id)['triggered']);
 
         $offline = new HorizonOfflineAlertRuleStrategy($api);
-        $this->assertTrue($offline->evaluateWithTriggeringJobs($horizonAlert, $service->id, null)['triggered']);
+        $this->assertTrue($offline->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
 
         $null = new NullAlertRuleStrategy;
-        $this->assertFalse($null->evaluateWithTriggeringJobs($horizonAlert, $service->id, null)['triggered']);
+        $this->assertFalse($null->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
     }
 
     public function test_registry_resolves_known_and_unknown_rules(): void

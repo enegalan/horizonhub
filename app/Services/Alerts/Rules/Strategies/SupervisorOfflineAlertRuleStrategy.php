@@ -3,13 +3,15 @@
 namespace App\Services\Alerts\Rules\Strategies;
 
 use App\Models\Alert;
-use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
 use App\Services\Horizon\HorizonApiProxyService;
+use App\Support\Alerts\AlertRuleStrategySupport;
 use Carbon\Carbon;
 
 final class SupervisorOfflineAlertRuleStrategy implements AlertRuleStrategyInterface
 {
+    use AlertRuleStrategySupport;
+
     /**
      * The Horizon API proxy service.
      */
@@ -24,11 +26,9 @@ final class SupervisorOfflineAlertRuleStrategy implements AlertRuleStrategyInter
     }
 
     /**
-     * Evaluate the rule and return whether it triggered plus triggering job UUIDs (if applicable).
-     *
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array
+    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
     {
         return [
             'triggered' => $this->private__evaluateSupervisorOffline($alert, $serviceId),
@@ -36,17 +36,12 @@ final class SupervisorOfflineAlertRuleStrategy implements AlertRuleStrategyInter
         ];
     }
 
-    /**
-     * Evaluate the supervisor offline.
-     */
     private function private__evaluateSupervisorOffline(Alert $alert, int $serviceId): bool
     {
-        $threshold = $alert->threshold ?? [];
-        $minutes = (int) ($threshold['minutes'] ?? config('horizonhub.alerts.default_minutes'));
+        $minutes = $this->private__thresholdMinutes($alert);
+        $service = $this->private__resolveServiceForEvaluation($serviceId);
 
-        $service = Service::find($serviceId);
-
-        if (empty($service?->getBaseUrl())) {
+        if ($service === null) {
             return false;
         }
 
@@ -71,7 +66,7 @@ final class SupervisorOfflineAlertRuleStrategy implements AlertRuleStrategyInter
                 }
                 $lastSeenRaw = $supervisor['last_heartbeat_at'] ?? ($supervisor['lastSeen'] ?? null);
 
-                if (! \is_string($lastSeenRaw) || $lastSeenRaw === '') {
+                if (blank($lastSeenRaw)) {
                     continue;
                 }
 

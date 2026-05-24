@@ -3,13 +3,15 @@
 namespace App\Services\Alerts\Rules\Strategies;
 
 use App\Models\Alert;
-use App\Models\Service;
 use App\Services\Alerts\Rules\AlertRuleEvaluationSupport;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
+use App\Support\Alerts\AlertRuleStrategySupport;
 use Carbon\Carbon;
 
 final class AvgExecutionTimeAlertRuleStrategy implements AlertRuleStrategyInterface
 {
+    use AlertRuleStrategySupport;
+
     /**
      * The evaluation support.
      */
@@ -26,17 +28,20 @@ final class AvgExecutionTimeAlertRuleStrategy implements AlertRuleStrategyInterf
     /**
      * Evaluate the rule and return whether it triggered plus triggering job UUIDs (if applicable).
      *
+     * @param Alert $alert The alert.
+     * @param int $serviceId The service ID.
+     *
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array
+    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
     {
         $threshold = $alert->threshold ?? [];
         $maxSeconds = (float) ($threshold['seconds'] ?? config('horizonhub.alerts.default_seconds'));
-        $minutes = (int) ($threshold['minutes'] ?? config('horizonhub.alerts.default_minutes'));
+        $minutes = $this->private__thresholdMinutes($alert);
 
-        $service = Service::find($serviceId);
+        $service = $this->private__resolveServiceForEvaluation($serviceId);
 
-        if (empty($service?->getBaseUrl())) {
+        if ($service === null) {
             return ['triggered' => false, 'job_uuids' => []];
         }
 
@@ -44,16 +49,15 @@ final class AvgExecutionTimeAlertRuleStrategy implements AlertRuleStrategyInterf
 
         $durations = $this->support
             ->matchingCompletedJobsInWindow($alert, $service, $cutoff)
-            ->map(function ($job) use ($cutoff) {
-                $completedRaw = $job['completed_at'] ?? null;
+            ->map(function (array $job) use ($cutoff) {
+                $completed = $this->support->parseCompletedAt($job);
                 $queuedRaw = $job['pushedAt'] ?? null;
 
-                if (! \is_string($completedRaw) || $completedRaw === '' || ! \is_string($queuedRaw) || $queuedRaw === '') {
+                if ($completed === null || ! \is_string($queuedRaw) || $queuedRaw === '') {
                     return null;
                 }
 
                 try {
-                    $completed = Carbon::parse($completedRaw);
                     $queued = Carbon::parse($queuedRaw);
                 } catch (\Throwable $e) {
                     return null;

@@ -4,6 +4,7 @@ namespace App\Services\Horizon;
 
 use App\Models\Service;
 use App\Services\Metrics\FailureMetricsCalculator;
+use App\Services\Metrics\HorizonMetricsComputation;
 use App\Services\Metrics\JobsThroughputMetricsCalculator;
 use App\Services\Metrics\JobsVolumeLast24hCalculator;
 use App\Services\Metrics\QueueFailureCountersCalculator;
@@ -14,13 +15,6 @@ use Illuminate\Support\Collection;
 
 class HorizonMetricsService
 {
-    /**
-     * The number of top queues to return.
-     *
-     * @var int
-     */
-    private const TOP_N_QUEUES = 12;
-
     /**
      * The failure metrics calculator.
      */
@@ -35,6 +29,11 @@ class HorizonMetricsService
      * The jobs volume (last 24h) calculator.
      */
     private JobsVolumeLast24hCalculator $jobsVolumeLast24h;
+
+    /**
+     * The jobs window fetcher.
+     */
+    private HorizonJobsWindowFetcher $jobsWindowFetcher;
 
     /**
      * The queue failure counters calculator.
@@ -54,14 +53,22 @@ class HorizonMetricsService
     /**
      * Construct the Horizon metrics service.
      */
-    public function __construct(HorizonApiProxyService $horizonApi, HorizonJobsWindowFetcher $jobsWindowFetcher)
-    {
-        $this->jobsThroughputMetrics = new JobsThroughputMetricsCalculator($horizonApi, $jobsWindowFetcher);
-        $this->workloadMetrics = new WorkloadMetricsCalculator($horizonApi, $jobsWindowFetcher);
-        $this->failureMetrics = new FailureMetricsCalculator($horizonApi, $jobsWindowFetcher);
-        $this->runtimeMetrics = new RuntimeMetricsCalculator($horizonApi, $jobsWindowFetcher);
-        $this->queueFailureCounters = new QueueFailureCountersCalculator($horizonApi, $jobsWindowFetcher);
-        $this->jobsVolumeLast24h = new JobsVolumeLast24hCalculator($horizonApi, $jobsWindowFetcher);
+    public function __construct(
+        FailureMetricsCalculator $failureMetrics,
+        JobsThroughputMetricsCalculator $jobsThroughputMetrics,
+        JobsVolumeLast24hCalculator $jobsVolumeLast24h,
+        QueueFailureCountersCalculator $queueFailureCounters,
+        RuntimeMetricsCalculator $runtimeMetrics,
+        WorkloadMetricsCalculator $workloadMetrics,
+        HorizonJobsWindowFetcher $jobsWindowFetcher,
+    ) {
+        $this->failureMetrics = $failureMetrics;
+        $this->jobsThroughputMetrics = $jobsThroughputMetrics;
+        $this->jobsVolumeLast24h = $jobsVolumeLast24h;
+        $this->queueFailureCounters = $queueFailureCounters;
+        $this->runtimeMetrics = $runtimeMetrics;
+        $this->workloadMetrics = $workloadMetrics;
+        $this->jobsWindowFetcher = $jobsWindowFetcher;
     }
 
     /**
@@ -91,64 +98,66 @@ class HorizonMetricsService
      */
     public function buildMetricsDashboardData(array $serviceIds): array
     {
-        $throughput = $this->getThroughputTotalsForServiceIds($serviceIds);
-        $jobsPastMinute = $throughput['jobsPastMinute'];
-        $jobsPastHour = $throughput['jobsPastHour'];
-        $failedPastSevenDays = $throughput['failedPastSevenDays'];
-        $failureRate24h = $this->getFailureRate24h($serviceIds);
-        $jobRuntimesLast24h = $this->getJobRuntimesLast24h($serviceIds);
-        $failureRateOverTime = $this->getFailureRateOverTime($serviceIds);
-        $jobsVolumeLast24h = $this->getJobsVolumeLast24h($serviceIds);
-        $workloadRows = $this->getWorkloadData($serviceIds);
-        $supervisorsRows = $this->getSupervisorsData($serviceIds);
+        return $this->jobsWindowFetcher->runWithMemo(function () use ($serviceIds): array {
+            $throughput = $this->getThroughputTotalsForServiceIds($serviceIds);
+            $jobsPastMinute = $throughput['jobsPastMinute'];
+            $jobsPastHour = $throughput['jobsPastHour'];
+            $failedPastSevenDays = $throughput['failedPastSevenDays'];
+            $failureRate24h = $this->getFailureRate24h($serviceIds);
+            $jobRuntimesLast24h = $this->getJobRuntimesLast24h($serviceIds);
+            $failureRateOverTime = $this->getFailureRateOverTime($serviceIds);
+            $jobsVolumeLast24h = $this->getJobsVolumeLast24h($serviceIds);
+            $workloadRows = $this->getWorkloadData($serviceIds);
+            $supervisorsRows = $this->getSupervisorsData($serviceIds);
 
-        $totalQueues = \count($workloadRows);
-        $totalJobs = 0;
+            $totalQueues = \count($workloadRows);
+            $totalJobs = 0;
 
-        foreach ($workloadRows as $row) {
-            $totalJobs += (int) $row['jobs'];
-        }
-
-        $workloadSummary = "$totalQueues queue(s), $totalJobs job(s) total";
-
-        $totalSupervisors = \count($supervisorsRows);
-        $onlineSupervisors = 0;
-
-        foreach ($supervisorsRows as $row) {
-            if ($row['status'] === 'online') {
-                $onlineSupervisors++;
+            foreach ($workloadRows as $row) {
+                $totalJobs += (int) $row['jobs'];
             }
-        }
-        $supervisorsSummary = "$totalSupervisors supervisor(s), $onlineSupervisors online";
 
-        $waitByQueue = $this->getWaitByQueueChartData($workloadRows);
+            $workloadSummary = "$totalQueues queue(s), $totalJobs job(s) total";
 
-        $metricsChartData = [
-            'jobsVolumeLast24h' => $jobsVolumeLast24h,
-            'jobRuntimesLast24h' => $jobRuntimesLast24h,
-            'failureRateOverTime' => $failureRateOverTime,
-            'waitByQueue' => $waitByQueue,
-        ];
+            $totalSupervisors = \count($supervisorsRows);
+            $onlineSupervisors = 0;
 
-        return [
-            'metricsChartData' => $metricsChartData,
-            'jobsPastMinute' => $jobsPastMinute,
-            'jobsPastHour' => $jobsPastHour,
-            'failedPastSevenDays' => $failedPastSevenDays,
-            'failureRate24h' => $failureRate24h,
-            'jobRuntimesLast24h' => $jobRuntimesLast24h,
-            'failureRateOverTime' => $failureRateOverTime,
-            'jobsVolumeLast24h' => $jobsVolumeLast24h,
-            'workloadRows' => $workloadRows,
-            'supervisorsRows' => $supervisorsRows,
-            'workloadSummary' => $workloadSummary,
-            'supervisorsSummary' => $supervisorsSummary,
-            'waitByQueue' => $waitByQueue,
-            'hasRuntimeChart' => true,
-            'hasFailureRateChart' => true,
-            'hasJobsVolumeChart' => true,
-            'hasServiceChart' => ! empty($waitByQueue['queues']),
-        ];
+            foreach ($supervisorsRows as $row) {
+                if ($row['status'] === 'online') {
+                    $onlineSupervisors++;
+                }
+            }
+            $supervisorsSummary = "$totalSupervisors supervisor(s), $onlineSupervisors online";
+
+            $waitByQueue = $this->getWaitByQueueChartData($workloadRows);
+
+            $metricsChartData = [
+                'jobsVolumeLast24h' => $jobsVolumeLast24h,
+                'jobRuntimesLast24h' => $jobRuntimesLast24h,
+                'failureRateOverTime' => $failureRateOverTime,
+                'waitByQueue' => $waitByQueue,
+            ];
+
+            return [
+                'metricsChartData' => $metricsChartData,
+                'jobsPastMinute' => $jobsPastMinute,
+                'jobsPastHour' => $jobsPastHour,
+                'failedPastSevenDays' => $failedPastSevenDays,
+                'failureRate24h' => $failureRate24h,
+                'jobRuntimesLast24h' => $jobRuntimesLast24h,
+                'failureRateOverTime' => $failureRateOverTime,
+                'jobsVolumeLast24h' => $jobsVolumeLast24h,
+                'workloadRows' => $workloadRows,
+                'supervisorsRows' => $supervisorsRows,
+                'workloadSummary' => $workloadSummary,
+                'supervisorsSummary' => $supervisorsSummary,
+                'waitByQueue' => $waitByQueue,
+                'hasRuntimeChart' => true,
+                'hasFailureRateChart' => true,
+                'hasJobsVolumeChart' => true,
+                'hasServiceChart' => ! empty($waitByQueue['queues']),
+            ];
+        });
     }
 
     /**
@@ -366,7 +375,7 @@ class HorizonMetricsService
             return null;
         }
         \arsort($waits, \SORT_NUMERIC);
-        $top = \array_slice($waits, 0, self::TOP_N_QUEUES, true);
+        $top = \array_slice($waits, 0, HorizonMetricsComputation::TOP_N_QUEUES, true);
         $queues = \array_keys($top);
         $wait = \array_values($top);
 

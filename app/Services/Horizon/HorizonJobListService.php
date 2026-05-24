@@ -4,6 +4,7 @@ namespace App\Services\Horizon;
 
 use App\Models\Service;
 use App\Support\DatetimeBoundaryParser;
+use App\Support\Horizon\HorizonJobPaginator;
 use App\Support\Horizon\JobCommandDataExtractor;
 use App\Support\Horizon\JobRuntimeHelper;
 use Carbon\Carbon;
@@ -362,46 +363,7 @@ class HorizonJobListService
      */
     private function private__fetchAllJobsForService(callable $fetcher): array
     {
-        $maxPages = (int) config('horizonhub.max_horizon_pages');
-
-        $jobsPerRequest = (int) config('horizonhub.horizon_api_job_list_page_size');
-        $accumulated = [];
-        $startingAt = -1;
-
-        for ($pageIdx = 0; $pageIdx < $maxPages; $pageIdx++) {
-            $response = $fetcher([
-                'starting_at' => $startingAt,
-                'limit' => $jobsPerRequest,
-            ]);
-
-            if (! $response['success']) {
-                break;
-            }
-
-            $data = $response['data'] ?? null;
-
-            if (! \is_array($data)) {
-                break;
-            }
-
-            $batch = $data['jobs'] ?? [];
-
-            if (! \is_array($batch) || empty($batch)) {
-                break;
-            }
-
-            foreach ($batch as $job) {
-                $accumulated[] = $job;
-            }
-
-            if (\count($batch) < $jobsPerRequest) {
-                break;
-            }
-
-            $startingAt = $this->private__nextStartingAt($startingAt, $batch);
-        }
-
-        return $accumulated;
+        return HorizonJobPaginator::fetchAllPages($fetcher);
     }
 
     /**
@@ -523,30 +485,13 @@ class HorizonJobListService
      */
     private function private__matchesSearch(object $row, string $search): bool
     {
-        if (! $row || $search === '') {
+        if ($search === '') {
             return true;
         }
 
         $haystack = $row->queue . ' ' . $row->name . ' ' . $row->uuid;
 
         return \stripos($haystack, $search) !== false;
-    }
-
-    /**
-     * Get the next starting at value for the next batch.
-     *
-     * @param int $startingAt The starting at.
-     * @param list<mixed> $batch The batch.
-     */
-    private function private__nextStartingAt(int $startingAt, array $batch): int
-    {
-        $last = $batch[\array_key_last($batch)];
-
-        if (\is_array($last) && isset($last['index'])) {
-            return (int) $last['index'];
-        }
-
-        return \max(0, $startingAt + 1) + \count($batch) - 1;
     }
 
     /**

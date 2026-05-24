@@ -8,7 +8,6 @@ use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\AlertChartDataService;
 use App\Services\Alerts\AlertDataService;
-use App\Services\Alerts\ProviderDeliveryStatsService;
 use App\Services\Horizon\DashboardDataService;
 use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\HorizonJobDetailService;
@@ -65,11 +64,6 @@ class HorizonStreamsController extends StreamController
     private HorizonMetricsService $metrics;
 
     /**
-     * The provider delivery stats service.
-     */
-    private ProviderDeliveryStatsService $providerDeliveryStats;
-
-    /**
      * The service filter service.
      */
     private ServiceFilterService $serviceFilter;
@@ -87,7 +81,7 @@ class HorizonStreamsController extends StreamController
     /**
      * The constructor.
      */
-    public function __construct(DashboardDataService $dashboardData, HorizonMetricsService $metrics, HorizonApiProxyService $horizonApi, HorizonJobListService $jobList, HorizonJobDetailService $jobDetail, HorizonJobServiceResolver $jobServiceResolver, ServiceShowPageDataService $serviceShowPageData, ServiceStatsAttachmentService $serviceStats, AlertChartDataService $alertChartData, AlertDataService $alertIndexStreamData, ProviderDeliveryStatsService $providerDeliveryStats, ServiceFilterService $serviceFilter)
+    public function __construct(DashboardDataService $dashboardData, HorizonMetricsService $metrics, HorizonApiProxyService $horizonApi, HorizonJobListService $jobList, HorizonJobDetailService $jobDetail, HorizonJobServiceResolver $jobServiceResolver, ServiceShowPageDataService $serviceShowPageData, ServiceStatsAttachmentService $serviceStats, AlertChartDataService $alertChartData, AlertDataService $alertIndexStreamData, ServiceFilterService $serviceFilter)
     {
         $this->dashboardData = $dashboardData;
         $this->metrics = $metrics;
@@ -99,7 +93,6 @@ class HorizonStreamsController extends StreamController
         $this->serviceStats = $serviceStats;
         $this->alertChartData = $alertChartData;
         $this->alertIndexStreamData = $alertIndexStreamData;
-        $this->providerDeliveryStats = $providerDeliveryStats;
         $this->serviceFilter = $serviceFilter;
     }
 
@@ -353,7 +346,7 @@ class HorizonStreamsController extends StreamController
             ->orderBy('name')
             ->get();
 
-        $deliveryStats = $this->providerDeliveryStats->countsByProviderType();
+        $deliveryStats = $this->alertIndexStreamData->countsByProviderType();
 
         $streams = [];
         $this->pushViewStreams($streams, [

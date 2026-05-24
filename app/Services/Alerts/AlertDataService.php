@@ -3,6 +3,8 @@
 namespace App\Services\Alerts;
 
 use App\Models\Alert;
+use App\Models\AlertLog;
+use App\Models\NotificationProvider;
 use App\Models\Service;
 use Illuminate\Support\Collection;
 
@@ -49,6 +51,28 @@ class AlertDataService
             'alerts' => $alerts,
             'alertStats' => $alertStats,
             'serviceLabelsByAlertId' => $this->private__buildServiceLabelsByAlertId($alerts),
+        ];
+    }
+
+    /**
+     * Count emitted alert deliveries grouped by notification provider type.
+     *
+     * @return array{total: int, slack: int, email: int}
+     */
+    public function countsByProviderType(): array
+    {
+        $countForProviderType = function (string $providerType): int {
+            return AlertLog::query()
+                ->whereHas('alert.notificationProviders', static function ($query) use ($providerType): void {
+                    $query->where('type', $providerType);
+                })
+                ->count();
+        };
+
+        return [
+            'total' => AlertLog::query()->count(),
+            'slack' => $countForProviderType(NotificationProvider::TYPE_SLACK),
+            'email' => $countForProviderType(NotificationProvider::TYPE_EMAIL),
         ];
     }
 

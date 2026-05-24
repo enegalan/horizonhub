@@ -67,16 +67,7 @@ class AlertEngine
             $alert->loadMissing('notificationProviders');
 
             $lastSentAtBefore = $this->batchStore->getLastSentAt($alert);
-
-            // Flush any batched pending events for this alert first.
-            $pending = $this->batchStore->getPending($alert);
-
-            if (! empty($pending) && $this->batchStore->shouldSendNow($alert)) {
-                $this->private__sendBatchedAlert($alert, $pending);
-                $this->batchStore->clearPending($alert);
-                $this->batchStore->setLastSentAt($alert);
-                $pendingFlushed = true;
-            }
+            $pendingFlushed = $this->private__flushPendingIfDue($alert);
         } catch (\Throwable $e) {
             Log::error('Horizon Hub: evaluate alert failed while flushing pending', [
                 'alert_id' => $alert->id,
@@ -103,15 +94,12 @@ class AlertEngine
                 ];
             }
 
-            foreach ($serviceIds as $serviceId) {
-                $result = $this->evaluateWithTriggeringJobs($alert, (int) $serviceId, null);
+            $hit = $this->private__evaluateFirstTriggeredService($alert, $serviceIds);
 
-                if ($result['triggered']) {
-                    $this->private__triggerAlert($alert, (int) $serviceId, null, $result['job_uuids']);
-                    $triggered = true;
-                    $triggeredServiceId = (int) $serviceId;
-                    break;
-                }
+            if ($hit !== null) {
+                $this->private__triggerAlert($alert, $hit['service_id'], $hit['job_uuids']);
+                $triggered = true;
+                $triggeredServiceId = $hit['service_id'];
             }
         } catch (\Throwable $e) {
             Log::error('Horizon Hub: evaluate alert failed', [
@@ -170,13 +158,10 @@ class AlertEngine
                     continue;
                 }
 
-                foreach ($serviceIds as $serviceId) {
-                    $result = $this->evaluateWithTriggeringJobs($alert, $serviceId, null);
+                $hit = $this->private__evaluateFirstTriggeredService($alert, $serviceIds);
 
-                    if ($result['triggered']) {
-                        $this->private__triggerAlert($alert, $serviceId, null, $result['job_uuids']);
-                        break;
-                    }
+                if ($hit !== null) {
+                    $this->private__triggerAlert($alert, $hit['service_id'], $hit['job_uuids']);
                 }
             } catch (\Throwable $e) {
                 Log::error('Horizon Hub: evaluate scheduled alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
@@ -189,15 +174,14 @@ class AlertEngine
      *
      * @param Alert $alert The alert.
      * @param int $serviceId The service ID.
-     * @param string|null $jobUuid The job UUID.
      *
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array
+    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
     {
         $strategy = $this->ruleStrategyRegistry->resolve((string) $alert->rule_type);
 
-        return $strategy->evaluateWithTriggeringJobs($alert, $serviceId, $jobUuid);
+        return $strategy->evaluateWithTriggeringJobs($alert, $serviceId);
     }
 
     /**
@@ -212,14 +196,7 @@ class AlertEngine
 
         foreach ($alerts as $alert) {
             try {
-                $pending = $this->batchStore->getPending($alert);
-
-                if (empty($pending) || ! $this->batchStore->shouldSendNow($alert)) {
-                    continue;
-                }
-                $this->private__sendBatchedAlert($alert, $pending);
-                $this->batchStore->clearPending($alert);
-                $this->batchStore->setLastSentAt($alert);
+                $this->private__flushPendingIfDue($alert);
             } catch (\Throwable $e) {
                 Log::error('Horizon Hub: flush pending alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
             }
@@ -259,8 +236,50 @@ class AlertEngine
     }
 
     /**
-     * Rebuild the events from the log.
+     * Evaluate the first triggered service.
      *
+     * @param Alert $alert The alert.
+     * @param list<int> $serviceIds
+     *
+     * @return array{service_id: int, job_uuids: array<int, string>}|null
+     */
+    private function private__evaluateFirstTriggeredService(Alert $alert, array $serviceIds): ?array
+    {
+        foreach ($serviceIds as $serviceId) {
+            $result = $this->evaluateWithTriggeringJobs($alert, (int) $serviceId);
+
+            if ($result['triggered']) {
+                return [
+                    'service_id' => (int) $serviceId,
+                    'job_uuids' => $result['job_uuids'],
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Flush pending alerts if due.
+     *
+     * @param Alert $alert The alert.
+     */
+    private function private__flushPendingIfDue(Alert $alert): bool
+    {
+        $pending = $this->batchStore->getPending($alert);
+
+        if (empty($pending) || ! $this->batchStore->shouldSendNow($alert)) {
+            return false;
+        }
+
+        $this->private__sendBatchedAlert($alert, $pending);
+        $this->batchStore->clearPending($alert);
+        $this->batchStore->setLastSentAt($alert);
+
+        return true;
+    }
+
+    /**
      * @description This method reconstructs alert trigger events from a stored log.
      *              It uses the current time for all reconstructed events and will
      *              generate placeholder events with null job UUIDs when the
@@ -326,10 +345,9 @@ class AlertEngine
      *
      * @param Alert $alert The alert.
      * @param int $serviceId The service ID.
-     * @param string|null $jobUuid The job UUID.
      * @param array<int, string> $triggeringJobUuids
      */
-    private function private__triggerAlert(Alert $alert, int $serviceId, ?string $jobUuid, array $triggeringJobUuids = []): void
+    private function private__triggerAlert(Alert $alert, int $serviceId, array $triggeringJobUuids = []): void
     {
         $triggeredAt = \now()->toIso8601String();
         $eventsToAdd = [];
@@ -345,10 +363,11 @@ class AlertEngine
         } else {
             $eventsToAdd[] = [
                 'service_id' => $serviceId,
-                'job_uuid' => $jobUuid,
+                'job_uuid' => null,
                 'triggered_at' => $triggeredAt,
             ];
         }
+
         $pending = $this->batchStore->getPending($alert);
 
         foreach ($eventsToAdd as $event) {
@@ -356,12 +375,6 @@ class AlertEngine
         }
         $this->batchStore->setPending($alert, $pending);
 
-        if (! $this->batchStore->shouldSendNow($alert)) {
-            return;
-        }
-
-        $this->private__sendBatchedAlert($alert, $pending);
-        $this->batchStore->clearPending($alert);
-        $this->batchStore->setLastSentAt($alert);
+        $this->private__flushPendingIfDue($alert);
     }
 }

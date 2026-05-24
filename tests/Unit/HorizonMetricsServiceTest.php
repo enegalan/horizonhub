@@ -6,6 +6,12 @@ use App\Models\Service;
 use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\HorizonJobsWindowFetcher;
 use App\Services\Horizon\HorizonMetricsService;
+use App\Services\Metrics\FailureMetricsCalculator;
+use App\Services\Metrics\JobsThroughputMetricsCalculator;
+use App\Services\Metrics\JobsVolumeLast24hCalculator;
+use App\Services\Metrics\QueueFailureCountersCalculator;
+use App\Services\Metrics\RuntimeMetricsCalculator;
+use App\Services\Metrics\WorkloadMetricsCalculator;
 use App\Support\Horizon\QueueNameNormalizer;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,7 +28,7 @@ class HorizonMetricsServiceTest extends TestCase
         $serviceB = Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
         $metrics = $this->getMockBuilder(HorizonMetricsService::class)
-            ->setConstructorArgs([$api, new HorizonJobsWindowFetcher($api)])
+            ->disableOriginalConstructor()
             ->onlyMethods(['getWorkloadData'])
             ->getMock();
         $metrics->method('getWorkloadData')->willReturn([
@@ -87,7 +93,7 @@ class HorizonMetricsServiceTest extends TestCase
             'data' => ['jobs' => []],
         ]);
 
-        $metrics = new HorizonMetricsService($api, new HorizonJobsWindowFetcher($api));
+        $metrics = $this->private__makeHorizonMetricsService($api);
         $result = $metrics->getFailureRate24h([(int) $service->id]);
 
         $this->assertSame(51, $result['processed']);
@@ -147,7 +153,7 @@ class HorizonMetricsServiceTest extends TestCase
             ],
         ]);
 
-        $metrics = new HorizonMetricsService($api, new HorizonJobsWindowFetcher($api));
+        $metrics = $this->private__makeHorizonMetricsService($api);
         $result = $metrics->getFailureRateOverTime([(int) $service->id]);
 
         $endHour = $now->copy()->startOfHour();
@@ -221,7 +227,7 @@ class HorizonMetricsServiceTest extends TestCase
             ],
         ]);
 
-        $metrics = new HorizonMetricsService($api, new HorizonJobsWindowFetcher($api));
+        $metrics = $this->private__makeHorizonMetricsService($api);
         $result = $metrics->getJobRuntimesLast24h([(int) $service->id]);
 
         $this->assertCount(3, $result['points']);
@@ -276,7 +282,7 @@ class HorizonMetricsServiceTest extends TestCase
             ],
         ]);
 
-        $metrics = new HorizonMetricsService($api, new HorizonJobsWindowFetcher($api));
+        $metrics = $this->private__makeHorizonMetricsService($api);
         $result = $metrics->getJobsVolumeLast24h([(int) $service->id]);
 
         $this->assertCount(25, $result['xAxis']);
@@ -339,7 +345,7 @@ class HorizonMetricsServiceTest extends TestCase
             ],
         ]);
 
-        $metrics = new HorizonMetricsService($api, new HorizonJobsWindowFetcher($api));
+        $metrics = $this->private__makeHorizonMetricsService($api);
         $rows = $metrics->getSupervisorsData([(int) $service->id]);
 
         $this->assertCount(2, $rows);
@@ -367,7 +373,7 @@ class HorizonMetricsServiceTest extends TestCase
         $serviceB = Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
         $metrics = $this->getMockBuilder(HorizonMetricsService::class)
-            ->setConstructorArgs([$api, new HorizonJobsWindowFetcher($api)])
+            ->disableOriginalConstructor()
             ->onlyMethods(['getJobsPastMinute', 'getJobsPastHour', 'getFailedPastSevenDays'])
             ->getMock();
 
@@ -403,7 +409,7 @@ class HorizonMetricsServiceTest extends TestCase
     public function test_get_wait_by_queue_chart_data_picks_top_queues_by_max_wait(): void
     {
         $api = $this->createMock(HorizonApiProxyService::class);
-        $metrics = new HorizonMetricsService($api, new HorizonJobsWindowFetcher($api));
+        $metrics = $this->private__makeHorizonMetricsService($api);
 
         $workload = [
             ['queue' => 'low', 'wait' => 1.0],
@@ -423,7 +429,7 @@ class HorizonMetricsServiceTest extends TestCase
     public function test_get_wait_by_queue_chart_data_returns_null_when_no_wait_values(): void
     {
         $api = $this->createMock(HorizonApiProxyService::class);
-        $metrics = new HorizonMetricsService($api, new HorizonJobsWindowFetcher($api));
+        $metrics = $this->private__makeHorizonMetricsService($api);
 
         $this->assertNull($metrics->getWaitByQueueChartData([
             ['queue' => 'a'],
@@ -447,7 +453,7 @@ class HorizonMetricsServiceTest extends TestCase
             'status' => 'online',
         ]);
 
-        $metrics = new HorizonMetricsService($api, new HorizonJobsWindowFetcher($api));
+        $metrics = $this->private__makeHorizonMetricsService($api);
         $rows = $metrics->getWorkloadForService($service);
 
         $this->assertCount(1, $rows);
@@ -475,7 +481,7 @@ class HorizonMetricsServiceTest extends TestCase
             'status' => 'online',
         ]);
 
-        $metrics = new HorizonMetricsService($api, new HorizonJobsWindowFetcher($api));
+        $metrics = $this->private__makeHorizonMetricsService($api);
         $rows = $metrics->getWorkloadForService($service);
 
         $this->assertCount(1, $rows);
@@ -500,7 +506,7 @@ class HorizonMetricsServiceTest extends TestCase
             'status' => 'online',
         ]);
 
-        $metrics = new HorizonMetricsService($api, new HorizonJobsWindowFetcher($api));
+        $metrics = $this->private__makeHorizonMetricsService($api);
         $this->assertSame([], $metrics->getWorkloadForService($service));
     }
 
@@ -515,7 +521,7 @@ class HorizonMetricsServiceTest extends TestCase
             'status' => 'online',
         ]);
 
-        $metrics = new HorizonMetricsService($api, new HorizonJobsWindowFetcher($api));
+        $metrics = $this->private__makeHorizonMetricsService($api);
         $this->assertSame([], $metrics->getWorkloadForService($service));
     }
 
@@ -548,5 +554,20 @@ class HorizonMetricsServiceTest extends TestCase
         $this->assertSame('notifications', QueueNameNormalizer::normalize('sqs:notifications'));
         $this->assertSame('redis.', QueueNameNormalizer::normalize('redis.'));
         $this->assertSame('alpha', QueueNameNormalizer::normalize('alpha'));
+    }
+
+    private function private__makeHorizonMetricsService(HorizonApiProxyService $api): HorizonMetricsService
+    {
+        $fetcher = new HorizonJobsWindowFetcher($api);
+
+        return new HorizonMetricsService(
+            new FailureMetricsCalculator($api, $fetcher),
+            new JobsThroughputMetricsCalculator($api, $fetcher),
+            new JobsVolumeLast24hCalculator($api, $fetcher),
+            new QueueFailureCountersCalculator($api, $fetcher),
+            new RuntimeMetricsCalculator($api, $fetcher),
+            new WorkloadMetricsCalculator($api, $fetcher),
+            $fetcher,
+        );
     }
 }

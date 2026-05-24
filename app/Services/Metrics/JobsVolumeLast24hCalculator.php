@@ -42,47 +42,10 @@ class JobsVolumeLast24hCalculator extends HorizonMetricsComputation
         foreach ($services as $service) {
             $completedJobs = $this->jobsWindowFetcher->fetchCompletedJobsSince($service, $sinceTimestamp);
 
-            foreach ($completedJobs as $job) {
-                $completedAt = $job['completed_at'] ?? null;
-
-                if (! \is_numeric($completedAt)) {
-                    continue;
-                }
-
-                $ts = (int) $completedAt;
-
-                if ($ts < $sinceTimestamp) {
-                    continue;
-                }
-
-                $bucket = Carbon::createFromTimestamp($ts)->format($bucketFormat);
-
-                if (isset($buckets[$bucket])) {
-                    $buckets[$bucket]['completed']++;
-                }
-            }
+            $this->private__incrementHourlyBuckets($buckets, $completedJobs, 'completed_at', 'completed', $sinceTimestamp, $bucketFormat);
 
             $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp);
-
-            foreach ($failedJobs as $job) {
-                $failedAt = $job['failed_at'] ?? null;
-
-                if (! \is_numeric($failedAt)) {
-                    continue;
-                }
-
-                $ts = (int) $failedAt;
-
-                if ($ts < $sinceTimestamp) {
-                    continue;
-                }
-
-                $bucket = Carbon::createFromTimestamp($ts)->format($bucketFormat);
-
-                if (isset($buckets[$bucket])) {
-                    $buckets[$bucket]['failed']++;
-                }
-            }
+            $this->private__incrementHourlyBuckets($buckets, $failedJobs, 'failed_at', 'failed', $sinceTimestamp, $bucketFormat);
         }
 
         $xAxis = [];

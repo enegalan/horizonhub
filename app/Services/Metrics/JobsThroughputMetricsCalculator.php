@@ -3,6 +3,7 @@
 namespace App\Services\Metrics;
 
 use App\Models\Service;
+use App\Support\Horizon\HorizonStatsReader;
 use Illuminate\Support\Collection;
 
 class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
@@ -14,38 +15,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
      */
     public function getFailedPastSevenDays(?Service $service = null): int
     {
-        if (! empty($service?->getBaseUrl())) {
-            $response = $this->horizonApi->getStats($service);
-            $data = $response['data'] ?? null;
-
-            if ($response['success'] && \is_array($data) && isset($data['failedJobs'])) {
-                return (int) $data['failedJobs'];
-            }
-
-            return 0;
-        }
-
-        /** @var Collection<int, Service> $services */
-        $services = $this->private__getServicesForMetrics();
-
-        if ($services->isEmpty()) {
-            return 0;
-        }
-
-        $total = 0;
-
-        foreach ($services as $svc) {
-            $response = $this->horizonApi->getStats($svc);
-            $data = $response['data'] ?? null;
-
-            if (! ($response['success'] && \is_array($data) && isset($data['failedJobs']))) {
-                continue;
-            }
-
-            $total += (int) $data['failedJobs'];
-        }
-
-        return $total;
+        return $this->private__sumStatsField($service, 'failedJobs');
     }
 
     /**
@@ -55,38 +25,7 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
      */
     public function getJobsPastHour(?Service $service = null): int
     {
-        if (! empty($service?->getBaseUrl())) {
-            $response = $this->horizonApi->getStats($service);
-            $data = $response['data'] ?? null;
-
-            if ($response['success'] && \is_array($data) && isset($data['recentJobs'])) {
-                return (int) $data['recentJobs'];
-            }
-
-            return 0;
-        }
-
-        /** @var Collection<int, Service> $services */
-        $services = $this->private__getServicesForMetrics();
-
-        if ($services->isEmpty()) {
-            return 0;
-        }
-
-        $total = 0;
-
-        foreach ($services as $svc) {
-            $response = $this->horizonApi->getStats($svc);
-            $data = $response['data'] ?? null;
-
-            if (! ($response['success'] && \is_array($data) && isset($data['recentJobs']))) {
-                continue;
-            }
-
-            $total += (int) $data['recentJobs'];
-        }
-
-        return $total;
+        return $this->private__sumStatsField($service, 'recentJobs');
     }
 
     /**
@@ -108,15 +47,14 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
 
         /** @var Service $service */
         foreach ($services as $service) {
-            $response = $this->horizonApi->getStats($service);
-            $data = $response['data'] ?? null;
+            $data = HorizonStatsReader::dataFromResponse($this->horizonApi->getStats($service));
 
-            if (! ($response['success'] && \is_array($data) && isset($data['recentJobs']))) {
+            if ($data === null || ! isset($data['recentJobs'])) {
                 continue;
             }
 
             $names[] = (string) $service->name;
-            $values[] = (int) $data['recentJobs'];
+            $values[] = HorizonStatsReader::recentJobs($data);
         }
 
         return ['services' => $names, 'jobsPastHour' => $values];
@@ -130,14 +68,9 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
     public function getJobsPastMinute(?Service $service = null): int
     {
         if (! empty($service?->getBaseUrl())) {
-            $response = $this->horizonApi->getStats($service);
-            $data = $response['data'] ?? null;
+            $data = HorizonStatsReader::dataFromResponse($this->horizonApi->getStats($service));
 
-            if ($response['success'] && \is_array($data)) {
-                return $this->private__jobsPastMinuteFromStatsData($data);
-            }
-
-            return 0;
+            return $data !== null ? HorizonStatsReader::jobsPastMinute($data) : 0;
         }
 
         /** @var Collection<int, Service> $services */
@@ -150,11 +83,10 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
         $total = 0;
 
         foreach ($services as $svc) {
-            $response = $this->horizonApi->getStats($svc);
-            $data = $response['data'] ?? null;
+            $data = HorizonStatsReader::dataFromResponse($this->horizonApi->getStats($svc));
 
-            if ($response['success'] && \is_array($data)) {
-                $total += $this->private__jobsPastMinuteFromStatsData($data);
+            if ($data !== null) {
+                $total += HorizonStatsReader::jobsPastMinute($data);
             }
         }
 
@@ -162,23 +94,43 @@ class JobsThroughputMetricsCalculator extends HorizonMetricsComputation
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param 'failedJobs'|'recentJobs' $field
      */
-    private function private__jobsPastMinuteFromStatsData(array $data): int
+    private function private__sumStatsField(?Service $service, string $field): int
     {
-        $jobsPerMinute = isset($data['jobsPerMinute']) ? (float) $data['jobsPerMinute'] : 0.0;
+        if (! empty($service?->getBaseUrl())) {
+            $data = HorizonStatsReader::dataFromResponse($this->horizonApi->getStats($service));
 
-        if ($jobsPerMinute > 0) {
-            return (int) \round($jobsPerMinute);
+            if ($data === null || ! isset($data[$field])) {
+                return 0;
+            }
+
+            return $field === 'failedJobs'
+                ? HorizonStatsReader::failedJobs($data)
+                : HorizonStatsReader::recentJobs($data);
         }
 
-        $recent = isset($data['recentJobs']) ? (int) $data['recentJobs'] : 0;
-        $period = isset($data['periods']['recentJobs']) ? (int) $data['periods']['recentJobs'] : 60;
+        /** @var Collection<int, Service> $services */
+        $services = $this->private__getServicesForMetrics();
 
-        if ($recent >= 0 && $period > 0) {
-            return (int) \round($recent / $period);
+        if ($services->isEmpty()) {
+            return 0;
         }
 
-        return 0;
+        $total = 0;
+
+        foreach ($services as $svc) {
+            $data = HorizonStatsReader::dataFromResponse($this->horizonApi->getStats($svc));
+
+            if ($data === null || ! isset($data[$field])) {
+                continue;
+            }
+
+            $total += $field === 'failedJobs'
+                ? HorizonStatsReader::failedJobs($data)
+                : HorizonStatsReader::recentJobs($data);
+        }
+
+        return $total;
     }
 }

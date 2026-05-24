@@ -2,7 +2,7 @@
 
 namespace Tests\Unit;
 
-use App\Services\Horizon\ServiceTagNormalizer;
+use App\Support\Horizon\ServiceTagNormalizer;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 

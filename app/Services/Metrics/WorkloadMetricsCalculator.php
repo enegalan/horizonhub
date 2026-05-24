@@ -3,6 +3,7 @@
 namespace App\Services\Metrics;
 
 use App\Models\Service;
+use App\Support\Horizon\HorizonMastersReader;
 use App\Support\Horizon\QueueNameNormalizer;
 
 class WorkloadMetricsCalculator extends HorizonMetricsComputation
@@ -47,54 +48,17 @@ class WorkloadMetricsCalculator extends HorizonMetricsComputation
                 continue;
             }
 
-            foreach ($mastersData as $master) {
-                if (! \is_array($master)) {
-                    continue;
-                }
+            foreach (HorizonMastersReader::supervisorsFromMastersPayload($mastersData) as $supervisor) {
+                $jobs = $this->private__sumJobsByQueueNames($supervisor['queueNames'], $jobsByQueue);
 
-                $supervisors = $master['supervisors'] ?? null;
-
-                if (! \is_array($supervisors)) {
-                    continue;
-                }
-
-                foreach ($supervisors as $supervisor) {
-                    if (! \is_array($supervisor)) {
-                        continue;
-                    }
-
-                    $name = isset($supervisor['name']) ? (string) $supervisor['name'] : '';
-
-                    if (blank($name)) {
-                        continue;
-                    }
-
-                    $processes = null;
-
-                    if (isset($supervisor['processes']) && \is_array($supervisor['processes'])) {
-                        $sum = 0;
-
-                        foreach ($supervisor['processes'] as $value) {
-                            if (\is_numeric($value)) {
-                                $sum += (int) $value;
-                            }
-                        }
-                        $processes = $sum;
-                    }
-
-                    $options = isset($supervisor['options']) && \is_array($supervisor['options']) ? $supervisor['options'] : [];
-                    $queues = $this->private__extractQueuesFromSupervisorOptions($options);
-                    $jobs = $this->private__sumJobsByQueueNames($queues, $jobsByQueue);
-
-                    $result[] = [
-                        'service_id' => (int) $service->id,
-                        'service' => (string) $service->name,
-                        'name' => $name,
-                        'status' => $service->status,
-                        'jobs' => $jobs,
-                        'processes' => $processes,
-                    ];
-                }
+                $result[] = [
+                    'service_id' => (int) $service->id,
+                    'service' => (string) $service->name,
+                    'name' => $supervisor['name'],
+                    'status' => $service->status,
+                    'jobs' => $jobs,
+                    'processes' => $supervisor['processes'],
+                ];
             }
         }
 

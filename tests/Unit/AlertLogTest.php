@@ -6,11 +6,11 @@ use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 use App\Models\Service;
-use App\Services\Alerts\ProviderDeliveryStatsService;
+use App\Services\Alerts\AlertDataService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class ProviderDeliveryStatsServiceTest extends TestCase
+class AlertLogTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -61,7 +61,7 @@ class ProviderDeliveryStatsServiceTest extends TestCase
         $this->private__createAlertLog($dualAlert, $service);
         $this->private__createAlertLog($emailOnlyAlert, $service);
 
-        $stats = $this->app->make(ProviderDeliveryStatsService::class)->countsByProviderType();
+        $stats = $this->app->make(AlertDataService::class)->countsByProviderType();
 
         $this->assertSame(3, $stats['total']);
         $this->assertSame(2, $stats['slack']);

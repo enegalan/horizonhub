@@ -6,6 +6,7 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Horizon\HorizonJobsWindowFetcher;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 final class AlertRuleEvaluationSupport
@@ -42,30 +43,6 @@ final class AlertRuleEvaluationSupport
     }
 
     /**
-     * Check if the completed job row matches the alert.
-     *
-     * @param Alert $alert The alert.
-     * @param array<string, mixed> $job The job.
-     */
-    public function completedJobRowMatches(Alert $alert, array $job): bool
-    {
-        return $this->jobMatchesQueuePatterns($alert, $job)
-            && $this->private__jobMatchesJobPatterns($alert, $job);
-    }
-
-    /**
-     * Check if the failed job row matches the alert.
-     *
-     * @param Alert $alert The alert.
-     * @param array<string, mixed> $job The job.
-     */
-    public function failedJobRowMatches(Alert $alert, array $job): bool
-    {
-        return $this->jobMatchesQueuePatterns($alert, $job)
-            && $this->private__jobMatchesJobPatterns($alert, $job);
-    }
-
-    /**
      * Filter the failed jobs in the window.
      *
      * @param Collection<int, mixed> $jobs
@@ -79,7 +56,7 @@ final class AlertRuleEvaluationSupport
             if (! \is_array($job)) {
                 return false;
             }
-            $failedAt = $this->private__parseFailedAt($job['failed_at'] ?? null);
+            $failedAt = $this->private__parseTimestamp($job['failed_at'] ?? null);
 
             return $failedAt !== null && $failedAt->gte($cutoff);
         });
@@ -109,6 +86,17 @@ final class AlertRuleEvaluationSupport
     }
 
     /**
+     * Check if the job row matches the alert queue and job patterns.
+     *
+     * @param array<string, mixed> $job
+     */
+    public function jobRowMatches(Alert $alert, array $job): bool
+    {
+        return $this->jobMatchesQueuePatterns($alert, $job)
+            && $this->private__jobMatchesJobPatterns($alert, $job);
+    }
+
+    /**
      * Find completed jobs in the window that match the alert.
      *
      * @return Collection<int, array<string, mixed>>
@@ -118,24 +106,13 @@ final class AlertRuleEvaluationSupport
         $jobs = collect($this->jobsWindowFetcher->fetchCompletedJobsSince($service, $cutoff->getTimestamp()));
 
         return $jobs->filter(function (array $job) use ($alert, $cutoff) {
-            $completedRaw = $job['completed_at'] ?? $job['processed_at'] ?? null;
-            $completedAt = null;
+            $completedAt = $this->parseCompletedAt($job);
 
-            if (\is_numeric($completedRaw)) {
-                $completedAt = Carbon::createFromTimestamp((int) $completedRaw);
-            } elseif (\is_string($completedRaw) && $completedRaw !== '') {
-                try {
-                    $completedAt = Carbon::parse($completedRaw);
-                } catch (\Throwable $e) {
-                    $completedAt = null;
-                }
-            }
-
-            if (empty($completedAt) || $completedAt->lt($cutoff)) {
+            if ($completedAt === null || $completedAt->lt($cutoff)) {
                 return false;
             }
 
-            return $this->completedJobRowMatches($alert, $job);
+            return $this->jobRowMatches($alert, $job);
         })->values();
     }
 
@@ -154,9 +131,21 @@ final class AlertRuleEvaluationSupport
 
         return $this->filterFailedJobsInWindow($jobs, $cutoff)
             ->filter(function ($job) use ($alert) {
-                return $this->failedJobRowMatches($alert, $job);
+                return $this->jobRowMatches($alert, $job);
             })
             ->values();
+    }
+
+    /**
+     * Parse the completed at timestamp.
+     *
+     * @param array<string, mixed> $job The job.
+     *
+     * @return CarbonInterface|null The completed at time.
+     */
+    public function parseCompletedAt(array $job): ?CarbonInterface
+    {
+        return $this->private__parseTimestamp($job['completed_at'] ?? $job['processed_at'] ?? null);
     }
 
     /**
@@ -268,18 +257,18 @@ final class AlertRuleEvaluationSupport
     }
 
     /**
-     * Parse the failed at value.
+     * Parse a timestamp value into Carbon.
      *
      * @param mixed $value The value to parse.
      */
-    private function private__parseFailedAt(mixed $value): ?Carbon
+    private function private__parseTimestamp(mixed $value): ?CarbonInterface
     {
         if (blank($value)) {
             return null;
         }
 
         try {
-            if ($value instanceof Carbon) {
+            if ($value instanceof CarbonInterface) {
                 return $value;
             }
 

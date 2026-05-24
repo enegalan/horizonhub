@@ -3,13 +3,14 @@
 namespace App\Services\Alerts\Rules\Strategies;
 
 use App\Models\Alert;
-use App\Models\Service;
 use App\Services\Alerts\Rules\AlertRuleEvaluationSupport;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
-use Carbon\Carbon;
+use App\Support\Alerts\AlertRuleStrategySupport;
 
 final class QueueBlockedAlertRuleStrategy implements AlertRuleStrategyInterface
 {
+    use AlertRuleStrategySupport;
+
     /**
      * The evaluation support.
      */
@@ -24,11 +25,9 @@ final class QueueBlockedAlertRuleStrategy implements AlertRuleStrategyInterface
     }
 
     /**
-     * Evaluate the rule and return whether it triggered plus triggering job UUIDs (if applicable).
-     *
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array
+    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
     {
         return [
             'triggered' => $this->private__evaluateQueueBlocked($alert, $serviceId),
@@ -36,38 +35,25 @@ final class QueueBlockedAlertRuleStrategy implements AlertRuleStrategyInterface
         ];
     }
 
-    /**
-     * Evaluate the queue blocked.
-     */
     private function private__evaluateQueueBlocked(Alert $alert, int $serviceId): bool
     {
-        $threshold = $alert->threshold ?? [];
-        $minutes = (int) ($threshold['minutes'] ?? 30);
+        $minutes = $this->private__thresholdMinutes($alert, 30);
+        $service = $this->private__resolveServiceForEvaluation($serviceId);
 
-        $service = Service::find($serviceId);
-
-        if (empty($service?->getBaseUrl())) {
+        if ($service === null) {
             return false;
         }
 
         $cutoff = \now()->subMinutes($minutes);
         $jobs = $this->support->matchingCompletedJobsInWindow($alert, $service, $cutoff);
 
-        $lastProcessed = $jobs->map(function (array $job) {
-            $completedRaw = $job['completed_at'] ?? null;
+        $lastProcessed = $jobs
+            ->map(fn (array $job) => $this->support->parseCompletedAt($job))
+            ->filter()
+            ->sort()
+            ->last();
 
-            if (! \is_string($completedRaw) || $completedRaw === '') {
-                return null;
-            }
-
-            try {
-                return Carbon::parse($completedRaw);
-            } catch (\Throwable $e) {
-                return null;
-            }
-        })->filter()->sort()->last();
-
-        if (! $lastProcessed) {
+        if ($lastProcessed === null) {
             return false;
         }
 

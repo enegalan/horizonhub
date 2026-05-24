@@ -3,12 +3,15 @@
 namespace App\Services\Alerts\Rules\Strategies;
 
 use App\Models\Alert;
-use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
 use App\Services\Horizon\HorizonApiProxyService;
+use App\Support\Alerts\AlertRuleStrategySupport;
+use App\Support\Horizon\HorizonStatsReader;
 
 final class HorizonOfflineAlertRuleStrategy implements AlertRuleStrategyInterface
 {
+    use AlertRuleStrategySupport;
+
     /**
      * The Horizon API proxy service.
      */
@@ -27,7 +30,7 @@ final class HorizonOfflineAlertRuleStrategy implements AlertRuleStrategyInterfac
      *
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array
+    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
     {
         return [
             'triggered' => $this->private__evaluateHorizonOffline($serviceId),
@@ -35,25 +38,21 @@ final class HorizonOfflineAlertRuleStrategy implements AlertRuleStrategyInterfac
         ];
     }
 
-    /**
-     * Evaluate the horizon offline.
-     */
     private function private__evaluateHorizonOffline(int $serviceId): bool
     {
-        $service = Service::find($serviceId);
+        $service = $this->private__resolveServiceForEvaluation($serviceId);
 
-        if (empty($service?->getBaseUrl())) {
+        if ($service === null) {
             return false;
         }
 
-        $response = $this->horizonApi->getStats($service);
-        $data = $response['data'] ?? null;
+        $data = HorizonStatsReader::dataFromResponse($this->horizonApi->getStats($service));
 
-        if (! $response['success'] || ! \is_array($data)) {
+        if ($data === null) {
             return true;
         }
 
-        $status = \strtolower((string) ($data['status'] ?? ''));
+        $status = \strtolower((string) (HorizonStatsReader::status($data) ?? ''));
 
         if ($status === 'active' || $status === 'running') {
             return false;

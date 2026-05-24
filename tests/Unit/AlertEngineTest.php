@@ -152,7 +152,7 @@ class AlertEngineTest extends TestCase
             $this->createMock(AlertNotificationDispatcher::class),
             $this->private__buildRegistry($api),
         );
-        $result = $engine->evaluateWithTriggeringJobs($alert, $service->id, null);
+        $result = $engine->evaluateWithTriggeringJobs($alert, $service->id);
 
         $this->assertTrue($result['triggered']);
         $this->assertSame(['job-a'], $result['job_uuids']);

@@ -3,6 +3,7 @@
 namespace App\Services\Horizon;
 
 use App\Models\Service;
+use App\Support\Horizon\HorizonStatsReader;
 use Illuminate\Support\Collection;
 
 class ServiceStatsAttachmentService
@@ -24,16 +25,11 @@ class ServiceStatsAttachmentService
                 continue;
             }
 
-            $response = $horizonApi->getStats($service);
-            $data = null;
+            $data = HorizonStatsReader::dataFromResponse($horizonApi->getStats($service));
 
-            if ($response['success'] && isset($response['data'])) {
-                $data = $response['data'];
-            }
-
-            $service->horizon_failed_jobs_count = (int) ($data['failedJobs'] ?? 0);
-            $service->horizon_jobs_count = (int) ($data['recentJobs'] ?? 0);
-            $service->horizon_status = ! empty($data['status']) ? (string) $data['status'] : null;
+            $service->horizon_failed_jobs_count = HorizonStatsReader::failedJobs($data);
+            $service->horizon_jobs_count = HorizonStatsReader::recentJobs($data);
+            $service->horizon_status = HorizonStatsReader::status($data);
         }
     }
 

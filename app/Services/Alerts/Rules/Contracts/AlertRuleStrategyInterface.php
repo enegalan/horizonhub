@@ -11,5 +11,5 @@ interface AlertRuleStrategyInterface
      *
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array;
+    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array;
 }

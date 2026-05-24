@@ -3,6 +3,8 @@
 namespace App\Services\Horizon;
 
 use App\Models\Service;
+use App\Support\Horizon\HorizonMastersReader;
+use App\Support\Horizon\HorizonStatsReader;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -65,144 +67,45 @@ class ServiceShowPageDataService
         $jobsPastHour = $this->metrics->getJobsPastHour($service);
         $failedPastSevenDays = $this->metrics->getFailedPastSevenDays($service);
 
-        $totalProcesses = null;
-        $maxWaitTimeSeconds = null;
-        $queueWithMaxRuntime = null;
-        $queueWithMaxThroughput = null;
-        $horizonStatus = null;
+        $statsData = HorizonStatsReader::dataFromResponse($horizonApi->getStats($service));
+        $horizonStatus = HorizonStatsReader::status($statsData);
+        $totalProcesses = HorizonStatsReader::processes($statsData);
+        $maxWaitTimeSeconds = HorizonStatsReader::maxWaitTimeSeconds($statsData);
+        $queueWithMaxRuntime = HorizonStatsReader::queueWithMaxRuntime($statsData);
+        $queueWithMaxThroughput = HorizonStatsReader::queueWithMaxThroughput($statsData);
+
         $supervisorGroups = \collect();
         $supervisors = \collect();
-        $workloadQueues = \collect();
-
-        $statsResponse = $horizonApi->getStats($service);
-        $statsData = $statsResponse['data'] ?? null;
-
-        if ($statsResponse['success'] && \is_array($statsData)) {
-            if (isset($statsData['status']) && ! empty((string) $statsData['status'])) {
-                $horizonStatus = (string) $statsData['status'];
-            }
-
-            if (isset($statsData['processes']) && \is_numeric($statsData['processes'])) {
-                $totalProcesses = (int) $statsData['processes'];
-            }
-
-            if (isset($statsData['wait']) && \is_array($statsData['wait'])) {
-                foreach ($statsData['wait'] as $waitValue) {
-                    if (! \is_numeric($waitValue)) {
-                        continue;
-                    }
-
-                    $seconds = (float) $waitValue;
-
-                    if ($seconds <= 0.0) {
-                        continue;
-                    }
-
-                    if ($maxWaitTimeSeconds === null || $seconds > $maxWaitTimeSeconds) {
-                        $maxWaitTimeSeconds = $seconds;
-                    }
-                }
-            }
-
-            if (isset($statsData['queueWithMaxRuntime']) && (string) $statsData['queueWithMaxRuntime'] !== '') {
-                $queueWithMaxRuntime = (string) $statsData['queueWithMaxRuntime'];
-            }
-
-            if (isset($statsData['queueWithMaxThroughput']) && (string) $statsData['queueWithMaxThroughput'] !== '') {
-                $queueWithMaxThroughput = (string) $statsData['queueWithMaxThroughput'];
-            }
-        }
-
         $mastersResponse = $horizonApi->getMasters($service);
         $mastersData = $mastersResponse['data'] ?? null;
 
         if ($mastersResponse['success'] && \is_array($mastersData)) {
-            foreach ($mastersData as $master) {
-                if (! \is_array($master)) {
-                    continue;
+            foreach (HorizonMastersReader::supervisorsFromMastersPayload($mastersData) as $supervisor) {
+                $supervisorObj = (object) [
+                    'name' => $supervisor['name'],
+                    'connection' => $supervisor['connection'],
+                    'queues' => $supervisor['queues'],
+                    'processes' => $supervisor['processes'],
+                    'balancing' => $supervisor['balancing'],
+                    'status' => $supervisor['apiStatus'],
+                ];
+
+                $groupName = $supervisor['groupName'];
+
+                if (! $supervisorGroups->has($groupName)) {
+                    $supervisorGroups[$groupName] = \collect();
                 }
 
-                $supervisorsData = $master['supervisors'] ?? null;
-
-                if (! \is_array($supervisorsData)) {
-                    continue;
-                }
-
-                foreach ($supervisorsData as $supervisor) {
-                    if (! \is_array($supervisor)) {
-                        continue;
-                    }
-
-                    $name = isset($supervisor['name']) ? (string) $supervisor['name'] : '';
-
-                    if (blank($name)) {
-                        continue;
-                    }
-
-                    $groupParts = \explode(':', $name, 2);
-                    $groupName = $groupParts[0] !== '' ? $groupParts[0] : $name;
-
-                    $options = isset($supervisor['options']) && \is_array($supervisor['options']) ? $supervisor['options'] : [];
-
-                    $connection = '';
-
-                    if (isset($options['connection']) && (string) $options['connection'] !== '') {
-                        $connection = (string) $options['connection'];
-                    } elseif (isset($supervisor['connection']) && (string) $supervisor['connection'] !== '') {
-                        $connection = (string) $supervisor['connection'];
-                    }
-
-                    $queues = '';
-
-                    if (isset($options['queue'])) {
-                        $queuesRaw = $options['queue'];
-                        $queues = \is_array($queuesRaw) ? \implode(', ', \array_map('strval', $queuesRaw)) : (string) $queuesRaw;
-                    }
-
-                    $processes = null;
-
-                    if (isset($supervisor['processes']) && \is_array($supervisor['processes'])) {
-                        $sum = 0;
-
-                        foreach ($supervisor['processes'] as $value) {
-                            if (\is_numeric($value)) {
-                                $sum += (int) $value;
-                            }
-                        }
-                        $processes = $sum;
-                    }
-
-                    $balancing = '';
-
-                    if (isset($options['balance']) && (string) $options['balance'] !== '') {
-                        $balancing = (string) $options['balance'];
-                    }
-
-                    $apiStatus = isset($supervisor['status']) ? (string) $supervisor['status'] : '';
-
-                    $supervisorObj = (object) [
-                        'name' => $name,
-                        'connection' => $connection,
-                        'queues' => $queues,
-                        'processes' => $processes,
-                        'balancing' => $balancing,
-                        'status' => $apiStatus,
-                    ];
-
-                    if (! $supervisorGroups->has($groupName)) {
-                        $supervisorGroups[$groupName] = \collect();
-                    }
-
-                    $supervisorGroups[$groupName]->push($supervisorObj);
-                    $supervisors->push($supervisorObj);
-                }
+                $supervisorGroups[$groupName]->push($supervisorObj);
+                $supervisors->push($supervisorObj);
             }
+
             $supervisorGroups = $supervisorGroups->sortKeys();
         }
 
-        $workloadRows = $this->metrics->getWorkloadForService($service);
+        $workloadQueues = \collect();
 
-        foreach ($workloadRows as $row) {
+        foreach ($this->metrics->getWorkloadForService($service) as $row) {
             $workloadQueues->push((object) [
                 'queue' => $row['queue'],
                 'jobs' => $row['jobs'],

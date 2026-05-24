@@ -3,12 +3,14 @@
 namespace App\Services\Alerts\Rules\Strategies;
 
 use App\Models\Alert;
-use App\Models\Service;
 use App\Services\Alerts\Rules\AlertRuleEvaluationSupport;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategyInterface;
+use App\Support\Alerts\AlertRuleStrategySupport;
 
 final class FailureCountAlertRuleStrategy implements AlertRuleStrategyInterface
 {
+    use AlertRuleStrategySupport;
+
     /**
      * The evaluation support.
      */
@@ -23,19 +25,17 @@ final class FailureCountAlertRuleStrategy implements AlertRuleStrategyInterface
     }
 
     /**
-     * Evaluate the rule and return whether it triggered plus triggering job UUIDs (if applicable).
-     *
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId, ?string $jobUuid): array
+    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
     {
         $threshold = $alert->threshold ?? [];
         $count = (int) ($threshold['count'] ?? config('horizonhub.alerts.default_count'));
-        $minutes = (int) ($threshold['minutes'] ?? config('horizonhub.alerts.default_minutes'));
+        $minutes = $this->private__thresholdMinutes($alert);
 
-        $service = Service::find($serviceId);
+        $service = $this->private__resolveServiceForEvaluation($serviceId);
 
-        if (empty($service?->getBaseUrl())) {
+        if ($service === null) {
             return ['triggered' => false, 'job_uuids' => []];
         }
 
