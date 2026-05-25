@@ -1,9 +1,12 @@
 <?php
 
-namespace App\Services\Horizon;
+namespace App\Services\Dashboard;
 
 use App\Models\AlertLog;
 use App\Models\Service;
+use App\Services\Horizon\HorizonMetricsService;
+use App\Services\Horizon\HorizonApiProxyService;
+use App\Services\Horizon\ServiceStatsAttachmentService;
 
 class DashboardDataService
 {

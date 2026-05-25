@@ -5,7 +5,7 @@ namespace Tests\Unit;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\Service;
-use App\Services\Horizon\DashboardDataService;
+use App\Services\Dashboard\DashboardDataService;
 use App\Services\Horizon\HorizonApiProxyService;
 use App\Services\Horizon\HorizonMetricsService;
 use App\Services\Horizon\ServiceStatsAttachmentService;
