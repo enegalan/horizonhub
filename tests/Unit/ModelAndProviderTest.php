@@ -13,6 +13,22 @@ class ModelAndProviderTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_alert_name_defaults_when_missing(): void
+    {
+        $alert = Alert::query()->create([
+            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'enabled' => true,
+        ]);
+
+        $this->assertSame("Alert #{$alert->id}", $alert->name);
+
+        $alert->name = '';
+        $alert->save();
+        $alert->refresh();
+
+        $this->assertSame("Alert #{$alert->id}", $alert->name);
+    }
+
     public function test_alert_service_scope_and_relations(): void
     {
         $s1 = Service::query()->create(['name' => 'A', 'base_url' => 'https://a.test', 'status' => 'online']);

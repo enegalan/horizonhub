@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Database\Factories\AlertFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -123,5 +124,29 @@ class Alert extends Model
     public function scopeEnabled($query)
     {
         return $query->where('enabled', true);
+    }
+
+    protected function name(): Attribute
+    {
+        return Attribute::make(
+            get: function (mixed $value): string {
+                $name = \is_string($value) ? \trim($value) : '';
+
+                if ($name !== '') {
+                    return $name;
+                }
+
+                return $this->id !== null ? "Alert #{$this->id}" : '';
+            },
+            set: static function (mixed $value): ?string {
+                if (! \is_string($value)) {
+                    return null;
+                }
+
+                $name = \trim($value);
+
+                return $name !== '' ? $name : null;
+            },
+        );
     }
 }

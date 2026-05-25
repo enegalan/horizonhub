@@ -425,19 +425,15 @@ export function horizonAlertDetail(config) {
                 return null;
             }
             var normalized = Object.assign({}, logData);
-            var eventsCount = Number.parseInt(String(normalized.events_count ?? 0), 10);
-            if (!Number.isFinite(eventsCount) || eventsCount < 0) {
-                eventsCount = 0;
-            }
+            var eventsCount = Math.max(0, Number.parseInt(String(normalized.events_count ?? 0), 10));
             var jobItems = Array.isArray(normalized.job_items) ? normalized.job_items : [];
-            var visibleJobTypesCount = jobItems.length;
             var incomingMore = Number.parseInt(String(normalized.job_ids_more ?? 0), 10);
             if (!Number.isFinite(incomingMore) || incomingMore < 0) {
                 incomingMore = 0;
             }
-            var incomingTotalJobTypesCount = visibleJobTypesCount + incomingMore;
+            var incomingTotalJobTypesCount = jobItems.length + incomingMore;
             var effectiveTotalJobTypesCount = Math.min(incomingTotalJobTypesCount, eventsCount);
-            normalized.job_ids_more = Math.max(0, effectiveTotalJobTypesCount - visibleJobTypesCount);
+            normalized.job_ids_more = Math.max(0, effectiveTotalJobTypesCount - jobItems.length);
             normalized.job_items = jobItems;
             normalized.events_count = eventsCount;
             return normalized;

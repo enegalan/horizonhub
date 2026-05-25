@@ -6,7 +6,7 @@
     <tr class="transition-colors hover:bg-muted/30" data-stream-row-id="al-{{ (int) $log->id }}">
         <td class="px-4 py-2.5 text-sm" data-column-id="name">
             @if($log->alert)
-                <a href="{{ route('horizon.alerts.show', $log->alert) }}" class="link" data-turbo-action="replace">{{ $log->alert->name ?: ('Alert #'.(int) $log->alert->id) }}</a>
+                <a href="{{ route('horizon.alerts.show', $log->alert) }}" class="link" data-turbo-action="replace">{{ $log->alert->name }}</a>
             @else
                 <span class="text-muted-foreground">#{{ (int) $log->alert_id }}</span>
             @endif

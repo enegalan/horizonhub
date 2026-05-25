@@ -20,7 +20,7 @@
 
         $streamSig = \hash('sha256', \json_encode([
             'id' => (int) $alert->id,
-            'name' => (string) ($alert->name ?? ''),
+            'name' => (string) $alert->name,
             'enabled' => (bool) $alert->enabled,
             'rule_type' => (string) ($alert->rule_type ?? ''),
             'queue' => (string) ($alert->queue ?? ''),
@@ -69,7 +69,7 @@
                     </div>
                     <div class="min-w-0">
                         <a href="{{ route('horizon.alerts.show', $alert) }}" class="link truncate text-sm font-semibold text-foreground" data-turbo-action="replace">
-                            {{ $alert->name ?: ('Alert #' . $alert->id) }}
+                            {{ $alert->name }}
                         </a>
                         <p class="mt-1 font-mono text-xs text-muted-foreground">{{ $alert->rule_type }}</p>
                     </div>
@@ -162,7 +162,7 @@
                     class="h-8 min-h-8 px-2.5 text-xs text-destructive hover:text-destructive"
                     aria-label="Delete"
                     title="Delete"
-                    x-on:click="openDeleteAlertModal({{ \Illuminate\Support\Js::from($alert->name ?: ('#' . $alert->id)) }}, {{ \Illuminate\Support\Js::from(route('horizon.alerts.destroy', $alert)) }})"
+                    x-on:click="openDeleteAlertModal({{ \Illuminate\Support\Js::from($alert->name) }}, {{ \Illuminate\Support\Js::from(route('horizon.alerts.destroy', $alert)) }})"
                 >
                     <x-icons.trash class="size-4" />
                     <span>Delete</span>

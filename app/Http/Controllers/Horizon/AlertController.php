@@ -50,12 +50,11 @@ class AlertController extends Controller
      */
     public function destroy(Alert $alert): RedirectResponse
     {
-        $name = $alert->name ?: ('Alert #' . $alert->id);
         $alert->delete();
 
         return redirect()
             ->route('horizon.alerts.index')
-            ->with('status', FlashStatus::success("Alert $name deleted."));
+            ->with('status', FlashStatus::success("Alert {$alert->name} deleted."));
     }
 
     /**
@@ -147,8 +146,6 @@ class AlertController extends Controller
 
         $logs = $logsQuery->paginate($perPage)->withQueryString();
 
-        $alertName = $alert->name ?: "Alert #{$alert->id}";
-
         $selectedLogId = $request->query('log');
         $selectedLog = null;
 
@@ -170,7 +167,7 @@ class AlertController extends Controller
 
         return \view('horizon.alerts.show', [
             'alert' => $alert,
-            'alertName' => $alertName,
+            'alertName' => $alert->name,
             'logs' => $logs,
             'chartData' => new \stdClass,
             'defer' => true,
@@ -183,7 +180,7 @@ class AlertController extends Controller
                 'service_id' => ! empty($serviceFilter) ? (string) $serviceFilter : '',
                 'per_page' => $perPage,
             ],
-            'header' => $alertName,
+            'header' => $alert->name,
         ]);
     }
 

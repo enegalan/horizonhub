@@ -104,10 +104,9 @@ abstract class AbstractAlertNotifier implements AlertNotifier
             }
         }
         $detectedAt = $enrichedEvents[0]['triggered_at'] ?? null;
-        $name = \trim((string) ($alert->name ?? ''));
 
         return [
-            'alertName' => $name !== '' ? $name : "Alert #{$alert->id}",
+            'alertName' => $alert->name,
             'ruleLabel' => AlertRuleCatalog::ruleTypeLabels()[$alert->rule_type] ?? $alert->rule_type,
             'condition' => AlertRuleCatalog::conditionSummary($alert, $detectedAt),
             'serviceName' => $serviceName,
