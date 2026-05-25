@@ -90,6 +90,7 @@ class AlertEvaluationBatchService
 
         Bus::batch($jobs)
             ->name('HorizonHub: Evaluate all alerts')
+            ->onConnection('deferred')
             ->then(function (Batch $batch) use ($namespace): void {
                 Cache::put("$namespace.status", 'completed', now()->addMinutes(30));
             })

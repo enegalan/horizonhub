@@ -52,6 +52,10 @@ class AlertEvaluationBatchServiceTest extends TestCase
                 return false;
             }
 
+            if ($batch->connection() !== 'deferred') {
+                return false;
+            }
+
             $ids = array_map(function ($job) {
                 return $job instanceof EvaluateAlertJob ? $job->alertId : null;
             }, $batch->jobs->all());

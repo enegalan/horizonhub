@@ -228,6 +228,8 @@ export function horizonAlertsList() {
             if (alreadyRunning || btnEl.disabled || btnEl.getAttribute && btnEl.getAttribute('aria-busy') === 'true') return;
             var url = btnEl.getAttribute('data-alert-evaluate-url');
             var alertId = btnEl.getAttribute('data-alert-id');
+            var alertName = btnEl.getAttribute('data-alert-name');
+            var alertLabel = alertName && alertName.trim() !== '' ? '"' + alertName + '"' : '#' + alertId;
             if (!url || !alertId) return;
             btnEl.setAttribute('data-alert-evaluation-running', '1');
             self.private__setEvaluateButtonLoading(btnEl, true);
@@ -247,15 +249,15 @@ export function horizonAlertsList() {
 
                 if (triggered) {
                     if (delivered && window.toast && window.toast.success) {
-                        window.toast.success('Alert #' + alertId + ' triggered and delivery sent' + (triggeredServiceId ? ' (service ' + triggeredServiceId + ')' : '') + '.');
+                        window.toast.success('Alert ' + alertLabel + ' triggered and delivery sent' + (triggeredServiceId ? ' (service ' + triggeredServiceId + ')' : '') + '.');
                     } else if (window.toast && window.toast.info) {
-                        window.toast.info('Alert #' + alertId + ' triggered' + (triggeredServiceId ? ' (service ' + triggeredServiceId + ')' : '') + '; delivery batched.');
+                        window.toast.info('Alert ' + alertLabel + ' triggered' + (triggeredServiceId ? ' (service ' + triggeredServiceId + ')' : '') + '; delivery batched.');
                     }
                 } else {
                     if (delivered && window.toast && window.toast.info) {
-                        window.toast.info('Alert #' + alertId + ' delivery flushed.');
-                    } else if (window.toast && window.toast.info) {
-                        window.toast.info('Alert #' + alertId + ' did not trigger.');
+                        window.toast.info('Alert ' + alertLabel + ' delivery flushed.');
+                    } else if (window.toast && window.toast.warning) {
+                        window.toast.warning('Alert ' + alertLabel + ' did not trigger.');
                     }
                 }
             }).catch(function (_err) {

@@ -137,6 +137,7 @@
                     title="Evaluate alert"
                     data-alert-evaluate-button="1"
                     data-alert-id="{{ (int) $alert->id }}"
+                    data-alert-name="{{ $alert->name }}"
                     data-alert-evaluate-url="{{ route('horizon.alerts.evaluate', $alert) }}"
                     data-alert-evaluate-initial-disabled="{{ $alert->enabled ? '0' : '1' }}"
                 >
