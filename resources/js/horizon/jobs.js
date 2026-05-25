@@ -344,11 +344,29 @@ export function horizonJobsPage(config) {
             window.horizon.http.post(config.retryBatchUrl, { jobs: jobs }).then(function (data) {
                 self.retrying = false;
                 self.closeRetryModal();
-                if (window.toast && window.toast.success) {
-                    var n = typeof data.succeeded === 'number' ? data.succeeded : requestedCount;
-                    var msg = 'Retry requested for ' + n + ' job(s).';
-                    window.toast.success(msg);
+                var succeeded = typeof data.succeeded === 'number' ? data.succeeded : requestedCount;
+                var failed = typeof data.failed === 'number' ? data.failed : Math.max(0, requestedCount - succeeded);
+                var results = Array.isArray(data && data.results) ? data.results : [];
+
+                var firstFailureMessage = '';
+                for (let i = 0; i < results.length; i++) {
+                    if (results[i] && !results[i].success && results[i].message) {
+                        firstFailureMessage = String(results[i].message);
+                        break;
+                    }
                 }
+
+                if (failed === 0) {
+                    window.toast.info('Retry requested for ' + succeeded + ' job(s).');
+                    return;
+                }
+
+                if (succeeded === 0) {
+                    window.toast.error('Retry could not be requested for the selected jobs' + (firstFailureMessage ? ': ' + firstFailureMessage : '.'));
+                    return;
+                }
+
+                window.toast.warning('Retry requested for ' + succeeded + ' job(s); ' + failed + ' job(s) failed' + (firstFailureMessage ? ': ' + firstFailureMessage : '.'));
             }).catch(function () {
                 self.retrying = false;
             });
@@ -647,9 +665,7 @@ function postSingleJobRetry(retryUrl, component, toastMessage) {
     if (!window.horizon || !window.horizon.http) return;
     component.retrying = true;
     window.horizon.http.post(retryUrl, {}).then(function () {
-        if (window.toast && window.toast.success) {
-            window.toast.success(toastMessage);
-        }
+        window.toast.info(toastMessage);
     }).catch(function () {
     }).finally(function () {
         component.retrying = false;

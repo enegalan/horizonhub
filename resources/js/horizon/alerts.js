@@ -101,6 +101,36 @@ export function horizonAlertsList() {
         },
 
         /**
+         * Set the evaluate-all button label.
+         * @param {HTMLElement} bulkBtnEl
+         * @param {string} label
+         * @returns {void}
+         */
+        private__setEvaluateAllLabel(bulkBtnEl, label) {
+            var labelEl = bulkBtnEl && bulkBtnEl.querySelector
+                ? bulkBtnEl.querySelector('[data-alert-evaluate-all-label]')
+                : null;
+            if (labelEl) {
+                labelEl.textContent = label;
+            }
+        },
+
+        /**
+         * Reset bulk evaluation button and list state.
+         * @param {HTMLElement} bulkBtnEl
+         * @returns {void}
+         */
+        private__resetEvaluateAllButton(bulkBtnEl) {
+            this.bulkEvaluationInProgress = false;
+            if (bulkBtnEl && bulkBtnEl.removeAttribute) {
+                bulkBtnEl.removeAttribute('data-alert-evaluation-running');
+            }
+            this.private__setAllEvaluateButtonsDisabled(false);
+            this.private__setEvaluateButtonLoading(bulkBtnEl, false);
+            this.private__setEvaluateAllLabel(bulkBtnEl, 'Evaluate all alerts');
+        },
+
+        /**
          * Apply enabled state to an alert card.
          * @param {HTMLElement} articleEl
          * @param {boolean} enabled
@@ -239,27 +269,29 @@ export function horizonAlertsList() {
                 var triggered = !!(data && data.triggered);
                 var triggeredServiceId = data && data.triggered_service_id ? data.triggered_service_id : null;
                 var delivered = !!(data && data.delivered);
+                var serviceSuffix = triggeredServiceId ? ' (service ' + triggeredServiceId + ')' : '';
 
                 if (errorMessage) {
-                    if (window.toast && window.toast.error) {
-                        window.toast.error(errorMessage);
-                    }
+                    window.toast.error(errorMessage);
                     return;
                 }
 
                 if (triggered) {
-                    if (delivered && window.toast && window.toast.success) {
-                        window.toast.success('Alert ' + alertLabel + ' triggered and delivery sent' + (triggeredServiceId ? ' (service ' + triggeredServiceId + ')' : '') + '.');
-                    } else if (window.toast && window.toast.info) {
-                        window.toast.info('Alert ' + alertLabel + ' triggered' + (triggeredServiceId ? ' (service ' + triggeredServiceId + ')' : '') + '; delivery batched.');
+                    if (delivered) {
+                        window.toast.success('Alert ' + alertLabel + ' triggered and delivery sent' + serviceSuffix + '.');
+                        return;
                     }
-                } else {
-                    if (delivered && window.toast && window.toast.info) {
-                        window.toast.info('Alert ' + alertLabel + ' delivery flushed.');
-                    } else if (window.toast && window.toast.warning) {
-                        window.toast.warning('Alert ' + alertLabel + ' did not trigger.');
-                    }
+
+                    window.toast.info('Alert ' + alertLabel + ' triggered' + serviceSuffix + '; delivery batched.');
+                    return;
                 }
+
+                if (delivered) {
+                    window.toast.warning('Alert ' + alertLabel + ' did not trigger; a pending delivery batch was flushed.');
+                    return;
+                }
+
+                window.toast.warning('Alert ' + alertLabel + ' did not trigger.');
             }).catch(function (_err) {
             }).finally(function () {
                 btnEl.removeAttribute('data-alert-evaluation-running');
@@ -285,20 +317,18 @@ export function horizonAlertsList() {
             bulkBtnEl.setAttribute('data-alert-evaluation-running', '1');
             self.private__setAllEvaluateButtonsDisabled(true);
             self.private__setEvaluateButtonLoading(bulkBtnEl, true);
-
-            var labelEl = bulkBtnEl.querySelector('[data-alert-evaluate-all-label]');
-            if (labelEl) labelEl.textContent = 'Evaluating...';
-
-            window.toast && window.toast.info && window.toast.info('Evaluation started for all alerts.');
+            self.private__setEvaluateAllLabel(bulkBtnEl, 'Evaluating...');
 
             window.horizon.http.post(bulkUrl, {}).then(function (data) {
                 var evaluationId = data && data.evaluation_id ? data.evaluation_id : null;
                 var totalAlerts = data && typeof data.total_alerts === 'number' ? data.total_alerts : null;
                 if (!evaluationId) {
-                    window.toast && window.toast.error && window.toast.error('Unable to start evaluation.');
+                    self.private__resetEvaluateAllButton(bulkBtnEl);
+                    window.toast.error('Unable to start evaluation.');
                     return;
                 }
 
+                window.toast.info('Evaluation started for all alerts.');
                 self.private__pollEvaluationStatus({
                     evaluationId: evaluationId,
                     statusUrlTemplate: statusUrlTemplate,
@@ -306,11 +336,7 @@ export function horizonAlertsList() {
                     totalAlerts: totalAlerts
                 });
             }).catch(function (_err) {
-                self.bulkEvaluationInProgress = false;
-                bulkBtnEl.removeAttribute('data-alert-evaluation-running');
-                self.private__setAllEvaluateButtonsDisabled(false);
-                self.private__setEvaluateButtonLoading(bulkBtnEl, false);
-                if (labelEl) labelEl.textContent = 'Evaluate all alerts';
+                self.private__resetEvaluateAllButton(bulkBtnEl);
             });
         },
 
@@ -338,67 +364,57 @@ export function horizonAlertsList() {
                 if (stopped) return;
                 stopped = true;
                 if (intervalId) clearInterval(intervalId);
-                self.bulkEvaluationInProgress = false;
-                self.private__setAllEvaluateButtonsDisabled(false);
-                self.private__setEvaluateButtonLoading(bulkBtnEl, false);
-                var labelEl = bulkBtnEl.querySelector('[data-alert-evaluate-all-label]');
-                if (labelEl) labelEl.textContent = 'Evaluate all alerts';
+                self.private__resetEvaluateAllButton(bulkBtnEl);
             }
 
             intervalId = window.setInterval(function () {
                 if (Date.now() - startTs > maxPollMs) {
                     stop();
-                    if (window.toast && window.toast.error) {
-                        window.toast.error('Bulk evaluation timed out. Check queue workers and retry.');
-                    }
+                    window.toast.error('Bulk evaluation timed out. Check queue workers and retry.');
                     return;
                 }
 
                 window.horizon.http.get(statusUrl).then(function (data) {
                     if (!data) return;
-                    var status = data.status || 'running';
                     var totalAlerts = typeof data.total_alerts === 'number' ? data.total_alerts : 0;
                     var evaluatedCount = typeof data.evaluated_count === 'number' ? data.evaluated_count : 0;
 
-                    var labelEl = bulkBtnEl.querySelector('[data-alert-evaluate-all-label]');
-                    if (labelEl) labelEl.textContent = 'Evaluating ' + evaluatedCount + '/' + totalAlerts;
+                    self.private__setEvaluateAllLabel(bulkBtnEl, 'Evaluating ' + evaluatedCount + '/' + totalAlerts);
 
-                    if (status === 'completed' || evaluatedCount >= totalAlerts) {
+                    if (data.status === 'completed' || evaluatedCount >= totalAlerts) {
                         stop();
-
                         var triggeredCount = typeof data.triggered_count === 'number' ? data.triggered_count : 0;
                         var deliveredCount = typeof data.delivered_count === 'number' ? data.delivered_count : 0;
                         var errorCount = typeof data.error_count === 'number' ? data.error_count : 0;
                         var firstErrorMessage = data.first_error_message || data.error_message || null;
 
-                        if (errorCount > 0 && window.toast && window.toast.error) {
+                        if (errorCount > 0) {
                             window.toast.error(errorCount + ' alert(s) failed during evaluation' + (firstErrorMessage ? ': ' + firstErrorMessage : '.'));
                             return;
                         }
 
                         if (triggeredCount > 0) {
-                            if (deliveredCount > 0 && window.toast && window.toast.success) {
-                                window.toast.success(triggeredCount + ' alert(s) triggered (' + deliveredCount + ' delivered) during evaluation.');
-                            } else if (window.toast && window.toast.info) {
-                                window.toast.info(triggeredCount + ' alert(s) triggered during evaluation; delivery batched.');
+                            if (deliveredCount > 0) {
+                                window.toast.success(triggeredCount + ' alert(s) triggered and ' + deliveredCount + ' delivery batch(es) were sent during evaluation.');
+                                return;
                             }
+
+                            window.toast.info(triggeredCount + ' alert(s) triggered during evaluation; delivery was batched.');
                             return;
                         }
 
-                        if (deliveredCount > 0 && window.toast && window.toast.warning) {
-                            window.toast.warning('No alerts triggered, but ' + deliveredCount + ' delivery batch(es) flushed during evaluation.');
+                        if (deliveredCount > 0) {
+                            window.toast.warning('No alerts triggered, but ' + deliveredCount + ' pending delivery batch(es) were flushed during evaluation.');
                             return;
                         }
 
-                        if (window.toast && window.toast.warning) {
-                            window.toast.warning('No alerts triggered during evaluation.');
-                        }
+                        window.toast.warning('No alerts triggered during evaluation.');
                     }
 
-                    if (status === 'failed') {
+                    if (data.status === 'failed') {
                         stop();
                         var msg = data.error_message || 'Bulk evaluation failed.';
-                        if (window.toast && window.toast.error) window.toast.error(msg);
+                        window.toast.error(msg);
                     }
                 }).catch(function () {
                     // Keep polling even on transient errors.

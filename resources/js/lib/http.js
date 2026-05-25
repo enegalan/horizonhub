@@ -28,7 +28,11 @@ export function createHttpHelpers() {
         return window.axios(finalConfig)
             .then(function (response) { return response.data; })
             .catch(function (error) {
-                defaultApiErrorHandler(error);
+                var message = 'An error occurred while making the request';
+                if (error && error.response && error.response.data && error.response.data.message) {
+                    message = error.response.data.message;
+                }
+                window.toast.error(message);
                 throw error;
             });
     }
@@ -46,21 +50,4 @@ export function createHttpHelpers() {
 function getCsrfToken() {
     var token = document.querySelector('meta[name="csrf-token"]');
     return token ? token.getAttribute('content') : '';
-}
-
-/**
- * Default API error handler.
- * @param {Error} error
- * @returns {void}
- */
-function defaultApiErrorHandler(error) {
-    var message = 'Request failed';
-    if (error && error.response && error.response.data && error.response.data.message) {
-        message = error.response.data.message;
-    }
-    if (window.toast && window.toast.error) {
-        window.toast.error(message);
-    } else {
-        alert(message);
-    }
 }
