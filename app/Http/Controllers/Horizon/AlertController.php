@@ -140,7 +140,7 @@ class AlertController extends Controller
             $logsQuery->where('service_id', (int) $serviceFilter);
         }
 
-        if ($statusFilter !== '') {
+        if (! empty($statusFilter)) {
             $logsQuery->where('status', $statusFilter);
         }
 

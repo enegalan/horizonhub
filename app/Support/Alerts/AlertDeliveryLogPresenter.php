@@ -20,11 +20,7 @@ class AlertDeliveryLogPresenter
             return null;
         }
 
-        $initialTriggerCount = (int) ($log->trigger_count ?? 0);
-
-        if ($initialTriggerCount < 1) {
-            $initialTriggerCount = 1;
-        }
+        $initialTriggerCount = max(1, (int) ($log->trigger_count ?? 0));
         $initialJobUuids = \is_array($log->job_uuids ?? null) ? $log->job_uuids : [];
         $initialJobTotals = [];
 

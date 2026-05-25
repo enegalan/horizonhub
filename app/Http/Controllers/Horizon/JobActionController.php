@@ -43,12 +43,7 @@ class JobActionController extends Controller
         $selection = (string) ($validated['selection'] ?? 'page');
 
         $perPage = (int) ($validated['per_page'] ?? config('horizonhub.jobs_per_page'));
-        $page = (int) ($validated['page'] ?? 1);
-
-        if ($page < 1) {
-            $page = 1;
-        }
-
+        $page = max(1, (int) ($validated['page'] ?? 1));
         $returnData = [
             'data' => [],
             'meta' => [
