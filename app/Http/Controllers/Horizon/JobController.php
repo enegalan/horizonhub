@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Horizon;
 
 use App\Http\Controllers\Controller;
 use App\Models\Service;
-use App\Services\Horizon\ServiceFilterService;
+use App\Services\Services\ServiceFilterService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 

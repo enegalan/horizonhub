@@ -3,11 +3,11 @@
 namespace Tests\Unit;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonApiProxyService;
-use App\Services\Horizon\HorizonJobsWindowFetcher;
-use App\Services\Metrics\JobsVolumeLast24hCalculator;
-use App\Services\Metrics\RuntimeMetricsCalculator;
-use App\Services\Metrics\WorkloadMetricsCalculator;
+use App\Services\Horizon\HorizonClientService;
+use App\Services\Jobs\JobsWindowFetcher;
+use App\Services\Metrics\Calculators\JobsVolumeLast24hCalculator;
+use App\Services\Metrics\Calculators\RuntimeMetricsCalculator;
+use App\Services\Metrics\Calculators\WorkloadMetricsCalculator;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -22,7 +22,7 @@ class MetricsCalculatorsCoverageTest extends TestCase
         $service = Service::query()->create(['name' => 'svc-volume', 'base_url' => 'https://v.test', 'status' => 'online']);
         $since = now()->subHours(24)->getTimestamp();
 
-        $api = $this->createMock(HorizonApiProxyService::class);
+        $api = $this->createMock(HorizonClientService::class);
         $api->method('getCompletedJobs')->willReturn([
             'success' => true,
             'data' => ['jobs' => [['index' => 1, 'completed_at' => $since + 3600]]],
@@ -32,7 +32,7 @@ class MetricsCalculatorsCoverageTest extends TestCase
             'data' => ['jobs' => [['index' => 2, 'failed_at' => $since + 3600]]],
         ]);
 
-        $calc = new JobsVolumeLast24hCalculator($api, new HorizonJobsWindowFetcher($api));
+        $calc = new JobsVolumeLast24hCalculator($api, new JobsWindowFetcher($api));
         $result = $calc->getJobsVolumeLast24h(['service_id' => $service->id]);
         $this->assertCount(25, $result['xAxis']);
         $this->assertSame(1, $result['completed'][1]);
@@ -46,7 +46,7 @@ class MetricsCalculatorsCoverageTest extends TestCase
         $service = Service::query()->create(['name' => 'svc-runtime-calc', 'base_url' => 'https://r.test', 'status' => 'online']);
         $since = now()->subHours(24)->getTimestamp();
 
-        $api = $this->createMock(HorizonApiProxyService::class);
+        $api = $this->createMock(HorizonClientService::class);
         $api->method('getCompletedJobs')->willReturn([
             'success' => true,
             'data' => ['jobs' => [[
@@ -66,7 +66,7 @@ class MetricsCalculatorsCoverageTest extends TestCase
             ]]],
         ]);
 
-        $calc = new RuntimeMetricsCalculator($api, new HorizonJobsWindowFetcher($api));
+        $calc = new RuntimeMetricsCalculator($api, new JobsWindowFetcher($api));
         $result = $calc->getJobRuntimesLast24h(['service_id' => $service->id]);
         $this->assertCount(2, $result['points']);
         $this->assertSame('completed', $result['points'][0]['status']);
@@ -79,7 +79,7 @@ class MetricsCalculatorsCoverageTest extends TestCase
         $serviceA = Service::query()->create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
         $serviceB = Service::query()->create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
-        $api = $this->createMock(HorizonApiProxyService::class);
+        $api = $this->createMock(HorizonClientService::class);
         $api->method('getWorkload')->willReturnCallback(function (Service $service): array {
             if ($service->name === 'svc-a') {
                 return ['success' => true, 'data' => ['data' => [['name' => 'redis.default', 'length' => 3, 'processes' => 1, 'wait' => 0.4]]]];
@@ -106,7 +106,7 @@ class MetricsCalculatorsCoverageTest extends TestCase
             ]]];
         });
 
-        $calc = new WorkloadMetricsCalculator($api, new HorizonJobsWindowFetcher($api));
+        $calc = new WorkloadMetricsCalculator($api, new JobsWindowFetcher($api));
         $workload = $calc->getWorkloadData([]);
         $this->assertNotEmpty($workload);
         $this->assertSame('default', $workload[0]['queue']);

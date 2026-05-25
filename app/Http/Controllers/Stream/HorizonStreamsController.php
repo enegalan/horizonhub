@@ -6,17 +6,17 @@ use App\Http\Controllers\StreamController;
 use App\Models\Alert;
 use App\Models\NotificationProvider;
 use App\Models\Service;
-use App\Services\Dashboard\DashboardDataService;
 use App\Services\Alerts\AlertChartDataService;
 use App\Services\Alerts\AlertDataService;
-use App\Services\Horizon\HorizonApiProxyService;
-use App\Services\Horizon\HorizonJobDetailService;
-use App\Services\Horizon\HorizonJobListService;
-use App\Services\Horizon\HorizonJobServiceResolver;
-use App\Services\Horizon\HorizonMetricsService;
-use App\Services\Horizon\ServiceFilterService;
-use App\Services\Horizon\ServiceShowPageDataService;
-use App\Services\Horizon\ServiceStatsAttachmentService;
+use App\Services\Dashboard\DashboardDataService;
+use App\Services\Horizon\HorizonClientService;
+use App\Services\Jobs\JobDetailService;
+use App\Services\Jobs\JobListService;
+use App\Services\Jobs\JobServiceResolver;
+use App\Services\Metrics\MetricsDataService;
+use App\Services\Services\ServiceDetailService;
+use App\Services\Services\ServiceFilterService;
+use App\Services\Services\ServiceStatsAttachmentService;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -41,37 +41,37 @@ class HorizonStreamsController extends StreamController
     /**
      * The horizon api proxy service.
      */
-    private HorizonApiProxyService $horizonApi;
+    private HorizonClientService $horizonApi;
 
     /**
-     * The horizon job detail service.
+     * The job detail service.
      */
-    private HorizonJobDetailService $jobDetail;
+    private JobDetailService $jobDetail;
 
     /**
-     * The horizon job list service.
+     * The job list service.
      */
-    private HorizonJobListService $jobList;
+    private JobListService $jobList;
 
     /**
-     * The horizon job service resolver.
+     * The job service resolver.
      */
-    private HorizonJobServiceResolver $jobServiceResolver;
+    private JobServiceResolver $jobServiceResolver;
 
     /**
-     * The metrics service.
+     * The metrics data service.
      */
-    private HorizonMetricsService $metrics;
+    private MetricsDataService $metrics;
+
+    /**
+     * The service detail service.
+     */
+    private ServiceDetailService $serviceDetail;
 
     /**
      * The service filter service.
      */
     private ServiceFilterService $serviceFilter;
-
-    /**
-     * The service show page data service.
-     */
-    private ServiceShowPageDataService $serviceShowPageData;
 
     /**
      * The service stats attachment service.
@@ -81,7 +81,7 @@ class HorizonStreamsController extends StreamController
     /**
      * The constructor.
      */
-    public function __construct(DashboardDataService $dashboardData, HorizonMetricsService $metrics, HorizonApiProxyService $horizonApi, HorizonJobListService $jobList, HorizonJobDetailService $jobDetail, HorizonJobServiceResolver $jobServiceResolver, ServiceShowPageDataService $serviceShowPageData, ServiceStatsAttachmentService $serviceStats, AlertChartDataService $alertChartData, AlertDataService $alertIndexStreamData, ServiceFilterService $serviceFilter)
+    public function __construct(DashboardDataService $dashboardData, MetricsDataService $metrics, HorizonClientService $horizonApi, JobListService $jobList, JobDetailService $jobDetail, JobServiceResolver $jobServiceResolver, ServiceDetailService $serviceDetail, ServiceStatsAttachmentService $serviceStats, AlertChartDataService $alertChartData, AlertDataService $alertIndexStreamData, ServiceFilterService $serviceFilter)
     {
         $this->dashboardData = $dashboardData;
         $this->metrics = $metrics;
@@ -89,7 +89,7 @@ class HorizonStreamsController extends StreamController
         $this->jobList = $jobList;
         $this->jobDetail = $jobDetail;
         $this->jobServiceResolver = $jobServiceResolver;
-        $this->serviceShowPageData = $serviceShowPageData;
+        $this->serviceDetail = $serviceDetail;
         $this->serviceStats = $serviceStats;
         $this->alertChartData = $alertChartData;
         $this->alertIndexStreamData = $alertIndexStreamData;
@@ -395,7 +395,7 @@ class HorizonStreamsController extends StreamController
         \parse_str($query, $queryParams);
         $pageRequest = Request::create($url, 'GET', $queryParams);
 
-        $d = $this->serviceShowPageData->build($service, $pageRequest, $this->horizonApi);
+        $d = $this->serviceDetail->build($service, $pageRequest, $this->horizonApi);
 
         $streams = [];
 

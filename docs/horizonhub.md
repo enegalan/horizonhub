@@ -76,7 +76,7 @@ Disabled services are excluded from polling, metrics, and alert evaluation.
 flowchart LR
     subgraph hub [Horizon Hub]
         UI[Web UI /horizon]
-        Proxy[HorizonApiProxyService]
+        Proxy[HorizonClientService]
         Alerts[AlertEngine]
         SSE[SSE streams]
     end
@@ -93,7 +93,7 @@ flowchart LR
 
 ### Read path (monitoring)
 
-Controllers and services call `HorizonApiProxyService` to perform GETs (and POST for retries) against each enabled service's Horizon API. Metrics aggregation uses paginated job list endpoints with limits defined in `config/horizonhub.php` (`horizon_api_job_list_page_size`, `max_horizon_pages`).
+Controllers and services call `HorizonClientService` to perform GETs (and POST for retries) against each enabled service's Horizon API. Metrics aggregation uses paginated job list endpoints with limits defined in `config/horizonhub.php` (`horizon_api_job_list_page_size`, `max_horizon_pages`).
 
 ### Alert path
 

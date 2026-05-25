@@ -34,7 +34,7 @@ return [
         'ping' => '/stats',
         'workload' => '/workload',
         'job' => '/jobs/{id}',
-        'failed_jobs' => '/jobs/failed',
+        'failed_jobs' => '/failed',
         'completed_jobs' => '/jobs/completed',
         'pending_jobs' => '/jobs/pending',
         'masters' => '/masters',

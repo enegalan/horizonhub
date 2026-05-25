@@ -4,7 +4,7 @@ namespace Tests\Unit;
 
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Horizon\HorizonApiProxyService;
+use App\Services\Horizon\HorizonClientService;
 use App\Services\Notifiers\AbstractAlertNotifier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -18,7 +18,7 @@ class AbstractAlertNotifierTest extends TestCase
         $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);
         $alert = Alert::query()->create(['name' => 'a', 'rule_type' => Alert::RULE_FAILURE_COUNT, 'enabled' => true]);
 
-        $api = $this->createMock(HorizonApiProxyService::class);
+        $api = $this->createMock(HorizonClientService::class);
         $api->method('getJob')->willReturn(['success' => false]);
 
         $notifier = new class($api) extends AbstractAlertNotifier
@@ -47,7 +47,7 @@ class AbstractAlertNotifierTest extends TestCase
         $alert = Alert::query()->create(['name' => 'a', 'rule_type' => Alert::RULE_FAILURE_COUNT, 'enabled' => true]);
         $exception = "line1\nline2\nline3\nline4\nline5\nline6";
 
-        $api = $this->createMock(HorizonApiProxyService::class);
+        $api = $this->createMock(HorizonClientService::class);
         $api->method('getJob')->willReturn([
             'success' => true,
             'data' => [

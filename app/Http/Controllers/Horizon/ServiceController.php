@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Horizon;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Horizon\UpsertServiceRequest;
 use App\Models\Service;
-use App\Services\Horizon\HorizonApiProxyService;
-use App\Services\Horizon\ServiceFilterService;
+use App\Services\Horizon\HorizonClientService;
+use App\Services\Services\ServiceFilterService;
 use App\Support\FlashStatus;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -120,7 +120,7 @@ class ServiceController extends Controller
     /**
      * Test connectivity with the Horizon HTTP API for the given service.
      */
-    public function testConnection(Service $service, HorizonApiProxyService $horizonApi): RedirectResponse
+    public function testConnection(Service $service, HorizonClientService $horizonApi): RedirectResponse
     {
         $result = $horizonApi->ping($service);
 
@@ -161,7 +161,7 @@ class ServiceController extends Controller
     /**
      * Update an existing service.
      */
-    public function update(UpsertServiceRequest $request, Service $service, HorizonApiProxyService $horizonApi): RedirectResponse
+    public function update(UpsertServiceRequest $request, Service $service, HorizonClientService $horizonApi): RedirectResponse
     {
         $validated = $request->validated();
 

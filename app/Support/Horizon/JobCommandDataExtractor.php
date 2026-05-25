@@ -2,7 +2,7 @@
 
 namespace App\Support\Horizon;
 
-class JobCommandDataExtractor
+final class JobCommandDataExtractor
 {
     /**
      * Extract command data from job payload.

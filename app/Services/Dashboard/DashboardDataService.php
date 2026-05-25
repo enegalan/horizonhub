@@ -4,16 +4,16 @@ namespace App\Services\Dashboard;
 
 use App\Models\AlertLog;
 use App\Models\Service;
-use App\Services\Horizon\HorizonMetricsService;
-use App\Services\Horizon\HorizonApiProxyService;
-use App\Services\Horizon\ServiceStatsAttachmentService;
+use App\Services\Horizon\HorizonClientService;
+use App\Services\Metrics\MetricsDataService;
+use App\Services\Services\ServiceStatsAttachmentService;
 
-class DashboardDataService
+final class DashboardDataService
 {
     /**
-     * The Horizon metrics service.
+     * The metrics data service.
      */
-    private HorizonMetricsService $metrics;
+    private MetricsDataService $metrics;
 
     /**
      * The service stats attachment service.
@@ -23,7 +23,7 @@ class DashboardDataService
     /**
      * The constructor.
      */
-    public function __construct(HorizonMetricsService $metrics, ServiceStatsAttachmentService $serviceStats)
+    public function __construct(MetricsDataService $metrics, ServiceStatsAttachmentService $serviceStats)
     {
         $this->metrics = $metrics;
         $this->serviceStats = $serviceStats;
@@ -32,12 +32,12 @@ class DashboardDataService
     /**
      * Build the dashboard data.
      *
-     * @param HorizonApiProxyService $horizonApi The horizon API proxy service.
+     * @param HorizonClientService $horizonApi The horizon API client.
      * @param list<int> $serviceIds Empty means all services.
      *
      * @return array<string, mixed>
      */
-    public function build(HorizonApiProxyService $horizonApi, array $serviceIds = []): array
+    public function build(HorizonClientService $horizonApi, array $serviceIds = []): array
     {
         $metrics = $this->metrics->buildMetricsDashboardData($serviceIds);
 

@@ -5,8 +5,8 @@ namespace App\Services\Alerts\Engine;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
-use App\Services\Notifiers\EmailNotifier;
-use App\Services\Notifiers\SlackNotifier;
+use App\Services\Notifiers\EmailNotifierService;
+use App\Services\Notifiers\SlackNotifierService;
 use Illuminate\Support\Facades\Log;
 
 class AlertNotificationDispatcher
@@ -14,17 +14,17 @@ class AlertNotificationDispatcher
     /**
      * The email notifier.
      */
-    private EmailNotifier $emailNotifier;
+    private EmailNotifierService $emailNotifier;
 
     /**
      * The slack notifier.
      */
-    private SlackNotifier $slackNotifier;
+    private SlackNotifierService $slackNotifier;
 
     /**
      * Construct the dispatcher.
      */
-    public function __construct(EmailNotifier $emailNotifier, SlackNotifier $slackNotifier)
+    public function __construct(EmailNotifierService $emailNotifier, SlackNotifierService $slackNotifier)
     {
         $this->emailNotifier = $emailNotifier;
         $this->slackNotifier = $slackNotifier;

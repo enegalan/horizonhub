@@ -5,7 +5,7 @@ namespace App\Support\Alerts;
 use App\Models\AlertLog;
 use App\Models\Service;
 
-class AlertDeliveryLogPresenter
+final class AlertDeliveryLogPresenter
 {
     /**
      * Get the payload for the delivery log modal.

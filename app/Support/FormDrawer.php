@@ -4,7 +4,7 @@ namespace App\Support;
 
 use Illuminate\Http\Request;
 
-class FormDrawer
+final class FormDrawer
 {
     /**
      * The ID of the form drawer frame.

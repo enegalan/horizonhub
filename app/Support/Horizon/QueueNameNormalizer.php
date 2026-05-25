@@ -2,7 +2,7 @@
 
 namespace App\Support\Horizon;
 
-class QueueNameNormalizer
+final class QueueNameNormalizer
 {
     /**
      * Separators between Laravel queue connection name and queue name in Horizon payloads.

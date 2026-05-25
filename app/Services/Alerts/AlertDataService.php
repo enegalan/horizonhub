@@ -8,7 +8,7 @@ use App\Models\NotificationProvider;
 use App\Models\Service;
 use Illuminate\Support\Collection;
 
-class AlertDataService
+final class AlertDataService
 {
     /**
      * Load alerts for the index stream with list metadata.

@@ -1,0 +1,548 @@
+<?php
+
+namespace App\Services\Jobs;
+
+use App\Models\Service;
+use App\Services\Horizon\HorizonClientService;
+use App\Services\Services\ServiceFilterService;
+use App\Support\DatetimeBoundaryParser;
+use App\Support\Horizon\HorizonJobPaginator;
+use App\Support\Horizon\JobCommandDataExtractor;
+use App\Support\Horizon\JobRuntimeHelper;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
+
+class JobListService
+{
+    /**
+     * The Horizon API client.
+     */
+    private HorizonClientService $horizonApi;
+
+    /**
+     * The service filter service.
+     */
+    private ServiceFilterService $serviceFilter;
+
+    /**
+     * The constructor.
+     */
+    public function __construct(HorizonClientService $horizonApi, ServiceFilterService $serviceFilter)
+    {
+        $this->horizonApi = $horizonApi;
+        $this->serviceFilter = $serviceFilter;
+    }
+
+    /**
+     * Aggregated jobs index paginators from the current request query.
+     *
+     * @param Request $request The request.
+     *
+     * @return array{
+     *     processing: LengthAwarePaginator,
+     *     processed: LengthAwarePaginator,
+     *     failed: LengthAwarePaginator,
+     *     serviceFilterIds: list<int>,
+     *     search: string
+     * }
+     */
+    public function buildAggregatedJobsIndexFromRequest(Request $request): array
+    {
+        $serviceFilterIds = $this->serviceFilter->resolveServiceIds($request);
+        $search = (string) $request->query('search', '');
+
+        $perPage = (int) config('horizonhub.jobs_per_page');
+
+        $servicesQuery = Service::query()->enabled();
+
+        if (! empty($serviceFilterIds)) {
+            $servicesQuery->whereIn('id', $serviceFilterIds);
+        }
+
+        /** @var Collection<int, Service> $servicesWithApi */
+        $servicesWithApi = $servicesQuery->get();
+
+        $pageProcessing = \max(1, (int) $request->query('page_processing', 1));
+        $pageProcessed = \max(1, (int) $request->query('page_processed', 1));
+        $pageFailed = \max(1, (int) $request->query('page_failed', 1));
+
+        $paginators = $this->buildAggregatedStatusPaginators(
+            $servicesWithApi,
+            $search,
+            $pageProcessing,
+            $pageProcessed,
+            $pageFailed,
+            $perPage,
+            $request->url(),
+            $request->query(),
+        );
+
+        return [
+            'processing' => $paginators['processing'],
+            'processed' => $paginators['processed'],
+            'failed' => $paginators['failed'],
+            'serviceFilterIds' => $serviceFilterIds,
+            'search' => $search,
+        ];
+    }
+
+    /**
+     * Build paginators for processing, processed, and failed job lists (aggregated across services).
+     *
+     * @param Collection<int, Service> $services
+     * @param string $search The search.
+     * @param int $pageProcessing The page processing.
+     * @param int $pageProcessed The page processed.
+     * @param int $pageFailed The page failed.
+     * @param int $perPage The per page.
+     * @param string $path The path.
+     * @param array<string, mixed> $query The query.
+     *
+     * @return array{processing: LengthAwarePaginator, processed: LengthAwarePaginator, failed: LengthAwarePaginator}
+     */
+    public function buildAggregatedStatusPaginators(
+        Collection $services,
+        string $search,
+        int $pageProcessing,
+        int $pageProcessed,
+        int $pageFailed,
+        int $perPage,
+        string $path,
+        array $query,
+    ): array {
+        $jobsProcessing = $this->private__collectAndSortJobsForServices($services, 'processing', $search);
+        $jobsProcessed = $this->private__collectAndSortJobsForServices($services, 'processed', $search);
+        $jobsFailed = $this->private__collectAndSortJobsForServices($services, 'failed', $search);
+
+        return [
+            'processing' => $this->private__makePaginator($jobsProcessing, $perPage, $pageProcessing, $path, $query, 'page_processing'),
+            'processed' => $this->private__makePaginator($jobsProcessed, $perPage, $pageProcessed, $path, $query, 'page_processed'),
+            'failed' => $this->private__makePaginator($jobsFailed, $perPage, $pageFailed, $path, $query, 'page_failed'),
+        ];
+    }
+
+    /**
+     * Fetch failed jobs from one or more services, apply filters, sort, and slice for HTTP pagination.
+     *
+     * @param Collection<int, Service> $services
+     * @param string $search The search.
+     * @param mixed $dateFrom The date from.
+     * @param mixed $dateTo The date to.
+     * @param int $page The page.
+     * @param int $perPage The per page.
+     *
+     * @return array{rows: list<array<string, mixed>>, total: int, last_page: int}
+     */
+    public function buildFailedJobsRetryModalPage(
+        Collection $services,
+        string $search,
+        mixed $dateFrom,
+        mixed $dateTo,
+        int $page,
+        int $perPage,
+    ): array {
+        $rows = $this->private__buildRetryModalFailedRows($services, $search, $dateFrom, $dateTo);
+
+        $total = \count($rows);
+        $lastPage = $perPage > 0 ? (int) \max(1, (int) \ceil($total / $perPage)) : 1;
+        $offset = ($page - 1) * $perPage;
+        $pageRows = $perPage > 0 ? \array_slice($rows, $offset, $perPage) : $rows;
+
+        $data = [];
+
+        foreach ($pageRows as $row) {
+            unset($row['failed_at']);
+            $data[] = $row;
+        }
+
+        return [
+            'rows' => $data,
+            'total' => $total,
+            'last_page' => $lastPage,
+        ];
+    }
+
+    /**
+     * Build paginators for a single service dashboard (same three sections).
+     *
+     * @param Service $service The service.
+     * @param string $search The search.
+     * @param int $pageProcessing The page processing.
+     * @param int $pageProcessed The page processed.
+     * @param int $pageFailed The page failed.
+     * @param int $perPage The per page.
+     * @param string $path The path.
+     * @param array<string, mixed> $query The query.
+     *
+     * @return array{processing: LengthAwarePaginator, processed: LengthAwarePaginator, failed: LengthAwarePaginator}
+     */
+    public function buildServiceStatusPaginators(
+        Service $service,
+        string $search,
+        int $pageProcessing,
+        int $pageProcessed,
+        int $pageFailed,
+        int $perPage,
+        string $path,
+        array $query,
+    ): array {
+        $merged = \collect();
+        $merged->push($service);
+        $jobsProcessing = $this->private__collectAndSortJobsForServices($merged, 'processing', $search);
+        $jobsProcessed = $this->private__collectAndSortJobsForServices($merged, 'processed', $search);
+        $jobsFailed = $this->private__collectAndSortJobsForServices($merged, 'failed', $search);
+
+        return [
+            'processing' => $this->private__makePaginator($jobsProcessing, $perPage, $pageProcessing, $path, $query, 'page_processing'),
+            'processed' => $this->private__makePaginator($jobsProcessed, $perPage, $pageProcessed, $path, $query, 'page_processed'),
+            'failed' => $this->private__makePaginator($jobsFailed, $perPage, $pageFailed, $path, $query, 'page_failed'),
+        ];
+    }
+
+    /**
+     * Get the API fetcher for a given status.
+     *
+     * @param Service $service The service.
+     * @param string $status The status.
+     *
+     * @return callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>}
+     */
+    private function private__apiFetcherForStatus(Service $service, string $status): callable
+    {
+        return match ($status) {
+            'processing' => fn (array $query): array => $this->horizonApi->getPendingJobs($service, $query),
+            'processed' => fn (array $query): array => $this->horizonApi->getCompletedJobs($service, $query),
+            'failed' => fn (array $query): array => $this->horizonApi->getFailedJobs($service, $query),
+            default => throw new \InvalidArgumentException("Unsupported job list status [$status]."),
+        };
+    }
+
+    /**
+     * Build filtered, sorted failed-job rows for the retry modal (before pagination).
+     *
+     * @param Collection<int, Service> $services The services.
+     * @param string $search The search.
+     * @param mixed $dateFrom The date from.
+     * @param mixed $dateTo The date to.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function private__buildRetryModalFailedRows(
+        Collection $services,
+        string $search,
+        mixed $dateFrom,
+        mixed $dateTo,
+    ): array {
+        $rows = [];
+
+        $dateFromStr = \is_string($dateFrom) ? $dateFrom : null;
+        $dateToStr = \is_string($dateTo) ? $dateTo : null;
+        $dateFromCarbon = DatetimeBoundaryParser::parseLower($dateFromStr);
+        $dateToCarbon = DatetimeBoundaryParser::parseUpper($dateToStr);
+
+        foreach ($services as $service) {
+            $rawJobs = $this->private__fetchAllJobsForService(
+                fn (array $query): array => $this->horizonApi->getFailedJobs($service, $query),
+            );
+
+            foreach ($rawJobs as $job) {
+                if (! \is_array($job)) {
+                    continue;
+                }
+                $jobUuid = (string) ($job['id'] ?? '');
+
+                if (empty($jobUuid)) {
+                    continue;
+                }
+
+                $queue = (string) ($job['queue'] ?? '');
+                $name = (string) ($job['name'] ?? '');
+
+                if (! $this->private__matchesSearch((object) [
+                    'queue' => $queue,
+                    'name' => $name,
+                    'uuid' => $jobUuid,
+                ], $search)) {
+                    continue;
+                }
+
+                $failedAtRaw = $job['failed_at'] ?? null;
+                $failedAtCarbon = null;
+
+                if (\is_string($failedAtRaw) && $failedAtRaw !== '') {
+                    try {
+                        $failedAtCarbon = new Carbon($failedAtRaw);
+                    } catch (\Throwable) {
+                        $failedAtCarbon = null;
+                    }
+                }
+
+                if ($dateFromCarbon !== null && $failedAtCarbon !== null && $failedAtCarbon->lt($dateFromCarbon)) {
+                    continue;
+                }
+
+                if ($dateToCarbon !== null && $failedAtCarbon !== null && $failedAtCarbon->gt($dateToCarbon)) {
+                    continue;
+                }
+
+                $rows[] = [
+                    'uuid' => $jobUuid,
+                    'service_id' => $service->id,
+                    'service_name' => $service->name,
+                    'queue' => $job['queue'] ?? null,
+                    'name' => $job['name'] ?? ($job['displayName'] ?? $jobUuid),
+                    'failed_at' => $failedAtCarbon,
+                    'failed_at_formatted' => $failedAtCarbon?->format('Y-m-d H:i') ?? null,
+                    'failed_at_iso' => $failedAtCarbon?->toIso8601String() ?? null,
+                ];
+            }
+        }
+
+        \usort($rows, static function (array $a, array $b): int {
+            $aTime = $a['failed_at'];
+            $bTime = $b['failed_at'];
+
+            if (empty($aTime) && empty($bTime)) {
+                return 0;
+            }
+
+            if (empty($aTime)) {
+                return 1;
+            }
+
+            if (empty($bTime)) {
+                return -1;
+            }
+
+            if ($aTime->eq($bTime)) {
+                return 0;
+            }
+
+            return $aTime->lt($bTime) ? 1 : -1;
+        });
+
+        return $rows;
+    }
+
+    /**
+     * Collect and sort jobs for one or more services.
+     *
+     * @param Collection<int, Service> $services The services.
+     * @param 'processing'|'processed'|'failed' $status The status.
+     * @param string $search The search.
+     *
+     * @return Collection<int, object>
+     */
+    private function private__collectAndSortJobsForServices(Collection $services, string $status, string $search): Collection
+    {
+        $merged = \collect();
+
+        foreach ($services as $service) {
+            $fetcher = $this->private__apiFetcherForStatus($service, $status);
+            $rawJobs = $this->private__fetchAllJobsForService($fetcher);
+
+            foreach ($rawJobs as $job) {
+                $row = $this->private__mapRawJobToListRow(\is_array($job) ? $job : [], $service, $status);
+
+                if (! $this->private__matchesSearch($row, $search)) {
+                    continue;
+                }
+                $merged->push($row);
+            }
+        }
+
+        return $this->private__sortJobRows($merged, $status)->values();
+    }
+
+    /**
+     * Fetch all jobs for a single service.
+     *
+     * @param callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>} $fetcher The fetcher.
+     *
+     * @return list<mixed>
+     */
+    private function private__fetchAllJobsForService(callable $fetcher): array
+    {
+        return HorizonJobPaginator::fetchAllPages($fetcher);
+    }
+
+    /**
+     * Make a paginator for a given collection of items.
+     *
+     * @param Collection<int, object> $items The items.
+     * @param int $perPage The per page.
+     * @param int $page The page.
+     * @param string $path The path.
+     * @param array<string, mixed> $query The query.
+     * @param string $pageName The page name.
+     */
+    private function private__makePaginator(
+        Collection $items,
+        int $perPage,
+        int $page,
+        string $path,
+        array $query,
+        string $pageName,
+    ): LengthAwarePaginator {
+        $page = \max(1, $page);
+        $total = $items->count();
+
+        if ($perPage <= 0) {
+            $paginator = new LengthAwarePaginator(
+                $items,
+                $total,
+                \max(1, $total > 0 ? $total : 1),
+                1,
+                ['path' => $path, 'query' => $query],
+            );
+            $paginator->setPageName($pageName);
+
+            return $paginator;
+        }
+
+        $offset = ($page - 1) * $perPage;
+        $slice = $items->slice($offset, $perPage)->values();
+
+        $paginator = new LengthAwarePaginator(
+            $slice,
+            $total,
+            $perPage,
+            $page,
+            ['path' => $path, 'query' => $query],
+        );
+        $paginator->setPageName($pageName);
+
+        return $paginator;
+    }
+
+    /**
+     * Map a raw job to a list row.
+     *
+     * @param array<string, mixed> $job The job.
+     * @param Service $service The service.
+     * @param 'processing'|'processed'|'failed' $status The status.
+     */
+    private function private__mapRawJobToListRow(array $job, Service $service, string $status): ?object
+    {
+        $uuid = (string) ($job['id'] ?? '');
+
+        if ($uuid === '') {
+            return null;
+        }
+
+        $queue = (string) ($job['queue'] ?? '');
+        $name = (string) ($job['name'] ?? '');
+        $payload = isset($job['payload']) && \is_array($job['payload']) ? $job['payload'] : [];
+
+        $pushedAt = $payload['pushedAt'] ?? null;
+        $reservedAtRaw = $payload['reserved_at'] ?? null;
+        $completedAt = $job['completed_at'] ?? null;
+        $failedAtRaw = $job['failed_at'] ?? null;
+
+        $queuedAt = JobRuntimeHelper::parseJobTimestamp($pushedAt);
+        $reservedAt = JobRuntimeHelper::parseJobTimestamp($reservedAtRaw);
+        $processedAt = JobRuntimeHelper::parseJobTimestamp($completedAt);
+        $failedAt = JobRuntimeHelper::parseJobTimestamp($failedAtRaw);
+        JobRuntimeHelper::normalizeStatusDates($status, $processedAt, $failedAt);
+
+        $commandData = JobCommandDataExtractor::extract($payload);
+
+        $availableAt = isset($commandData['delay']['date']) ? JobRuntimeHelper::parseJobTimestamp($commandData['delay']['date']) : null;
+        $attemptsRaw = $payload['attempts'] ?? null;
+        $attempts = is_numeric($attemptsRaw) && $attemptsRaw >= 1 ? (int) $attemptsRaw : null;
+
+        $runtime = JobRuntimeHelper::getFormattedRuntime(
+            JobRuntimeHelper::getRuntimeSeconds(
+                isset($job['runtime']) && \is_numeric($job['runtime']) ? (float) $job['runtime'] : null,
+                $reservedAt,
+                $processedAt,
+                $failedAt,
+            ),
+        );
+
+        return (object) [
+            'id' => $uuid,
+            'job_uuid' => $uuid,
+            'uuid' => $uuid,
+            'queue' => $queue,
+            'name' => $name,
+            'status' => $status,
+            'attempts' => $attempts,
+            'queued_at' => $queuedAt,
+            'processed_at' => $processedAt,
+            'failed_at' => $failedAt,
+            'runtime' => $runtime,
+            'available_at' => $availableAt,
+            'service' => $service,
+        ];
+    }
+
+    /**
+     * Check if a row matches the search.
+     *
+     * @param object $row The row.
+     * @param string $search The search.
+     */
+    private function private__matchesSearch(object $row, string $search): bool
+    {
+        if ($search === '') {
+            return true;
+        }
+
+        $haystack = $row->queue . ' ' . $row->name . ' ' . $row->uuid;
+
+        return \stripos($haystack, $search) !== false;
+    }
+
+    /**
+     * Sort job rows by time for a given status.
+     *
+     * @param Collection<int, object> $rows
+     * @param 'processing'|'processed'|'failed' $status
+     *
+     * @return Collection<int, object>
+     */
+    private function private__sortJobRows(Collection $rows, string $status): Collection
+    {
+        return $rows->sort(function (object $a, object $b) use ($status): int {
+            $timeA = $this->private__sortTimeForStatus($a, $status);
+            $timeB = $this->private__sortTimeForStatus($b, $status);
+
+            if ($timeA === $timeB) {
+                $sidA = $a->service->id ?? 0;
+                $sidB = $b->service->id ?? 0;
+
+                if ($sidA !== $sidB) {
+                    return $sidA <=> $sidB;
+                }
+
+                return \strcmp((string) $a->uuid, (string) $b->uuid);
+            }
+
+            return $timeA < $timeB ? 1 : -1;
+        });
+    }
+
+    /**
+     * Get the timestamp for a given status.
+     *
+     * @param object $row The row.
+     * @param 'processing'|'processed'|'failed' $status The status.
+     */
+    private function private__sortTimeForStatus(object $row, string $status): float
+    {
+        $carbon = match ($status) {
+            'processing' => $row->queued_at,
+            'processed' => $row->processed_at ?? $row->queued_at,
+            'failed' => $row->failed_at ?? $row->queued_at,
+        };
+
+        if ($carbon instanceof Carbon) {
+            return (float) $carbon->getTimestamp() * 1000.0;
+        }
+
+        return 0.0;
+    }
+}

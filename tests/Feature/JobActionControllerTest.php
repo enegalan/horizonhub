@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonApiProxyService;
-use App\Services\Horizon\HorizonJobListService;
+use App\Services\Horizon\HorizonClientService;
+use App\Services\Jobs\JobListService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -27,7 +27,7 @@ class JobActionControllerTest extends TestCase
             'tags' => ['staging'],
         ]);
 
-        $jobList = $this->createMock(HorizonJobListService::class);
+        $jobList = $this->createMock(JobListService::class);
         $jobList->expects($this->once())
             ->method('buildFailedJobsRetryModalPage')
             ->with(
@@ -41,7 +41,7 @@ class JobActionControllerTest extends TestCase
                 \PHP_INT_MAX,
             )
             ->willReturn(['rows' => [], 'total' => 0, 'last_page' => 1]);
-        $this->app->instance(HorizonJobListService::class, $jobList);
+        $this->app->instance(JobListService::class, $jobList);
 
         $this->getJson(route('horizon.jobs.failed', [
             'selection' => 'all',
@@ -51,8 +51,8 @@ class JobActionControllerTest extends TestCase
 
     public function test_failed_list_returns_empty_meta_when_no_services_match(): void
     {
-        $jobList = $this->createMock(HorizonJobListService::class);
-        $this->app->instance(HorizonJobListService::class, $jobList);
+        $jobList = $this->createMock(JobListService::class);
+        $this->app->instance(JobListService::class, $jobList);
 
         $response = $this->getJson(route('horizon.jobs.failed'));
         $response->assertOk()->assertJsonPath('meta.total', 0);
@@ -61,7 +61,7 @@ class JobActionControllerTest extends TestCase
     public function test_failed_list_selection_all_returns_compact_jobs_shape(): void
     {
         $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
-        $jobList = $this->createMock(HorizonJobListService::class);
+        $jobList = $this->createMock(JobListService::class);
         $jobList->method('buildFailedJobsRetryModalPage')->willReturn([
             'rows' => [
                 ['uuid' => 'u1', 'service_id' => $service->id],
@@ -70,7 +70,7 @@ class JobActionControllerTest extends TestCase
             'total' => 2,
             'last_page' => 1,
         ]);
-        $this->app->instance(HorizonJobListService::class, $jobList);
+        $this->app->instance(JobListService::class, $jobList);
 
         $response = $this->getJson(route('horizon.jobs.failed', ['selection' => 'all', 'service_id' => $service->id]));
         $response->assertOk()
@@ -81,7 +81,7 @@ class JobActionControllerTest extends TestCase
 
     public function test_failed_list_selection_all_returns_empty_jobs_when_no_service_matches(): void
     {
-        $this->app->instance(HorizonJobListService::class, $this->createMock(HorizonJobListService::class));
+        $this->app->instance(JobListService::class, $this->createMock(JobListService::class));
 
         $response = $this->getJson(route('horizon.jobs.failed', ['selection' => 'all']));
         $response->assertOk()
@@ -92,7 +92,7 @@ class JobActionControllerTest extends TestCase
     public function test_retry_and_retry_batch_handle_success_and_service_missing_cases(): void
     {
         $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
-        $api = $this->createMock(HorizonApiProxyService::class);
+        $api = $this->createMock(HorizonClientService::class);
         $api->method('retryJob')->willReturnCallback(function ($svc, $uuid) {
             if ($uuid === 'u-2') {
                 return ['success' => false, 'message' => 'retry failed'];
@@ -100,8 +100,8 @@ class JobActionControllerTest extends TestCase
 
             return ['success' => true];
         });
-        $this->app->instance(HorizonApiProxyService::class, $api);
-        $this->app->instance(HorizonJobListService::class, $this->createMock(HorizonJobListService::class));
+        $this->app->instance(HorizonClientService::class, $api);
+        $this->app->instance(JobListService::class, $this->createMock(JobListService::class));
 
         $this->postJson(route('horizon.jobs.retry'), [
             'uuid' => 'u-1',
@@ -123,10 +123,10 @@ class JobActionControllerTest extends TestCase
     public function test_retry_batch_returns_failed_result_when_api_retry_fails(): void
     {
         $service = Service::query()->create(['name' => 'svc-retry-fail', 'base_url' => 'https://retry-fail.test', 'status' => 'online']);
-        $api = $this->createMock(HorizonApiProxyService::class);
+        $api = $this->createMock(HorizonClientService::class);
         $api->method('retryJob')->willReturn(['success' => false, 'message' => 'api fail']);
-        $this->app->instance(HorizonApiProxyService::class, $api);
-        $this->app->instance(HorizonJobListService::class, $this->createMock(HorizonJobListService::class));
+        $this->app->instance(HorizonClientService::class, $api);
+        $this->app->instance(JobListService::class, $this->createMock(JobListService::class));
 
         $this->postJson(route('horizon.jobs.retry-batch'), [
             'jobs' => [
@@ -148,14 +148,14 @@ class JobActionControllerTest extends TestCase
     public function test_retry_returns_api_error_status_and_message_when_retry_fails(): void
     {
         $service = Service::query()->create(['name' => 'svc2', 'base_url' => 'https://x2.test', 'status' => 'online']);
-        $api = $this->createMock(HorizonApiProxyService::class);
+        $api = $this->createMock(HorizonClientService::class);
         $api->method('retryJob')->willReturn([
             'success' => false,
             'message' => 'gateway issue',
             'status' => 502,
         ]);
-        $this->app->instance(HorizonApiProxyService::class, $api);
-        $this->app->instance(HorizonJobListService::class, $this->createMock(HorizonJobListService::class));
+        $this->app->instance(HorizonClientService::class, $api);
+        $this->app->instance(JobListService::class, $this->createMock(JobListService::class));
 
         $this->postJson(route('horizon.jobs.retry'), [
             'uuid' => 'u-fail',

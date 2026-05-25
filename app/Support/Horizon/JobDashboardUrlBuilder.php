@@ -4,7 +4,7 @@ namespace App\Support\Horizon;
 
 use App\Models\Service;
 
-class JobDashboardUrlBuilder
+final class JobDashboardUrlBuilder
 {
     /**
      * Build the Horizon dashboard URL for a job.
@@ -23,10 +23,10 @@ class JobDashboardUrlBuilder
         $encodedUuid = \urlencode($jobUuid);
 
         $jobPath = match ((string) $jobStatus) {
-            'processing', 'pending', 'reserved' => "/jobs/pending/$encodedUuid",
-            'processed', 'completed' => "/jobs/completed/$encodedUuid",
-            'failed' => "/failed/$encodedUuid",
-            default => "/jobs/pending/$encodedUuid",
+            'processing', 'pending', 'reserved' => config('horizonhub.horizon_paths.pending_jobs') . "/$encodedUuid",
+            'processed', 'completed' => config('horizonhub.horizon_paths.completed_jobs') . "/$encodedUuid",
+            'failed' => config('horizonhub.horizon_paths.failed_jobs') . "/$encodedUuid",
+            default => config('horizonhub.horizon_paths.pending_jobs') . "/$encodedUuid",
         };
 
         return \rtrim($dashboardBase, '/') . config('horizonhub.horizon_paths.dashboard') . $jobPath;
