@@ -1,9 +1,10 @@
 <svg
     {{ $attributes->merge([
         'xmlns' => 'http://www.w3.org/2000/svg',
-        'viewBox' => '0 0 20 20',
-        'fill' => 'currentColor',
+        'viewBox' => '0 0 24 24',
+        'stroke' => 'currentColor',
         'aria-hidden' => 'true',
+        'stroke-width' => '1.5',
     ]) }}
 >
     <path
