@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
+ * @property string $name
  * @property list<int> $service_ids
  */
 class Alert extends Model
@@ -136,7 +137,11 @@ class Alert extends Model
                     return $name;
                 }
 
-                return $this->id !== null ? "Alert #{$this->id}" : '';
+                if (! $this->exists) {
+                    return '';
+                }
+
+                return "Alert #{$this->id}";
             },
             set: static function (mixed $value): ?string {
                 if (! \is_string($value)) {
