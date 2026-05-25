@@ -1,0 +1,26 @@
+---
+description: Prefer the simplest and smallest viable change
+alwaysApply: true
+---
+
+# Keep It Simple
+
+## Core principle
+
+- Prefer the simplest solution that solves the user's actual request.
+- Keep changes minimal, direct, and focused on the confirmed use case.
+- If two options work, choose the one with less code, less indirection, and lower maintenance cost.
+
+## Implementation rules
+
+- Adapt existing code before introducing new files, helpers, abstractions, or layers.
+- Do not generalize for hypothetical future scenarios unless the user explicitly asks for it.
+- Avoid redundant branches, duplicated logic, defensive complexity, and premature extensibility.
+- Touch the fewest files and lines needed to solve the problem clearly.
+- Before finishing, reduce the change set to the minimum necessary version.
+
+## Review filter
+
+- Ask whether each added piece of code is required for the current request.
+- Remove anything that does not contribute directly to the final behavior.
+- Keep explanations and comments short, concrete, and only where they help.
