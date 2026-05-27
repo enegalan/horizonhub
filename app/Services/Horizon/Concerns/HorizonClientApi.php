@@ -32,9 +32,9 @@ class HorizonClientApi implements HorizonClientApiContract
      */
     public function getCompletedJobs(Service $service, array $query = []): array
     {
-        $path = (string) config('horizonhub.horizon_paths.completed_jobs');
+        $relativePath = (string) config('horizonhub.horizon_paths.completed_jobs');
 
-        return $this->http->call($service, "$path?" . \http_build_query($this->private__buildJobListQuery($query)), 'get');
+        return $this->http->call($service, "$relativePath?" . \http_build_query($this->private__buildJobListQuery($query)), 'get');
     }
 
     /**
@@ -47,9 +47,9 @@ class HorizonClientApi implements HorizonClientApiContract
      */
     public function getFailedJobs(Service $service, array $query = []): array
     {
-        $path = (string) config('horizonhub.horizon_paths.failed_jobs');
+        $relativePath = (string) config('horizonhub.horizon_paths.failed_jobs');
 
-        return $this->http->call($service, "$path?" . \http_build_query($this->private__buildJobListQuery($query)), 'get');
+        return $this->http->call($service, "$relativePath?" . \http_build_query($this->private__buildJobListQuery($query)), 'get');
     }
 
     /**
@@ -91,9 +91,9 @@ class HorizonClientApi implements HorizonClientApiContract
      */
     public function getPendingJobs(Service $service, array $query = []): array
     {
-        $path = (string) config('horizonhub.horizon_paths.pending_jobs');
+        $relativePath = (string) config('horizonhub.horizon_paths.pending_jobs');
 
-        return $this->http->call($service, "$path?" . \http_build_query($this->private__buildJobListQuery($query)), 'get');
+        return $this->http->call($service, "$relativePath?" . \http_build_query($this->private__buildJobListQuery($query)), 'get');
     }
 
     /**
@@ -121,14 +121,7 @@ class HorizonClientApi implements HorizonClientApiContract
     {
         $relativePath = (string) config('horizonhub.horizon_paths.workload');
 
-        $result = $this->http->call($service, $relativePath, 'get');
-
-        // TO-EVALUATE: is this still needed?
-        if (! $result['success'] && \in_array((int) ($result['status'] ?? 0), (array) config('horizonhub.horizon_http_auth_statuses'), true)) {
-            $result = $this->http->call($service, $relativePath, 'get', withDashboardSession: true);
-        }
-
-        return $result;
+        return $this->http->call($service, $relativePath, 'get');
     }
 
     /**

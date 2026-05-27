@@ -86,17 +86,13 @@ final class DashboardDataService
             $recentAlertLogsQuery->whereIn('service_id', $serviceIds);
         }
 
-        $recentAlertLogs = $recentAlertLogsQuery->get();
-
-        $workloadRows = \is_array($metrics['workloadRows']) ? $metrics['workloadRows'] : [];
-
         return \array_merge($metrics, [
             'services' => $services,
             'servicesOnlineCount' => $onlineCount,
             'servicesTotal' => $enabledServices->count(),
             'servicesHealthDotClass' => $servicesHealthDotClass,
-            'recentAlertLogs' => $recentAlertLogs,
-            'workloadRows' => $workloadRows,
+            'recentAlertLogs' => $recentAlertLogsQuery->get(),
+            'workloadRows' => $metrics['workloadRows'],
         ]);
     }
 }
