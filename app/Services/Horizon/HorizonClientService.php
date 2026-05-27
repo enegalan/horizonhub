@@ -17,6 +17,21 @@ use Illuminate\Support\Facades\Log;
 class HorizonClientService
 {
     /**
+     * Get pending/processing jobs from the Horizon HTTP API for a service.
+     *
+     * @param Service $service The service.
+     * @param array<string, mixed> $query
+     *
+     * @return array{success: bool, message?: string, status?: int, data?: array}
+     */
+    public function getPendingJobs(Service $service, array $query = []): array
+    {
+        $path = (string) config('horizonhub.horizon_paths.pending_jobs');
+
+        return $this->private__call($service, "$path?" . \http_build_query($this->private__buildJobListQuery($query)), 'get');
+    }
+
+    /**
      * Get completed jobs from the Horizon HTTP API for a service.
      *
      * @param Service $service The service.
@@ -76,25 +91,7 @@ class HorizonClientService
     }
 
     /**
-     * Get pending/processing jobs from the Horizon HTTP API for a service.
-     *
-     * @param Service $service The service.
-     * @param array<string, mixed> $query
-     *
-     * @return array{success: bool, message?: string, status?: int, data?: array}
-     */
-    public function getPendingJobs(Service $service, array $query = []): array
-    {
-        $path = (string) config('horizonhub.horizon_paths.pending_jobs');
-
-        return $this->private__call($service, "$path?" . \http_build_query($this->private__buildJobListQuery($query)), 'get');
-    }
-
-    /**
-     * Get high-level dashboard statistics (including jobs per minute and recent jobs)
-     * from the Horizon HTTP API for a service.
-     *
-     * This proxies the Horizon `/stats` endpoint and returns its decoded payload.
+     * Get high-level dashboard statistics from the Horizon HTTP API for a service.
      *
      * @param Service $service The service.
      *
@@ -142,16 +139,6 @@ class HorizonClientService
     }
 
     /**
-     * Reset the failure cooldown for a service.
-     *
-     * @param Service $service The service.
-     */
-    public function resetFailureCooldown(Service $service): void
-    {
-        Cache::forget($this->private__failureCooldownCacheKey($service));
-    }
-
-    /**
      * Retry a job through the Horizon HTTP API.
      *
      * @param Service $service The service.
@@ -164,6 +151,16 @@ class HorizonClientService
         $relativePath = \str_replace('{id}', $jobUuid, (string) config('horizonhub.horizon_paths.retry'));
 
         return $this->private__call($service, $relativePath, 'post', true);
+    }
+
+    /**
+     * Reset the failure cooldown for a service.
+     *
+     * @param Service $service The service.
+     */
+    public function resetFailureCooldown(Service $service): void
+    {
+        Cache::forget($this->private__failureCooldownCacheKey($service));
     }
 
     /**
@@ -299,20 +296,20 @@ class HorizonClientService
 
         $httpMethod = \strtolower($method);
 
-        $hotReloadPathCacheKey = $httpMethod === 'get' && ! $withDashboardSession && ! $allowWhenDisabled
-            ? $this->private__hotReloadPathCacheKey($service, $path)
+        $requestPathCacheKey = $httpMethod === 'get' && ! $withDashboardSession && ! $allowWhenDisabled
+            ? $this->private__requestPathCacheKey($service, $path)
             : null;
 
-        if ($hotReloadPathCacheKey !== null) {
-            $cached = Cache::get($hotReloadPathCacheKey);
+        if ($requestPathCacheKey !== null) {
+            $cached = Cache::get($requestPathCacheKey);
 
             if (empty($cached)) {
                 $lockSeconds = (int) config('horizonhub.api_timeout');
-                $lock = Cache::lock("$hotReloadPathCacheKey:fill", $lockSeconds);
+                $lock = Cache::lock("$requestPathCacheKey:fill", $lockSeconds);
 
                 try {
                     $lock->block($lockSeconds);
-                    $cached = Cache::get($hotReloadPathCacheKey);
+                    $cached = Cache::get($requestPathCacheKey);
                 } finally {
                     $lock->release();
                 }
@@ -396,8 +393,8 @@ class HorizonClientService
             if ($result['success'] === true) {
                 Cache::forget($this->private__failureCooldownCacheKey($service));
 
-                if ($hotReloadPathCacheKey !== null) {
-                    Cache::put($hotReloadPathCacheKey, $result, \now()->addSeconds((float) config('horizonhub.hot_reload_interval')));
+                if ($requestPathCacheKey !== null) {
+                    Cache::put($requestPathCacheKey, $result, \now()->addSeconds((float) config('horizonhub.hot_reload_interval')));
                 }
 
                 return $result;
@@ -452,7 +449,7 @@ class HorizonClientService
      * @param Service $service The service.
      * @param string $path The path.
      */
-    private function private__hotReloadPathCacheKey(Service $service, string $path): string
+    private function private__requestPathCacheKey(Service $service, string $path): string
     {
         return "horizonhub:horizon-api-hot-reload-path:{$service->id}:$path";
     }
