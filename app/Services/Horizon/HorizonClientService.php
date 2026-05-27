@@ -3,32 +3,30 @@
 namespace App\Services\Horizon;
 
 use App\Models\Service;
-use GuzzleHttp\Cookie\CookieJar;
-use GuzzleHttp\Exception\GuzzleException;
-use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\PendingRequest;
-use Illuminate\Http\Client\RequestException;
-use Illuminate\Http\Client\Response;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use App\Services\Horizon\Concerns\HorizonClientApi;
+use App\Services\Horizon\Concerns\HorizonClientCache;
+use App\Services\Horizon\Contracts\HorizonClientApi as HorizonClientApiContract;
 
-// TODO: Refactor this in order to create stable layers for the Horizon API.
-class HorizonClientService
+class HorizonClientService implements HorizonClientApiContract
 {
     /**
-     * Get pending/processing jobs from the Horizon HTTP API for a service.
-     *
-     * @param Service $service The service.
-     * @param array<string, mixed> $query
-     *
-     * @return array{success: bool, message?: string, status?: int, data?: array}
+     * The Horizon client API.
      */
-    public function getPendingJobs(Service $service, array $query = []): array
-    {
-        $path = (string) config('horizonhub.horizon_paths.pending_jobs');
+    private HorizonClientApi $api;
 
-        return $this->private__call($service, "$path?" . \http_build_query($this->private__buildJobListQuery($query)), 'get');
+    /**
+     * The cache for Horizon API calls.
+     */
+    private HorizonClientCache $cache;
+
+    /**
+     * The constructor.
+     *
+     */
+    public function __construct()
+    {
+        $this->cache = new HorizonClientCache;
+        $this->api = new HorizonClientApi($this->cache);
     }
 
     /**
@@ -41,9 +39,7 @@ class HorizonClientService
      */
     public function getCompletedJobs(Service $service, array $query = []): array
     {
-        $path = (string) config('horizonhub.horizon_paths.completed_jobs');
-
-        return $this->private__call($service, "$path?" . \http_build_query($this->private__buildJobListQuery($query)), 'get');
+        return $this->api->getCompletedJobs($service, $query);
     }
 
     /**
@@ -56,9 +52,7 @@ class HorizonClientService
      */
     public function getFailedJobs(Service $service, array $query = []): array
     {
-        $path = (string) config('horizonhub.horizon_paths.failed_jobs');
-
-        return $this->private__call($service, "$path?" . \http_build_query($this->private__buildJobListQuery($query)), 'get');
+        return $this->api->getFailedJobs($service, $query);
     }
 
     /**
@@ -71,9 +65,7 @@ class HorizonClientService
      */
     public function getJob(Service $service, string $jobUuid): array
     {
-        $relativePath = \str_replace('{id}', $jobUuid, (string) config('horizonhub.horizon_paths.job'));
-
-        return $this->private__call($service, $relativePath, 'get');
+        return $this->api->getJob($service, $jobUuid);
     }
 
     /**
@@ -85,9 +77,20 @@ class HorizonClientService
      */
     public function getMasters(Service $service): array
     {
-        $relativePath = (string) config('horizonhub.horizon_paths.masters');
+        return $this->api->getMasters($service);
+    }
 
-        return $this->private__call($service, $relativePath, 'get');
+    /**
+     * Get pending/processing jobs from the Horizon HTTP API for a service.
+     *
+     * @param Service $service The service.
+     * @param array<string, mixed> $query
+     *
+     * @return array{success: bool, message?: string, status?: int, data?: array}
+     */
+    public function getPendingJobs(Service $service, array $query = []): array
+    {
+        return $this->api->getPendingJobs($service, $query);
     }
 
     /**
@@ -99,9 +102,7 @@ class HorizonClientService
      */
     public function getStats(Service $service): array
     {
-        $relativePath = (string) config('horizonhub.horizon_paths.ping');
-
-        return $this->private__call($service, $relativePath, 'get');
+        return $this->api->getStats($service);
     }
 
     /**
@@ -113,15 +114,7 @@ class HorizonClientService
      */
     public function getWorkload(Service $service): array
     {
-        $relativePath = (string) config('horizonhub.horizon_paths.workload');
-
-        $result = $this->private__call($service, $relativePath, 'get');
-
-        if (! $result['success'] && \in_array((int) ($result['status'] ?? 0), config('horizonhub.horizon_http_auth_statuses'), true)) {
-            $result = $this->private__call($service, $relativePath, 'get', true);
-        }
-
-        return $result;
+        return $this->api->getWorkload($service);
     }
 
     /**
@@ -133,9 +126,17 @@ class HorizonClientService
      */
     public function ping(Service $service): array
     {
-        $relativePath = (string) config('horizonhub.horizon_paths.ping');
+        return $this->api->ping($service);
+    }
 
-        return $this->private__call($service, $relativePath, 'get', false, true, true);
+    /**
+     * Reset the failure cooldown for a service.
+     *
+     * @param Service $service The service.
+     */
+    public function resetFailureCooldown(Service $service): void
+    {
+        $this->cache->forgetFailureCooldown($service);
     }
 
     /**
@@ -148,427 +149,6 @@ class HorizonClientService
      */
     public function retryJob(Service $service, string $jobUuid): array
     {
-        $relativePath = \str_replace('{id}', $jobUuid, (string) config('horizonhub.horizon_paths.retry'));
-
-        return $this->private__call($service, $relativePath, 'post', true);
-    }
-
-    /**
-     * Reset the failure cooldown for a service.
-     *
-     * @param Service $service The service.
-     */
-    public function resetFailureCooldown(Service $service): void
-    {
-        Cache::forget($this->private__failureCooldownCacheKey($service));
-    }
-
-    /**
-     * Bootstrap a Horizon dashboard session and CSRF token.
-     *
-     * This simulates a browser visiting the Horizon dashboard to obtain
-     * a session and CSRF token that can be used to call Horizon's API
-     * endpoints protected by CSRF.
-     *
-     * @param Service $service The service.
-     *
-     * @return array{csrf_token: string, cookies: CookieJar}|null
-     */
-    private function private__bootstrapDashboardSession(Service $service): ?array
-    {
-        $dashboardUrl = $service->getBaseUrl() . (string) config('horizonhub.horizon_paths.dashboard');
-
-        $cookieJar = new CookieJar;
-
-        try {
-            $response = $this->private__newHorizonPendingRequest('get', $service)
-                ->withOptions(['cookies' => $cookieJar])
-                ->get($dashboardUrl);
-        } catch (\Throwable $e) {
-            Log::warning('Horizon Hub: failed to bootstrap Horizon dashboard session', [
-                'service_id' => $service->id ?? null,
-                'url' => $dashboardUrl,
-                'error' => $e->getMessage(),
-            ]);
-
-            return null;
-        }
-
-        if (! $response->ok()) {
-            Log::warning('Horizon Hub: unexpected status when bootstrapping Horizon dashboard session', [
-                'service_id' => $service->id ?? null,
-                'url' => $dashboardUrl,
-                'status' => $response->status(),
-            ]);
-
-            return null;
-        }
-
-        $html = $response->body();
-        $matches = [];
-
-        if (! \preg_match('/<meta\s+name=["\']csrf-token["\']\s+content=["\']([^"\']+)["\']/', $html, $matches)) {
-            Log::warning('Horizon Hub: unable to extract CSRF token from Horizon dashboard', [
-                'service_id' => $service->id ?? null,
-                'url' => $dashboardUrl,
-            ]);
-
-            return null;
-        }
-
-        $csrfToken = (string) $matches[1];
-
-        return [
-            'csrf_token' => $csrfToken,
-            'cookies' => $cookieJar,
-        ];
-    }
-
-    /**
-     * Build an error message from a response.
-     *
-     * @param Response $response The response.
-     */
-    private function private__buildErrorMessageFromResponse(Response $response): string
-    {
-        $rawBody = $response->body();
-        $decoded = \json_decode($rawBody, true);
-
-        if (\is_array($decoded) && isset($decoded['message']) && (string) $decoded['message'] !== '') {
-            return (string) $decoded['message'];
-        }
-
-        $trimmedBody = \trim((string) $rawBody);
-        $isHtml = $trimmedBody !== \strip_tags($trimmedBody);
-
-        if (! $isHtml && $trimmedBody !== '') {
-            return \mb_substr($trimmedBody, 0, 200);
-        }
-
-        return "Horizon API returned an HTTP error ({$response->status()}).";
-    }
-
-    /**
-     * Build query parameters for job list endpoints.
-     *
-     * @param array<string, mixed> $overrides The overrides.
-     *
-     * @return array{starting_at: int, limit: int}
-     */
-    private function private__buildJobListQuery(array $overrides = []): array
-    {
-        return \array_merge([
-            'starting_at' => 0,
-            'limit' => (int) config('horizonhub.horizon_api_job_list_page_size'),
-        ], $overrides);
-    }
-
-    /**
-     * Call the Horizon HTTP API for a given service.
-     *
-     * @param bool $withDashboardSession When true, bootstrap Horizon dashboard session and CSRF token.
-     * @param bool $bypassFailureCooldown When true, ignore existing failure cooldown before call.
-     * @param bool $allowWhenDisabled When true, call the API even when the service is disabled.
-     *
-     * @return array{success: bool, message?: string, status?: int}
-     */
-    private function private__call(Service $service, string $path, string $method = 'post', bool $withDashboardSession = false, bool $bypassFailureCooldown = false, bool $allowWhenDisabled = false): array
-    {
-        if (! $service->enabled && ! $allowWhenDisabled) {
-            return [
-                'success' => false,
-                'message' => 'Service is disabled.',
-                'status' => 503,
-            ];
-        }
-
-        if (! $bypassFailureCooldown && Cache::has($this->private__failureCooldownCacheKey($service))) {
-            return [
-                'success' => false,
-                'message' => 'Service temporarily in cooldown after recent upstream failures.',
-                'status' => 503,
-            ];
-        }
-
-        $base = $service->getBaseUrl() . (string) config('horizonhub.horizon_paths.api');
-
-        $url = "$base/" . \ltrim($path, '/');
-
-        $httpMethod = \strtolower($method);
-
-        $requestPathCacheKey = $httpMethod === 'get' && ! $withDashboardSession && ! $allowWhenDisabled
-            ? $this->private__requestPathCacheKey($service, $path)
-            : null;
-
-        if ($requestPathCacheKey !== null) {
-            $cached = Cache::get($requestPathCacheKey);
-
-            if (empty($cached)) {
-                $lockSeconds = (int) config('horizonhub.api_timeout');
-                $lock = Cache::lock("$requestPathCacheKey:fill", $lockSeconds);
-
-                try {
-                    $lock->block($lockSeconds);
-                    $cached = Cache::get($requestPathCacheKey);
-                } finally {
-                    $lock->release();
-                }
-            }
-
-            if ($cached !== null) {
-                if (config('app.debug')) {
-                    Log::debug('Horizon Hub: Horizon API call (cache hit)', [
-                        'service_id' => $service->id ?? null,
-                        'service_name' => $service->name ?? null,
-                        'url' => $url,
-                        'http_method' => $httpMethod,
-                        'with_dashboard_session' => $withDashboardSession,
-                        'allow_when_disabled' => $allowWhenDisabled,
-                    ]);
-                }
-
-                return $cached;
-            }
-        }
-
-        if (config('app.debug')) {
-            Log::debug('Horizon Hub: Horizon API call', [
-                'service_id' => $service->id ?? null,
-                'service_name' => $service->name ?? null,
-                'url' => $url,
-                'http_method' => $httpMethod,
-                'with_dashboard_session' => $withDashboardSession,
-                'allow_when_disabled' => $allowWhenDisabled,
-            ]);
-        }
-
-        $attempt = function () use ($service, $url, $httpMethod, $withDashboardSession): ?Response {
-            $request = $this->private__newHorizonPendingRequest($httpMethod, $service);
-
-            if ($withDashboardSession) {
-                $bootstrap = $this->private__bootstrapDashboardSession($service);
-
-                if (empty($bootstrap)) {
-                    return null;
-                }
-                $request = $request
-                    ->withOptions(['cookies' => $bootstrap['cookies']])
-                    ->withHeaders(['X-CSRF-TOKEN' => $bootstrap['csrf_token']]);
-            }
-
-            return match ($httpMethod) {
-                'get' => $request->get($url),
-                'delete' => $request->delete($url),
-                default => $request->post($url),
-            };
-        };
-
-        try {
-            $response = $attempt();
-
-            if ($response === null) {
-                return [
-                    'success' => false,
-                    'message' => 'Unable to bootstrap Horizon dashboard session or CSRF token.',
-                    'status' => 502,
-                ];
-            }
-
-            if ($withDashboardSession && $response->status() === 419) {
-                $retryResponse = $attempt();
-
-                if ($retryResponse !== null) {
-                    $response = $retryResponse;
-                }
-            }
-
-            $result = $this->private__processHttpResponse(
-                $response,
-                $service,
-                $url,
-                ! $withDashboardSession,
-                $withDashboardSession ? ' (with dashboard session)' : '',
-            );
-
-            if ($result['success'] === true) {
-                Cache::forget($this->private__failureCooldownCacheKey($service));
-
-                if ($requestPathCacheKey !== null) {
-                    Cache::put($requestPathCacheKey, $result, \now()->addSeconds((float) config('horizonhub.hot_reload_interval')));
-                }
-
-                return $result;
-            }
-
-            if (! \in_array($result['status'], config('horizonhub.horizon_http_auth_statuses'))) {
-                $this->private__putFailureCooldown($service);
-            }
-
-            return $result;
-        } catch (\Throwable $e) {
-            Log::error('Horizon Hub: Horizon API call exception' . ($withDashboardSession ? ' (with dashboard session)' : ''), [
-                'service_id' => $service->id ?? null,
-                'url' => $url,
-                'error' => $e->getMessage(),
-                'exception' => $e::class,
-            ]);
-            $this->private__putFailureCooldown($service);
-
-            $statusCode = $e->getCode();
-
-            // Default exceptions have status code 0, we want to separate network errors from other exceptions and return the appropiate status code
-            if ($statusCode === 0) {
-                $statusCode = $e instanceof ConnectionException
-                    || $e instanceof RequestException
-                    || $e instanceof GuzzleException
-                    ? 502
-                    : 500;
-            }
-
-            return [
-                'success' => false,
-                'message' => $e->getMessage(),
-                'status' => $statusCode,
-            ];
-        }
-    }
-
-    /**
-     * Get the cache key for the failure cooldown.
-     *
-     * @param Service $service The service.
-     */
-    private function private__failureCooldownCacheKey(Service $service): string
-    {
-        return "horizonhub:horizon-api-failure-cooldown:{$service->id}";
-    }
-
-    /**
-     * Get the cache key for the hot-reload path.
-     *
-     * @param Service $service The service.
-     * @param string $path The path.
-     */
-    private function private__requestPathCacheKey(Service $service, string $path): string
-    {
-        return "horizonhub:horizon-api-hot-reload-path:{$service->id}:$path";
-    }
-
-    /**
-     * Build an HTTP client for Horizon calls with unified timeout and optional GET retries.
-     *
-     * @param string $httpMethod The HTTP method.
-     * @param Service|null $service The service.
-     */
-    private function private__newHorizonPendingRequest(string $httpMethod, ?Service $service = null): PendingRequest
-    {
-        $httpMethod = \strtoupper($httpMethod);
-        $timeoutSeconds = (int) config('horizonhub.api_timeout');
-        $request = Http::timeout($timeoutSeconds);
-
-        $connectTimeout = config('horizonhub.horizon_http_connect_timeout');
-
-        if ($connectTimeout !== null && (float) $connectTimeout > 0) {
-            $request->connectTimeout((float) $connectTimeout);
-        }
-
-        $retryConfig = config('horizonhub.horizon_http_retry');
-        $retryTimes = (int) $retryConfig['times'];
-        $sleepBaseMs = (int) $retryConfig['sleep_ms'];
-        $retryOnStatus = $retryConfig['retry_on_status'];
-
-        if ($retryConfig && $httpMethod === 'GET' && $retryTimes > 1) {
-            $request = $request->retry(
-                $retryTimes,
-                function (int $attempt, \Throwable $e) use ($sleepBaseMs): int {
-                    return $sleepBaseMs * (2 ** \max(0, $attempt - 1));
-                },
-                function (\Throwable $exception, PendingRequest $pending, ?string $method = 'GET') use ($retryOnStatus): bool {
-                    if ($method !== null && \strtoupper($method) !== 'GET') {
-                        return false;
-                    }
-
-                    if ($exception instanceof ConnectionException) {
-                        return true;
-                    }
-
-                    if ($exception instanceof RequestException && $exception->response !== null) {
-                        return \in_array($exception->response->status(), $retryOnStatus, true);
-                    }
-
-                    return false;
-                },
-                throw: false,
-            );
-        }
-
-        if ($service !== null) {
-            $headers = [];
-
-            foreach ($service->headers as $header) {
-                $headers[$header->name] = $header->value ?? '';
-            }
-
-            $request = $request->withHeaders($headers);
-        }
-
-        return $request;
-    }
-
-    /**
-     * Process the HTTP response.
-     *
-     * @param Response $response The response.
-     * @param Service $service The service.
-     * @param string $url The URL.
-     * @param bool $updateHeartbeat Whether to update the heartbeat.
-     * @param string $logContext The log context.
-     *
-     * @return array{success: bool, message?: string, status?: int, data?: array}
-     */
-    private function private__processHttpResponse(Response $response, Service $service, string $url, bool $updateHeartbeat = false, string $logContext = ''): array
-    {
-        if ($response->successful()) {
-            $data = \json_decode($response->body(), true);
-
-            if ($updateHeartbeat) {
-                $service->forceFill([
-                    'last_seen_at' => \now(),
-                    'status' => 'online',
-                ])->saveQuietly();
-            }
-
-            return ! \is_array($data)
-                ? ['success' => true]
-                : ['success' => true, 'data' => $data];
-        }
-
-        $message = $this->private__buildErrorMessageFromResponse($response);
-        Log::warning("Horizon Hub: Horizon API call failed $logContext", [
-            'service_id' => $service->id,
-            'url' => $url,
-            'status' => $response->status(),
-            'message' => $message,
-        ]);
-
-        return [
-            'success' => false,
-            'message' => $message,
-            'status' => $response->status(),
-        ];
-    }
-
-    /**
-     * Store failure cooldown when Horizon API calls fail.
-     *
-     * @param Service $service The service.
-     */
-    private function private__putFailureCooldown(Service $service): void
-    {
-        $seconds = (int) config('horizonhub.horizon_http_failure_cooldown_seconds');
-
-        if ($seconds > 0) {
-            Cache::put($this->private__failureCooldownCacheKey($service), true, \now()->addSeconds($seconds));
-        }
+        return $this->api->retryJob($service, $jobUuid);
     }
 }
