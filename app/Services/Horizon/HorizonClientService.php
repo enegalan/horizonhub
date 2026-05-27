@@ -21,7 +21,6 @@ class HorizonClientService implements HorizonClientApiContract
 
     /**
      * The constructor.
-     *
      */
     public function __construct()
     {
