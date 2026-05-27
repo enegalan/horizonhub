@@ -24,7 +24,7 @@ class AlertBatchedMail extends Mailable
     public array $notification;
 
     /**
-     * Create a new alert batched mail instance.
+     * The constructor.
      *
      * @param Alert $alert The alert.
      * @param array $notification The notification.

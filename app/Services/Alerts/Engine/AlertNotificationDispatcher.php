@@ -22,7 +22,10 @@ class AlertNotificationDispatcher
     private SlackNotifierService $slackNotifier;
 
     /**
-     * Construct the dispatcher.
+     * The constructor.
+     *
+     * @param EmailNotifierService $emailNotifier The email notifier.
+     * @param SlackNotifierService $slackNotifier The slack notifier.
      */
     public function __construct(EmailNotifierService $emailNotifier, SlackNotifierService $slackNotifier)
     {

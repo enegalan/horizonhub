@@ -30,6 +30,9 @@ class AlertController extends Controller
 
     /**
      * The constructor.
+     *
+     * @param AlertEvaluationBatchService $evaluationBatch The alert evaluation batch service.
+     * @param AlertUpsertService $alertUpsert The alert upsert service.
      */
     public function __construct(AlertEvaluationBatchService $evaluationBatch, AlertUpsertService $alertUpsert)
     {

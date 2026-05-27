@@ -39,7 +39,10 @@ class EvaluateAlertJob implements ShouldQueue
     public string $evaluationId;
 
     /**
-     * Create a new job instance.
+     * The constructor.
+     *
+     * @param int $alertId The alert ID.
+     * @param string $evaluationId The evaluation ID.
      */
     public function __construct(int $alertId, string $evaluationId)
     {

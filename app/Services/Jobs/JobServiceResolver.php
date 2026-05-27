@@ -15,7 +15,9 @@ final class JobServiceResolver
     private HorizonClientService $horizonApi;
 
     /**
-     * Construct the job service resolver.
+     * The constructor.
+     *
+     * @param HorizonClientService $horizonApi The horizon API client.
      */
     public function __construct(HorizonClientService $horizonApi)
     {

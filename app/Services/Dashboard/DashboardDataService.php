@@ -22,6 +22,9 @@ final class DashboardDataService
 
     /**
      * The constructor.
+     *
+     * @param MetricsDataService $metrics The metrics data service.
+     * @param ServiceStatsAttachmentService $serviceStats The service stats attachment service.
      */
     public function __construct(MetricsDataService $metrics, ServiceStatsAttachmentService $serviceStats)
     {

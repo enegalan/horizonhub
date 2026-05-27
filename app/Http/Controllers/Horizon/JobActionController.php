@@ -27,6 +27,9 @@ class JobActionController extends Controller
 
     /**
      * The constructor.
+     *
+     * @param HorizonClientService $horizonApi The Horizon API proxy service.
+     * @param JobListService $jobList The job list service.
      */
     public function __construct(HorizonClientService $horizonApi, JobListService $jobList)
     {

@@ -17,7 +17,9 @@ final class AlertRuleEvaluation
     private JobsWindowFetcher $jobsWindowFetcher;
 
     /**
-     * Construct the evaluation support.
+     * The constructor.
+     *
+     * @param JobsWindowFetcher $jobsWindowFetcher The jobs window fetcher.
      */
     public function __construct(JobsWindowFetcher $jobsWindowFetcher)
     {

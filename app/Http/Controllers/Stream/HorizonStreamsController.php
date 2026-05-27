@@ -80,6 +80,18 @@ class HorizonStreamsController extends StreamController
 
     /**
      * The constructor.
+     *
+     * @param DashboardDataService $dashboardData The dashboard data service.
+     * @param MetricsDataService $metrics The metrics data service.
+     * @param HorizonClientService $horizonApi The horizon API client.
+     * @param JobListService $jobList The job list service.
+     * @param JobDetailService $jobDetail The job detail service.
+     * @param JobServiceResolver $jobServiceResolver The job service resolver.
+     * @param ServiceDetailService $serviceDetail The service detail service.
+     * @param ServiceStatsAttachmentService $serviceStats The service stats attachment service.
+     * @param AlertChartDataService $alertChartData The alert chart data service.
+     * @param AlertDataService $alertIndexStreamData The alert index stream data service.
+     * @param ServiceFilterService $serviceFilter The service filter service.
      */
     public function __construct(DashboardDataService $dashboardData, MetricsDataService $metrics, HorizonClientService $horizonApi, JobListService $jobList, JobDetailService $jobDetail, JobServiceResolver $jobServiceResolver, ServiceDetailService $serviceDetail, ServiceStatsAttachmentService $serviceStats, AlertChartDataService $alertChartData, AlertDataService $alertIndexStreamData, ServiceFilterService $serviceFilter)
     {

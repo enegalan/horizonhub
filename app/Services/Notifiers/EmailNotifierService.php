@@ -11,7 +11,9 @@ use Illuminate\Support\Facades\Mail;
 class EmailNotifierService extends AbstractAlertNotifier
 {
     /**
-     * Construct the email notifier.
+     * The constructor.
+     *
+     * @param HorizonClientService $horizonApi The horizon API client.
      */
     public function __construct(HorizonClientService $horizonApi)
     {

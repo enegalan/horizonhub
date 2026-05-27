@@ -19,7 +19,9 @@ final class SupervisorOffline implements AlertRuleContract
     private HorizonClientService $horizonApi;
 
     /**
-     * Construct the strategy.
+     * The constructor.
+     *
+     * @param HorizonClientService $horizonApi The Horizon API client.
      */
     public function __construct(HorizonClientService $horizonApi)
     {

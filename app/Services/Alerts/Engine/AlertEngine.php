@@ -27,7 +27,11 @@ class AlertEngine
     private AlertRuleStrategyRegistry $ruleStrategyRegistry;
 
     /**
-     * Construct the alert engine.
+     * The constructor.
+     *
+     * @param AlertBatchStore $batchStore The batch store.
+     * @param AlertNotificationDispatcher $notificationDispatcher The notification dispatcher.
+     * @param AlertRuleStrategyRegistry $ruleStrategyRegistry The rule strategy registry.
      */
     public function __construct(AlertBatchStore $batchStore, AlertNotificationDispatcher $notificationDispatcher, AlertRuleStrategyRegistry $ruleStrategyRegistry)
     {

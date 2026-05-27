@@ -27,7 +27,15 @@ final class AlertRuleStrategyRegistry
     private array $strategies;
 
     /**
-     * Construct the strategy registry.
+     * The constructor.
+     *
+     * @param NullRule $nullStrategy The null strategy.
+     * @param FailureCount $failureCount The failure count strategy.
+     * @param AvgExecutionTime $avgExecutionTime The avg execution time strategy.
+     * @param QueueBlocked $queueBlocked The queue blocked strategy.
+     * @param WorkerOffline $workerOffline The worker offline strategy.
+     * @param SupervisorOffline $supervisorOffline The supervisor offline strategy.
+     * @param HorizonOffline $horizonOffline The horizon offline strategy.
      */
     public function __construct(NullRule $nullStrategy, FailureCount $failureCount, AvgExecutionTime $avgExecutionTime, QueueBlocked $queueBlocked, WorkerOffline $workerOffline, SupervisorOffline $supervisorOffline, HorizonOffline $horizonOffline)
     {

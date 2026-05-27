@@ -26,6 +26,9 @@ final class ServiceDetailService
 
     /**
      * The constructor.
+     *
+     * @param MetricsDataService $metrics The metrics data service.
+     * @param JobListService $jobList The job list service.
      */
     public function __construct(MetricsDataService $metrics, JobListService $jobList)
     {

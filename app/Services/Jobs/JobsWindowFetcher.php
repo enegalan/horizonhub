@@ -20,7 +20,9 @@ final class JobsWindowFetcher
     private array $memo = [];
 
     /**
-     * Construct the fetcher.
+     * The constructor.
+     *
+     * @param HorizonClientService $horizonApi The horizon API client.
      */
     public function __construct(HorizonClientService $horizonApi)
     {

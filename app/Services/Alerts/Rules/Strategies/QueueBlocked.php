@@ -18,7 +18,9 @@ final class QueueBlocked implements AlertRuleContract
     private AlertRuleEvaluation $support;
 
     /**
-     * Construct the strategy.
+     * The constructor.
+     *
+     * @param AlertRuleEvaluation $support The evaluation support.
      */
     public function __construct(AlertRuleEvaluation $support)
     {

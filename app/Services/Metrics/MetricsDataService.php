@@ -52,7 +52,15 @@ class MetricsDataService
     private WorkloadMetricsCalculator $workloadMetrics;
 
     /**
-     * Construct the metrics data service.
+     * The constructor.
+     *
+     * @param FailureMetricsCalculator $failureMetrics The failure metrics calculator.
+     * @param JobsThroughputMetricsCalculator $jobsThroughputMetrics The jobs throughput metrics calculator.
+     * @param JobsVolumeLast24hCalculator $jobsVolumeLast24h The jobs volume (last 24h) calculator.
+     * @param QueueFailureCountersCalculator $queueFailureCounters The queue failure counters calculator.
+     * @param RuntimeMetricsCalculator $runtimeMetrics The runtime metrics calculator.
+     * @param WorkloadMetricsCalculator $workloadMetrics The workload metrics calculator.
+     * @param JobsWindowFetcher $jobsWindowFetcher The jobs window fetcher.
      */
     public function __construct(
         FailureMetricsCalculator $failureMetrics,

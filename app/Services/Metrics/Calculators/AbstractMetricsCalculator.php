@@ -30,7 +30,10 @@ abstract class AbstractMetricsCalculator
     protected JobsWindowFetcher $jobsWindowFetcher;
 
     /**
-     * Construct the Horizon metrics computation.
+     * The constructor.
+     *
+     * @param HorizonClientService $horizonApi The horizon API client.
+     * @param JobsWindowFetcher $jobsWindowFetcher The jobs window fetcher.
      */
     public function __construct(HorizonClientService $horizonApi, JobsWindowFetcher $jobsWindowFetcher)
     {

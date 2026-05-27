@@ -28,6 +28,9 @@ class JobListService
 
     /**
      * The constructor.
+     *
+     * @param HorizonClientService $horizonApi The horizon API client.
+     * @param ServiceFilterService $serviceFilter The service filter service.
      */
     public function __construct(HorizonClientService $horizonApi, ServiceFilterService $serviceFilter)
     {

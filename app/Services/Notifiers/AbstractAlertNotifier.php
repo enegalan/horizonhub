@@ -18,7 +18,9 @@ abstract class AbstractAlertNotifier implements AlertNotifier
     protected HorizonClientService $horizonApi;
 
     /**
-     * Construct the alert notifier.
+     * The constructor.
+     *
+     * @param HorizonClientService $horizonApi The horizon API client.
      */
     public function __construct(HorizonClientService $horizonApi)
     {

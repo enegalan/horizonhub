@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Http;
 class SlackNotifierService extends AbstractAlertNotifier
 {
     /**
-     * Construct the Slack notifier.
+     * The constructor.
+     *
+     * @param HorizonClientService $horizonApi The horizon API client.
      */
     public function __construct(HorizonClientService $horizonApi)
     {
