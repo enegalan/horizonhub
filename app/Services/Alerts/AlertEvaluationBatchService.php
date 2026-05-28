@@ -72,10 +72,6 @@ class AlertEvaluationBatchService
                 'evaluation_id' => $evaluationId,
                 'status' => 'completed',
                 'total_alerts' => 0,
-                'evaluated_count' => 0,
-                'triggered_count' => 0,
-                'delivered_count' => 0,
-                'error_count' => 0,
             ];
         }
 
