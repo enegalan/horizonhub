@@ -180,11 +180,13 @@ class HorizonStreamsController extends StreamController
             'chartData' => $chartData,
         ])->render();
 
-        $chartJson = \json_encode($chartData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $chartDataHtml = \view('components.horizon.alert-detail-chart-data', [
+            'chartData' => $chartData,
+        ])->render();
 
         return $this->buildStreams([
             [self::MODE_APPEND_CONTENT, 'update', 'alert-detail-stats', $statsHtml, 'morph'],
-            [self::MODE_APPEND_CONTENT, 'replace', 'alert-detail-chart-data', '<div id="alert-detail-chart-data"><script type="application/json" id="alert-detail-chart-data-json">' . $chartJson . '</script></div>', null],
+            [self::MODE_APPEND_CONTENT, 'replace', 'alert-detail-chart-data', $chartDataHtml, null],
         ]);
     }
 

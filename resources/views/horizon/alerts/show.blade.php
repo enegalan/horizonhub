@@ -130,9 +130,7 @@
         </div>
 
         <div data-alert-detail-after-charts>
-            <div id="alert-detail-chart-data">
-                <script type="application/json" id="alert-detail-chart-data-json">@json($chartData)</script>
-            </div>
+            <x-horizon.alert-detail-chart-data :chart-data="$chartData" />
 
             <x-turbo::frame id="alert-logs">
             <div class="card mb-4">
