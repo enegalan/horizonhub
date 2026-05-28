@@ -4,9 +4,9 @@ namespace App\Services\Alerts;
 
 use App\Jobs\EvaluateAlertJob;
 use App\Models\Alert;
+use App\Support\Alerts\AlertEvaluationBatchCache;
 use Illuminate\Bus\Batch;
 use Illuminate\Support\Facades\Bus;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class AlertEvaluationBatchService
@@ -20,27 +20,18 @@ class AlertEvaluationBatchService
      */
     public function getEvaluationStatus(string $evaluationId): array
     {
-        $namespace = "horizonhub.alert_evaluation_batches.$evaluationId";
-
-        $status = (string) (Cache::get("$namespace.status") ?? 'running');
-        $totalAlerts = (int) (Cache::get("$namespace.total_alerts") ?? 0);
-        $evaluatedCount = (int) (Cache::get("$namespace.evaluated_count") ?? 0);
-        $triggeredCount = (int) (Cache::get("$namespace.triggered_count") ?? 0);
-        $deliveredCount = (int) (Cache::get("$namespace.delivered_count") ?? 0);
-        $errorCount = (int) (Cache::get("$namespace.error_count") ?? 0);
-        $firstErrorMessage = Cache::get("$namespace.first_error_message");
-        $errorMessage = Cache::get("$namespace.error_message");
+        $cache = new AlertEvaluationBatchCache($evaluationId);
 
         return [
             'evaluation_id' => $evaluationId,
-            'status' => $status,
-            'total_alerts' => $totalAlerts,
-            'evaluated_count' => $evaluatedCount,
-            'triggered_count' => $triggeredCount,
-            'delivered_count' => $deliveredCount,
-            'error_count' => $errorCount,
-            'first_error_message' => \is_string($firstErrorMessage) ? $firstErrorMessage : null,
-            'error_message' => \is_string($errorMessage) ? $errorMessage : null,
+            'status' => $cache->getStatus(),
+            'total_alerts' => $cache->getTotalAlerts(),
+            'evaluated_count' => $cache->getEvaluatedCount(),
+            'triggered_count' => $cache->getTriggeredCount(),
+            'delivered_count' => $cache->getDeliveredCount(),
+            'error_count' => $cache->getErrorCount(),
+            'first_error_message' => $cache->getFirstErrorMessage(),
+            'error_message' => $cache->getErrorMessage(),
         ];
     }
 
@@ -58,14 +49,11 @@ class AlertEvaluationBatchService
 
         $total = \count($alertIds);
         $evaluationId = (string) Str::uuid();
-        $namespace = "horizonhub.alert_evaluation_batches.$evaluationId";
+        $cache = new AlertEvaluationBatchCache($evaluationId);
 
-        Cache::put("$namespace.status", $total > 0 ? 'running' : 'completed', now()->addMinutes(30));
-        Cache::put("$namespace.total_alerts", $total, now()->addMinutes(30));
-        Cache::put("$namespace.evaluated_count", 0, now()->addMinutes(30));
-        Cache::put("$namespace.triggered_count", 0, now()->addMinutes(30));
-        Cache::put("$namespace.delivered_count", 0, now()->addMinutes(30));
-        Cache::put("$namespace.error_count", 0, now()->addMinutes(30));
+        $cache->putStatus($total > 0 ? 'running' : 'completed');
+        $cache->putTotalAlerts($total);
+        $cache->initializeCounters();
 
         if ($total === 0) {
             return [
@@ -75,8 +63,7 @@ class AlertEvaluationBatchService
             ];
         }
 
-        Cache::forget("$namespace.error_message");
-        Cache::forget("$namespace.first_error_message");
+        $cache->forgetBatchErrors();
 
         $jobs = [];
 
@@ -87,12 +74,11 @@ class AlertEvaluationBatchService
         Bus::batch($jobs)
             ->name('HorizonHub: Evaluate all alerts')
             ->onConnection('deferred')
-            ->then(function (Batch $batch) use ($namespace): void {
-                Cache::put("$namespace.status", 'completed', now()->addMinutes(30));
+            ->then(function (Batch $batch) use ($cache): void {
+                $cache->markCompleted();
             })
-            ->catch(function (Batch $batch, \Throwable $e) use ($namespace): void {
-                Cache::put("$namespace.status", 'failed', now()->addMinutes(30));
-                Cache::put("$namespace.error_message", $e->getMessage(), now()->addMinutes(30));
+            ->catch(function (Batch $batch, \Throwable $e) use ($cache): void {
+                $cache->markBatchFailed($e->getMessage());
             })
             ->dispatch();
 

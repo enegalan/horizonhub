@@ -13,7 +13,7 @@ class EvaluateAlertJobTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_job_catches_engine_exceptions_and_writes_error_result(): void
+    public function test_job_catches_engine_exceptions_and_updates_error_counters(): void
     {
         Cache::flush();
         $alert = Alert::query()->create([
@@ -26,22 +26,21 @@ class EvaluateAlertJobTest extends TestCase
 
         (new EvaluateAlertJob($alert->id, 'eval-c'))->handle($engine);
 
-        $result = Cache::get('horizonhub.alert_evaluation_batches.eval-c.results.' . $alert->id);
-        $this->assertSame('engine-fail', $result['error_message']);
+        $this->assertEquals(1, Cache::get('horizonhub.alert_evaluation_batches.eval-c.evaluated_count'));
         $this->assertEquals(1, Cache::get('horizonhub.alert_evaluation_batches.eval-c.error_count'));
+        $this->assertSame('engine-fail', Cache::get('horizonhub.alert_evaluation_batches.eval-c.first_error_message'));
     }
 
-    public function test_job_stores_not_found_result_and_error_counters(): void
+    public function test_job_records_not_found_as_error_counters(): void
     {
         Cache::flush();
         $job = new EvaluateAlertJob(99999, 'eval-a');
         $engine = $this->createMock(AlertEngine::class);
         $job->handle($engine);
 
-        $result = Cache::get('horizonhub.alert_evaluation_batches.eval-a.results.99999');
-        $this->assertSame('Alert not found', $result['error_message']);
         $this->assertEquals(1, Cache::get('horizonhub.alert_evaluation_batches.eval-a.evaluated_count'));
         $this->assertEquals(1, Cache::get('horizonhub.alert_evaluation_batches.eval-a.error_count'));
+        $this->assertSame('Alert not found', Cache::get('horizonhub.alert_evaluation_batches.eval-a.first_error_message'));
     }
 
     public function test_job_updates_counters_and_first_error_message_once(): void
