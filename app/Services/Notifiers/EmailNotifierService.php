@@ -39,7 +39,7 @@ class EmailNotifierService extends AbstractAlertNotifier
 
         $notification = $this->buildNotification($alert, $events);
 
-        Log::info('Horizon Hub: sending alert email', [
+        Log::info(config('app.name') . ': sending alert email', [
             'alert_id' => $alert->id,
             'to' => $to,
             'event_count' => $notification['totalEventCount'],

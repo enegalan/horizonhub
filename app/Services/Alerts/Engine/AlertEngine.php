@@ -73,7 +73,7 @@ class AlertEngine
             $lastSentAtBefore = $this->batchStore->getLastSentAt($alert);
             $pendingFlushed = $this->private__flushPendingIfDue($alert);
         } catch (\Throwable $e) {
-            Log::error('Horizon Hub: evaluate alert failed while flushing pending', [
+            Log::error(config('app.name') . ': evaluate alert failed while flushing pending', [
                 'alert_id' => $alert->id,
                 'error' => $e->getMessage(),
             ]);
@@ -83,7 +83,9 @@ class AlertEngine
         try {
             $serviceIds = $alert->resolvedServiceIds();
 
-            if (empty($serviceIds)) {
+            $hit = $this->private__evaluateFirstTriggeredService($alert, $serviceIds);
+
+            if ($hit === null) {
                 $errorMessage = 'No enabled services to evaluate alert (enable at least one service).';
 
                 return [
@@ -97,16 +99,11 @@ class AlertEngine
                     'delivered_check_error_message' => null,
                 ];
             }
-
-            $hit = $this->private__evaluateFirstTriggeredService($alert, $serviceIds);
-
-            if ($hit !== null) {
-                $this->private__triggerAlert($alert, $hit['service_id'], $hit['job_uuids']);
-                $triggered = true;
-                $triggeredServiceId = $hit['service_id'];
-            }
+            $this->private__triggerAlert($alert, $hit['service_id'], $hit['job_uuids']);
+            $triggered = true;
+            $triggeredServiceId = $hit['service_id'];
         } catch (\Throwable $e) {
-            Log::error('Horizon Hub: evaluate alert failed', [
+            Log::error(config('app.name') . ': evaluate alert failed', [
                 'alert_id' => $alert->id,
                 'error' => $e->getMessage(),
             ]);
@@ -117,7 +114,7 @@ class AlertEngine
             $lastSentAtAfter = $this->batchStore->getLastSentAt($alert);
             $delivered = ! empty($lastSentAtAfter) && (empty($lastSentAtBefore) || ! $lastSentAtAfter->eq($lastSentAtBefore));
         } catch (\Throwable $e) {
-            Log::error('Horizon Hub: evaluate alert failed while checking delivery', [
+            Log::error(config('app.name') . ': evaluate alert failed while checking delivery', [
                 'alert_id' => $alert->id,
                 'error' => $e->getMessage(),
             ]);
@@ -147,28 +144,22 @@ class AlertEngine
         $alerts = Alert::where('enabled', true)
             ->with('notificationProviders')
             ->get();
-        $enabledServiceIds = Service::query()->enabled()->pluck('id')->all();
 
         foreach ($alerts as $alert) {
             try {
-                $serviceIds = \array_values(\array_intersect(
-                    $alert->resolvedServiceIds(),
-                    $enabledServiceIds,
-                ));
+                $serviceIds = $alert->resolvedServiceIds();
 
-                if (empty($serviceIds)) {
-                    Log::warning('Horizon Hub: no enabled services to evaluate alert', ['alert_id' => $alert->id]);
+                $hit = $this->private__evaluateFirstTriggeredService($alert, $serviceIds);
+
+                if ($hit === null) {
+                    Log::warning(config('app.name') . ': no enabled services to evaluate alert', ['alert_id' => $alert->id]);
 
                     continue;
                 }
 
-                $hit = $this->private__evaluateFirstTriggeredService($alert, $serviceIds);
-
-                if ($hit !== null) {
-                    $this->private__triggerAlert($alert, $hit['service_id'], $hit['job_uuids']);
-                }
+                $this->private__triggerAlert($alert, $hit['service_id'], $hit['job_uuids']);
             } catch (\Throwable $e) {
-                Log::error('Horizon Hub: evaluate scheduled alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
+                Log::error(config('app.name') . ': evaluate scheduled alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
             }
         }
     }
@@ -202,7 +193,7 @@ class AlertEngine
             try {
                 $this->private__flushPendingIfDue($alert);
             } catch (\Throwable $e) {
-                Log::error('Horizon Hub: flush pending alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
+                Log::error(config('app.name') . ': flush pending alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
             }
         }
     }

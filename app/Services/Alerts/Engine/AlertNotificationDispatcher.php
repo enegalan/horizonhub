@@ -65,11 +65,11 @@ class AlertNotificationDispatcher
                     if (! empty($to)) {
                         $this->emailNotifier->sendBatched($alert, $events, ['to' => $to]);
                     } else {
-                        Log::warning('Horizon Hub: email provider has no recipients, skip', ['alert_id' => $alert->id, 'provider_id' => $provider->id]);
+                        Log::warning(config('app.name') . ': email provider has no recipients, skip', ['alert_id' => $alert->id, 'provider_id' => $provider->id]);
                     }
                 }
             } catch (\Throwable $e) {
-                Log::error('Horizon Hub alert notification failed', ['alert_id' => $alert->id, 'provider_id' => $provider->id, 'error' => $e->getMessage()]);
+                Log::error(config('app.name') . ': alert notification failed', ['alert_id' => $alert->id, 'provider_id' => $provider->id, 'error' => $e->getMessage()]);
                 $log->update(['status' => 'failed', 'failure_message' => $e->getMessage()]);
             }
         }
