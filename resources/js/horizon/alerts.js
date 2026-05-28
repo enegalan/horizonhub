@@ -434,29 +434,6 @@ export function horizonAlertDetail(config) {
         deliveryLogModalMounted: false,
         deliveryLog: null,
         /**
-         * Normalize delivery log data.
-         * @param {object} logData
-         * @returns {object}
-         */
-        normalizeDeliveryLog(logData) {
-            if (!logData || typeof logData !== 'object') {
-                return null;
-            }
-            var normalized = Object.assign({}, logData);
-            var eventsCount = Math.max(0, Number.parseInt(String(normalized.events_count ?? 0), 10));
-            var jobItems = Array.isArray(normalized.job_items) ? normalized.job_items : [];
-            var incomingMore = Number.parseInt(String(normalized.job_ids_more ?? 0), 10);
-            if (!Number.isFinite(incomingMore) || incomingMore < 0) {
-                incomingMore = 0;
-            }
-            var incomingTotalJobTypesCount = jobItems.length + incomingMore;
-            var effectiveTotalJobTypesCount = Math.min(incomingTotalJobTypesCount, eventsCount);
-            normalized.job_ids_more = Math.max(0, effectiveTotalJobTypesCount - jobItems.length);
-            normalized.job_items = jobItems;
-            normalized.events_count = eventsCount;
-            return normalized;
-        },
-        /**
          * Initialize the alert detail.
          * @returns {void}
          */
@@ -464,7 +441,7 @@ export function horizonAlertDetail(config) {
             var self = this;
 
             if (config && config.initialDeliveryLog) {
-                self.openDeliveryLogModal(self.normalizeDeliveryLog(config.initialDeliveryLog));
+                self.openDeliveryLogModal(config.initialDeliveryLog);
             }
 
             // Initial hydration to initially show alert detail charts
@@ -476,12 +453,10 @@ export function horizonAlertDetail(config) {
          * @returns {void}
          */
         openDeliveryLogModal(logData) {
-            if (logData) {
-                this.deliveryLog = this.normalizeDeliveryLog(logData);
-            }
-            if (!this.deliveryLog) {
+            if (!logData || typeof logData !== 'object') {
                 return;
             }
+            this.deliveryLog = logData;
             this.deliveryLogModalMounted = true;
             this.showDeliveryLogModal = false;
             requestAnimationFrame(() => {
