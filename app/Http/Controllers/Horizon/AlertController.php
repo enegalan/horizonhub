@@ -73,10 +73,7 @@ class AlertController extends Controller
      */
     public function evaluateAlert(Alert $alert, AlertEngine $engine): JsonResponse
     {
-        $alert->loadMissing('notificationProviders');
-        $result = $engine->evaluateAlert($alert);
-
-        return \response()->json($result);
+        return \response()->json($engine->evaluateAlert($alert));
     }
 
     /**
@@ -129,11 +126,7 @@ class AlertController extends Controller
     {
         $statusFilter = (string) $request->query('status', '');
         $serviceFilter = $request->query('service_id');
-        $perPage = (int) $request->query('per_page');
-
-        if (! $perPage || $perPage <= 0) {
-            $perPage = config('horizonhub.jobs_per_page');
-        }
+        $perPage = (int) max(1, $request->query('per_page', config('horizonhub.jobs_per_page')));
 
         $logsQuery = $alert->alertLogs()
             ->with('service')
@@ -158,24 +151,13 @@ class AlertController extends Controller
                 ->find($selectedLogId);
         }
 
-        $services = Service::query()->enabled()->orderBy('name')->get();
-
-        $ruleConfig = [
-            'rule_type' => $alert->rule_type,
-            'threshold' => $alert->threshold,
-            'queue' => $alert->queue,
-            'job_type' => $alert->job_type,
-            'service_ids' => $alert->service_ids,
-        ];
-
         return \view('horizon.alerts.show', [
             'alert' => $alert,
             'alertName' => $alert->name,
             'logs' => $logs,
             'chartData' => new \stdClass,
             'defer' => true,
-            'services' => $services,
-            'ruleConfig' => $ruleConfig,
+            'services' => Service::query()->enabled()->orderBy('name')->get(),
             'selectedLog' => $selectedLog,
             'initialDeliveryLogPayload' => AlertDeliveryLogPresenter::payloadFromLog($selectedLog),
             'filters' => [
