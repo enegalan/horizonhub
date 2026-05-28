@@ -6,12 +6,9 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Support\Alerts\AlertRuleEvaluation;
-use App\Support\Alerts\AlertRuleStrategy;
 
 final class QueueBlocked implements AlertRuleContract
 {
-    use AlertRuleStrategy;
-
     /**
      * The evaluation support.
      */
@@ -40,7 +37,7 @@ final class QueueBlocked implements AlertRuleContract
 
     private function private__evaluateQueueBlocked(Alert $alert, int $serviceId): bool
     {
-        $minutes = $this->private__thresholdMinutes($alert, 30);
+        $minutes = $alert->getThresholdMinutes(30);
         $service = Service::find($serviceId);
 
         if ($service === null) {

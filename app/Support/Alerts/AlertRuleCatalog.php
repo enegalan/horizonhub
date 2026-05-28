@@ -16,15 +16,12 @@ final class AlertRuleCatalog
      */
     public static function conditionSummary(Alert $alert, ?string $detectedAt = null): string
     {
-        $threshold = $alert->threshold ?? [];
-        $minutes = (int) ($threshold['minutes'] ?? config('horizonhub.alerts.default_minutes'));
-
         $summary = match ($alert->rule_type) {
-            Alert::RULE_FAILURE_COUNT => 'At least ' . (int) ($threshold['count'] ?? config('horizonhub.alerts.default_count')) . " failures in the last {$minutes} minutes",
-            Alert::RULE_AVG_EXECUTION_TIME => 'Average execution time exceeds ' . (float) ($threshold['seconds'] ?? config('horizonhub.alerts.default_seconds')) . "s in the last {$minutes} minutes",
-            Alert::RULE_QUEUE_BLOCKED => "Queue blocked for {$minutes} minutes",
-            Alert::RULE_WORKER_OFFLINE => "Worker offline for {$minutes} minutes",
-            Alert::RULE_SUPERVISOR_OFFLINE => "Supervisor offline for {$minutes} minutes",
+            Alert::RULE_FAILURE_COUNT => 'At least ' . $alert->getThresholdCount() . " failures in the last {$alert->getThresholdMinutes()} minutes",
+            Alert::RULE_AVG_EXECUTION_TIME => 'Average execution time exceeds ' . $alert->getThresholdSeconds() . "s in the last {$alert->getThresholdMinutes()} minutes",
+            Alert::RULE_QUEUE_BLOCKED => "Queue blocked for {$alert->getThresholdMinutes()} minutes",
+            Alert::RULE_WORKER_OFFLINE => "Worker offline for {$alert->getThresholdMinutes()} minutes",
+            Alert::RULE_SUPERVISOR_OFFLINE => "Supervisor offline for {$alert->getThresholdMinutes()} minutes",
             Alert::RULE_HORIZON_OFFLINE => 'Horizon is not running for this service' . (filled($detectedAt) ? " (detected at {$detectedAt})" : ''),
             default => 'Alert condition met',
         };

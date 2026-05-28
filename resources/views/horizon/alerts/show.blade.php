@@ -65,8 +65,11 @@
                 @endif
                 @php
                     $threshold = $alert->threshold ?? [];
-                    $jobPatternsShow = isset($threshold['job_patterns']) && \is_array($threshold['job_patterns']) ? $threshold['job_patterns'] : [];
-                    $queuePatternsShow = isset($threshold['queue_patterns']) && \is_array($threshold['queue_patterns']) ? $threshold['queue_patterns'] : [];
+                    $jobPatternsShow = $alert->getJobPatterns();
+                    $queuePatternsShow = $alert->getQueuePatterns();
+                    $thresholdCount = $alert->getThresholdCount();
+                    $thresholdSeconds = $alert->getThresholdSeconds();
+                    $thresholdMinutes = $alert->getThresholdMinutes();
                 @endphp
                 @if(\count($jobPatternsShow) > 0)
                     <div class="sm:col-span-2">
@@ -80,18 +83,19 @@
                         <dd class="mt-0.5 text-foreground font-mono text-xs whitespace-pre-wrap">{{ \implode("\n", \array_map('strval', $queuePatternsShow)) }}</dd>
                     </div>
                 @endif
+                {{-- TO-EVALUATE: Is there a case where this is empty? --}}
                 @if(!empty($threshold))
                     <div>
                         <dt class="label-muted">Threshold</dt>
                         <dd class="mt-0.5 text-foreground text-xs">
                             @if(isset($threshold['count']))
-                                Failures: {{ (int) $threshold['count'] }}
+                                Failures: {{ $thresholdCount }}
                             @endif
                             @if(isset($threshold['seconds']))
-                                <span class="mr-1"></span>Seconds: {{ (float) $threshold['seconds'] }}
+                                <span class="mr-1"></span>Seconds: {{ $thresholdSeconds }}
                             @endif
                             @if(isset($threshold['minutes']))
-                                <span class="mr-1"></span>Window: {{ (int) $threshold['minutes'] }} min
+                                <span class="mr-1"></span>Window: {{ $thresholdMinutes }} min
                             @endif
                         </dd>
                     </div>

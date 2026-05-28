@@ -5,12 +5,9 @@ namespace App\Services\Alerts\Rules\Strategies;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
-use App\Support\Alerts\AlertRuleStrategy;
 
 final class WorkerOffline implements AlertRuleContract
 {
-    use AlertRuleStrategy;
-
     /**
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
@@ -24,13 +21,12 @@ final class WorkerOffline implements AlertRuleContract
 
     private function private__evaluateWorkerOffline(Alert $alert, int $serviceId): bool
     {
-        $minutes = $this->private__thresholdMinutes($alert);
         $service = Service::find($serviceId);
 
         if (! $service || ! $service->last_seen_at) {
             return false;
         }
 
-        return $service->last_seen_at->copy()->addMinutes($minutes)->isPast();
+        return $service->last_seen_at->copy()->addMinutes($alert->getThresholdMinutes())->isPast();
     }
 }

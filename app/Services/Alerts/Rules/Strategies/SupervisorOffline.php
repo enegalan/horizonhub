@@ -6,13 +6,10 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Services\Horizon\HorizonClientService;
-use App\Support\Alerts\AlertRuleStrategy;
 use Carbon\Carbon;
 
 final class SupervisorOffline implements AlertRuleContract
 {
-    use AlertRuleStrategy;
-
     /**
      * The Horizon API client.
      */
@@ -41,7 +38,6 @@ final class SupervisorOffline implements AlertRuleContract
 
     private function private__evaluateSupervisorOffline(Alert $alert, int $serviceId): bool
     {
-        $minutes = $this->private__thresholdMinutes($alert);
         $service = Service::find($serviceId);
 
         if ($service === null) {
@@ -55,7 +51,7 @@ final class SupervisorOffline implements AlertRuleContract
             return false;
         }
 
-        $staleAt = \now()->subMinutes($minutes);
+        $staleAt = \now()->subMinutes($alert->getThresholdMinutes());
         $staleFound = false;
 
         foreach ($data as $master) {

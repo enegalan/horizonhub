@@ -6,12 +6,9 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Support\Alerts\AlertRuleEvaluation;
-use App\Support\Alerts\AlertRuleStrategy;
 
 final class FailureCount implements AlertRuleContract
 {
-    use AlertRuleStrategy;
-
     /**
      * The evaluation support.
      */
@@ -32,20 +29,16 @@ final class FailureCount implements AlertRuleContract
      */
     public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
     {
-        $threshold = $alert->threshold ?? [];
-        $count = (int) ($threshold['count'] ?? config('horizonhub.alerts.default_count'));
-        $minutes = $this->private__thresholdMinutes($alert);
-
         $service = Service::find($serviceId);
 
         if ($service === null) {
             return ['triggered' => false, 'job_uuids' => []];
         }
 
-        $cutoff = \now()->subMinutes($minutes);
+        $cutoff = \now()->subMinutes($alert->getThresholdMinutes());
         $inWindow = $this->support->matchingFailedJobsInWindow($alert, $service, $cutoff);
 
-        $triggered = $inWindow->count() >= $count;
+        $triggered = $inWindow->count() >= $alert->getThresholdCount();
 
         $jobUuids = [];
 

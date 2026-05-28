@@ -4,8 +4,8 @@
 @forelse($alerts as $alert)
     @php
         $serviceLabels = isset($serviceLabelsByAlertId) ? ($serviceLabelsByAlertId[$alert->id] ?? []) : [];
-        $queuePatterns = isset($alert->threshold['queue_patterns']) && \is_array($alert->threshold['queue_patterns']) ? $alert->threshold['queue_patterns'] : [];
-        $jobPatterns = isset($alert->threshold['job_patterns']) && \is_array($alert->threshold['job_patterns']) ? $alert->threshold['job_patterns'] : [];
+        $queuePatterns = $alert->getQueuePatterns();
+        $jobPatterns = $alert->getJobPatterns();
         $queuePatternsForSig = \array_values($queuePatterns);
         $jobPatternsForSig = \array_values($jobPatterns);
         \sort($queuePatternsForSig);

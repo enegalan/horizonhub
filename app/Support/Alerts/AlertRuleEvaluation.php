@@ -159,8 +159,7 @@ final class AlertRuleEvaluation
      */
     public function resolveJobPatterns(Alert $alert): array
     {
-        $threshold = $alert->threshold ?? [];
-        $fromThreshold = $threshold['job_patterns'] ?? [];
+        $fromThreshold = $alert->getJobPatterns();
 
         if (! \is_array($fromThreshold)) {
             $fromThreshold = [];
@@ -191,8 +190,7 @@ final class AlertRuleEvaluation
      */
     public function resolveQueuePatterns(Alert $alert): array
     {
-        $threshold = $alert->threshold ?? [];
-        $fromThreshold = $threshold['queue_patterns'] ?? [];
+        $fromThreshold = $alert->getQueuePatterns();
 
         if (! \is_array($fromThreshold)) {
             $fromThreshold = [];

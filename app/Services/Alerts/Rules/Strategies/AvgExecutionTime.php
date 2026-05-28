@@ -6,13 +6,10 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Support\Alerts\AlertRuleEvaluation;
-use App\Support\Alerts\AlertRuleStrategy;
 use Carbon\Carbon;
 
 final class AvgExecutionTime implements AlertRuleContract
 {
-    use AlertRuleStrategy;
-
     /**
      * The evaluation support.
      */
@@ -38,17 +35,13 @@ final class AvgExecutionTime implements AlertRuleContract
      */
     public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
     {
-        $threshold = $alert->threshold ?? [];
-        $maxSeconds = (float) ($threshold['seconds'] ?? config('horizonhub.alerts.default_seconds'));
-        $minutes = $this->private__thresholdMinutes($alert);
-
         $service = Service::find($serviceId);
 
         if ($service === null) {
             return ['triggered' => false, 'job_uuids' => []];
         }
 
-        $cutoff = \now()->subMinutes($minutes);
+        $cutoff = \now()->subMinutes($alert->getThresholdMinutes());
 
         $durations = $this->support
             ->matchingCompletedJobsInWindow($alert, $service, $cutoff)
@@ -79,7 +72,7 @@ final class AvgExecutionTime implements AlertRuleContract
             return ['triggered' => false, 'job_uuids' => []];
         }
 
-        $triggered = (float) $durations->average() >= $maxSeconds;
+        $triggered = (float) $durations->average() >= $alert->getThresholdSeconds();
 
         return [
             'triggered' => $triggered,

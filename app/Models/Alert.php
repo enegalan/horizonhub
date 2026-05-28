@@ -116,6 +116,66 @@ class Alert extends Model
     }
 
     /**
+     * Get the job patterns.
+     *
+     * @param array|null $default The default value.
+     *
+     * @return array The job patterns.
+     */
+    public function getJobPatterns(?array $default = null): array
+    {
+        return $this->threshold['job_patterns'] ?? $default ?? [];
+    }
+
+    /**
+     * Get the queue patterns.
+     *
+     * @param array|null $default The default value.
+     *
+     * @return array The queue patterns.
+     */
+    public function getQueuePatterns(?array $default = null): array
+    {
+        return $this->threshold['queue_patterns'] ?? $default ?? [];
+    }
+
+    /**
+     * Get the threshold count.
+     *
+     * @param int|null $default The default value.
+     *
+     * @return int The threshold count.
+     */
+    public function getThresholdCount(?int $default = null): int
+    {
+        return (int) ($this->threshold['count'] ?? $default ?? config('horizonhub.alerts.default_count'));
+    }
+
+    /**
+     * Get the threshold seconds.
+     *
+     * @param float|null $default The default value.
+     *
+     * @return float The threshold seconds.
+     */
+    public function getThresholdSeconds(?int $default = null): float
+    {
+        return (float) ($this->threshold['seconds'] ?? $default ?? config('horizonhub.alerts.default_seconds'));
+    }
+
+    /**
+     * Get the threshold minutes.
+     *
+     * @param int|null $default The default value.
+     *
+     * @return int The threshold minutes.
+     */
+    public function getThresholdMinutes(?int $default = null): int
+    {
+        return (int) ($this->threshold['minutes'] ?? $default ?? config('horizonhub.alerts.default_minutes'));
+    }
+
+    /**
      * Scope to enabled alerts only.
      *
      * @param Builder<Alert> $query

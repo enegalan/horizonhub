@@ -6,13 +6,10 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Services\Horizon\HorizonClientService;
-use App\Support\Alerts\AlertRuleStrategy;
 use App\Support\Horizon\HorizonStatsReader;
 
 final class HorizonOffline implements AlertRuleContract
 {
-    use AlertRuleStrategy;
-
     /**
      * The Horizon API client.
      */
