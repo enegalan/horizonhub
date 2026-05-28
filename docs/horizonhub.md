@@ -169,7 +169,7 @@ No application-level authentication. Access control is expected at the network o
 Primary file: `config/horizonhub.php`. Many keys have `HORIZON_HUB_*` env overrides documented in that file (timeouts, retries, job page sizes, alert defaults).
 
 **What HTTP statuses does the proxy treat specially?**
-`401`, `403`, `419` may trigger dashboard session retry flows; `429`, `502`, `503`, `504` may be retried on GET per `horizon_http_retry`.
+`401`, `403`, `419` skip failure cooldown (fix access via per-service headers); dashboard session is used only for POST job retry. `429`, `502`, `503`, `504` may be retried on GET per `horizon_http_retry`.
 
 **Does Horizon Hub cache remote Horizon data?**
 Not as a separate agent/cache product decision—see rejected [IDEA-0003](decisions/rejected/0003-cache-horizon-service-data.md). Live UI updates use SSE patches, not a substitute for Horizon's own storage.

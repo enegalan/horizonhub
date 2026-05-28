@@ -293,7 +293,7 @@ class TurboStreamSseTest extends TestCase
         $service->update(['tags' => ['production']]);
         $this->assertSame([$service->id], $filter->resolveFromQuery('service_tag[]=production'));
 
-        $tag = new \ReflectionMethod(StreamController::class, 'turboStreamTag');
+        $tag = new \ReflectionMethod(StreamController::class, 'private__turboStreamTag');
         $tag->setAccessible(true);
         $withoutMethod = $tag->invoke($controller, 'update', 'x', '<div>a</div>');
         $withMethod = $tag->invoke($controller, 'update', 'x', '<div>a</div>', 'morph');

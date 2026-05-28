@@ -184,7 +184,7 @@ class HorizonStreamsController extends StreamController
 
         return $this->buildStreams([
             [self::MODE_APPEND_CONTENT, 'update', 'alert-detail-stats', $statsHtml, 'morph'],
-            [self::MODE_APPEND_CONTENT, 'replace', 'alert-detail-chart-data', '<div id="alert-detail-chart-data"><script type="application/json" id="alert-detail-chart-data-json">' . $chartJson . '</script></div>'],
+            [self::MODE_APPEND_CONTENT, 'replace', 'alert-detail-chart-data', '<div id="alert-detail-chart-data"><script type="application/json" id="alert-detail-chart-data-json">' . $chartJson . '</script></div>', null],
         ]);
     }
 

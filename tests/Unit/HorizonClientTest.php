@@ -269,7 +269,7 @@ class HorizonClientTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_get_workload_retries_with_dashboard_session_after_unauthorized_response(): void
+    public function test_get_workload_returns_unauthorized_without_dashboard_bootstrap(): void
     {
         $apiCalls = 0;
         $dashboardCalls = 0;
@@ -284,11 +284,7 @@ class HorizonClientTest extends TestCase
             if ($request->method() === 'GET' && \str_ends_with($request->url(), '/horizon/api/workload')) {
                 $apiCalls++;
 
-                if ($apiCalls === 1) {
-                    return Http::response(['message' => 'Unauthorized'], 401);
-                }
-
-                return Http::response(['data' => [['name' => 'redis.default', 'length' => 2]]], 200);
+                return Http::response(['message' => 'Unauthorized'], 401);
             }
 
             return Http::response('unexpected', 500);
@@ -300,7 +296,7 @@ class HorizonClientTest extends TestCase
         \config()->set('horizonhub.horizon_http_auth_statuses', [401, 403, 419]);
 
         $service = Service::create([
-            'name' => 'svc-workload-fallback',
+            'name' => 'svc-workload-unauthorized',
             'base_url' => 'https://service-workload.test',
             'status' => 'offline',
         ]);
@@ -308,9 +304,10 @@ class HorizonClientTest extends TestCase
         $proxy = new HorizonClientService;
         $result = $proxy->getWorkload($service);
 
-        $this->assertTrue($result['success']);
-        $this->assertSame(2, $apiCalls);
-        $this->assertSame(1, $dashboardCalls);
+        $this->assertFalse($result['success']);
+        $this->assertSame(401, $result['status']);
+        $this->assertSame(1, $apiCalls);
+        $this->assertSame(0, $dashboardCalls);
         $this->assertSame('offline', $service->fresh()->status);
     }
 
