@@ -15,7 +15,7 @@ class AlertUpsertServiceValidationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_validate_alert_builds_failure_count_payload_with_patterns_and_queue_fallback(): void
+    public function test_validate_alert_builds_failure_count_payload_with_patterns(): void
     {
         $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);
         $provider = NotificationProvider::query()->create([
@@ -28,10 +28,8 @@ class AlertUpsertServiceValidationTest extends TestCase
             'name' => 'alert-a',
             'rule_type' => Alert::RULE_FAILURE_COUNT,
             'service_ids' => [$service->id, $service->id],
-            'queue' => 'default',
-            'job_type' => 'App\\Jobs\\Sync',
             'job_patterns' => [' App\\Jobs\\Sync ', ''],
-            'queue_patterns' => [],
+            'queue_patterns' => ['default'],
             'thresholdCount' => 3,
             'thresholdMinutes' => 15,
             'provider_ids' => [$provider->id],
@@ -43,7 +41,6 @@ class AlertUpsertServiceValidationTest extends TestCase
 
         $this->assertSame('alert-a', $data['alert']['name']);
         $this->assertSame([$service->id], $data['alert']['service_ids']);
-        $this->assertSame('default', $data['alert']['queue']);
         $this->assertSame(3, $data['alert']['threshold']['count']);
         $this->assertSame(15, $data['alert']['threshold']['minutes']);
         $this->assertSame(['App\\Jobs\\Sync'], $data['alert']['threshold']['job_patterns']);

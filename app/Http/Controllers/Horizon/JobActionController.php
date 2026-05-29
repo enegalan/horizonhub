@@ -61,8 +61,6 @@ class JobActionController extends Controller
 
         if (! empty($validated['service_ids']) && \is_array($validated['service_ids'])) {
             $serviceIds = \array_values(\array_unique(\array_map('intval', $validated['service_ids'])));
-        } elseif (\array_key_exists('service_id', $validated) && \is_int($validated['service_id'])) {
-            $serviceIds = [$validated['service_id']];
         }
 
         $tags = $request->query('service_tag', []);

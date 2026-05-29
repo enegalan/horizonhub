@@ -27,8 +27,6 @@ class AlertRulesTest extends TestCase
         $api = $this->createMock(HorizonClientService::class);
         $support = new AlertRuleEvaluation(new JobsWindowFetcher($api));
         $alert = new Alert([
-            'queue' => 'default',
-            'job_type' => 'App\\Jobs\\Sync',
             'threshold' => [
                 'queue_patterns' => ['emails', 'default'],
                 'job_patterns' => ['App\\Jobs\\Sync', 'App\\Jobs\\Sync'],

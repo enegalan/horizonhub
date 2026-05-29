@@ -23,8 +23,6 @@
             'name' => (string) $alert->name,
             'enabled' => (bool) $alert->enabled,
             'rule_type' => (string) ($alert->rule_type ?? ''),
-            'queue' => (string) ($alert->queue ?? ''),
-            'job_type' => (string) ($alert->job_type ?? ''),
             'queue_patterns' => $queuePatternsForSig,
             'job_patterns' => $jobPatternsForSig,
             'service_labels' => $serviceLabelsForSig,
@@ -32,12 +30,12 @@
         ], \JSON_THROW_ON_ERROR));
         $queueSummary = \count($queuePatterns) > 1
             ? $queuePatterns[0] . ' (+' . (\count($queuePatterns) - 1) . ')'
-            : (\count($queuePatterns) === 1 ? $queuePatterns[0] : ($alert->queue ?? 'All queues'));
+            : (\count($queuePatterns) === 1 ? $queuePatterns[0] : 'All queues');
         $jobSummary = \count($jobPatterns) > 1
             ? \Illuminate\Support\Str::limit((string) $jobPatterns[0], 24) . ' (+' . (\count($jobPatterns) - 1) . ')'
             : (\count($jobPatterns) === 1
                 ? \Illuminate\Support\Str::limit((string) $jobPatterns[0], 32)
-                : ($alert->job_type ? \Illuminate\Support\Str::limit($alert->job_type, 32) : 'All jobs'));
+                : 'All jobs');
     @endphp
     <article
         class="card group relative overflow-hidden transition-colors hover:border-primary/30"

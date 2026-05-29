@@ -4,7 +4,6 @@ namespace App\Services\Alerts\Engine;
 
 use App\Models\Alert;
 use App\Models\AlertLog;
-use App\Models\Service;
 use App\Services\Alerts\Rules\AlertRuleStrategyRegistry;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;

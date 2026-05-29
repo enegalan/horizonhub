@@ -26,8 +26,12 @@ final class AlertRuleCatalog
             default => 'Alert condition met',
         };
 
-        if ($alert->rule_type === Alert::RULE_FAILURE_COUNT && filled($alert->queue)) {
-            $summary .= " (queue: {$alert->queue})";
+        if ($alert->rule_type === Alert::RULE_FAILURE_COUNT) {
+            $queuePatterns = $alert->getQueuePatterns();
+
+            if (\count($queuePatterns) === 1) {
+                $summary .= " (queue: {$queuePatterns[0]})";
+            }
         }
 
         return $summary;

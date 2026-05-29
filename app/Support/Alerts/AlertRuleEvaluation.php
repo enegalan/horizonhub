@@ -172,10 +172,6 @@ final class AlertRuleEvaluation
             return \array_values(\array_unique($patterns));
         }
 
-        if (! empty($alert->job_type)) {
-            return [(string) $alert->job_type];
-        }
-
         return [];
     }
 
@@ -192,14 +188,6 @@ final class AlertRuleEvaluation
         foreach ($fromThreshold as $p) {
             if (\is_string($p) && $p !== '') {
                 $patterns[] = $p;
-            }
-        }
-
-        if (! empty($alert->queue)) {
-            $q = (string) $alert->queue;
-
-            if (! \in_array($q, $patterns, true)) {
-                $patterns[] = $q;
             }
         }
 

@@ -74,8 +74,6 @@ class AlertControllerTest extends TestCase
                 'service_ids' => [$service->id],
                 'rule_type' => Alert::RULE_FAILURE_COUNT,
                 'threshold' => ['count' => 1, 'minutes' => 5],
-                'queue' => null,
-                'job_type' => null,
                 'enabled' => true,
                 'email_interval_minutes' => 0,
             ],

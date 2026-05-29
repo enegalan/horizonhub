@@ -51,18 +51,6 @@
                         @endif
                     </dd>
                 </div>
-                @if(! empty($alert->queue))
-                    <div>
-                        <dt class="label-muted">Queue</dt>
-                        <dd class="mt-0.5 text-foreground font-mono text-xs">{{ $alert->queue }}</dd>
-                    </div>
-                @endif
-                @if(! empty($alert->job_type))
-                    <div>
-                        <dt class="label-muted">Job type</dt>
-                        <dd class="mt-0.5 text-foreground font-mono text-xs">{{ $alert->job_type }}</dd>
-                    </div>
-                @endif
                 @php
                     $threshold = $alert->threshold ?? [];
                     $jobPatternsShow = $alert->getJobPatterns();

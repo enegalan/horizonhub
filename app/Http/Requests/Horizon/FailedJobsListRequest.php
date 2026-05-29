@@ -19,7 +19,6 @@ class FailedJobsListRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'service_id' => ['nullable', 'integer', 'exists:services,id'],
             'service_ids' => ['nullable', 'array'],
             'service_ids.*' => ['integer', 'exists:services,id'],
             'service_tag' => ['nullable', 'array'],

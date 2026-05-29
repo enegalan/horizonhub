@@ -62,8 +62,6 @@ class Alert extends Model
         'service_ids',
         'rule_type',
         'threshold',
-        'queue',
-        'job_type',
         'enabled',
         'email_interval_minutes',
     ];

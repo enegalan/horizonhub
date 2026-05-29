@@ -72,7 +72,7 @@ class JobActionControllerTest extends TestCase
         ]);
         $this->app->instance(JobListService::class, $jobList);
 
-        $response = $this->getJson(route('horizon.jobs.failed', ['selection' => 'all', 'service_id' => $service->id]));
+        $response = $this->getJson(route('horizon.jobs.failed', ['selection' => 'all', 'service_ids' => [$service->id]]));
         $response->assertOk()
             ->assertJsonPath('meta.total', 2)
             ->assertJsonPath('jobs.0.id', 'u1')
