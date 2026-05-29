@@ -85,37 +85,6 @@ class Alert extends Model
     }
 
     /**
-     * Get the notification providers of the alert.
-     */
-    public function notificationProviders(): BelongsToMany
-    {
-        return $this->belongsToMany(NotificationProvider::class, 'alert_notification_provider')
-            ->withTimestamps();
-    }
-
-    /**
-     * Service ids this alert should evaluate against.
-     *
-     * @return list<int>
-     */
-    public function resolvedServiceIds(): array
-    {
-        if (empty($this->service_ids)) {
-            return [];
-        }
-
-        $ids = Service::query()
-            ->enabled()
-            ->whereIn('id', $this->service_ids)
-            ->pluck('id')
-            ->all();
-
-        \sort($ids);
-
-        return $ids;
-    }
-
-    /**
      * Get the job patterns.
      *
      * @param array|null $default The default value.
@@ -152,6 +121,18 @@ class Alert extends Model
     }
 
     /**
+     * Get the threshold minutes.
+     *
+     * @param int|null $default The default value.
+     *
+     * @return int The threshold minutes.
+     */
+    public function getThresholdMinutes(?int $default = null): int
+    {
+        return (int) ($this->threshold['minutes'] ?? $default ?? config('horizonhub.alerts.default_minutes'));
+    }
+
+    /**
      * Get the threshold seconds.
      *
      * @param float|null $default The default value.
@@ -164,15 +145,34 @@ class Alert extends Model
     }
 
     /**
-     * Get the threshold minutes.
-     *
-     * @param int|null $default The default value.
-     *
-     * @return int The threshold minutes.
+     * Get the notification providers of the alert.
      */
-    public function getThresholdMinutes(?int $default = null): int
+    public function notificationProviders(): BelongsToMany
     {
-        return (int) ($this->threshold['minutes'] ?? $default ?? config('horizonhub.alerts.default_minutes'));
+        return $this->belongsToMany(NotificationProvider::class, 'alert_notification_provider')
+            ->withTimestamps();
+    }
+
+    /**
+     * Service ids this alert should evaluate against.
+     *
+     * @return list<int>
+     */
+    public function resolvedServiceIds(): array
+    {
+        if (empty($this->service_ids)) {
+            return [];
+        }
+
+        $ids = Service::query()
+            ->enabled()
+            ->whereIn('id', $this->service_ids)
+            ->pluck('id')
+            ->all();
+
+        \sort($ids);
+
+        return $ids;
     }
 
     /**

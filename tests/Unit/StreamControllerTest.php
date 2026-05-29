@@ -39,13 +39,13 @@ class StreamControllerTest extends TestCase
         };
 
         $first = $controller->public__build([
-            [StreamController::MODE_PUSH_STREAM, ['metrics-value-jobs-minute' => '42'], null],
+            ['update', 'metrics-value-jobs-minute', '42', null],
         ]);
         $second = $controller->public__build([
-            [StreamController::MODE_PUSH_STREAM, ['metrics-value-jobs-minute' => '42'], null],
+            ['update', 'metrics-value-jobs-minute', '42', null],
         ]);
         $third = $controller->public__build([
-            [StreamController::MODE_PUSH_STREAM, ['metrics-value-jobs-minute' => '43'], null],
+            ['update', 'metrics-value-jobs-minute', '43', null],
         ]);
 
         $this->assertStringContainsString('target="metrics-value-jobs-minute"', $first);
