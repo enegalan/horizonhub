@@ -135,7 +135,7 @@ class Alert extends Model
     /**
      * Get the threshold seconds.
      *
-     * @param float|null $default The default value.
+     * @param int|null $default The default value.
      *
      * @return float The threshold seconds.
      */
