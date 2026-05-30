@@ -59,7 +59,6 @@ document.addEventListener('turbo:load', function () {
 
 onDocumentReady(function () {
     mountToaster();
-    window.horizonHubTheme.applyTheme();
     schedule(function () {
         formatDatetimeElements();
     });

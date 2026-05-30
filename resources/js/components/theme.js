@@ -13,7 +13,11 @@ export function initTheme() {
          * @returns {void}
          */
         applyTheme: function () {
-            document.documentElement.classList.toggle('dark', resolveDark(getStoredTheme()));
+            const theme = getStoredTheme();
+            const isDark = resolveDark(theme);
+
+            document.documentElement.classList.toggle('light', !isDark);
+            document.documentElement.classList.toggle('dark', isDark);
         },
         /**
          * Set theme.

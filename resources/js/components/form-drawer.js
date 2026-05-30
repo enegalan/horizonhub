@@ -6,37 +6,42 @@ const FORM_DRAWER_CLOSE_MS = 300; // Same as the CSS transition duration. See .f
 
 var formDrawerCloseTimer = null;
 
-function getFormDrawerShell() {
-    return document.getElementById(FORM_DRAWER_SHELL_ID);
-}
-
-function getFormDrawerFrame() {
-    return document.getElementById(FORM_DRAWER_FRAME_ID);
-}
-
+/**
+ * Check if the form drawer is open.
+ *
+ * @returns {boolean} True if the form drawer is open, false otherwise.
+ */
 function formDrawerIsOpen() {
-    const shell = getFormDrawerShell();
+    const shell = document.getElementById(FORM_DRAWER_SHELL_ID);
     return Boolean(shell && shell.classList.contains(FORM_DRAWER_OPEN));
 }
 
+/**
+ * Clear the form drawer.
+ */
 function clearFormDrawer() {
     if (formDrawerCloseTimer) {
         window.clearTimeout(formDrawerCloseTimer);
         formDrawerCloseTimer = null;
     }
 
-    const frame = getFormDrawerFrame();
+    const frame = document.getElementById(FORM_DRAWER_FRAME_ID);
     if (frame) {
         frame.innerHTML = '';
         frame.removeAttribute('src');
     }
 
-    const shell = getFormDrawerShell();
+    const shell = document.getElementById(FORM_DRAWER_SHELL_ID);
     if (shell) {
         shell.classList.remove(FORM_DRAWER_OPEN, FORM_DRAWER_CLOSING);
     }
 }
 
+/**
+ * Close the form drawer.
+ *
+ * @param {boolean} immediate Whether to close the form drawer immediately.
+ */
 function closeFormDrawer(immediate) {
     if (!formDrawerIsOpen()) {
         clearFormDrawer();
@@ -51,7 +56,7 @@ function closeFormDrawer(immediate) {
         return;
     }
 
-    const shell = getFormDrawerShell();
+    const shell = document.getElementById(FORM_DRAWER_SHELL_ID);
     if (!shell || shell.classList.contains(FORM_DRAWER_CLOSING)) {
         return;
     }
@@ -60,8 +65,15 @@ function closeFormDrawer(immediate) {
     formDrawerCloseTimer = window.setTimeout(clearFormDrawer, FORM_DRAWER_CLOSE_MS);
 }
 
+/**
+ * Handle the turbo:load event.
+ * 
+ * Clears the form drawer if it is not open.
+ *
+ * @returns {void}
+ */
 document.addEventListener('turbo:load', function () {
-    const frame = getFormDrawerFrame();
+    const frame = document.getElementById(FORM_DRAWER_FRAME_ID);
     if (frame && frame.getAttribute('src')) {
         return;
     }
@@ -71,10 +83,24 @@ document.addEventListener('turbo:load', function () {
     }
 });
 
+/**
+ * Handle the turbo:before-visit event.
+ *
+ * Clears the form drawer before visiting a new page.
+ *
+ * @returns {void}
+ */
 document.addEventListener('turbo:before-visit', function () {
     clearFormDrawer();
 });
 
+/**
+ * Handle the turbo:submit-end event.
+ *
+ * Perform a turbo.visit with the response HTML if the drawer form is submitted successfully and the response is redirected.
+ *
+ * @returns {void}
+ */
 document.addEventListener('turbo:submit-end', function (event) {
     if (!event.target || event.target.tagName !== 'FORM' || event.target.getAttribute('data-turbo-frame') !== FORM_DRAWER_FRAME_ID) {
         return;
@@ -102,6 +128,13 @@ document.addEventListener('turbo:submit-end', function (event) {
     });
 });
 
+/**
+ * Handle the turbo:frame-load event.
+ * 
+ * Opens the form drawer if the frame is loaded and the response is not empty.
+ *
+ * @returns {void}
+ */
 document.addEventListener('turbo:frame-load', function (event) {
     if (!event.target || event.target.id !== FORM_DRAWER_FRAME_ID) {
         return;
@@ -112,7 +145,7 @@ document.addEventListener('turbo:frame-load', function (event) {
         return;
     }
 
-    const shell = getFormDrawerShell();
+    const shell = document.getElementById(FORM_DRAWER_SHELL_ID);
     if (shell) {
         shell.classList.remove(FORM_DRAWER_CLOSING);
         shell.classList.add(FORM_DRAWER_OPEN);
@@ -123,6 +156,13 @@ document.addEventListener('turbo:frame-load', function (event) {
     }
 });
 
+/**
+ * Handle the click event.
+ *
+ * Closes the form drawer if the target is a close button element.
+ *
+ * @returns {void}
+ */
 document.addEventListener('click', function (event) {
     if (event.target.closest('[data-form-drawer-close]')) {
         event.preventDefault();
@@ -130,6 +170,13 @@ document.addEventListener('click', function (event) {
     }
 });
 
+/**
+ * Handle the keydown event.
+ *
+ * Closes the form drawer if the key is Escape.
+ *
+ * @returns {void}
+ */
 document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape' && formDrawerIsOpen()) {
         closeFormDrawer();
