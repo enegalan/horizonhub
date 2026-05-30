@@ -3,7 +3,8 @@
 namespace App\Services\Horizon\Concerns;
 
 use App\Models\Service;
-use App\Services\Horizon\Contracts\HorizonClientHTTP;
+use App\Services\Horizon\Contracts\HorizonClientCache as HorizonClientCacheContract;
+use App\Services\Horizon\Contracts\HorizonHttpClient as HorizonHttpClientContract;
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\ConnectionException;
@@ -13,19 +14,19 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class HorizonHttpClient implements HorizonClientHTTP
+class HorizonHttpClient implements HorizonHttpClientContract
 {
     /**
      * The cache instance.
      */
-    private HorizonClientCache $cache;
+    private HorizonClientCacheContract $cache;
 
     /**
      * The constructor.
      *
-     * @param HorizonClientCache $cache The cache instance.
+     * @param HorizonClientCacheContract $cache The cache instance.
      */
-    public function __construct(HorizonClientCache $cache)
+    public function __construct(HorizonClientCacheContract $cache)
     {
         $this->cache = $cache;
     }

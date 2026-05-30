@@ -4,6 +4,7 @@ namespace App\Services\Horizon\Concerns;
 
 use App\Models\Service;
 use App\Services\Horizon\Contracts\HorizonClientApi as HorizonClientApiContract;
+use App\Services\Horizon\Contracts\HorizonClientCache as HorizonClientCacheContract;
 
 class HorizonClientApi implements HorizonClientApiContract
 {
@@ -15,9 +16,9 @@ class HorizonClientApi implements HorizonClientApiContract
     /**
      * The constructor.
      *
-     * @param HorizonClientCache $cache The cache instance.
+     * @param HorizonClientCacheContract $cache The cache instance.
      */
-    public function __construct(HorizonClientCache $cache)
+    public function __construct(HorizonClientCacheContract $cache)
     {
         $this->http = new HorizonHttpClient($cache);
     }

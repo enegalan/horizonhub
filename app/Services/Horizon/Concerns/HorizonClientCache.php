@@ -3,10 +3,11 @@
 namespace App\Services\Horizon\Concerns;
 
 use App\Models\Service;
+use App\Services\Horizon\Contracts\HorizonClientCache as HorizonClientCacheContract;
 use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Support\Facades\Cache;
 
-class HorizonClientCache
+class HorizonClientCache implements HorizonClientCacheContract
 {
     /**
      * Forget the failure cooldown for a service.
