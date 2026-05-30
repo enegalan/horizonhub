@@ -32,32 +32,19 @@ final class HorizonOffline implements AlertRuleContract
      */
     public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
     {
-        return [
-            'triggered' => $this->private__evaluateHorizonOffline($serviceId),
-            'job_uuids' => [],
-        ];
-    }
-
-    private function private__evaluateHorizonOffline(int $serviceId): bool
-    {
         $service = Service::find($serviceId);
 
         if ($service === null) {
-            return false;
+            $triggered = false;
+        } else {
+            $data = HorizonStatsReader::dataFromResponse($this->horizonApi->getStats($service));
+            $status = HorizonStatsReader::status($data);
+            $triggered = $status === null || \strtolower($status) !== 'active' && \strtolower($status) !== 'running';
         }
 
-        $data = HorizonStatsReader::dataFromResponse($this->horizonApi->getStats($service));
-
-        if ($data === null) {
-            return true;
-        }
-
-        $status = \strtolower((string) (HorizonStatsReader::status($data) ?? ''));
-
-        if ($status === 'active' || $status === 'running') {
-            return false;
-        }
-
-        return true;
+        return [
+            'triggered' => $triggered,
+            'job_uuids' => [],
+        ];
     }
 }

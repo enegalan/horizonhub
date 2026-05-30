@@ -29,34 +29,28 @@ final class QueueBlocked implements AlertRuleContract
      */
     public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
     {
-        return [
-            'triggered' => $this->private__evaluateQueueBlocked($alert, $serviceId),
-            'job_uuids' => [],
-        ];
-    }
-
-    private function private__evaluateQueueBlocked(Alert $alert, int $serviceId): bool
-    {
         $minutes = $alert->getThresholdMinutes(30);
         $service = Service::find($serviceId);
 
-        if ($service === null) {
-            return false;
+        $triggered = false;
+        if ($service !== null) {
+            $cutoff = \now()->subMinutes($minutes);
+            $jobs = $this->support->matchingCompletedJobsInWindow($alert, $service, $cutoff);
+
+            $lastProcessed = $jobs
+                ->map(fn (array $job) => $this->support->parseCompletedAt($job))
+                ->filter()
+                ->sort()
+                ->last();
+
+            if ($lastProcessed !== null) {
+                $triggered = $lastProcessed->copy()->addMinutes($minutes)->isPast();
+            }
         }
 
-        $cutoff = \now()->subMinutes($minutes);
-        $jobs = $this->support->matchingCompletedJobsInWindow($alert, $service, $cutoff);
-
-        $lastProcessed = $jobs
-            ->map(fn (array $job) => $this->support->parseCompletedAt($job))
-            ->filter()
-            ->sort()
-            ->last();
-
-        if ($lastProcessed === null) {
-            return false;
-        }
-
-        return $lastProcessed->copy()->addMinutes($minutes)->isPast();
+        return [
+            'triggered' => $triggered,
+            'job_uuids' => [],
+        ];
     }
 }
