@@ -5,6 +5,7 @@ namespace App\Support\Alerts;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Jobs\JobsWindowFetcher;
+use App\Support\Horizon\JobRuntimeHelper;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
@@ -58,7 +59,7 @@ final class AlertRuleEvaluation
             if (! \is_array($job)) {
                 return false;
             }
-            $failedAt = $this->private__parseTimestamp($job['failed_at'] ?? null);
+            $failedAt = JobRuntimeHelper::parseJobTimestamp($job['failed_at'] ?? null);
 
             return $failedAt !== null && $failedAt->gte($cutoff);
         });
@@ -147,7 +148,7 @@ final class AlertRuleEvaluation
      */
     public function parseCompletedAt(array $job): ?CarbonInterface
     {
-        return $this->private__parseTimestamp($job['completed_at'] ?? $job['processed_at'] ?? null);
+        return JobRuntimeHelper::parseJobTimestamp($job['completed_at'] ?? $job['processed_at'] ?? null);
     }
 
     /**
@@ -234,39 +235,5 @@ final class AlertRuleEvaluation
         $rawJob = $payload['job'] ?? null;
 
         return (string) ($displayName ?? $rawJob ?? '');
-    }
-
-    /**
-     * Parse a timestamp value into Carbon.
-     *
-     * @param mixed $value The value to parse.
-     */
-    private function private__parseTimestamp(mixed $value): ?CarbonInterface
-    {
-        if (blank($value)) {
-            return null;
-        }
-
-        try {
-            if ($value instanceof CarbonInterface) {
-                return $value;
-            }
-
-            if ($value instanceof \DateTimeInterface) {
-                return Carbon::instance($value);
-            }
-
-            if (\is_numeric($value)) {
-                return Carbon::createFromTimestamp((int) $value);
-            }
-
-            if (\is_string($value)) {
-                return Carbon::parse($value);
-            }
-        } catch (\Throwable $e) {
-            return null;
-        }
-
-        return null;
     }
 }

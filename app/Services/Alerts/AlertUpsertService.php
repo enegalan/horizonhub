@@ -30,6 +30,7 @@ class AlertUpsertService
             'services' => $services,
             'providers' => $providers,
             'ruleTypes' => $ruleTypes,
+            'formRuleMetadata' => AlertRuleCatalog::formRuleMetadata(),
             'selectedProviderIds' => $alert->exists ? $alert->notificationProviders()->pluck('notification_providers.id')->all() : [],
             'selectedServiceIds' => $alert->service_ids,
             'header' => $header,
@@ -94,15 +95,15 @@ class AlertUpsertService
 
         $ruleType = (string) $request->input('rule_type', Alert::RULE_FAILURE_COUNT);
 
-        if (\in_array($ruleType, [Alert::RULE_FAILURE_COUNT, Alert::RULE_AVG_EXECUTION_TIME, Alert::RULE_QUEUE_BLOCKED, Alert::RULE_WORKER_OFFLINE, Alert::RULE_SUPERVISOR_OFFLINE, Alert::RULE_HORIZON_OFFLINE], true)) {
+        if (\in_array($ruleType, AlertRuleCatalog::ruleTypesRequiringMinutes(), true)) {
             $baseRules['thresholdMinutes'] = 'required|integer|min:1';
         }
 
-        if ($ruleType === Alert::RULE_FAILURE_COUNT) {
+        if (\in_array($ruleType, AlertRuleCatalog::ruleTypesRequiringCount(), true)) {
             $baseRules['thresholdCount'] = 'required|integer|min:1';
         }
 
-        if ($ruleType === Alert::RULE_AVG_EXECUTION_TIME) {
+        if (\in_array($ruleType, AlertRuleCatalog::ruleTypesRequiringSeconds(), true)) {
             $baseRules['thresholdSeconds'] = 'required|numeric|min:0.1';
         }
 
@@ -136,26 +137,23 @@ class AlertUpsertService
 
         $threshold = [];
 
-        if (\in_array($ruleType, [Alert::RULE_FAILURE_COUNT, Alert::RULE_AVG_EXECUTION_TIME, Alert::RULE_QUEUE_BLOCKED, Alert::RULE_WORKER_OFFLINE, Alert::RULE_SUPERVISOR_OFFLINE, Alert::RULE_HORIZON_OFFLINE], true)) {
+        if (\in_array($ruleType, AlertRuleCatalog::ruleTypesRequiringMinutes(), true)) {
             $threshold['minutes'] = (int) ($validated['thresholdMinutes'] ?? 0);
         }
 
-        if ($ruleType === Alert::RULE_FAILURE_COUNT) {
+        if (\in_array($ruleType, AlertRuleCatalog::ruleTypesRequiringCount(), true)) {
             $threshold['count'] = (int) ($validated['thresholdCount'] ?? 0);
         }
 
-        if ($ruleType === Alert::RULE_AVG_EXECUTION_TIME) {
+        if (\in_array($ruleType, AlertRuleCatalog::ruleTypesRequiringSeconds(), true)) {
             $threshold['seconds'] = (float) ($validated['thresholdSeconds'] ?? 0.0);
         }
 
-        $patternRuleTypes = [Alert::RULE_FAILURE_COUNT, Alert::RULE_AVG_EXECUTION_TIME];
-        $queuePatternRuleTypes = [Alert::RULE_FAILURE_COUNT, Alert::RULE_AVG_EXECUTION_TIME, Alert::RULE_QUEUE_BLOCKED];
-
-        if (\in_array($ruleType, $patternRuleTypes, true) && ! empty($jobPatterns)) {
+        if (\in_array($ruleType, AlertRuleCatalog::ruleTypesWithJobPatterns(), true) && ! empty($jobPatterns)) {
             $threshold['job_patterns'] = $jobPatterns;
         }
 
-        if (\in_array($ruleType, $queuePatternRuleTypes, true) && ! empty($queuePatterns)) {
+        if (\in_array($ruleType, AlertRuleCatalog::ruleTypesWithQueuePatterns(), true) && ! empty($queuePatterns)) {
             $threshold['queue_patterns'] = $queuePatterns;
         }
 

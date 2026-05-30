@@ -22,7 +22,7 @@ final class AlertRuleCatalog
             Alert::RULE_QUEUE_BLOCKED => "Queue blocked for {$alert->getThresholdMinutes()} minutes",
             Alert::RULE_WORKER_OFFLINE => "Worker offline for {$alert->getThresholdMinutes()} minutes",
             Alert::RULE_SUPERVISOR_OFFLINE => "Supervisor offline for {$alert->getThresholdMinutes()} minutes",
-            Alert::RULE_HORIZON_OFFLINE => 'Horizon is not running for this service' . (filled($detectedAt) ? " (detected at {$detectedAt})" : ''),
+            Alert::RULE_HORIZON_OFFLINE => "Horizon offline for {$alert->getThresholdMinutes()} minutes" . (filled($detectedAt) ? " (detected at {$detectedAt})" : ''),
             default => 'Alert condition met',
         };
 
@@ -35,6 +35,32 @@ final class AlertRuleCatalog
         }
 
         return $summary;
+    }
+
+    /**
+     * Metadata for the alert form Alpine.js bindings.
+     *
+     * @return array{
+     *     defaultRuleType: string,
+     *     queuePatternRuleTypes: list<string>,
+     *     jobPatternRuleTypes: list<string>,
+     *     thresholdRuleTypes: list<string>,
+     *     countRuleTypes: list<string>,
+     *     secondsRuleTypes: list<string>,
+     *     minutesOnlyRuleTypes: list<string>
+     * }
+     */
+    public static function formRuleMetadata(): array
+    {
+        return [
+            'defaultRuleType' => Alert::RULE_FAILURE_COUNT,
+            'queuePatternRuleTypes' => self::ruleTypesWithQueuePatterns(),
+            'jobPatternRuleTypes' => self::ruleTypesWithJobPatterns(),
+            'thresholdRuleTypes' => self::ruleTypesRequiringMinutes(),
+            'countRuleTypes' => self::ruleTypesRequiringCount(),
+            'secondsRuleTypes' => self::ruleTypesRequiringSeconds(),
+            'minutesOnlyRuleTypes' => self::ruleTypesWithMinutesOnlyThreshold(),
+        ];
     }
 
     /**
@@ -51,6 +77,82 @@ final class AlertRuleCatalog
             Alert::RULE_WORKER_OFFLINE => 'Worker offline',
             Alert::RULE_SUPERVISOR_OFFLINE => 'Supervisor offline',
             Alert::RULE_HORIZON_OFFLINE => 'Horizon offline',
+        ];
+    }
+
+    /**
+     * Rule types that require a failure count threshold.
+     *
+     * @return list<string>
+     */
+    public static function ruleTypesRequiringCount(): array
+    {
+        return [Alert::RULE_FAILURE_COUNT];
+    }
+
+    /**
+     * Rule types that require a minutes threshold.
+     *
+     * @return list<string>
+     */
+    public static function ruleTypesRequiringMinutes(): array
+    {
+        return [
+            Alert::RULE_FAILURE_COUNT,
+            Alert::RULE_AVG_EXECUTION_TIME,
+            Alert::RULE_QUEUE_BLOCKED,
+            Alert::RULE_WORKER_OFFLINE,
+            Alert::RULE_SUPERVISOR_OFFLINE,
+            Alert::RULE_HORIZON_OFFLINE,
+        ];
+    }
+
+    /**
+     * Rule types that require a seconds threshold.
+     *
+     * @return list<string>
+     */
+    public static function ruleTypesRequiringSeconds(): array
+    {
+        return [Alert::RULE_AVG_EXECUTION_TIME];
+    }
+
+    /**
+     * Rule types that support optional job patterns.
+     *
+     * @return list<string>
+     */
+    public static function ruleTypesWithJobPatterns(): array
+    {
+        return [Alert::RULE_FAILURE_COUNT, Alert::RULE_AVG_EXECUTION_TIME];
+    }
+
+    /**
+     * Rule types that only expose a minutes threshold field in the form.
+     *
+     * @return list<string>
+     */
+    public static function ruleTypesWithMinutesOnlyThreshold(): array
+    {
+        return [
+            Alert::RULE_QUEUE_BLOCKED,
+            Alert::RULE_WORKER_OFFLINE,
+            Alert::RULE_SUPERVISOR_OFFLINE,
+            Alert::RULE_HORIZON_OFFLINE,
+        ];
+    }
+
+    /**
+     * Rule types that support optional queue patterns.
+     *
+     * @return list<string>
+     */
+    public static function ruleTypesWithQueuePatterns(): array
+    {
+        return [
+            Alert::RULE_FAILURE_COUNT,
+            Alert::RULE_AVG_EXECUTION_TIME,
+            Alert::RULE_QUEUE_BLOCKED,
         ];
     }
 }

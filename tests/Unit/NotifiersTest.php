@@ -55,8 +55,7 @@ class NotifiersTest extends TestCase
             'name' => 's',
             'rule_type' => Alert::RULE_FAILURE_COUNT,
             'enabled' => true,
-            'queue' => 'critical',
-            'threshold' => ['count' => 2, 'minutes' => 5],
+            'threshold' => ['count' => 2, 'minutes' => 5, 'queue_patterns' => ['critical']],
         ]);
         $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
         $events = [

@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Support\Horizon\HorizonMastersReader;
 use App\Support\Horizon\JobCommandDataExtractor;
 use App\Support\Horizon\JobRuntimeHelper;
 use Carbon\Carbon;
@@ -9,6 +10,22 @@ use Tests\TestCase;
 
 class HorizonSupportHelpersTest extends TestCase
 {
+    public function test_horizon_masters_reader_detects_stale_supervisor_heartbeat(): void
+    {
+        $mastersData = [[
+            'supervisors' => [
+                ['last_heartbeat_at' => now()->subHour()->toIso8601String()],
+            ],
+        ]];
+
+        $this->assertTrue(
+            HorizonMastersReader::hasStaleSupervisorHeartbeat($mastersData, now()->subMinutes(15)),
+        );
+        $this->assertFalse(
+            HorizonMastersReader::hasStaleSupervisorHeartbeat($mastersData, now()->subHours(2)),
+        );
+    }
+
     public function test_job_command_data_extractor_handles_invalid_and_serialized_inputs(): void
     {
         $this->assertNull(JobCommandDataExtractor::extract([]));
@@ -51,7 +68,10 @@ class HorizonSupportHelpersTest extends TestCase
         $this->assertNull($failedAt);
 
         $this->assertInstanceOf(Carbon::class, JobRuntimeHelper::parseJobTimestamp(123));
+        $this->assertInstanceOf(Carbon::class, JobRuntimeHelper::parseJobTimestamp(1704067200));
+        $this->assertSame(1704067200, JobRuntimeHelper::parseJobTimestamp(1704067200)->getTimestamp());
         $this->assertInstanceOf(Carbon::class, JobRuntimeHelper::parseJobTimestamp('2026-01-01 10:00:00'));
+        $this->assertInstanceOf(Carbon::class, JobRuntimeHelper::parseJobTimestamp(Carbon::parse('2026-01-01 10:00:00')));
         $this->assertNull(JobRuntimeHelper::parseJobTimestamp(false));
         $this->assertNull(JobRuntimeHelper::parseJobTimestamp('not-a-date'));
     }

@@ -7,6 +7,7 @@ use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
 use App\Services\Notifiers\Contracts\AlertNotifier;
 use App\Support\Alerts\AlertRuleCatalog;
+use App\Support\Horizon\JobRuntimeHelper;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -183,15 +184,7 @@ abstract class AbstractAlertNotifier implements AlertNotifier
             if (! $response['success'] || ! \is_array($data)) {
                 continue;
             }
-            $failedAt = null;
-
-            if (isset($data['failed_at']) && (string) $data['failed_at'] !== '') {
-                try {
-                    $failedAt = Carbon::parse((string) $data['failed_at']);
-                } catch (\Throwable $e) {
-                    // leave null
-                }
-            }
+            $failedAt = JobRuntimeHelper::parseJobTimestamp($data['failed_at'] ?? null);
             $job = (object) [
                 'payload' => isset($data['payload']) ? $data['payload'] : [],
                 'name' => isset($data['name']) ? $data['name'] : null,

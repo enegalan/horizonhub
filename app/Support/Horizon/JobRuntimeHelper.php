@@ -3,6 +3,7 @@
 namespace App\Support\Horizon;
 
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 
 final class JobRuntimeHelper
 {
@@ -83,6 +84,10 @@ final class JobRuntimeHelper
 
         if ($value instanceof Carbon) {
             return $value;
+        }
+
+        if ($value instanceof CarbonInterface || $value instanceof \DateTimeInterface) {
+            return Carbon::instance($value);
         }
 
         if (\is_numeric($value)) {

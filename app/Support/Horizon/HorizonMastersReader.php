@@ -2,8 +2,47 @@
 
 namespace App\Support\Horizon;
 
+use Carbon\CarbonInterface;
+
 final class HorizonMastersReader
 {
+    /**
+     * Return whether any supervisor heartbeat is older than the given cutoff.
+     *
+     * Uses `last_heartbeat_at` when present, otherwise falls back to `lastSeen`.
+     *
+     * @param list<mixed>|array<int, mixed> $mastersData
+     */
+    public static function hasStaleSupervisorHeartbeat(array $mastersData, CarbonInterface $staleBefore): bool
+    {
+        foreach ($mastersData as $master) {
+            if (! \is_array($master)) {
+                continue;
+            }
+
+            $supervisorsData = $master['supervisors'] ?? null;
+
+            if (! \is_array($supervisorsData)) {
+                continue;
+            }
+
+            foreach ($supervisorsData as $supervisor) {
+                if (! \is_array($supervisor)) {
+                    continue;
+                }
+
+                $lastSeenRaw = $supervisor['last_heartbeat_at'] ?? ($supervisor['lastSeen'] ?? null);
+                $lastSeen = JobRuntimeHelper::parseJobTimestamp($lastSeenRaw);
+
+                if ($lastSeen !== null && $lastSeen->lt($staleBefore)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Extract the supervisors from the masters payload.
      *

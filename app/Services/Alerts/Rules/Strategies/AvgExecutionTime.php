@@ -6,7 +6,7 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Support\Alerts\AlertRuleEvaluation;
-use Carbon\Carbon;
+use App\Support\Horizon\JobRuntimeHelper;
 
 final class AvgExecutionTime implements AlertRuleContract
 {
@@ -48,14 +48,9 @@ final class AvgExecutionTime implements AlertRuleContract
             ->map(function (array $job) use ($cutoff) {
                 $completed = $this->support->parseCompletedAt($job);
                 $queuedRaw = $job['pushedAt'] ?? null;
+                $queued = JobRuntimeHelper::parseJobTimestamp($queuedRaw);
 
-                if ($completed === null || ! \is_string($queuedRaw) || $queuedRaw === '') {
-                    return null;
-                }
-
-                try {
-                    $queued = Carbon::parse($queuedRaw);
-                } catch (\Throwable $e) {
+                if ($completed === null || $queued === null) {
                     return null;
                 }
 

@@ -6,7 +6,7 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Services\Horizon\HorizonClientService;
-use Carbon\Carbon;
+use App\Support\Horizon\HorizonMastersReader;
 
 final class SupervisorOffline implements AlertRuleContract
 {
@@ -44,36 +44,7 @@ final class SupervisorOffline implements AlertRuleContract
         }
 
         $staleAt = \now()->subMinutes($alert->getThresholdMinutes());
-        $staleFound = false;
-
-        foreach ($data as $master) {
-            if (! \is_array($master) || ! isset($master['supervisors']) || ! \is_array($master['supervisors'])) {
-                continue;
-            }
-
-            foreach ($master['supervisors'] as $supervisor) {
-                if (! \is_array($supervisor)) {
-                    continue;
-                }
-                // TODO: Depurate this.
-                $lastSeenRaw = $supervisor['last_heartbeat_at'] ?? ($supervisor['lastSeen'] ?? null);
-
-                if (blank($lastSeenRaw)) {
-                    continue;
-                }
-
-                try {
-                    $lastSeen = Carbon::parse($lastSeenRaw);
-                } catch (\Throwable $e) {
-                    continue;
-                }
-
-                if ($lastSeen->lt($staleAt)) {
-                    $staleFound = true;
-                    break 2;
-                }
-            }
-        }
+        $staleFound = HorizonMastersReader::hasStaleSupervisorHeartbeat($data, $staleAt);
 
         return [
             'triggered' => $staleFound,

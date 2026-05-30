@@ -5,7 +5,7 @@ namespace App\Services\Jobs;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
 use App\Support\Horizon\HorizonJobPaginator;
-use Carbon\Carbon;
+use App\Support\Horizon\JobRuntimeHelper;
 
 final class JobsWindowFetcher
 {
@@ -113,23 +113,9 @@ final class JobsWindowFetcher
      */
     private static function private__extractTimestamp(mixed $value): ?int
     {
-        if (blank($value)) {
-            return null;
-        }
+        $parsed = JobRuntimeHelper::parseJobTimestamp($value);
 
-        if (\is_numeric($value)) {
-            return (int) $value;
-        }
-
-        if (\is_string($value)) {
-            try {
-                return Carbon::parse($value)->getTimestamp();
-            } catch (\Throwable $e) {
-                return null;
-            }
-        }
-
-        return null;
+        return $parsed?->getTimestamp();
     }
 
     /**

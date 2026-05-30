@@ -16,6 +16,7 @@ use App\Services\Horizon\HorizonClientService;
 use App\Services\Jobs\JobsWindowFetcher;
 use App\Support\Alerts\AlertRuleEvaluation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class AlertRulesTest extends TestCase
@@ -84,6 +85,36 @@ class AlertRulesTest extends TestCase
         $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, 999999)['triggered']);
     }
 
+    public function test_horizon_offline_grace_period_respects_long_threshold(): void
+    {
+        Cache::flush();
+
+        $service = Service::query()->create([
+            'name' => 'svc-long-offline',
+            'base_url' => 'https://example.test',
+            'status' => 'online',
+        ]);
+        $alert = Alert::query()->create([
+            'name' => 'long-offline',
+            'rule_type' => Alert::RULE_HORIZON_OFFLINE,
+            'threshold' => ['minutes' => 2000],
+            'enabled' => true,
+        ]);
+
+        $api = $this->createMock(HorizonClientService::class);
+        $api->method('getStats')->willReturn(['success' => true, 'data' => ['status' => 'inactive']]);
+        $strategy = new HorizonOffline($api);
+
+        $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, $service->id)['triggered']);
+
+        $this->travel(1999)->minutes();
+        $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, $service->id)['triggered']);
+        $this->assertNotNull(Cache::get('horizon_offline_since:' . $service->id));
+
+        $this->travel(2)->minutes();
+        $this->assertTrue($strategy->evaluateWithTriggeringJobs($alert, $service->id)['triggered']);
+    }
+
     public function test_other_strategies_cover_normal_and_edge_paths(): void
     {
         $service = Service::query()->create([
@@ -103,7 +134,6 @@ class AlertRulesTest extends TestCase
             'name' => 'queue',
             'rule_type' => Alert::RULE_QUEUE_BLOCKED,
             'threshold' => ['minutes' => 5],
-            'queue' => 'default',
             'enabled' => true,
         ]);
         $workerAlert = Alert::query()->create([
@@ -121,6 +151,7 @@ class AlertRulesTest extends TestCase
         $horizonAlert = Alert::query()->create([
             'name' => 'hoff',
             'rule_type' => Alert::RULE_HORIZON_OFFLINE,
+            'threshold' => ['minutes' => 5],
             'enabled' => true,
         ]);
 
@@ -163,7 +194,16 @@ class AlertRulesTest extends TestCase
         $this->assertTrue($supervisor->evaluateWithTriggeringJobs($supAlert, $service->id)['triggered']);
 
         $offline = new HorizonOffline($api);
+        $this->assertFalse($offline->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
+
+        $this->travel(6)->minutes();
         $this->assertTrue($offline->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
+
+        $apiOnline = $this->createMock(HorizonClientService::class);
+        $apiOnline->method('getStats')->willReturn(['success' => true, 'data' => ['status' => 'active']]);
+        $onlineStrategy = new HorizonOffline($apiOnline);
+        $this->assertFalse($onlineStrategy->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
+        $this->assertNull(Cache::get('horizon_offline_since:' . $service->id));
 
         $null = new NullRule;
         $this->assertFalse($null->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
@@ -172,19 +212,10 @@ class AlertRulesTest extends TestCase
     public function test_registry_resolves_known_and_unknown_rules(): void
     {
         $api = $this->createMock(HorizonClientService::class);
-        $support = new AlertRuleEvaluation(new JobsWindowFetcher($api));
-        $null = new NullRule;
-        $registry = new AlertRuleStrategyRegistry(
-            $null,
-            new FailureCount($support),
-            new AvgExecutionTime($support),
-            new QueueBlocked($support),
-            new WorkerOffline,
-            new SupervisorOffline($api),
-            new HorizonOffline($api),
-        );
+        $this->app->instance(HorizonClientService::class, $api);
+        $registry = $this->app->make(AlertRuleStrategyRegistry::class);
 
         $this->assertInstanceOf(FailureCount::class, $registry->resolve(Alert::RULE_FAILURE_COUNT));
-        $this->assertSame($null, $registry->resolve('unknown-rule'));
+        $this->assertInstanceOf(NullRule::class, $registry->resolve('unknown-rule'));
     }
 }

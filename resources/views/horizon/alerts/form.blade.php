@@ -22,6 +22,8 @@
 
         $jobPatternsForForm = $patternRows(old('job_patterns'), $alert->getJobPatterns());
         $queuePatternsForForm = $patternRows(old('queue_patterns'), $alert->getQueuePatterns());
+        $formRuleMetadata ??= \App\Support\Alerts\AlertRuleCatalog::formRuleMetadata();
+        $defaultRuleType = $formRuleMetadata['defaultRuleType'];
 
         $sectionHasValue = static fn (array $rows): bool => \count(\array_filter(
             $rows,
@@ -34,7 +36,8 @@
     <div
         class="space-y-6"
         x-data="{
-            ruleType: {!! \Illuminate\Support\Js::from(old('rule_type', $alert->rule_type ?? 'failure_count')) !!},
+            ruleType: {!! \Illuminate\Support\Js::from(old('rule_type', $alert->rule_type ?? $defaultRuleType)) !!},
+            ruleMeta: {!! \Illuminate\Support\Js::from($formRuleMetadata) !!},
             jobPatterns: {!! \Illuminate\Support\Js::from($jobPatternsForForm) !!},
             queuePatterns: {!! \Illuminate\Support\Js::from($queuePatternsForForm) !!},
             queueOptionalSectionOpen: {!! \Illuminate\Support\Js::from($queueOptionalSectionOpenDefault) !!},
@@ -178,14 +181,14 @@
                             x-model="ruleType"
                         >
                             @foreach($ruleTypes as $key => $label)
-                                <option value="{{ $key }}" @selected(old('rule_type', $alert->rule_type ?? 'failure_count') === $key)>{{ $label }}</option>
+                                <option value="{{ $key }}" @selected(old('rule_type', $alert->rule_type ?? $defaultRuleType) === $key)>{{ $label }}</option>
                             @endforeach
                         </x-select>
                         @error('rule_type') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
                     <div
                         class="overflow-hidden rounded-lg border border-border"
-                        x-show="['failure_count','avg_execution_time','queue_blocked'].includes(ruleType)"
+                        x-show="ruleMeta.queuePatternRuleTypes.includes(ruleType)"
                         x-cloak
                     >
                         <button
@@ -241,7 +244,7 @@
                     </div>
                     <div
                         class="overflow-hidden rounded-lg border border-border"
-                        x-show="['failure_count','avg_execution_time'].includes(ruleType)"
+                        x-show="ruleMeta.jobPatternRuleTypes.includes(ruleType)"
                         x-cloak
                     >
                         <button
@@ -296,10 +299,10 @@
                         </div>
                     </div>
 
-                    <template x-if="['failure_count','avg_execution_time','queue_blocked','worker_offline','supervisor_offline','horizon_offline'].includes(ruleType)">
+                    <template x-if="ruleMeta.thresholdRuleTypes.includes(ruleType)">
                         <div class="space-y-3 pt-2 border-t border-border">
                             <p class="text-xs font-medium text-muted-foreground">Threshold</p>
-                            <template x-if="ruleType === 'failure_count'">
+                            <template x-if="ruleMeta.countRuleTypes.includes(ruleType)">
                                 <div class="flex gap-4 flex-wrap">
                                     <div class="space-y-2">
                                         <x-input-label>Count</x-input-label>
@@ -325,7 +328,7 @@
                                     </div>
                                 </div>
                             </template>
-                            <template x-if="ruleType === 'avg_execution_time'">
+                            <template x-if="ruleMeta.secondsRuleTypes.includes(ruleType)">
                                 <div class="flex gap-4 flex-wrap">
                                     <div class="space-y-2">
                                         <x-input-label>Seconds (max avg)</x-input-label>
@@ -352,7 +355,7 @@
                                     </div>
                                 </div>
                             </template>
-                            <template x-if="['queue_blocked','worker_offline','supervisor_offline','horizon_offline'].includes(ruleType)">
+                            <template x-if="ruleMeta.minutesOnlyRuleTypes.includes(ruleType)">
                                 <div class="space-y-2">
                                     <x-input-label>Minutes</x-input-label>
                                     <x-text-input

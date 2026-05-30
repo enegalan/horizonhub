@@ -7,9 +7,15 @@ use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Services\Horizon\HorizonClientService;
 use App\Support\Horizon\HorizonStatsReader;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 final class HorizonOffline implements AlertRuleContract
 {
+    private const CACHE_KEY_PREFIX = 'horizon_offline_since:';
+
+    private const CACHE_TTL_MARGIN_MINUTES = 60;
+
     /**
      * The Horizon API client.
      */
@@ -35,16 +41,46 @@ final class HorizonOffline implements AlertRuleContract
         $service = Service::find($serviceId);
 
         if ($service === null) {
-            $triggered = false;
-        } else {
-            $data = HorizonStatsReader::dataFromResponse($this->horizonApi->getStats($service));
-            $status = HorizonStatsReader::status($data);
-            $triggered = $status === null || \strtolower($status) !== 'active' && \strtolower($status) !== 'running';
+            return ['triggered' => false, 'job_uuids' => []];
         }
+
+        $data = HorizonStatsReader::dataFromResponse($this->horizonApi->getStats($service));
+        $status = HorizonStatsReader::status($data);
+        $isOnline = $status !== null
+            && (\strtolower($status) === 'active' || \strtolower($status) === 'running');
+
+        $cacheKey = self::CACHE_KEY_PREFIX . $serviceId;
+
+        if ($isOnline) {
+            Cache::forget($cacheKey);
+
+            return ['triggered' => false, 'job_uuids' => []];
+        }
+
+        $offlineSinceTimestamp = Cache::get($cacheKey);
+
+        if (! \is_numeric($offlineSinceTimestamp)) {
+            Cache::put($cacheKey, \now()->getTimestamp(), $this->private__cacheTtlSeconds($alert));
+
+            return ['triggered' => false, 'job_uuids' => []];
+        }
+
+        $offlineSinceTimestamp = (int) $offlineSinceTimestamp;
+        $graceEndsAt = Carbon::createFromTimestamp($offlineSinceTimestamp)
+            ->addMinutes($alert->getThresholdMinutes());
+        $triggered = \now()->gte($graceEndsAt);
 
         return [
             'triggered' => $triggered,
             'job_uuids' => [],
         ];
+    }
+
+    /**
+     * Cache TTL long enough to outlive the alert grace period plus a safety margin.
+     */
+    private function private__cacheTtlSeconds(Alert $alert): int
+    {
+        return ($alert->getThresholdMinutes() + self::CACHE_TTL_MARGIN_MINUTES) * 60;
     }
 }

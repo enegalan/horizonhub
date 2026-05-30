@@ -5,9 +5,9 @@ namespace App\Services\Metrics\Calculators;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
 use App\Services\Jobs\JobsWindowFetcher;
+use App\Support\Horizon\JobRuntimeHelper;
 use App\Support\Horizon\QueueNameNormalizer;
 use Carbon\Carbon;
-use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 abstract class AbstractMetricsCalculator
@@ -178,7 +178,7 @@ abstract class AbstractMetricsCalculator
     protected function private__incrementHourlyBuckets(array &$buckets, array $jobs, string $timestampField, string $counterKey, int $sinceTimestamp, string $bucketFormat): void
     {
         foreach ($jobs as $job) {
-            $at = $this->private__parseJobTimestamp($job, $timestampField);
+            $at = JobRuntimeHelper::parseJobTimestamp($job[$timestampField] ?? null);
 
             if ($at === null) {
                 continue;
@@ -221,37 +221,6 @@ abstract class AbstractMetricsCalculator
         }
 
         return $buckets;
-    }
-
-    /**
-     * Aggregate queue counters from Horizon jobs payload.
-     *
-     * @param array<string, mixed> $job The job.
-     * @param string $field The field.
-     *
-     * @return CarbonInterface|null The parsed timestamp.
-     */
-    protected function private__parseJobTimestamp(array $job, string $field): ?CarbonInterface
-    {
-        $raw = $job[$field] ?? null;
-
-        if (blank($raw)) {
-            return null;
-        }
-
-        try {
-            if (\is_numeric($raw)) {
-                return Carbon::createFromTimestamp((int) $raw);
-            }
-
-            if (\is_string($raw)) {
-                return Carbon::parse($raw);
-            }
-        } catch (\Throwable $e) {
-            return null;
-        }
-
-        return null;
     }
 
     /**
