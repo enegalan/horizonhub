@@ -8,7 +8,6 @@ use App\Models\Service;
 use App\Support\Alerts\AlertRuleCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 
 class AlertUpsertService
 {
@@ -35,27 +34,6 @@ class AlertUpsertService
             'selectedServiceIds' => $alert->service_ids,
             'header' => $header,
         ];
-    }
-
-    /**
-     * Merge the job type into the patterns.
-     *
-     * @param list<string> $patterns The patterns.
-     * @param string|null $jobType The job type.
-     *
-     * @return list<string>
-     */
-    public function mergeJobTypeIntoPatterns(array $patterns, ?string $jobType): array
-    {
-        $jt = ! empty($jobType) ? \trim($jobType) : '';
-
-        if (blank($jt) || \in_array($jt, $patterns, true)) {
-            return $patterns;
-        }
-        $merged = $patterns;
-        $merged[] = $jt;
-
-        return \array_values(\array_unique($merged));
     }
 
     /**
@@ -100,8 +78,6 @@ class AlertUpsertService
             'rule_type' => 'required|in:' . implode(',', $ruleTypes),
             'service_ids' => 'required|array|min:1',
             'service_ids.*' => 'integer|exists:services,id',
-            'queue' => 'nullable|string|max:255',
-            'job_type' => 'nullable|string|max:255',
             'job_patterns' => 'nullable|array',
             'job_patterns.*' => 'nullable|string|max:255',
             'queue_patterns' => 'nullable|array',
@@ -136,10 +112,7 @@ class AlertUpsertService
             $jobPatterns = $upsert->sanitizePatternArray($request->input('job_patterns'));
             $queuePatterns = $upsert->sanitizePatternArray($request->input('queue_patterns'));
 
-            $jobTypeInput = \trim((string) $request->input('job_type', ''));
-            $jobPatternsMerged = $upsert->mergeJobTypeIntoPatterns($jobPatterns, $jobTypeInput !== '' ? $jobTypeInput : null);
-
-            foreach ($jobPatternsMerged as $p) {
+            foreach ($jobPatterns as $p) {
                 if (\strlen($p) > 255) {
                     $v->errors()->add('job_patterns', 'Each job pattern must be at most 255 characters.');
 
@@ -159,10 +132,6 @@ class AlertUpsertService
         $validated = $validator->validate();
 
         $jobPatterns = $this->sanitizePatternArray($request->input('job_patterns'));
-        $jobPatterns = $this->mergeJobTypeIntoPatterns(
-            $jobPatterns,
-            ! empty($validated['job_type']) ? (string) $validated['job_type'] : null,
-        );
         $queuePatterns = $this->sanitizePatternArray($request->input('queue_patterns'));
 
         $threshold = [];
@@ -186,28 +155,8 @@ class AlertUpsertService
             $threshold['job_patterns'] = $jobPatterns;
         }
 
-        $queuePatternsMerged = $queuePatterns;
-
-        if (empty($queuePatternsMerged) && ! empty($validated['queue'])) {
-            $queuePatternsMerged = [(string) $validated['queue']];
-        }
-
-        if (\in_array($ruleType, $queuePatternRuleTypes, true) && ! empty($queuePatternsMerged)) {
-            $threshold['queue_patterns'] = $queuePatternsMerged;
-        }
-
-        $queueColumn = null;
-
-        if (\in_array($ruleType, $queuePatternRuleTypes, true) && ! empty($queuePatternsMerged)) {
-            $queueColumn = $queuePatternsMerged[0];
-        } elseif (! empty($validated['queue'])) {
-            $queueColumn = (string) $validated['queue'];
-        }
-
-        $jobTypeColumn = null;
-
-        if (! empty($jobPatterns)) {
-            $jobTypeColumn = Str::limit(\implode(', ', $jobPatterns), 252);
+        if (\in_array($ruleType, $queuePatternRuleTypes, true) && ! empty($queuePatterns)) {
+            $threshold['queue_patterns'] = $queuePatterns;
         }
 
         $serviceIds = \array_values(\array_unique(\array_map('intval', $validated['service_ids'] ?? [])));
@@ -220,8 +169,6 @@ class AlertUpsertService
                 'service_ids' => $serviceIds,
                 'rule_type' => $ruleType,
                 'threshold' => $threshold,
-                'queue' => $queueColumn,
-                'job_type' => $jobTypeColumn,
                 'enabled' => (bool) $validated['enabled'],
                 'email_interval_minutes' => (int) $validated['email_interval_minutes'],
             ],

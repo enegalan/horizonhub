@@ -4,7 +4,7 @@ namespace App\Services\Notifiers;
 
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Horizon\HorizonApiProxyService;
+use App\Services\Horizon\HorizonClientService;
 use App\Services\Notifiers\Contracts\AlertNotifier;
 use App\Support\Alerts\AlertRuleCatalog;
 use Carbon\Carbon;
@@ -15,12 +15,14 @@ abstract class AbstractAlertNotifier implements AlertNotifier
     /**
      * The Horizon API proxy service.
      */
-    protected HorizonApiProxyService $horizonApi;
+    protected HorizonClientService $horizonApi;
 
     /**
-     * Construct the alert notifier.
+     * The constructor.
+     *
+     * @param HorizonClientService $horizonApi The horizon API client.
      */
-    public function __construct(HorizonApiProxyService $horizonApi)
+    public function __construct(HorizonClientService $horizonApi)
     {
         $this->horizonApi = $horizonApi;
     }

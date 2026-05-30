@@ -34,7 +34,7 @@ return [
         'ping' => '/stats',
         'workload' => '/workload',
         'job' => '/jobs/{id}',
-        'failed_jobs' => '/jobs/failed',
+        'failed_jobs' => '/failed',
         'completed_jobs' => '/jobs/completed',
         'pending_jobs' => '/jobs/pending',
         'masters' => '/masters',
@@ -101,7 +101,7 @@ return [
     | Horizon HTTP auth/session code statuses
     |--------------------------------------------------------------------------
     |
-    | HTTP status codes that represent missing auth/session/CSRF context.
+    | HTTP status codes that represent auth/session/CSRF failures from Horizon.
     | These statuses can trigger a dashboard-session retry flow and are
     | excluded from failure cooldown in order to prevent performing the mentioned flow.
     |

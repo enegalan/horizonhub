@@ -5,8 +5,8 @@ namespace App\Services\Alerts\Engine;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
-use App\Services\Notifiers\EmailNotifier;
-use App\Services\Notifiers\SlackNotifier;
+use App\Services\Notifiers\EmailNotifierService;
+use App\Services\Notifiers\SlackNotifierService;
 use Illuminate\Support\Facades\Log;
 
 class AlertNotificationDispatcher
@@ -14,17 +14,20 @@ class AlertNotificationDispatcher
     /**
      * The email notifier.
      */
-    private EmailNotifier $emailNotifier;
+    private EmailNotifierService $emailNotifier;
 
     /**
      * The slack notifier.
      */
-    private SlackNotifier $slackNotifier;
+    private SlackNotifierService $slackNotifier;
 
     /**
-     * Construct the dispatcher.
+     * The constructor.
+     *
+     * @param EmailNotifierService $emailNotifier The email notifier.
+     * @param SlackNotifierService $slackNotifier The slack notifier.
      */
-    public function __construct(EmailNotifier $emailNotifier, SlackNotifier $slackNotifier)
+    public function __construct(EmailNotifierService $emailNotifier, SlackNotifierService $slackNotifier)
     {
         $this->emailNotifier = $emailNotifier;
         $this->slackNotifier = $slackNotifier;
@@ -62,11 +65,11 @@ class AlertNotificationDispatcher
                     if (! empty($to)) {
                         $this->emailNotifier->sendBatched($alert, $events, ['to' => $to]);
                     } else {
-                        Log::warning('Horizon Hub: email provider has no recipients, skip', ['alert_id' => $alert->id, 'provider_id' => $provider->id]);
+                        Log::warning(config('app.name') . ': email provider has no recipients, skip', ['alert_id' => $alert->id, 'provider_id' => $provider->id]);
                     }
                 }
             } catch (\Throwable $e) {
-                Log::error('Horizon Hub alert notification failed', ['alert_id' => $alert->id, 'provider_id' => $provider->id, 'error' => $e->getMessage()]);
+                Log::error(config('app.name') . ': alert notification failed', ['alert_id' => $alert->id, 'provider_id' => $provider->id, 'error' => $e->getMessage()]);
                 $log->update(['status' => 'failed', 'failure_message' => $e->getMessage()]);
             }
         }

@@ -6,50 +6,29 @@
         $action = $isEdit ? route('horizon.alerts.update', $alert) : route('horizon.alerts.store');
         $selectedProviderIds ??= [];
         $selectedServiceIds ??= [];
-        $thresholdForm = $alert->threshold ?? [];
-        $oldJobPatterns = old('job_patterns');
-        $jobPatternsForForm = [];
-        if (\is_array($oldJobPatterns)) {
-            foreach ($oldJobPatterns as $v) {
-                $jobPatternsForForm[] = \is_string($v) ? $v : '';
+
+        $patternRows = static function (mixed $old, array $stored): array {
+            if (\is_array($old)) {
+                $rows = \array_map(static fn ($v) => \is_string($v) ? $v : '', $old);
+
+                return $rows === [] ? [''] : $rows;
             }
-        } elseif (! empty($thresholdForm['job_patterns']) && \is_array($thresholdForm['job_patterns'])) {
-            $jobPatternsForForm = \array_values(\array_map('strval', $thresholdForm['job_patterns']));
-        }
-        if (empty($jobPatternsForForm)) {
-            $jobPatternsForForm = [''];
-        }
-        $jobTypeValueForForm = old('job_type');
-        if (empty($jobTypeValueForForm)) {
-            $storedJobPatterns = $thresholdForm['job_patterns'] ?? [];
-            $hasStoredJobPatterns = \is_array($storedJobPatterns)
-                && \count(\array_filter($storedJobPatterns, static fn ($x) => \is_string($x) && \trim($x) !== '')) > 0;
-            $jobTypeValueForForm = $hasStoredJobPatterns ? '' : (string) ($alert->job_type ?? '');
-        }
-        $oldQueuePatterns = old('queue_patterns');
-        $queuePatternsForForm = [];
-        if (\is_array($oldQueuePatterns)) {
-            foreach ($oldQueuePatterns as $v) {
-                $queuePatternsForForm[] = \is_string($v) ? $v : '';
+            if ($stored !== []) {
+                return \array_values(\array_map('strval', $stored));
             }
-        } elseif (! empty($thresholdForm['queue_patterns']) && \is_array($thresholdForm['queue_patterns'])) {
-            $queuePatternsForForm = \array_values(\array_map('strval', $thresholdForm['queue_patterns']));
-        } elseif (! empty($alert->queue)) {
-            $queuePatternsForForm = [(string) $alert->queue];
-        }
-        if (empty($queuePatternsForForm)) {
-            $queuePatternsForForm = [''];
-        }
-        $queueOptionalSectionOpenDefault = \count(\array_filter(
-            $queuePatternsForForm,
+
+            return [''];
+        };
+
+        $jobPatternsForForm = $patternRows(old('job_patterns'), $alert->getJobPatterns());
+        $queuePatternsForForm = $patternRows(old('queue_patterns'), $alert->getQueuePatterns());
+
+        $sectionHasValue = static fn (array $rows): bool => \count(\array_filter(
+            $rows,
             static fn ($x) => \is_string($x) && \trim($x) !== ''
-        )) > 0 || $errors->has('queue_patterns');
-        $jobOptionalSectionOpenDefault = \count(\array_filter(
-            $jobPatternsForForm,
-            static fn ($x) => \is_string($x) && \trim($x) !== ''
-        )) > 0 || $errors->has('job_patterns');
-        $jobTypeOptionalSectionOpenDefault = (\is_string($jobTypeValueForForm) ? \trim($jobTypeValueForForm) : '') !== ''
-            || $errors->has('job_type');
+        )) > 0;
+        $queueOptionalSectionOpenDefault = $sectionHasValue($queuePatternsForForm) || $errors->has('queue_patterns');
+        $jobOptionalSectionOpenDefault = $sectionHasValue($jobPatternsForForm) || $errors->has('job_patterns');
     @endphp
 
     <div
@@ -60,7 +39,6 @@
             queuePatterns: {!! \Illuminate\Support\Js::from($queuePatternsForForm) !!},
             queueOptionalSectionOpen: {!! \Illuminate\Support\Js::from($queueOptionalSectionOpenDefault) !!},
             jobOptionalSectionOpen: {!! \Illuminate\Support\Js::from($jobOptionalSectionOpenDefault) !!},
-            jobTypeOptionalSectionOpen: {!! \Illuminate\Support\Js::from($jobTypeOptionalSectionOpenDefault) !!},
             allServicesSelected: false,
             init() {
                 this.$nextTick(() => {
@@ -317,41 +295,6 @@
                             @error('job_patterns') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                         </div>
                     </div>
-                    <div
-                        class="overflow-hidden rounded-lg border border-border"
-                        x-show="['failure_count','avg_execution_time'].includes(ruleType)"
-                        x-cloak
-                    >
-                        <button
-                            type="button"
-                            class="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-muted/50"
-                            @click="jobTypeOptionalSectionOpen = !jobTypeOptionalSectionOpen"
-                            :aria-expanded="jobTypeOptionalSectionOpen"
-                        >
-                            <span>Job type (optional)</span>
-                            <x-icons.chevron-down
-                                class="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200"
-                                x-bind:class="{ 'rotate-180': jobTypeOptionalSectionOpen }"
-                            />
-                        </button>
-                        <div
-                            x-show="jobTypeOptionalSectionOpen"
-                            x-transition
-                            class="space-y-2 border-t border-border px-3 py-3"
-                        >
-                            <x-input-label for="job_type">Job type (optional single substring)</x-input-label>
-                            <x-text-input
-                                type="text"
-                                id="job_type"
-                                name="job_type"
-                                value="{{ $jobTypeValueForForm }}"
-                                placeholder="App\Jobs\ProcessOrder"
-                                class="w-full font-mono text-sm"
-                            />
-                            <p class="text-xs text-muted-foreground">Merged with job patterns above when saved (same substring rules).</p>
-                            @error('job_type') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
-                        </div>
-                    </div>
 
                     <template x-if="['failure_count','avg_execution_time','queue_blocked','worker_offline','supervisor_offline','horizon_offline'].includes(ruleType)">
                         <div class="space-y-3 pt-2 border-t border-border">
@@ -365,7 +308,7 @@
                                             name="thresholdCount"
                                             min="1"
                                             class="w-24"
-                                            value="{{ old('thresholdCount') !== null ? old('thresholdCount') : ($alert->threshold['count'] ?? config('horizonhub.alerts.default_count')) }}"
+                                            value="{{ old('thresholdCount') !== null ? old('thresholdCount') : ($alert->getThresholdCount()) }}"
                                         />
                                         @error('thresholdCount') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                                     </div>
@@ -376,7 +319,7 @@
                                             name="thresholdMinutes"
                                             min="1"
                                             class="w-24"
-                                            value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->threshold['minutes'] ?? config('horizonhub.alerts.default_minutes')) }}"
+                                            value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->getThresholdMinutes()) }}"
                                         />
                                         @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                                     </div>
@@ -392,7 +335,7 @@
                                             name="thresholdSeconds"
                                             min="0.1"
                                             class="w-24"
-                                            value="{{ old('thresholdSeconds') !== null ? old('thresholdSeconds') : ($alert->threshold['seconds'] ?? config('horizonhub.alerts.default_seconds')) }}"
+                                            value="{{ old('thresholdSeconds') !== null ? old('thresholdSeconds') : ($alert->getThresholdSeconds()) }}"
                                         />
                                         @error('thresholdSeconds') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                                     </div>
@@ -403,7 +346,7 @@
                                             name="thresholdMinutes"
                                             min="1"
                                             class="w-24"
-                                            value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->threshold['minutes'] ?? config('horizonhub.alerts.default_minutes')) }}"
+                                            value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->getThresholdMinutes()) }}"
                                         />
                                         @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                                     </div>
@@ -417,7 +360,7 @@
                                         name="thresholdMinutes"
                                         min="1"
                                         class="w-24"
-                                        value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->threshold['minutes'] ?? config('horizonhub.alerts.default_minutes')) }}"
+                                        value="{{ old('thresholdMinutes') !== null ? old('thresholdMinutes') : ($alert->getThresholdMinutes()) }}"
                                     />
                                     @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                                 </div>

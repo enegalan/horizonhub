@@ -9,17 +9,17 @@ use App\Models\Service;
 use App\Services\Alerts\Engine\AlertBatchStore;
 use App\Services\Alerts\Engine\AlertEngine;
 use App\Services\Alerts\Engine\AlertNotificationDispatcher;
-use App\Services\Alerts\Rules\AlertRuleEvaluationSupport;
 use App\Services\Alerts\Rules\AlertRuleStrategyRegistry;
-use App\Services\Alerts\Rules\Strategies\AvgExecutionTimeAlertRuleStrategy;
-use App\Services\Alerts\Rules\Strategies\FailureCountAlertRuleStrategy;
-use App\Services\Alerts\Rules\Strategies\HorizonOfflineAlertRuleStrategy;
-use App\Services\Alerts\Rules\Strategies\NullAlertRuleStrategy;
-use App\Services\Alerts\Rules\Strategies\QueueBlockedAlertRuleStrategy;
-use App\Services\Alerts\Rules\Strategies\SupervisorOfflineAlertRuleStrategy;
-use App\Services\Alerts\Rules\Strategies\WorkerOfflineAlertRuleStrategy;
-use App\Services\Horizon\HorizonApiProxyService;
-use App\Services\Horizon\HorizonJobsWindowFetcher;
+use App\Services\Alerts\Rules\Strategies\AvgExecutionTime;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
+use App\Services\Alerts\Rules\Strategies\HorizonOffline;
+use App\Services\Alerts\Rules\Strategies\NullRule;
+use App\Services\Alerts\Rules\Strategies\QueueBlocked;
+use App\Services\Alerts\Rules\Strategies\SupervisorOffline;
+use App\Services\Alerts\Rules\Strategies\WorkerOffline;
+use App\Services\Horizon\HorizonClientService;
+use App\Services\Jobs\JobsWindowFetcher;
+use App\Support\Alerts\AlertRuleEvaluation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -42,7 +42,7 @@ class AlertEngineTest extends TestCase
         $engine = new AlertEngine(
             $batch,
             $this->createMock(AlertNotificationDispatcher::class),
-            $this->private__buildRegistry($this->createMock(HorizonApiProxyService::class)),
+            $this->private__buildRegistry($this->createMock(HorizonClientService::class)),
         );
         $result = $engine->evaluateAlert($alert);
 
@@ -61,7 +61,7 @@ class AlertEngineTest extends TestCase
 
         $batch = new AlertBatchStore;
         $dispatcher = $this->createMock(AlertNotificationDispatcher::class);
-        $registry = $this->private__buildRegistry($this->createMock(HorizonApiProxyService::class));
+        $registry = $this->private__buildRegistry($this->createMock(HorizonClientService::class));
         $engine = new AlertEngine($batch, $dispatcher, $registry);
 
         $result = $engine->evaluateAlert($alert);
@@ -81,7 +81,7 @@ class AlertEngineTest extends TestCase
         $engine = new AlertEngine(
             new AlertBatchStore,
             $this->createMock(AlertNotificationDispatcher::class),
-            $this->private__buildRegistry($this->createMock(HorizonApiProxyService::class)),
+            $this->private__buildRegistry($this->createMock(HorizonClientService::class)),
         );
 
         $engine->evaluateScheduled();
@@ -105,7 +105,7 @@ class AlertEngineTest extends TestCase
         ]);
         $alert->notificationProviders()->sync([$provider->id]);
 
-        $api = $this->createMock(HorizonApiProxyService::class);
+        $api = $this->createMock(HorizonClientService::class);
         $api->method('getFailedJobs')->willReturn([
             'success' => true,
             'data' => ['jobs' => [['id' => 'uuid-z', 'failed_at' => now()->toIso8601String(), 'queue' => '', 'payload' => []]]],
@@ -142,7 +142,7 @@ class AlertEngineTest extends TestCase
             'threshold' => ['count' => 1, 'minutes' => 5],
             'enabled' => true,
         ]);
-        $api = $this->createMock(HorizonApiProxyService::class);
+        $api = $this->createMock(HorizonClientService::class);
         $api->method('getFailedJobs')->willReturn([
             'success' => true,
             'data' => ['jobs' => [['id' => 'job-a', 'failed_at' => now()->toIso8601String(), 'queue' => '', 'payload' => []]]],
@@ -181,7 +181,7 @@ class AlertEngineTest extends TestCase
         $dispatcher = $this->createMock(AlertNotificationDispatcher::class);
         $dispatcher->method('dispatch')->willThrowException(new \RuntimeException('dispatch fail'));
 
-        $engine = new AlertEngine($batch, $dispatcher, $this->private__buildRegistry($this->createMock(HorizonApiProxyService::class)));
+        $engine = new AlertEngine($batch, $dispatcher, $this->private__buildRegistry($this->createMock(HorizonClientService::class)));
         $engine->flushPendingAlerts();
 
         $this->assertNotSame([], $batch->getPending($alert));
@@ -209,7 +209,7 @@ class AlertEngineTest extends TestCase
 
         $dispatcher = $this->createMock(AlertNotificationDispatcher::class);
         $dispatcher->expects($this->once())->method('dispatch');
-        $engine = new AlertEngine($batch, $dispatcher, $this->private__buildRegistry($this->createMock(HorizonApiProxyService::class)));
+        $engine = new AlertEngine($batch, $dispatcher, $this->private__buildRegistry($this->createMock(HorizonClientService::class)));
 
         $engine->flushPendingAlerts();
 
@@ -248,7 +248,7 @@ class AlertEngineTest extends TestCase
         $batch = new AlertBatchStore;
         $dispatcher = $this->createMock(AlertNotificationDispatcher::class);
         $dispatcher->expects($this->once())->method('dispatch');
-        $registry = $this->private__buildRegistry($this->createMock(HorizonApiProxyService::class));
+        $registry = $this->private__buildRegistry($this->createMock(HorizonClientService::class));
         $engine = new AlertEngine($batch, $dispatcher, $registry);
 
         $engine->retryAlertLog($sent);
@@ -258,18 +258,18 @@ class AlertEngineTest extends TestCase
         $this->assertDatabaseCount('alert_logs', 3);
     }
 
-    private function private__buildRegistry(HorizonApiProxyService $api): AlertRuleStrategyRegistry
+    private function private__buildRegistry(HorizonClientService $api): AlertRuleStrategyRegistry
     {
-        $support = new AlertRuleEvaluationSupport(new HorizonJobsWindowFetcher($api));
+        $support = new AlertRuleEvaluation(new JobsWindowFetcher($api));
 
         return new AlertRuleStrategyRegistry(
-            new NullAlertRuleStrategy,
-            new FailureCountAlertRuleStrategy($support),
-            new AvgExecutionTimeAlertRuleStrategy($support),
-            new QueueBlockedAlertRuleStrategy($support),
-            new WorkerOfflineAlertRuleStrategy,
-            new SupervisorOfflineAlertRuleStrategy($api),
-            new HorizonOfflineAlertRuleStrategy($api),
+            new NullRule,
+            new FailureCount($support),
+            new AvgExecutionTime($support),
+            new QueueBlocked($support),
+            new WorkerOffline,
+            new SupervisorOffline($api),
+            new HorizonOffline($api),
         );
     }
 }

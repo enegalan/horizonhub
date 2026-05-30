@@ -18,7 +18,7 @@ Within that window, repeated GETs to the same path for the same service return t
 
 The cache applies only to:
 
-- GET calls through `HorizonApiProxyService`
+- GET calls through `HorizonClientService`
 - Successful responses
 - Calls without dashboard-session bootstrap (`withDashboardSession = false`)
 - Calls that do not bypass service enablement (`allowWhenDisabled = false`)

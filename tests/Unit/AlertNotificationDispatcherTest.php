@@ -7,8 +7,8 @@ use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\Engine\AlertNotificationDispatcher;
-use App\Services\Notifiers\EmailNotifier;
-use App\Services\Notifiers\SlackNotifier;
+use App\Services\Notifiers\EmailNotifierService;
+use App\Services\Notifiers\SlackNotifierService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
@@ -46,8 +46,8 @@ class AlertNotificationDispatcherTest extends TestCase
         $alert->notificationProviders()->sync([$provider->id]);
         $alert->load('notificationProviders');
 
-        $email = $this->createMock(EmailNotifier::class);
-        $slack = $this->createMock(SlackNotifier::class);
+        $email = $this->createMock(EmailNotifierService::class);
+        $slack = $this->createMock(SlackNotifierService::class);
         $slack->method('sendBatched')->willThrowException(new \RuntimeException('boom'));
 
         $service = new AlertNotificationDispatcher($email, $slack);
@@ -96,9 +96,9 @@ class AlertNotificationDispatcherTest extends TestCase
         $alert->notificationProviders()->sync([$slackProvider->id, $emailProvider->id, $emptyEmailProvider->id]);
         $alert->load('notificationProviders');
 
-        $email = $this->createMock(EmailNotifier::class);
+        $email = $this->createMock(EmailNotifierService::class);
         $email->expects($this->once())->method('sendBatched');
-        $slack = $this->createMock(SlackNotifier::class);
+        $slack = $this->createMock(SlackNotifierService::class);
         $slack->expects($this->once())->method('sendBatched');
 
         $service = new AlertNotificationDispatcher($email, $slack);

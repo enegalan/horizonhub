@@ -4,7 +4,7 @@ namespace Tests\Unit;
 
 use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
-use App\Services\Horizon\ServiceFilterService;
+use App\Services\Services\ServiceFilterService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use PHPUnit\Framework\Attributes\Test;

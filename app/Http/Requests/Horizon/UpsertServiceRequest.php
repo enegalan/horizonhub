@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Horizon;
 
 use App\Models\Service;
-use App\Support\Horizon\ServiceTagNormalizer;
+use App\Support\Services\ServiceTagNormalizer;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;

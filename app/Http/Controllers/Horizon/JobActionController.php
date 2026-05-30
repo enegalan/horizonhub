@@ -7,8 +7,8 @@ use App\Http\Requests\Horizon\FailedJobsListRequest;
 use App\Http\Requests\Horizon\RetryBatchRequest;
 use App\Http\Requests\Horizon\RetryJobRequest;
 use App\Models\Service;
-use App\Services\Horizon\HorizonApiProxyService;
-use App\Services\Horizon\HorizonJobListService;
+use App\Services\Horizon\HorizonClientService;
+use App\Services\Jobs\JobListService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,17 +18,20 @@ class JobActionController extends Controller
     /**
      * The Horizon API proxy service.
      */
-    private HorizonApiProxyService $horizonApi;
+    private HorizonClientService $horizonApi;
 
     /**
      * The job list service.
      */
-    private HorizonJobListService $jobList;
+    private JobListService $jobList;
 
     /**
      * The constructor.
+     *
+     * @param HorizonClientService $horizonApi The Horizon API proxy service.
+     * @param JobListService $jobList The job list service.
      */
-    public function __construct(HorizonApiProxyService $horizonApi, HorizonJobListService $jobList)
+    public function __construct(HorizonClientService $horizonApi, JobListService $jobList)
     {
         $this->horizonApi = $horizonApi;
         $this->jobList = $jobList;
@@ -58,8 +61,6 @@ class JobActionController extends Controller
 
         if (! empty($validated['service_ids']) && \is_array($validated['service_ids'])) {
             $serviceIds = \array_values(\array_unique(\array_map('intval', $validated['service_ids'])));
-        } elseif (\array_key_exists('service_id', $validated) && \is_int($validated['service_id'])) {
-            $serviceIds = [$validated['service_id']];
         }
 
         $tags = $request->query('service_tag', []);

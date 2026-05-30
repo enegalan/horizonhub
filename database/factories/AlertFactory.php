@@ -22,8 +22,6 @@ class AlertFactory extends Factory
             'service_ids' => [],
             'rule_type' => Alert::RULE_FAILURE_COUNT,
             'threshold' => ['count' => 1, 'minutes' => 5],
-            'queue' => null,
-            'job_type' => null,
             'enabled' => true,
             'email_interval_minutes' => 0,
         ];

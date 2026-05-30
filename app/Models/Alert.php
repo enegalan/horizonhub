@@ -62,8 +62,6 @@ class Alert extends Model
         'service_ids',
         'rule_type',
         'threshold',
-        'queue',
-        'job_type',
         'enabled',
         'email_interval_minutes',
     ];
@@ -82,6 +80,56 @@ class Alert extends Model
     public function appliesToServiceId(int $serviceId): bool
     {
         return \in_array($serviceId, $this->service_ids, true);
+    }
+
+    /**
+     * Get the job patterns.
+     *
+     * @return array The job patterns.
+     */
+    public function getJobPatterns(): array
+    {
+        return $this->threshold['job_patterns'] ?? [];
+    }
+
+    /**
+     * Get the queue patterns.
+     *
+     * @return array The queue patterns.
+     */
+    public function getQueuePatterns(): array
+    {
+        return $this->threshold['queue_patterns'] ?? [];
+    }
+
+    /**
+     * Get the threshold count.
+     *
+     * @return int The threshold count.
+     */
+    public function getThresholdCount(): int
+    {
+        return (int) ($this->threshold['count'] ?? config('horizonhub.alerts.default_count'));
+    }
+
+    /**
+     * Get the threshold minutes.
+     *
+     * @return int The threshold minutes.
+     */
+    public function getThresholdMinutes(): int
+    {
+        return (int) ($this->threshold['minutes'] ?? config('horizonhub.alerts.default_minutes'));
+    }
+
+    /**
+     * Get the threshold seconds.
+     *
+     * @return float The threshold seconds.
+     */
+    public function getThresholdSeconds(): float
+    {
+        return (float) ($this->threshold['seconds'] ?? config('horizonhub.alerts.default_seconds'));
     }
 
     /**

@@ -8,15 +8,15 @@ use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\AlertChartDataService;
 use App\Services\Alerts\AlertDataService;
-use App\Services\Horizon\DashboardDataService;
-use App\Services\Horizon\HorizonApiProxyService;
-use App\Services\Horizon\HorizonJobDetailService;
-use App\Services\Horizon\HorizonJobListService;
-use App\Services\Horizon\HorizonJobServiceResolver;
-use App\Services\Horizon\HorizonMetricsService;
-use App\Services\Horizon\ServiceFilterService;
-use App\Services\Horizon\ServiceShowPageDataService;
-use App\Services\Horizon\ServiceStatsAttachmentService;
+use App\Services\Dashboard\DashboardDataService;
+use App\Services\Horizon\HorizonClientService;
+use App\Services\Jobs\JobDetailService;
+use App\Services\Jobs\JobListService;
+use App\Services\Jobs\JobServiceResolver;
+use App\Services\Metrics\MetricsDataService;
+use App\Services\Services\ServiceDetailService;
+use App\Services\Services\ServiceFilterService;
+use App\Services\Services\ServiceStatsAttachmentService;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -41,37 +41,37 @@ class HorizonStreamsController extends StreamController
     /**
      * The horizon api proxy service.
      */
-    private HorizonApiProxyService $horizonApi;
+    private HorizonClientService $horizonApi;
 
     /**
-     * The horizon job detail service.
+     * The job detail service.
      */
-    private HorizonJobDetailService $jobDetail;
+    private JobDetailService $jobDetail;
 
     /**
-     * The horizon job list service.
+     * The job list service.
      */
-    private HorizonJobListService $jobList;
+    private JobListService $jobList;
 
     /**
-     * The horizon job service resolver.
+     * The job service resolver.
      */
-    private HorizonJobServiceResolver $jobServiceResolver;
+    private JobServiceResolver $jobServiceResolver;
 
     /**
-     * The metrics service.
+     * The metrics data service.
      */
-    private HorizonMetricsService $metrics;
+    private MetricsDataService $metrics;
+
+    /**
+     * The service detail service.
+     */
+    private ServiceDetailService $serviceDetail;
 
     /**
      * The service filter service.
      */
     private ServiceFilterService $serviceFilter;
-
-    /**
-     * The service show page data service.
-     */
-    private ServiceShowPageDataService $serviceShowPageData;
 
     /**
      * The service stats attachment service.
@@ -80,8 +80,20 @@ class HorizonStreamsController extends StreamController
 
     /**
      * The constructor.
+     *
+     * @param DashboardDataService $dashboardData The dashboard data service.
+     * @param MetricsDataService $metrics The metrics data service.
+     * @param HorizonClientService $horizonApi The horizon API client.
+     * @param JobListService $jobList The job list service.
+     * @param JobDetailService $jobDetail The job detail service.
+     * @param JobServiceResolver $jobServiceResolver The job service resolver.
+     * @param ServiceDetailService $serviceDetail The service detail service.
+     * @param ServiceStatsAttachmentService $serviceStats The service stats attachment service.
+     * @param AlertChartDataService $alertChartData The alert chart data service.
+     * @param AlertDataService $alertIndexStreamData The alert index stream data service.
+     * @param ServiceFilterService $serviceFilter The service filter service.
      */
-    public function __construct(DashboardDataService $dashboardData, HorizonMetricsService $metrics, HorizonApiProxyService $horizonApi, HorizonJobListService $jobList, HorizonJobDetailService $jobDetail, HorizonJobServiceResolver $jobServiceResolver, ServiceShowPageDataService $serviceShowPageData, ServiceStatsAttachmentService $serviceStats, AlertChartDataService $alertChartData, AlertDataService $alertIndexStreamData, ServiceFilterService $serviceFilter)
+    public function __construct(DashboardDataService $dashboardData, MetricsDataService $metrics, HorizonClientService $horizonApi, JobListService $jobList, JobDetailService $jobDetail, JobServiceResolver $jobServiceResolver, ServiceDetailService $serviceDetail, ServiceStatsAttachmentService $serviceStats, AlertChartDataService $alertChartData, AlertDataService $alertIndexStreamData, ServiceFilterService $serviceFilter)
     {
         $this->dashboardData = $dashboardData;
         $this->metrics = $metrics;
@@ -89,7 +101,7 @@ class HorizonStreamsController extends StreamController
         $this->jobList = $jobList;
         $this->jobDetail = $jobDetail;
         $this->jobServiceResolver = $jobServiceResolver;
-        $this->serviceShowPageData = $serviceShowPageData;
+        $this->serviceDetail = $serviceDetail;
         $this->serviceStats = $serviceStats;
         $this->alertChartData = $alertChartData;
         $this->alertIndexStreamData = $alertIndexStreamData;
@@ -164,17 +176,18 @@ class HorizonStreamsController extends StreamController
             'chart30d' => $this->alertChartData->buildChart($alert, 30),
         ];
 
-        $streams = [];
-
         $statsHtml = \view('horizon.alerts.partials.show.stats', [
             'chartData' => $chartData,
         ])->render();
-        $this->appendTurboStream($streams, 'update', 'alert-detail-stats', $statsHtml, 'morph');
 
-        $chartJson = \json_encode($chartData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        $this->appendTurboStream($streams, 'replace', 'alert-detail-chart-data', '<div id="alert-detail-chart-data"><script type="application/json" id="alert-detail-chart-data-json">' . $chartJson . '</script></div>');
+        $chartDataHtml = \view('components.horizon.alert-detail-chart-data', [
+            'chartData' => $chartData,
+        ])->render();
 
-        return \implode("\n", $streams);
+        return $this->buildStreams([
+            ['update', 'alert-detail-stats', $statsHtml, 'morph'],
+            ['replace', 'alert-detail-chart-data', $chartDataHtml, null],
+        ]);
     }
 
     // ------------------------------------------------------------------
@@ -185,13 +198,10 @@ class HorizonStreamsController extends StreamController
     {
         $payload = $this->alertIndexStreamData->build();
 
-        $streams = [];
-        $this->pushViewStreams($streams, [
-            'turbo-horizon-alert-stats' => ['view' => 'horizon.alerts.partials.index.stats', 'data' => ['alertStats' => $payload['alertStats']]],
-            'turbo-tbody-horizon-alerts-list' => ['view' => 'horizon.alerts.partials.index.tbody', 'data' => ['alerts' => $payload['alerts'], 'serviceLabelsByAlertId' => $payload['serviceLabelsByAlertId']]],
-        ], 'morph');
-
-        return \implode("\n", $streams);
+        return $this->buildStreams([
+            ['update', 'turbo-horizon-alert-stats', \view('horizon.alerts.partials.index.stats', ['alertStats' => $payload['alertStats']])->render(), 'morph'],
+            ['update', 'turbo-tbody-horizon-alerts-list', \view('horizon.alerts.partials.index.tbody', ['alerts' => $payload['alerts'], 'serviceLabelsByAlertId' => $payload['serviceLabelsByAlertId']])->render(), 'morph'],
+        ]);
     }
 
     // ------------------------------------------------------------------
@@ -202,27 +212,19 @@ class HorizonStreamsController extends StreamController
     {
         $d = $this->dashboardData->build($this->horizonApi);
 
-        $updates = [
-            'dashboard-value-jobs-minute' => e($d['jobsPastMinute'] ?? '—'),
-            'dashboard-value-jobs-hour' => e($d['jobsPastHour'] ?? '—'),
-            'dashboard-value-failed-seven' => e($d['failedPastSevenDays'] ?? '—'),
-        ];
-        $streams = [];
-        $this->pushStreamUpdates($streams, $updates);
-
-        $views = [
-            'dashboard-services-kpi-inner' => ['view' => 'horizon.dashboard.partials.index.kpi-services-online', 'data' => [
+        return $this->buildStreams([
+            ['update', 'dashboard-value-jobs-minute', e($d['jobsPastMinute'] ?? '—'), null],
+            ['update', 'dashboard-value-jobs-hour', e($d['jobsPastHour'] ?? '—'), null],
+            ['update', 'dashboard-value-failed-seven', e($d['failedPastSevenDays'] ?? '—'), null],
+            ['update', 'dashboard-services-kpi-inner', \view('horizon.dashboard.partials.index.kpi-services-online', [
                 'servicesHealthDotClass' => $d['servicesHealthDotClass'] ?? 'bg-slate-400',
                 'servicesOnlineCount' => $d['servicesOnlineCount'] ?? 0,
                 'servicesTotal' => $d['servicesTotal'] ?? 0,
-            ]],
-            'dashboard-service-health-grid' => ['view' => 'horizon.dashboard.partials.index.service-health-grid', 'data' => ['services' => $d['services'] ?? collect()]],
-            'dashboard-recent-alerts-body' => ['view' => 'horizon.dashboard.partials.index.recent-alerts-tbody', 'data' => ['recentAlertLogs' => $d['recentAlertLogs'] ?? collect()]],
-            'dashboard-workload-summary-body' => ['view' => 'horizon.dashboard.partials.index.workload-summary-tbody', 'data' => ['workloadRows' => $d['workloadRows'] ?? []]],
-        ];
-        $this->pushViewStreams($streams, $views, 'morph');
-
-        return \implode("\n", $streams);
+            ])->render(), 'morph'],
+            ['update', 'dashboard-service-health-grid', \view('horizon.dashboard.partials.index.service-health-grid', ['services' => $d['services'] ?? collect()])->render(), 'morph'],
+            ['update', 'dashboard-recent-alerts-body', \view('horizon.dashboard.partials.index.recent-alerts-tbody', ['recentAlertLogs' => $d['recentAlertLogs'] ?? collect()])->render(), 'morph'],
+            ['update', 'dashboard-workload-summary-body', \view('horizon.dashboard.partials.index.workload-summary-tbody', ['workloadRows' => $d['workloadRows'] ?? []])->render(), 'morph'],
+        ]);
     }
 
     // ------------------------------------------------------------------
@@ -237,8 +239,7 @@ class HorizonStreamsController extends StreamController
             return null;
         }
 
-        $service = $resolved['service'];
-        $jobView = $this->jobDetail->buildShowViewData($service, $resolved['data']);
+        $jobView = $this->jobDetail->buildShowViewData($resolved['service'], $resolved['data']);
 
         $exception = ($jobView->exception ?? null) ? html_entity_decode((string) $jobView->exception, ENT_QUOTES | ENT_HTML401, 'UTF-8') : null;
         $exceptionTrace = $exception ? (\preg_split("/\r\n|\n|\r/", $exception) ?: []) : [];
@@ -256,20 +257,15 @@ class HorizonStreamsController extends StreamController
             'commandData' => $commandData,
         ];
 
-        $views = [
-            'horizon-job-detail-actions-stream' => ['view' => 'horizon.jobs.partials.show.actions', 'data' => $vars],
-            'horizon-job-detail-meta' => ['view' => 'horizon.jobs.partials.show.meta', 'data' => $vars],
-            'horizon-job-detail-exception' => ['view' => 'horizon.jobs.partials.show.exception', 'data' => $vars],
-            'horizon-job-detail-context' => ['view' => 'horizon.jobs.partials.show.context', 'data' => $vars],
-            'horizon-job-detail-retry-history' => ['view' => 'horizon.jobs.partials.show.retry-history', 'data' => $vars],
-            'horizon-job-detail-data' => ['view' => 'horizon.jobs.partials.show.data', 'data' => $vars],
-            'horizon-job-detail-payload' => ['view' => 'horizon.jobs.partials.show.payload', 'data' => $vars],
-        ];
-
-        $streams = [];
-        $this->pushViewStreams($streams, $views);
-
-        return \implode("\n", $streams);
+        return $this->buildStreams([
+            ['update', 'horizon-job-detail-actions-stream', \view('horizon.jobs.partials.show.actions', $vars)->render(), null],
+            ['update', 'horizon-job-detail-meta', \view('horizon.jobs.partials.show.meta', $vars)->render(), null],
+            ['update', 'horizon-job-detail-exception', \view('horizon.jobs.partials.show.exception', $vars)->render(), null],
+            ['update', 'horizon-job-detail-context', \view('horizon.jobs.partials.show.context', $vars)->render(), null],
+            ['update', 'horizon-job-detail-retry-history', \view('horizon.jobs.partials.show.retry-history', $vars)->render(), null],
+            ['update', 'horizon-job-detail-data', \view('horizon.jobs.partials.show.data', $vars)->render(), null],
+            ['update', 'horizon-job-detail-payload', \view('horizon.jobs.partials.show.payload', $vars)->render(), null],
+        ]);
     }
 
     // ------------------------------------------------------------------
@@ -287,7 +283,7 @@ class HorizonStreamsController extends StreamController
 
         $index = $this->jobList->buildAggregatedJobsIndexFromRequest($pageRequest);
 
-        return \implode("\n", $this->private__streamsForJobListSections(
+        return $this->private__streamsForJobListSections(
             [
                 'processing' => $index['processing'],
                 'processed' => $index['processed'],
@@ -296,7 +292,7 @@ class HorizonStreamsController extends StreamController
             'horizon-job-list',
             true,
             null,
-        ));
+        );
     }
 
     // ------------------------------------------------------------------
@@ -307,32 +303,23 @@ class HorizonStreamsController extends StreamController
     {
         $d = $this->metrics->buildMetricsDashboardData($this->serviceFilter->resolveFromQuery($query));
 
-        $updates = [
-            'metrics-value-jobs-minute' => e($d['jobsPastMinute'] ?? '—'),
-            'metrics-value-jobs-hour' => e($d['jobsPastHour'] ?? '—'),
-            'metrics-value-failed-seven' => e($d['failedPastSevenDays'] ?? '—'),
-            'metrics-workload-summary' => e($d['workloadSummary']),
-            'metrics-supervisors-summary' => e($d['supervisorsSummary']),
-        ];
-
-        $streams = [];
-        $this->pushStreamUpdates($streams, $updates);
-
         $failureRateHtml = \view('horizon.metrics.partials.index.failure-rate-value', [
             'failureRate24h' => $d['failureRate24h'],
         ])->render();
-        $this->appendTurboStream($streams, 'update', 'metrics-value-failure-rate', $failureRateHtml);
 
         $chartJson = \json_encode($d['metricsChartData'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        $this->appendTurboStream($streams, 'replace', 'metrics-chart-data', '<script type="application/json" id="metrics-chart-data">' . $chartJson . '</script>');
 
-        $views = [
-            'metrics-workload-body' => ['view' => 'horizon.metrics.partials.index.workload-tbody', 'data' => ['workloadRows' => $d['workloadRows']]],
-            'metrics-supervisors-body' => ['view' => 'horizon.metrics.partials.index.supervisors-tbody', 'data' => ['supervisorsRows' => $d['supervisorsRows']]],
-        ];
-        $this->pushViewStreams($streams, $views, 'morph');
-
-        return \implode("\n", $streams);
+        return $this->buildStreams([
+            ['update', 'metrics-value-jobs-minute', e($d['jobsPastMinute'] ?? '—'), null],
+            ['update', 'metrics-value-jobs-hour', e($d['jobsPastHour'] ?? '—'), null],
+            ['update', 'metrics-value-failed-seven', e($d['failedPastSevenDays'] ?? '—'), null],
+            ['update', 'metrics-workload-summary', e($d['workloadSummary']), null],
+            ['update', 'metrics-supervisors-summary', e($d['supervisorsSummary']), null],
+            ['update', 'metrics-value-failure-rate', $failureRateHtml, null],
+            ['replace', 'metrics-chart-data', '<script type="application/json" id="metrics-chart-data">' . $chartJson . '</script>', null],
+            ['update', 'metrics-workload-body', \view('horizon.metrics.partials.index.workload-tbody', ['workloadRows' => $d['workloadRows']])->render(), 'morph'],
+            ['update', 'metrics-supervisors-body', \view('horizon.metrics.partials.index.supervisors-tbody', ['supervisorsRows' => $d['supervisorsRows']])->render(), 'morph'],
+        ]);
     }
 
     // ------------------------------------------------------------------
@@ -348,13 +335,10 @@ class HorizonStreamsController extends StreamController
 
         $deliveryStats = $this->alertIndexStreamData->countsByProviderType();
 
-        $streams = [];
-        $this->pushViewStreams($streams, [
-            'turbo-horizon-provider-stats' => ['view' => 'horizon.providers.partials.index.stats', 'data' => ['deliveryStats' => $deliveryStats]],
-            'turbo-tbody-horizon-provider-list' => ['view' => 'horizon.providers.partials.index.tbody', 'data' => ['providers' => $providers]],
-        ], 'morph');
-
-        return \implode("\n", $streams);
+        return $this->buildStreams([
+            ['update', 'turbo-horizon-provider-stats', \view('horizon.providers.partials.index.stats', ['deliveryStats' => $deliveryStats])->render(), 'morph'],
+            ['update', 'turbo-tbody-horizon-provider-list', \view('horizon.providers.partials.index.tbody', ['providers' => $providers])->render(), 'morph'],
+        ]);
     }
 
     // ------------------------------------------------------------------
@@ -366,21 +350,19 @@ class HorizonStreamsController extends StreamController
         $serviceFilterIds = $this->serviceFilter->resolveFromQuery($query);
         $queues = $this->metrics->buildQueuesCollectionForServiceFilter($serviceFilterIds);
 
-        $queueCount = $queues->count();
         $totalJobs = (int) $queues->sum(static fn ($r): int => (int) ($r->job_count ?? 0));
 
         $statsHtml = \view('horizon.queues.partials.index.stats', [
-            'queueCount' => $queueCount,
+            'queueCount' => $queues->count(),
             'totalJobs' => $totalJobs,
         ])->render();
 
         $tbodyHtml = \view('horizon.queues.partials.index.tbody', ['queues' => $queues])->render();
 
-        $streams = [];
-        $this->appendTurboStream($streams, 'update', 'turbo-horizon-queue-stats', $statsHtml, 'morph');
-        $this->appendTurboStream($streams, 'update', 'turbo-tbody-horizon-queue-list', $tbodyHtml, 'morph');
-
-        return \implode("\n", $streams);
+        return $this->buildStreams([
+            ['update', 'turbo-horizon-queue-stats', $statsHtml, 'morph'],
+            ['update', 'turbo-tbody-horizon-queue-list', $tbodyHtml, 'morph'],
+        ]);
     }
 
     // ------------------------------------------------------------------
@@ -395,29 +377,21 @@ class HorizonStreamsController extends StreamController
         \parse_str($query, $queryParams);
         $pageRequest = Request::create($url, 'GET', $queryParams);
 
-        $d = $this->serviceShowPageData->build($service, $pageRequest, $this->horizonApi);
-
-        $streams = [];
-
-        $views = [
-            'service-show-stats-row-1' => ['view' => 'horizon.services.partials.show.stats-row-1', 'data' => $d],
-            'service-show-stats-row-2' => ['view' => 'horizon.services.partials.show.stats-row-2', 'data' => $d],
-            'service-show-supervisors-panel' => ['view' => 'horizon.services.partials.show.supervisors-panel', 'data' => $d],
-        ];
-        $this->pushViewStreams($streams, $views);
+        $d = $this->serviceDetail->build($service, $pageRequest, $this->horizonApi);
 
         $workloadCount = $d['workloadQueues']->count();
-        $this->pushStreamUpdates($streams, [
-            'service-show-workload-count' => e($workloadCount > 0 ? $workloadCount . ' queue(s)' : ''),
+
+        $streams = [];
+        $streams[] = $this->buildStreams([
+            ['update', 'service-show-stats-row-1', \view('horizon.services.partials.show.stats-row-1', $d)->render(), null],
+            ['update', 'service-show-stats-row-2', \view('horizon.services.partials.show.stats-row-2', $d)->render(), null],
+            ['update', 'service-show-supervisors-panel', \view('horizon.services.partials.show.supervisors-panel', $d)->render(), null],
+            ['update', 'service-show-workload-count', e($workloadCount > 0 ? $workloadCount . ' queue(s)' : ''), null],
+            ['update', 'service-show-workload-body', \view('horizon.services.partials.show.workload-tbody', ['workloadQueues' => $d['workloadQueues']])->render(), 'morph'],
+            ['update', 'service-show-supervisor-groups', \view('horizon.services.partials.show.supervisor-groups', $d)->render(), 'morph'],
         ]);
 
-        $viewsMorph = [
-            'service-show-workload-body' => ['view' => 'horizon.services.partials.show.workload-tbody', 'data' => ['workloadQueues' => $d['workloadQueues']]],
-            'service-show-supervisor-groups' => ['view' => 'horizon.services.partials.show.supervisor-groups', 'data' => $d],
-        ];
-        $this->pushViewStreams($streams, $viewsMorph, 'morph');
-
-        foreach ($this->private__streamsForJobListSections(
+        $streams[] = $this->private__streamsForJobListSections(
             [
                 'processing' => $d['jobsProcessing'],
                 'processed' => $d['jobsProcessed'],
@@ -426,9 +400,7 @@ class HorizonStreamsController extends StreamController
             'horizon-service-dashboard-jobs',
             false,
             $service,
-        ) as $jobStream) {
-            $streams[] = $jobStream;
-        }
+        );
 
         return \implode("\n", $streams);
     }
@@ -450,43 +422,36 @@ class HorizonStreamsController extends StreamController
         $this->serviceStats->attachHorizonStats($services, $this->horizonApi);
         $serviceStats = $this->serviceStats->buildListSummaryCounts($services);
 
-        $streams = [];
-        $this->pushViewStreams($streams, [
-            'turbo-horizon-service-stats' => ['view' => 'horizon.services.partials.index.stats', 'data' => ['serviceStats' => $serviceStats]],
-            'turbo-tbody-horizon-service-list' => ['view' => 'horizon.services.partials.index.tbody', 'data' => ['services' => $services]],
-        ], 'morph');
-
-        return \implode("\n", $streams);
+        return $this->buildStreams([
+            ['update', 'turbo-horizon-service-stats', \view('horizon.services.partials.index.stats', ['serviceStats' => $serviceStats])->render(), 'morph'],
+            ['update', 'turbo-tbody-horizon-service-list', \view('horizon.services.partials.index.tbody', ['services' => $services])->render(), 'morph'],
+        ]);
     }
 
     /**
      * Turbo streams for the three job list section tbodies, badge counts, and pagination (no thead replace).
      *
      * @param array{processing: LengthAwarePaginator, processed: LengthAwarePaginator, failed: LengthAwarePaginator} $jobsIndex
-     *
-     * @return list<string>
      */
-    private function private__streamsForJobListSections(array $jobsIndex, string $resizablePrefix, bool $showServiceColumn, ?Service $pageService): array
+    private function private__streamsForJobListSections(array $jobsIndex, string $resizablePrefix, bool $showServiceColumn, ?Service $pageService): string
     {
-        $streams = [];
+        $operations = [];
 
         foreach (['processing', 'processed', 'failed'] as $kind) {
             $paginator = $jobsIndex[$kind];
             $bodyKey = "$resizablePrefix-$kind";
-            $tbodyHtml = \view('horizon.jobs.partials.index.list-tbody-rows', [
+            $operations[] = ['update', "turbo-tbody-$bodyKey", \view('horizon.jobs.partials.index.list-tbody-rows', [
                 'kind' => $kind,
                 'paginator' => $paginator,
                 'showServiceColumn' => $showServiceColumn,
                 'pageService' => $pageService,
-            ])->render();
-            $this->appendTurboStream($streams, 'update', "turbo-tbody-$bodyKey", $tbodyHtml, 'morph');
-            $this->appendTurboStream($streams, 'update', "job-count-$bodyKey", \e((string) $paginator->total()));
-            $paginationHtml = \view('horizon.jobs.partials.index.list-section-pagination', [
+            ])->render(), 'morph'];
+            $operations[] = ['update', "job-count-$bodyKey", \e((string) $paginator->total()), null];
+            $operations[] = ['update', "job-pagination-$bodyKey", \view('horizon.jobs.partials.index.list-section-pagination', [
                 'paginator' => $paginator,
-            ])->render();
-            $this->appendTurboStream($streams, 'update', "job-pagination-$bodyKey", $paginationHtml, 'morph');
+            ])->render(), 'morph'];
         }
 
-        return $streams;
+        return $this->buildStreams($operations);
     }
 }

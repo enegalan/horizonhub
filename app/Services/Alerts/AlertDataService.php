@@ -8,12 +8,10 @@ use App\Models\NotificationProvider;
 use App\Models\Service;
 use Illuminate\Support\Collection;
 
-class AlertDataService
+final class AlertDataService
 {
     /**
      * Load alerts for the index stream with list metadata.
-     *
-     * @param list<int> $filterServiceIds Empty means no filter.
      *
      * @return array{
      *     alerts: Collection<int, Alert>,
@@ -21,7 +19,7 @@ class AlertDataService
      *     serviceLabelsByAlertId: array<int, list<string>>
      * }
      */
-    public function build(array $filterServiceIds = []): array
+    public function build(): array
     {
         $alerts = Alert::query()
             ->withCount('alertLogs')
@@ -29,27 +27,13 @@ class AlertDataService
             ->orderByDesc('created_at')
             ->get();
 
-        if (! empty($filterServiceIds)) {
-            $alerts = $alerts->filter(function (Alert $alert) use ($filterServiceIds): bool {
-                foreach ($filterServiceIds as $serviceId) {
-                    if ($alert->appliesToServiceId((int) $serviceId)) {
-                        return true;
-                    }
-                }
-
-                return false;
-            })->values();
-        }
-
-        $alertStats = [
-            'total' => $alerts->count(),
-            'enabled' => $alerts->where('enabled', true)->count(),
-            'disabled' => $alerts->where('enabled', false)->count(),
-        ];
-
         return [
             'alerts' => $alerts,
-            'alertStats' => $alertStats,
+            'alertStats' => [
+                'total' => $alerts->count(),
+                'enabled' => $alerts->where('enabled')->count(),
+                'disabled' => $alerts->where('enabled', false)->count(),
+            ],
             'serviceLabelsByAlertId' => $this->private__buildServiceLabelsByAlertId($alerts),
         ];
     }
@@ -61,18 +45,18 @@ class AlertDataService
      */
     public function countsByProviderType(): array
     {
-        $countForProviderType = function (string $providerType): int {
-            return AlertLog::query()
-                ->whereHas('alert.notificationProviders', static function ($query) use ($providerType): void {
-                    $query->where('type', $providerType);
-                })
-                ->count();
-        };
+        $countsByProviderType = AlertLog::query()
+            ->selectRaw('notification_providers.type, COUNT(*) as aggregate')
+            ->join('alerts', 'alerts.id', '=', 'alert_logs.alert_id')
+            ->join('alert_notification_provider', 'alert_notification_provider.alert_id', '=', 'alerts.id')
+            ->join('notification_providers', 'notification_providers.id', '=', 'alert_notification_provider.notification_provider_id')
+            ->groupBy('notification_providers.type')
+            ->pluck('aggregate', 'notification_providers.type');
 
         return [
             'total' => AlertLog::query()->count(),
-            'slack' => $countForProviderType(NotificationProvider::TYPE_SLACK),
-            'email' => $countForProviderType(NotificationProvider::TYPE_EMAIL),
+            'slack' => $countsByProviderType[NotificationProvider::TYPE_SLACK] ?? 0,
+            'email' => $countsByProviderType[NotificationProvider::TYPE_EMAIL] ?? 0,
         ];
     }
 

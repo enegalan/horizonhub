@@ -14,57 +14,33 @@ abstract class StreamController extends Controller
     private array $private__streamFingerprintsByTarget = [];
 
     /**
-     * Append a turbo-stream tag to the streams array.
+     * Build turbo-stream content from stream operations.
      *
-     * @param-out list<string> $streams
+     * Each operation is [action, target, content, streamMethod?].
      *
-     * @param list<string> $streams
+     * @param list<array<int, mixed>> $operations
      */
-    protected function appendTurboStream(array &$streams, string $action, string $target, string $content, ?string $streamMethod = null): void
+    protected function buildStreams(array $operations): string
     {
-        $tag = $this->turboStreamTag($action, $target, $content, $streamMethod);
+        $result = [];
 
-        if (! empty($tag)) {
-            $streams[] = $tag;
-        }
-    }
-
-    /**
-     * Push stream updates to the streams array.
-     *
-     * @param-out list<string> $streams
-     *
-     * @param list<string> $streams
-     * @param array<string, string> $updates
-     */
-    protected function pushStreamUpdates(array &$streams, array $updates, ?string $streamMethod = null): void
-    {
-        foreach ($updates as $target => $content) {
-            $tag = $this->turboStreamTag('update', $target, $content, $streamMethod);
-
-            if (! empty($tag)) {
-                $streams[] = $tag;
+        foreach ($operations as $operation) {
+            if (\count($operation) < 3) {
+                throw new \InvalidArgumentException('Stream operation must have action, target, and content.');
             }
-        }
-    }
 
-    /**
-     * Push view streams to the streams array.
-     *
-     * @param-out list<string> $streams
-     *
-     * @param list<string> $streams
-     * @param array<string, array<string, mixed>> $views
-     */
-    protected function pushViewStreams(array &$streams, array $views, ?string $streamMethod = null): void
-    {
-        $updates = [];
+            $streamMethod = $operation[3] ?? null;
 
-        foreach ($views as $target => $viewData) {
-            $updates[$target] = \view($viewData['view'], $viewData['data'] ?? [])->render();
+            $this->private__appendTurboStream(
+                $result,
+                (string) $operation[0],
+                (string) $operation[1],
+                (string) $operation[2],
+                $streamMethod !== null ? (string) $streamMethod : null,
+            );
         }
 
-        $this->pushStreamUpdates($streams, $updates, $streamMethod);
+        return \implode("\n", $result);
     }
 
     /**
@@ -121,7 +97,23 @@ abstract class StreamController extends Controller
 
                 \usleep($intervalMicroseconds);
             }
-        }, 200, $this->streamHeaders());
+        }, 200, $this->private__streamHeaders());
+    }
+
+    /**
+     * Append a turbo-stream tag to the streams array.
+     *
+     * @param-out list<string> $streams
+     *
+     * @param list<string> $streams
+     */
+    private function private__appendTurboStream(array &$streams, string $action, string $target, string $content, ?string $streamMethod = null): void
+    {
+        $tag = $this->private__turboStreamTag($action, $target, $content, $streamMethod);
+
+        if (! empty($tag)) {
+            $streams[] = $tag;
+        }
     }
 
     /**
@@ -129,7 +121,7 @@ abstract class StreamController extends Controller
      *
      * @return array<string, string>
      */
-    protected function streamHeaders(): array
+    private function private__streamHeaders(): array
     {
         return [
             'Content-Type' => 'text/event-stream',
@@ -142,7 +134,7 @@ abstract class StreamController extends Controller
     /**
      * Build a turbo-stream tag, or null when the payload is unchanged since the last emit for this target.
      */
-    protected function turboStreamTag(string $action, string $target, string $content, ?string $streamMethod = null): ?string
+    private function private__turboStreamTag(string $action, string $target, string $content, ?string $streamMethod = null): ?string
     {
         $methodKey = $streamMethod ?? '';
         $fingerprint = \hash('sha256', "$action\0$target\0$methodKey\0$content");

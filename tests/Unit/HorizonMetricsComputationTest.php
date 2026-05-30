@@ -3,9 +3,9 @@
 namespace Tests\Unit;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonApiProxyService;
-use App\Services\Horizon\HorizonJobsWindowFetcher;
-use App\Services\Metrics\HorizonMetricsComputation;
+use App\Services\Horizon\HorizonClientService;
+use App\Services\Jobs\JobsWindowFetcher;
+use App\Services\Metrics\Calculators\AbstractMetricsCalculator;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,9 +17,9 @@ class HorizonMetricsComputationTest extends TestCase
 
     public function test_get_services_for_metrics_and_workload_fallback_from_masters(): void
     {
-        $api = $this->createMock(HorizonApiProxyService::class);
-        $fetcher = new HorizonJobsWindowFetcher($api);
-        $probe = new class($api, $fetcher) extends HorizonMetricsComputation
+        $api = $this->createMock(HorizonClientService::class);
+        $fetcher = new JobsWindowFetcher($api);
+        $probe = new class($api, $fetcher) extends AbstractMetricsCalculator
         {
             public function public__services(array $scope): Collection
             {
@@ -43,9 +43,9 @@ class HorizonMetricsComputationTest extends TestCase
 
     public function test_metrics_computation_helpers_cover_edge_branches(): void
     {
-        $api = $this->createMock(HorizonApiProxyService::class);
-        $fetcher = new HorizonJobsWindowFetcher($api);
-        $probe = new class($api, $fetcher) extends HorizonMetricsComputation
+        $api = $this->createMock(HorizonClientService::class);
+        $fetcher = new JobsWindowFetcher($api);
+        $probe = new class($api, $fetcher) extends AbstractMetricsCalculator
         {
             public function public__initHourly(Carbon $since, Carbon $end): array
             {

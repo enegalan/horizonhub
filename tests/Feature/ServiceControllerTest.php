@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonApiProxyService;
+use App\Services\Horizon\HorizonClientService;
 use App\Support\FormDrawer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -21,7 +21,7 @@ class ServiceControllerTest extends TestCase
             'status' => 'offline',
         ]);
 
-        $api = $this->createMock(HorizonApiProxyService::class);
+        $api = $this->createMock(HorizonClientService::class);
         $api->method('ping')->willReturnOnConsecutiveCalls(
             ['success' => true],
             ['success' => false, 'message' => 'failed ping'],
@@ -31,7 +31,7 @@ class ServiceControllerTest extends TestCase
             ->with($this->callback(function (Service $cooldownService) use ($service): bool {
                 return $cooldownService->id === $service->id;
             }));
-        $this->app->instance(HorizonApiProxyService::class, $api);
+        $this->app->instance(HorizonClientService::class, $api);
 
         $this->get(route('horizon.services.index'))->assertOk();
         Service::factory()->create(['tags' => ['production']]);

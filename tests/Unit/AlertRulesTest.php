@@ -4,17 +4,17 @@ namespace Tests\Unit;
 
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Alerts\Rules\AlertRuleEvaluationSupport;
 use App\Services\Alerts\Rules\AlertRuleStrategyRegistry;
-use App\Services\Alerts\Rules\Strategies\AvgExecutionTimeAlertRuleStrategy;
-use App\Services\Alerts\Rules\Strategies\FailureCountAlertRuleStrategy;
-use App\Services\Alerts\Rules\Strategies\HorizonOfflineAlertRuleStrategy;
-use App\Services\Alerts\Rules\Strategies\NullAlertRuleStrategy;
-use App\Services\Alerts\Rules\Strategies\QueueBlockedAlertRuleStrategy;
-use App\Services\Alerts\Rules\Strategies\SupervisorOfflineAlertRuleStrategy;
-use App\Services\Alerts\Rules\Strategies\WorkerOfflineAlertRuleStrategy;
-use App\Services\Horizon\HorizonApiProxyService;
-use App\Services\Horizon\HorizonJobsWindowFetcher;
+use App\Services\Alerts\Rules\Strategies\AvgExecutionTime;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
+use App\Services\Alerts\Rules\Strategies\HorizonOffline;
+use App\Services\Alerts\Rules\Strategies\NullRule;
+use App\Services\Alerts\Rules\Strategies\QueueBlocked;
+use App\Services\Alerts\Rules\Strategies\SupervisorOffline;
+use App\Services\Alerts\Rules\Strategies\WorkerOffline;
+use App\Services\Horizon\HorizonClientService;
+use App\Services\Jobs\JobsWindowFetcher;
+use App\Support\Alerts\AlertRuleEvaluation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -24,11 +24,9 @@ class AlertRulesTest extends TestCase
 
     public function test_evaluation_support_resolves_patterns_and_filters_jobs(): void
     {
-        $api = $this->createMock(HorizonApiProxyService::class);
-        $support = new AlertRuleEvaluationSupport(new HorizonJobsWindowFetcher($api));
+        $api = $this->createMock(HorizonClientService::class);
+        $support = new AlertRuleEvaluation(new JobsWindowFetcher($api));
         $alert = new Alert([
-            'queue' => 'default',
-            'job_type' => 'App\\Jobs\\Sync',
             'threshold' => [
                 'queue_patterns' => ['emails', 'default'],
                 'job_patterns' => ['App\\Jobs\\Sync', 'App\\Jobs\\Sync'],
@@ -66,7 +64,7 @@ class AlertRulesTest extends TestCase
             'enabled' => true,
         ]);
 
-        $api = $this->createMock(HorizonApiProxyService::class);
+        $api = $this->createMock(HorizonClientService::class);
         $api->method('getFailedJobs')->willReturn([
             'success' => true,
             'data' => [
@@ -76,8 +74,8 @@ class AlertRulesTest extends TestCase
                 ],
             ],
         ]);
-        $support = new AlertRuleEvaluationSupport(new HorizonJobsWindowFetcher($api));
-        $strategy = new FailureCountAlertRuleStrategy($support);
+        $support = new AlertRuleEvaluation(new JobsWindowFetcher($api));
+        $strategy = new FailureCount($support);
         $result = $strategy->evaluateWithTriggeringJobs($alert, $service->id);
 
         $this->assertTrue($result['triggered']);
@@ -126,7 +124,7 @@ class AlertRulesTest extends TestCase
             'enabled' => true,
         ]);
 
-        $api = $this->createMock(HorizonApiProxyService::class);
+        $api = $this->createMock(HorizonClientService::class);
         $api->method('getCompletedJobs')->willReturn([
             'success' => true,
             'data' => [
@@ -150,43 +148,43 @@ class AlertRulesTest extends TestCase
         ]);
         $api->method('getStats')->willReturn(['success' => true, 'data' => ['status' => 'inactive']]);
 
-        $support = new AlertRuleEvaluationSupport(new HorizonJobsWindowFetcher($api));
+        $support = new AlertRuleEvaluation(new JobsWindowFetcher($api));
 
-        $avg = new AvgExecutionTimeAlertRuleStrategy($support);
+        $avg = new AvgExecutionTime($support);
         $this->assertTrue($avg->evaluateWithTriggeringJobs($avgAlert, $service->id)['triggered']);
 
-        $queueBlocked = new QueueBlockedAlertRuleStrategy($support);
+        $queueBlocked = new QueueBlocked($support);
         $this->assertFalse($queueBlocked->evaluateWithTriggeringJobs($queueAlert, $service->id)['triggered']);
 
-        $worker = new WorkerOfflineAlertRuleStrategy;
+        $worker = new WorkerOffline;
         $this->assertTrue($worker->evaluateWithTriggeringJobs($workerAlert, $service->id)['triggered']);
 
-        $supervisor = new SupervisorOfflineAlertRuleStrategy($api);
+        $supervisor = new SupervisorOffline($api);
         $this->assertTrue($supervisor->evaluateWithTriggeringJobs($supAlert, $service->id)['triggered']);
 
-        $offline = new HorizonOfflineAlertRuleStrategy($api);
+        $offline = new HorizonOffline($api);
         $this->assertTrue($offline->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
 
-        $null = new NullAlertRuleStrategy;
+        $null = new NullRule;
         $this->assertFalse($null->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
     }
 
     public function test_registry_resolves_known_and_unknown_rules(): void
     {
-        $api = $this->createMock(HorizonApiProxyService::class);
-        $support = new AlertRuleEvaluationSupport(new HorizonJobsWindowFetcher($api));
-        $null = new NullAlertRuleStrategy;
+        $api = $this->createMock(HorizonClientService::class);
+        $support = new AlertRuleEvaluation(new JobsWindowFetcher($api));
+        $null = new NullRule;
         $registry = new AlertRuleStrategyRegistry(
             $null,
-            new FailureCountAlertRuleStrategy($support),
-            new AvgExecutionTimeAlertRuleStrategy($support),
-            new QueueBlockedAlertRuleStrategy($support),
-            new WorkerOfflineAlertRuleStrategy,
-            new SupervisorOfflineAlertRuleStrategy($api),
-            new HorizonOfflineAlertRuleStrategy($api),
+            new FailureCount($support),
+            new AvgExecutionTime($support),
+            new QueueBlocked($support),
+            new WorkerOffline,
+            new SupervisorOffline($api),
+            new HorizonOffline($api),
         );
 
-        $this->assertInstanceOf(FailureCountAlertRuleStrategy::class, $registry->resolve(Alert::RULE_FAILURE_COUNT));
+        $this->assertInstanceOf(FailureCount::class, $registry->resolve(Alert::RULE_FAILURE_COUNT));
         $this->assertSame($null, $registry->resolve('unknown-rule'));
     }
 }

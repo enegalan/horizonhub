@@ -45,6 +45,7 @@ class AlertEvaluationBatchServiceTest extends TestCase
         $service = new AlertEvaluationBatchService;
         $result = $service->startEvaluateAll();
 
+        $this->private__assertStartEvaluateAllResponseShape($result);
         $this->assertSame('running', $result['status']);
         $this->assertSame(2, $result['total_alerts']);
         Bus::assertBatched(function ($batch) use ($a1, $a2) {
@@ -71,6 +72,8 @@ class AlertEvaluationBatchServiceTest extends TestCase
     public function test_start_evaluate_all_returns_completed_when_no_enabled_alerts(): void
     {
         Cache::flush();
+        Bus::fake();
+
         Alert::query()->create([
             'name' => 'disabled',
             'rule_type' => Alert::RULE_FAILURE_COUNT,
@@ -80,7 +83,21 @@ class AlertEvaluationBatchServiceTest extends TestCase
         $service = new AlertEvaluationBatchService;
         $result = $service->startEvaluateAll();
 
+        $this->private__assertStartEvaluateAllResponseShape($result);
         $this->assertSame('completed', $result['status']);
         $this->assertSame(0, $result['total_alerts']);
+        Bus::assertNothingBatched();
+    }
+
+    /**
+     * @param array<string, mixed> $result
+     */
+    private function private__assertStartEvaluateAllResponseShape(array $result): void
+    {
+        $this->assertSame(['evaluation_id', 'status', 'total_alerts'], array_keys($result));
+        $this->assertIsString($result['evaluation_id']);
+        $this->assertNotSame('', $result['evaluation_id']);
+        $this->assertIsString($result['status']);
+        $this->assertIsInt($result['total_alerts']);
     }
 }

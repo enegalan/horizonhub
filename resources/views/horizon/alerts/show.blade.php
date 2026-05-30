@@ -23,83 +23,73 @@
             ])
         </div>
 
-        @if(!empty($ruleConfig))
-            <div class="card p-4 mb-4" data-alert-detail-rule>
-                <h3 class="text-section-title text-foreground mb-3">Alert rule</h3>
-                <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-                    <div>
-                        <dt class="label-muted">Type</dt>
-                        <dd class="mt-0.5 text-foreground font-mono text-xs">{{ $ruleConfig['rule_type'] ?? 'unknown' }}</dd>
-                    </div>
-                    <div>
-                        <dt class="label-muted">Service scope</dt>
-                        @php
-                            $serviceNames = [];
-                            foreach ($ruleConfig['service_ids'] as $serviceId) {
-                                foreach ($services as $s) {
-                                    if ((int) $s->id === (int) $serviceId) {
-                                        $serviceNames[] = (string) $s->name;
-                                        break;
-                                    }
+        <div class="card p-4 mb-4" data-alert-detail-rule>
+            <h3 class="text-section-title text-foreground mb-3">Alert rule</h3>
+            <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                <div>
+                    <dt class="label-muted">Type</dt>
+                    <dd class="mt-0.5 text-foreground font-mono text-xs">{{ $alert->rule_type ?? 'unknown' }}</dd>
+                </div>
+                <div>
+                    <dt class="label-muted">Service scope</dt>
+                    @php
+                        $serviceNames = [];
+                        foreach ($alert->service_ids as $serviceId) {
+                            foreach ($services as $s) {
+                                if ((int) $s->id === (int) $serviceId) {
+                                    $serviceNames[] = (string) $s->name;
+                                    break;
                                 }
                             }
-                        @endphp
-                        <dd class="mt-0.5 text-foreground">
-                            @if(\count($serviceNames) > 0)
-                                {{ \implode(', ', $serviceNames) }}
-                            @else
-                                No services selected
+                        }
+                    @endphp
+                    <dd class="mt-0.5 text-foreground">
+                        @if(\count($serviceNames) > 0)
+                            {{ \implode(', ', $serviceNames) }}
+                        @else
+                            No services selected
+                        @endif
+                    </dd>
+                </div>
+                @php
+                    $threshold = $alert->threshold ?? [];
+                    $jobPatternsShow = $alert->getJobPatterns();
+                    $queuePatternsShow = $alert->getQueuePatterns();
+                    $thresholdCount = $alert->getThresholdCount();
+                    $thresholdSeconds = $alert->getThresholdSeconds();
+                    $thresholdMinutes = $alert->getThresholdMinutes();
+                @endphp
+                @if(\count($jobPatternsShow) > 0)
+                    <div class="sm:col-span-2">
+                        <dt class="label-muted">Job</dt>
+                        <dd class="mt-0.5 text-foreground font-mono text-xs whitespace-pre-wrap">{{ \implode("\n", \array_map('strval', $jobPatternsShow)) }}</dd>
+                    </div>
+                @endif
+                @if(\count($queuePatternsShow) > 0)
+                    <div class="sm:col-span-2">
+                        <dt class="label-muted">Queue patterns</dt>
+                        <dd class="mt-0.5 text-foreground font-mono text-xs whitespace-pre-wrap">{{ \implode("\n", \array_map('strval', $queuePatternsShow)) }}</dd>
+                    </div>
+                @endif
+                {{-- TO-EVALUATE: Is there a case where this is empty? --}}
+                @if(!empty($threshold))
+                    <div>
+                        <dt class="label-muted">Threshold</dt>
+                        <dd class="mt-0.5 text-foreground text-xs">
+                            @if(isset($threshold['count']))
+                                Failures: {{ $thresholdCount }}
+                            @endif
+                            @if(isset($threshold['seconds']))
+                                <span class="mr-1"></span>Seconds: {{ $thresholdSeconds }}
+                            @endif
+                            @if(isset($threshold['minutes']))
+                                <span class="mr-1"></span>Window: {{ $thresholdMinutes }} min
                             @endif
                         </dd>
                     </div>
-                    @if(!empty($ruleConfig['queue']))
-                        <div>
-                            <dt class="label-muted">Queue</dt>
-                            <dd class="mt-0.5 text-foreground font-mono text-xs">{{ $ruleConfig['queue'] }}</dd>
-                        </div>
-                    @endif
-                    @if(!empty($ruleConfig['job_type']))
-                        <div>
-                            <dt class="label-muted">Job type</dt>
-                            <dd class="mt-0.5 text-foreground font-mono text-xs">{{ $ruleConfig['job_type'] }}</dd>
-                        </div>
-                    @endif
-                    @php
-                        $threshold = $ruleConfig['threshold'] ?? [];
-                        $jobPatternsShow = isset($threshold['job_patterns']) && \is_array($threshold['job_patterns']) ? $threshold['job_patterns'] : [];
-                        $queuePatternsShow = isset($threshold['queue_patterns']) && \is_array($threshold['queue_patterns']) ? $threshold['queue_patterns'] : [];
-                    @endphp
-                    @if(\count($jobPatternsShow) > 0)
-                        <div class="sm:col-span-2">
-                            <dt class="label-muted">Job</dt>
-                            <dd class="mt-0.5 text-foreground font-mono text-xs whitespace-pre-wrap">{{ \implode("\n", \array_map('strval', $jobPatternsShow)) }}</dd>
-                        </div>
-                    @endif
-                    @if(\count($queuePatternsShow) > 0)
-                        <div class="sm:col-span-2">
-                            <dt class="label-muted">Queue patterns</dt>
-                            <dd class="mt-0.5 text-foreground font-mono text-xs whitespace-pre-wrap">{{ \implode("\n", \array_map('strval', $queuePatternsShow)) }}</dd>
-                        </div>
-                    @endif
-                    @if(!empty($threshold))
-                        <div>
-                            <dt class="label-muted">Threshold</dt>
-                            <dd class="mt-0.5 text-foreground text-xs">
-                                @if(isset($threshold['count']))
-                                    Failures: {{ (int) $threshold['count'] }}
-                                @endif
-                                @if(isset($threshold['seconds']))
-                                    <span class="mr-1"></span>Seconds: {{ (float) $threshold['seconds'] }}
-                                @endif
-                                @if(isset($threshold['minutes']))
-                                    <span class="mr-1"></span>Window: {{ (int) $threshold['minutes'] }} min
-                                @endif
-                            </dd>
-                        </div>
-                    @endif
-                </dl>
-            </div>
-        @endif
+                @endif
+            </dl>
+        </div>
 
         <div class="grid gap-4 mb-6" data-alert-detail-charts>
             <div class="card min-w-0 overflow-hidden p-4">
@@ -132,9 +122,7 @@
         </div>
 
         <div data-alert-detail-after-charts>
-            <div id="alert-detail-chart-data">
-                <script type="application/json" id="alert-detail-chart-data-json">@json($chartData)</script>
-            </div>
+            <x-horizon.alert-detail-chart-data :chart-data="$chartData" />
 
             <x-turbo::frame id="alert-logs">
             <div class="card mb-4">

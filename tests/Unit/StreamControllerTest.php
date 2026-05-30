@@ -12,11 +12,6 @@ class StreamControllerTest extends TestCase
     {
         $controller = new class extends StreamController
         {
-            public function public__headers(): array
-            {
-                return $this->streamHeaders();
-            }
-
             public function public__run(callable $callback): StreamedResponse
             {
                 return $this->runStream($callback);
@@ -24,44 +19,37 @@ class StreamControllerTest extends TestCase
         };
 
         config()->set('horizonhub.hot_reload_interval', 0.000001);
-        $headers = $controller->public__headers();
-        $this->assertSame('text/event-stream', $headers['Content-Type']);
-        $this->assertSame('no-cache, no-store, must-revalidate', $headers['Cache-Control']);
-
         $response = $controller->public__run(static fn (): ?string => null);
         $this->assertInstanceOf(StreamedResponse::class, $response);
         $this->assertSame('text/event-stream', $response->headers->get('Content-Type'));
+        $cacheControl = (string) $response->headers->get('Cache-Control');
+        $this->assertStringContainsString('no-cache', $cacheControl);
+        $this->assertStringContainsString('no-store', $cacheControl);
+        $this->assertStringContainsString('must-revalidate', $cacheControl);
     }
 
     public function test_turbo_stream_tag_omits_unchanged_payload_for_same_target(): void
     {
         $controller = new class extends StreamController
         {
-            public function public__tag(string $action, string $target, string $content, ?string $method = null): ?string
+            public function public__build(array $operations): string
             {
-                return $this->turboStreamTag($action, $target, $content, $method);
-            }
-
-            public function public__push(array &$streams, array $updates): void
-            {
-                $this->pushStreamUpdates($streams, $updates);
+                return $this->buildStreams($operations);
             }
         };
 
-        $first = $controller->public__tag('update', 'metrics-value-jobs-minute', '42');
-        $second = $controller->public__tag('update', 'metrics-value-jobs-minute', '42');
-        $third = $controller->public__tag('update', 'metrics-value-jobs-minute', '43');
+        $first = $controller->public__build([
+            ['update', 'metrics-value-jobs-minute', '42', null],
+        ]);
+        $second = $controller->public__build([
+            ['update', 'metrics-value-jobs-minute', '42', null],
+        ]);
+        $third = $controller->public__build([
+            ['update', 'metrics-value-jobs-minute', '43', null],
+        ]);
 
-        $this->assertNotNull($first);
         $this->assertStringContainsString('target="metrics-value-jobs-minute"', $first);
-        $this->assertNull($second);
-        $this->assertNotNull($third);
-
-        $streams = [];
-        $controller->public__push($streams, ['dashboard-value-jobs-minute' => '1']);
-        $controller->public__push($streams, ['dashboard-value-jobs-minute' => '1']);
-        $controller->public__push($streams, ['dashboard-value-jobs-minute' => '2']);
-
-        $this->assertCount(2, $streams);
+        $this->assertSame('', $second);
+        $this->assertStringContainsString('target="metrics-value-jobs-minute"', $third);
     }
 }

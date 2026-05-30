@@ -4,7 +4,7 @@ namespace App\Support\Horizon;
 
 use Carbon\Carbon;
 
-class JobRuntimeHelper
+final class JobRuntimeHelper
 {
     /**
      * Human-readable runtime in seconds (e.g. "0.08 s", "1.23 s").

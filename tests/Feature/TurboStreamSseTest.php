@@ -8,8 +8,8 @@ use App\Models\Alert;
 use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\AlertChartDataService;
-use App\Services\Horizon\HorizonApiProxyService;
-use App\Services\Horizon\ServiceFilterService;
+use App\Services\Horizon\HorizonClientService;
+use App\Services\Services\ServiceFilterService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -89,7 +89,7 @@ class TurboStreamSseTest extends TestCase
 
         $jobUuid = '763dc9c2-a7cd-4b95-9da5-77beff5c264e';
 
-        $this->mock(HorizonApiProxyService::class, function ($mock) use ($jobUuid): void {
+        $this->mock(HorizonClientService::class, function ($mock) use ($jobUuid): void {
             $mock->shouldReceive('getJob')
                 ->zeroOrMoreTimes()
                 ->andReturn([
@@ -131,7 +131,7 @@ class TurboStreamSseTest extends TestCase
             'base_url' => 'https://horizon-api-stream-null.test',
             'status' => 'online',
         ]);
-        $this->mock(HorizonApiProxyService::class, function ($mock): void {
+        $this->mock(HorizonClientService::class, function ($mock): void {
             $mock->shouldReceive('getJob')->andReturn(['success' => false]);
         });
         $controller = $this->app->make(HorizonStreamsController::class);
@@ -293,7 +293,7 @@ class TurboStreamSseTest extends TestCase
         $service->update(['tags' => ['production']]);
         $this->assertSame([$service->id], $filter->resolveFromQuery('service_tag[]=production'));
 
-        $tag = new \ReflectionMethod(StreamController::class, 'turboStreamTag');
+        $tag = new \ReflectionMethod(StreamController::class, 'private__turboStreamTag');
         $tag->setAccessible(true);
         $withoutMethod = $tag->invoke($controller, 'update', 'x', '<div>a</div>');
         $withMethod = $tag->invoke($controller, 'update', 'x', '<div>a</div>', 'morph');
@@ -361,7 +361,7 @@ class TurboStreamSseTest extends TestCase
 
         $jobUuid = '863dc9c2-a7cd-4b95-9da5-77beff5c264e';
 
-        $this->mock(HorizonApiProxyService::class, function ($mock) use ($jobUuid): void {
+        $this->mock(HorizonClientService::class, function ($mock) use ($jobUuid): void {
             $mock->shouldReceive('getJob')
                 ->zeroOrMoreTimes()
                 ->andReturn([

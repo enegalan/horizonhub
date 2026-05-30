@@ -5,10 +5,10 @@ namespace Tests\Unit;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\Service;
-use App\Services\Horizon\DashboardDataService;
-use App\Services\Horizon\HorizonApiProxyService;
-use App\Services\Horizon\HorizonMetricsService;
-use App\Services\Horizon\ServiceStatsAttachmentService;
+use App\Services\Dashboard\DashboardDataService;
+use App\Services\Horizon\HorizonClientService;
+use App\Services\Metrics\MetricsDataService;
+use App\Services\Services\ServiceStatsAttachmentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Tests\TestCase;
@@ -39,7 +39,7 @@ class DashboardDataServiceTest extends TestCase
             ]);
         }
 
-        $metrics = $this->createMock(HorizonMetricsService::class);
+        $metrics = $this->createMock(MetricsDataService::class);
         $metrics->expects($this->once())
             ->method('buildMetricsDashboardData')
             ->with([])
@@ -55,10 +55,10 @@ class DashboardDataServiceTest extends TestCase
                 $this->callback(static function (Collection $services): bool {
                     return $services->count() === 3;
                 }),
-                $this->isInstanceOf(HorizonApiProxyService::class),
+                $this->isInstanceOf(HorizonClientService::class),
             );
 
-        $horizonApi = $this->createMock(HorizonApiProxyService::class);
+        $horizonApi = $this->createMock(HorizonClientService::class);
         $sut = new DashboardDataService($metrics, $serviceStats);
         $result = $sut->build($horizonApi);
 
@@ -72,7 +72,7 @@ class DashboardDataServiceTest extends TestCase
 
     public function test_build_uses_neutral_health_dot_when_no_services_exist(): void
     {
-        $metrics = $this->createMock(HorizonMetricsService::class);
+        $metrics = $this->createMock(MetricsDataService::class);
         $metrics->expects($this->once())
             ->method('buildMetricsDashboardData')
             ->with([])
@@ -85,7 +85,7 @@ class DashboardDataServiceTest extends TestCase
             ->method('attachHorizonStats');
 
         $sut = new DashboardDataService($metrics, $serviceStats);
-        $result = $sut->build($this->createMock(HorizonApiProxyService::class));
+        $result = $sut->build($this->createMock(HorizonClientService::class));
 
         $this->assertSame('bg-slate-400', $result['servicesHealthDotClass']);
         $this->assertSame(0, $result['servicesTotal']);

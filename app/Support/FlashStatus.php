@@ -2,7 +2,7 @@
 
 namespace App\Support;
 
-class FlashStatus
+final class FlashStatus
 {
     /**
      * @return array{message: string, type: string}
