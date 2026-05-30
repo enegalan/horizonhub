@@ -190,6 +190,7 @@ class HorizonHttpClient implements HorizonHttpClientContract
 
             $statusCode = $e->getCode();
 
+            // Default exceptions have status code 0, we want to separate network errors from other exceptions and return the appropiate status code
             if ($statusCode === 0) {
                 $statusCode = $e instanceof ConnectionException
                     || $e instanceof RequestException

@@ -5,6 +5,7 @@
         'stroke' => 'currentColor',
         'aria-hidden' => 'true',
         'stroke-width' => '1.5',
+        'fill' => 'none',
     ]) }}
 >
     <path
