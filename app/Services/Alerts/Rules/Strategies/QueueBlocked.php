@@ -29,7 +29,7 @@ final class QueueBlocked implements AlertRuleContract
      */
     public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
     {
-        $minutes = $alert->getThresholdMinutes(30);
+        $minutes = $alert->getThresholdMinutes();
         $service = Service::find($serviceId);
 
         $triggered = false;

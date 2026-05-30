@@ -85,61 +85,51 @@ class Alert extends Model
     /**
      * Get the job patterns.
      *
-     * @param array|null $default The default value.
-     *
      * @return array The job patterns.
      */
-    public function getJobPatterns(?array $default = null): array
+    public function getJobPatterns(): array
     {
-        return $this->threshold['job_patterns'] ?? $default ?? [];
+        return $this->threshold['job_patterns'] ?? [];
     }
 
     /**
      * Get the queue patterns.
      *
-     * @param array|null $default The default value.
-     *
      * @return array The queue patterns.
      */
-    public function getQueuePatterns(?array $default = null): array
+    public function getQueuePatterns(): array
     {
-        return $this->threshold['queue_patterns'] ?? $default ?? [];
+        return $this->threshold['queue_patterns'] ?? [];
     }
 
     /**
      * Get the threshold count.
      *
-     * @param int|null $default The default value.
-     *
      * @return int The threshold count.
      */
-    public function getThresholdCount(?int $default = null): int
+    public function getThresholdCount(): int
     {
-        return (int) ($this->threshold['count'] ?? $default ?? config('horizonhub.alerts.default_count'));
+        return (int) ($this->threshold['count'] ?? config('horizonhub.alerts.default_count'));
     }
 
     /**
      * Get the threshold minutes.
      *
-     * @param int|null $default The default value.
-     *
      * @return int The threshold minutes.
      */
-    public function getThresholdMinutes(?int $default = null): int
+    public function getThresholdMinutes(): int
     {
-        return (int) ($this->threshold['minutes'] ?? $default ?? config('horizonhub.alerts.default_minutes'));
+        return (int) ($this->threshold['minutes'] ?? config('horizonhub.alerts.default_minutes'));
     }
 
     /**
      * Get the threshold seconds.
      *
-     * @param int|null $default The default value.
-     *
      * @return float The threshold seconds.
      */
-    public function getThresholdSeconds(?int $default = null): float
+    public function getThresholdSeconds(): float
     {
-        return (float) ($this->threshold['seconds'] ?? $default ?? config('horizonhub.alerts.default_seconds'));
+        return (float) ($this->threshold['seconds'] ?? config('horizonhub.alerts.default_seconds'));
     }
 
     /**
