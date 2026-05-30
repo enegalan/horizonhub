@@ -33,6 +33,7 @@ final class QueueBlocked implements AlertRuleContract
         $service = Service::find($serviceId);
 
         $triggered = false;
+
         if ($service !== null) {
             $cutoff = \now()->subMinutes($minutes);
             $jobs = $this->support->matchingCompletedJobsInWindow($alert, $service, $cutoff);

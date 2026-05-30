@@ -30,25 +30,17 @@ final class SupervisorOffline implements AlertRuleContract
      */
     public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
     {
-        return [
-            'triggered' => $this->private__evaluateSupervisorOffline($alert, $serviceId),
-            'job_uuids' => [],
-        ];
-    }
-
-    private function private__evaluateSupervisorOffline(Alert $alert, int $serviceId): bool
-    {
         $service = Service::find($serviceId);
 
         if ($service === null) {
-            return false;
+            return ['triggered' => false, 'job_uuids' => []];
         }
 
         $response = $this->horizonApi->getMasters($service);
         $data = $response['data'] ?? null;
 
         if (! $response['success'] || ! \is_array($data)) {
-            return false;
+            return ['triggered' => false, 'job_uuids' => []];
         }
 
         $staleAt = \now()->subMinutes($alert->getThresholdMinutes());
@@ -63,6 +55,7 @@ final class SupervisorOffline implements AlertRuleContract
                 if (! \is_array($supervisor)) {
                     continue;
                 }
+                // TODO: Depurate this.
                 $lastSeenRaw = $supervisor['last_heartbeat_at'] ?? ($supervisor['lastSeen'] ?? null);
 
                 if (blank($lastSeenRaw)) {
@@ -82,6 +75,9 @@ final class SupervisorOffline implements AlertRuleContract
             }
         }
 
-        return $staleFound;
+        return [
+            'triggered' => $staleFound,
+            'job_uuids' => [],
+        ];
     }
 }

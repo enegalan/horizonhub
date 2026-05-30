@@ -13,20 +13,17 @@ final class WorkerOffline implements AlertRuleContract
      */
     public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
     {
-        return [
-            'triggered' => $this->private__evaluateWorkerOffline($alert, $serviceId),
-            'job_uuids' => [],
-        ];
-    }
-
-    private function private__evaluateWorkerOffline(Alert $alert, int $serviceId): bool
-    {
         $service = Service::find($serviceId);
 
-        if (! $service || ! $service->last_seen_at) {
-            return false;
+        $triggered = false;
+
+        if ($service?->last_seen_at) {
+            $triggered = $service->last_seen_at->copy()->addMinutes($alert->getThresholdMinutes())->isPast();
         }
 
-        return $service->last_seen_at->copy()->addMinutes($alert->getThresholdMinutes())->isPast();
+        return [
+            'triggered' => $triggered,
+            'job_uuids' => [],
+        ];
     }
 }
