@@ -3,8 +3,12 @@
 @endphp
 @forelse($providers as $provider)
     @php
-        $isSlack = $provider->type === \App\Models\NotificationProvider::TYPE_SLACK;
-        $configSummary = $isSlack
+        $providerType = $provider->type;
+        $isSlack = $providerType === \App\Models\NotificationProvider::TYPE_SLACK;
+        $isDiscord = $providerType === \App\Models\NotificationProvider::TYPE_DISCORD;
+        $isEmail = $providerType === \App\Models\NotificationProvider::TYPE_EMAIL;
+        $usesWebhook = $provider->usesWebhook();
+        $configSummary = $usesWebhook
             ? ($provider->getWebhookUrl() ?: 'No webhook configured')
             : (\implode(', ', $provider->getToEmails()) ?: 'No recipients configured');
         $emailsForSig = $provider->getToEmails();
@@ -14,9 +18,21 @@
             'id' => (int) $provider->id,
             'name' => (string) ($provider->name ?? ''),
             'type' => (string) ($provider->type ?? ''),
-            'webhook_url' => $isSlack ? (string) $provider->getWebhookUrl() : '',
-            'to_emails' => $isSlack ? [] : $emailsForSig,
+            'webhook_url' => $usesWebhook ? (string) $provider->getWebhookUrl() : '',
+            'to_emails' => $usesWebhook ? [] : $emailsForSig,
         ], \JSON_THROW_ON_ERROR));
+
+        $typeLabel = match ($providerType) {
+            \App\Models\NotificationProvider::TYPE_SLACK => 'Slack',
+            \App\Models\NotificationProvider::TYPE_DISCORD => 'Discord',
+            default => 'Email',
+        };
+        $configLabel = $usesWebhook ? 'Webhook' : 'Recipients';
+        $subtitle = match ($providerType) {
+            \App\Models\NotificationProvider::TYPE_SLACK => 'Slack webhook',
+            \App\Models\NotificationProvider::TYPE_DISCORD => 'Discord webhook',
+            default => 'Email recipients',
+        };
     @endphp
     <article
         class="card group relative overflow-hidden transition-colors hover:border-primary/30"
@@ -27,7 +43,8 @@
             @class([
                 'absolute inset-x-0 top-0 h-1',
                 'bg-gradient-to-r from-violet-500/80 via-violet-400/60 to-transparent' => $isSlack,
-                'bg-gradient-to-r from-sky-500/80 via-sky-400/60 to-transparent' => ! $isSlack,
+                'bg-gradient-to-r from-indigo-500/80 via-indigo-400/60 to-transparent' => $isDiscord,
+                'bg-gradient-to-r from-sky-500/80 via-sky-400/60 to-transparent' => $isEmail,
             ])
             aria-hidden="true"
         ></div>
@@ -39,11 +56,14 @@
                         @class([
                             'flex size-11 shrink-0 items-center justify-center rounded-xl border',
                             'border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-300' => $isSlack,
-                            'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300' => ! $isSlack,
+                            'border-indigo-500/20 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' => $isDiscord,
+                            'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300' => $isEmail,
                         ])
                     >
                         @if($isSlack)
                             <x-icons.slack class="size-5" />
+                        @elseif($isDiscord)
+                            <x-icons.discord class="size-5" />
                         @else
                             <x-icons.envelope class="size-5" />
                         @endif
@@ -51,7 +71,7 @@
                     <div class="min-w-0">
                         <p class="truncate text-sm font-semibold text-foreground">{{ $provider->name }}</p>
                         <p class="mt-1 text-xs text-muted-foreground">
-                            {{ $isSlack ? 'Slack webhook' : 'Email recipients' }}
+                            {{ $subtitle }}
                         </p>
                     </div>
                 </div>
@@ -59,16 +79,17 @@
                     @class([
                         'badge shrink-0 border-transparent',
                         'bg-violet-500/15 text-violet-700 dark:text-violet-300' => $isSlack,
-                        'bg-sky-500/15 text-sky-700 dark:text-sky-300' => ! $isSlack,
+                        'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300' => $isDiscord,
+                        'bg-sky-500/15 text-sky-700 dark:text-sky-300' => $isEmail,
                     ])
                 >
-                    {{ $isSlack ? 'Slack' : 'Email' }}
+                    {{ $typeLabel }}
                 </span>
             </div>
 
             <div class="mt-4 rounded-lg border border-border/70 bg-muted/20 px-3 py-2.5">
                 <p class="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    {{ $isSlack ? 'Webhook' : 'Recipients' }}
+                    {{ $configLabel }}
                 </p>
                 <p class="mt-1 break-all font-mono text-xs text-foreground/90">
                     {{ $configSummary }}
@@ -102,7 +123,7 @@
     <div class="card p-8 sm:col-span-2 xl:col-span-3">
         <x-empty-state
             title="No providers yet"
-            description="Create Slack or email providers, then select them when creating alerts."
+            description="Create Slack, Discord, or email providers, then select them when creating alerts."
         >
             <x-slot name="icon">
                 <x-icons.megaphone class="empty-state-icon" />

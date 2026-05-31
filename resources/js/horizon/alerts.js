@@ -59,6 +59,21 @@ export function horizonAlertsList() {
         },
 
         /**
+         * Resolve the current evaluate button node (stream patches may replace the clicked element).
+         * @param {string|null} alertId
+         * @param {HTMLElement|null} fallbackEl
+         * @returns {HTMLElement|null}
+         */
+        private__resolveEvaluateButton(alertId, fallbackEl) {
+            if (!alertId || typeof document === 'undefined') {
+                return fallbackEl || null;
+            }
+            var selector = '[data-alert-evaluate-button="1"][data-alert-id="' + String(alertId).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"]';
+            var resolved = document.querySelector(selector);
+            return resolved || fallbackEl || null;
+        },
+
+        /**
          * Set evaluate button loading state.
          * @param {HTMLElement} buttonEl
          * @param {boolean} isLoading
@@ -294,8 +309,11 @@ export function horizonAlertsList() {
                 window.toast.warning('Alert ' + alertLabel + ' did not trigger.');
             }).catch(function (_err) {
             }).finally(function () {
-                btnEl.removeAttribute('data-alert-evaluation-running');
-                self.private__setEvaluateButtonLoading(btnEl, false);
+                var currentBtn = self.private__resolveEvaluateButton(alertId, btnEl);
+                if (currentBtn && currentBtn.removeAttribute) {
+                    currentBtn.removeAttribute('data-alert-evaluation-running');
+                }
+                self.private__setEvaluateButtonLoading(currentBtn, false);
             });
         },
 

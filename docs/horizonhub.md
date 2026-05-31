@@ -21,7 +21,7 @@ For installation and environment setup, see the [README](../README.md). For step
 | Term           | Meaning |
 |----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Service**    | A registered remote Horizon instance: internal `base_url` for API calls, optional `public_url` for browser links, `tags`, optional HTTP `headers`, `enabled` flag, and health `status` (`online`, `stand_by`, `offline`). Stored in Horizon Hub's database. |
-| **Provider**   | A reusable **notification channel** (Slack incoming webhook or email recipients), not a Laravel “service provider”. Alerts attach one or more providers.                                                                                                    |
+| **Provider**   | A reusable **notification channel** (Slack incoming webhook, Discord webhook, or email recipients), not a Laravel “service provider”. Alerts attach one or more providers.                                                                                                    |
 | **Alert**      | A named rule scoped to services (and optionally queues/jobs) that evaluates conditions and sends notifications through providers.                                                                                                                           |
 | **Hot reload** | Server-Sent Events (SSE) that push Turbo Stream HTML fragments to the open page so lists and KPIs update without a full reload. Toggle in the header toolbar.                                                                                               |
 
@@ -37,7 +37,7 @@ The main UI lives under `/horizon` (root `/` redirects there). Sidebar sections:
 | Services  | `/horizon/services`  | Register and manage Horizon endpoints                                |
 | Metrics   | `/horizon/metrics`   | Charts and tables for throughput, failures, runtimes, queue wait     |
 | Alerts    | `/horizon/alerts`    | Alert rules, evaluation, delivery history                            |
-| Providers | `/horizon/providers` | Slack and email notification destinations                            |
+| Providers | `/horizon/providers` | Slack, Discord, and email notification destinations                            |
 
 ## Integration requirements
 
@@ -99,7 +99,7 @@ Controllers and services call `HorizonClientService` to perform GETs (and POST f
 
 1. **Scheduled**: `hh:evaluate-alerts` runs `AlertEngine::evaluateScheduled()` for all enabled alerts against enabled services.
 2. **Manual (UI)**: “Evaluate” on one alert runs synchronously; “Evaluate all” queues per-alert jobs and polls evaluation status.
-3. **Delivery**: matched rules notify attached providers (Slack webhook or email). Throttling and batching use `email_interval_minutes` on the alert and `horizonhub.alerts.pending_ttl_minutes` in config.
+3. **Delivery**: matched rules notify attached providers (Slack webhook, Discord webhook, or email). Throttling and batching use `email_interval_minutes` on the alert and `horizonhub.alerts.pending_ttl_minutes` in config.
 
 ### Live updates (SSE)
 

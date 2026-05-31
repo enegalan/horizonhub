@@ -12,6 +12,13 @@ class NotificationProvider extends Model
      *
      * @var string
      */
+    public const TYPE_DISCORD = 'discord';
+
+    /**
+     * The type of the provider.
+     *
+     * @var string
+     */
     public const TYPE_EMAIL = 'email';
 
     /**
@@ -62,5 +69,13 @@ class NotificationProvider extends Model
     public function getWebhookUrl(): string
     {
         return (string) ($this->config['webhook_url'] ?? '');
+    }
+
+    /**
+     * Whether the provider delivers via webhook URL.
+     */
+    public function usesWebhook(): bool
+    {
+        return \in_array($this->type, [self::TYPE_SLACK, self::TYPE_DISCORD], true);
     }
 }

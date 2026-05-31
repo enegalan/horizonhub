@@ -41,7 +41,7 @@ final class AlertDataService
     /**
      * Count emitted alert deliveries grouped by notification provider type.
      *
-     * @return array{total: int, slack: int, email: int}
+     * @return array{total: int, slack: int, email: int, discord: int}
      */
     public function countsByProviderType(): array
     {
@@ -57,6 +57,7 @@ final class AlertDataService
             'total' => AlertLog::query()->count(),
             'slack' => $countsByProviderType[NotificationProvider::TYPE_SLACK] ?? 0,
             'email' => $countsByProviderType[NotificationProvider::TYPE_EMAIL] ?? 0,
+            'discord' => $countsByProviderType[NotificationProvider::TYPE_DISCORD] ?? 0,
         ];
     }
 

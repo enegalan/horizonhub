@@ -81,7 +81,7 @@ class ProviderController extends Controller
     private function private__formView(NotificationProvider $provider): View
     {
         $config = $provider->config ?? [];
-        $webhookUrl = $provider->type === NotificationProvider::TYPE_SLACK ? (string) ($config['webhook_url'] ?? '') : '';
+        $webhookUrl = $provider->usesWebhook() ? (string) ($config['webhook_url'] ?? '') : '';
         $emailTo = '';
 
         if ($provider->type === NotificationProvider::TYPE_EMAIL) {

@@ -123,6 +123,12 @@ Providers define **where** alert notifications go. Create providers **before** o
 - **Webhook URL:** Slack incoming webhook for the target channel.
 - Horizon Hub POSTs alert payloads to that URL when a rule fires.
 
+### Discord provider
+
+- **Type:** Discord.
+- **Webhook URL:** Discord channel webhook (Channel settings → Integrations → Webhooks).
+- Horizon Hub POSTs embed payloads to that URL when a rule fires.
+
 ### Email provider
 
 - **Type:** Email.

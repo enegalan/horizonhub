@@ -51,8 +51,8 @@ class UpsertProviderRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'in:slack,email'],
-            'webhook_url' => ['required_if:type,slack', 'nullable', 'url'],
+            'type' => ['required', 'in:slack,email,discord'],
+            'webhook_url' => ['required_if:type,slack', 'required_if:type,discord', 'nullable', 'url'],
             'email_to' => ['required_if:type,email', 'nullable', 'string'],
         ];
     }

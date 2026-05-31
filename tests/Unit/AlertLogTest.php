@@ -66,6 +66,7 @@ class AlertLogTest extends TestCase
         $this->assertSame(3, $stats['total']);
         $this->assertSame(2, $stats['slack']);
         $this->assertSame(2, $stats['email']);
+        $this->assertSame(0, $stats['discord']);
     }
 
     private function private__createAlertLog(Alert $alert, Service $service): void

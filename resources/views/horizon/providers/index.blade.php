@@ -9,7 +9,7 @@
             <x-page-hero
                 eyebrow="Delivery channels"
                 title="Notification providers"
-                description="Connect Slack or email destinations once, then attach them to alert rules when you need to notify a team."
+                description="Connect Slack, Discord, or email destinations once, then attach them to alert rules when you need to notify a team."
             >
                 <x-slot:actions>
                     <x-form-drawer-link :href="route('horizon.providers.create')" class="h-9 shrink-0 text-sm">
@@ -18,7 +18,7 @@
                 </x-slot:actions>
             </x-page-hero>
 
-            <div class="grid gap-3 border-b border-border px-5 py-4 sm:grid-cols-3 sm:px-6">
+            <div class="grid gap-3 border-b border-border px-5 py-4 sm:grid-cols-4 sm:px-6">
                 <div
                     id="turbo-horizon-provider-stats"
                     class="contents"

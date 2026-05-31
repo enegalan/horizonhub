@@ -427,7 +427,14 @@
                             @endphp
                             @foreach($providers as $provider)
                                 @php
-                                    $isSlackProvider = $provider->type === \App\Models\NotificationProvider::TYPE_SLACK;
+                                    $providerType = $provider->type;
+                                    $isSlackProvider = $providerType === \App\Models\NotificationProvider::TYPE_SLACK;
+                                    $isDiscordProvider = $providerType === \App\Models\NotificationProvider::TYPE_DISCORD;
+                                    $providerTypeLabel = match ($providerType) {
+                                        \App\Models\NotificationProvider::TYPE_SLACK => 'Slack',
+                                        \App\Models\NotificationProvider::TYPE_DISCORD => 'Discord',
+                                        default => 'Email',
+                                    };
                                 @endphp
                                 <div
                                     class="flex cursor-pointer items-center gap-3 rounded-xl border border-border px-3 py-2.5 transition-colors hover:bg-muted/50"
@@ -445,18 +452,21 @@
                                         @class([
                                             'flex size-9 shrink-0 items-center justify-center rounded-lg border',
                                             'border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-300' => $isSlackProvider,
-                                            'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300' => ! $isSlackProvider,
+                                            'border-indigo-500/20 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' => $isDiscordProvider,
+                                            'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300' => ! $isSlackProvider && ! $isDiscordProvider,
                                         ])
                                     >
                                         @if($isSlackProvider)
                                             <x-icons.slack class="size-4" />
+                                        @elseif($isDiscordProvider)
+                                            <x-icons.discord class="size-4" />
                                         @else
                                             <x-icons.envelope class="size-4" />
                                         @endif
                                     </div>
                                     <div class="min-w-0">
                                         <span class="text-sm font-medium">{{ $provider->name }}</span>
-                                        <p class="text-xs text-muted-foreground">{{ $isSlackProvider ? 'Slack' : 'Email' }}</p>
+                                        <p class="text-xs text-muted-foreground">{{ $providerTypeLabel }}</p>
                                     </div>
                                 </div>
                             @endforeach

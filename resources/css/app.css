@@ -382,7 +382,7 @@ td[data-column-id="actions"] > div {
     opacity: 0;
 }
 .form-drawer-panel {
-    @apply relative z-10 flex h-full w-full max-w-lg flex-col border-l border-border bg-card shadow-soft-lg;
+    @apply relative z-10 flex h-full w-full max-w-xl flex-col border-l border-border bg-card shadow-soft-lg;
     transform: translateX(100%);
     transition: transform 300ms ease-out;
 }

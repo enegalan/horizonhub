@@ -6,6 +6,7 @@ use App\Mail\AlertBatchedMail;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
+use App\Services\Notifiers\DiscordNotifierService;
 use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Notifiers\SlackNotifierService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -16,6 +17,67 @@ use Tests\TestCase;
 class NotifiersTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_discord_notifier_builds_failure_count_payload_with_enriched_event_details(): void
+    {
+        Http::fake();
+        $api = $this->createMock(HorizonClientService::class);
+        $api->method('getJob')->willReturn([
+            'success' => true,
+            'data' => [
+                'name' => 'App\\Jobs\\Demo',
+                'queue' => 'critical',
+                'failed_at' => now()->toIso8601String(),
+                'exception' => 'fatal',
+                'attempts' => 3,
+            ],
+        ]);
+        $notifier = new DiscordNotifierService($api);
+        $alert = Alert::query()->create([
+            'name' => 'd',
+            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'enabled' => true,
+            'threshold' => ['count' => 2, 'minutes' => 5, 'queue_patterns' => ['critical']],
+        ]);
+        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
+        $events = [
+            ['service_id' => $service->id, 'job_uuid' => 'job-1', 'triggered_at' => now()->toIso8601String()],
+            ['service_id' => $service->id, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()],
+        ];
+
+        $notifier->sendBatched($alert, $events, ['webhook_url' => 'https://discord.com/api/webhooks/1/token']);
+
+        Http::assertSent(function ($request) {
+            $embeds = (array) data_get($request->data(), 'embeds', []);
+            $encoded = \json_encode($embeds);
+
+            return \is_string($encoded)
+                && str_contains($encoded, 'Failure count in window')
+                && str_contains($encoded, 'critical')
+                && str_contains($encoded, 'Attempts')
+                && str_contains($encoded, 'fatal')
+                && str_contains($encoded, 'View alert');
+        });
+    }
+
+    public function test_discord_notifier_skips_without_webhook_and_posts_payload_when_present(): void
+    {
+        Http::fake();
+        $api = $this->createMock(HorizonClientService::class);
+        $notifier = new DiscordNotifierService($api);
+        $alert = Alert::query()->create(['name' => 'd', 'rule_type' => Alert::RULE_HORIZON_OFFLINE, 'enabled' => true]);
+        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
+        $events = [['service_id' => $service->id, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]];
+
+        $notifier->sendBatched($alert, $events, ['webhook_url' => '']);
+        Http::assertNothingSent();
+
+        $notifier->sendBatched($alert, $events, ['webhook_url' => 'https://discord.com/api/webhooks/1/token']);
+        Http::assertSent(function ($request) {
+            return \is_array(data_get($request->data(), 'embeds'))
+                && \is_string(data_get($request->data(), 'content'));
+        });
+    }
 
     public function test_email_notifier_skips_without_recipients_and_sends_with_recipients(): void
     {

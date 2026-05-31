@@ -19,6 +19,27 @@ class ProviderControllerTest extends TestCase
         $response->assertSee('id="turbo-tbody-horizon-provider-list"', false);
     }
 
+    public function test_store_creates_discord_provider_with_webhook_config(): void
+    {
+        $response = $this->post(route('horizon.providers.store'), [
+            'name' => 'ops-discord',
+            'type' => NotificationProvider::TYPE_DISCORD,
+            'webhook_url' => 'https://discord.com/api/webhooks/1/token',
+        ]);
+
+        $response->assertRedirect(route('horizon.providers.index'));
+        $response->assertSessionHas('status', [
+            'message' => 'Provider created.',
+            'type' => 'success',
+        ]);
+        $this->assertDatabaseHas('notification_providers', [
+            'name' => 'ops-discord',
+            'type' => NotificationProvider::TYPE_DISCORD,
+        ]);
+        $provider = NotificationProvider::query()->where('name', 'ops-discord')->firstOrFail();
+        $this->assertSame('https://discord.com/api/webhooks/1/token', $provider->config['webhook_url'] ?? null);
+    }
+
     public function test_store_creates_slack_provider_with_webhook_config(): void
     {
         $response = $this->post(route('horizon.providers.store'), [
