@@ -18,6 +18,35 @@ class AlertEngineTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_evaluate_alert_does_not_error_when_services_exist_but_alert_does_not_trigger(): void
+    {
+        $service = Service::query()->create(['name' => 'svc-ok', 'base_url' => 'https://ok.test', 'status' => 'online']);
+        $alert = Alert::query()->create([
+            'name' => 'no-trigger',
+            'service_ids' => [$service->id],
+            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'threshold' => ['count' => 1, 'minutes' => 5],
+            'enabled' => true,
+        ]);
+
+        $api = $this->createMock(HorizonClientService::class);
+        $api->method('getFailedJobs')->willReturn([
+            'success' => true,
+            'data' => ['jobs' => []],
+        ]);
+
+        $engine = new AlertEngine(
+            new AlertBatchStore,
+            $this->createMock(AlertNotificationDispatcher::class),
+            $this->private__resolveRegistry($api),
+        );
+
+        $result = $engine->evaluateAlert($alert);
+
+        $this->assertFalse($result['triggered']);
+        $this->assertNull($result['error_message']);
+    }
+
     public function test_evaluate_alert_reports_pending_flush_error_when_batch_store_throws(): void
     {
         $alert = Alert::query()->create([

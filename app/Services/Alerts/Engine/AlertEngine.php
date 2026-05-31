@@ -82,9 +82,7 @@ class AlertEngine
         try {
             $serviceIds = $alert->resolvedServiceIds();
 
-            $hit = $this->private__evaluateFirstTriggeredService($alert, $serviceIds);
-
-            if ($hit === null) {
+            if ($serviceIds === []) {
                 $errorMessage = 'No enabled services to evaluate alert (enable at least one service).';
 
                 return [
@@ -98,9 +96,14 @@ class AlertEngine
                     'delivered_check_error_message' => null,
                 ];
             }
-            $this->private__triggerAlert($alert, $hit['service_id'], $hit['job_uuids']);
-            $triggered = true;
-            $triggeredServiceId = $hit['service_id'];
+
+            $hit = $this->private__evaluateFirstTriggeredService($alert, $serviceIds);
+
+            if ($hit !== null) {
+                $this->private__triggerAlert($alert, $hit['service_id'], $hit['job_uuids']);
+                $triggered = true;
+                $triggeredServiceId = $hit['service_id'];
+            }
         } catch (\Throwable $e) {
             Log::error(config('app.name') . ': evaluate alert failed', [
                 'alert_id' => $alert->id,
@@ -148,11 +151,15 @@ class AlertEngine
             try {
                 $serviceIds = $alert->resolvedServiceIds();
 
+                if ($serviceIds === []) {
+                    Log::warning(config('app.name') . ': no enabled services to evaluate alert', ['alert_id' => $alert->id]);
+
+                    continue;
+                }
+
                 $hit = $this->private__evaluateFirstTriggeredService($alert, $serviceIds);
 
                 if ($hit === null) {
-                    Log::warning(config('app.name') . ': no enabled services to evaluate alert', ['alert_id' => $alert->id]);
-
                     continue;
                 }
 
