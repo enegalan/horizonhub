@@ -25,7 +25,7 @@ final class JobDashboardUrlBuilder
         $jobPath = match ((string) $jobStatus) {
             'processing', 'pending', 'reserved' => config('horizonhub.horizon_paths.pending_jobs') . "/$encodedUuid",
             'processed', 'completed' => config('horizonhub.horizon_paths.completed_jobs') . "/$encodedUuid",
-            'failed' => config('horizonhub.horizon_paths.failed_jobs') . "/$encodedUuid",
+            'failed' => config('horizonhub.horizon_paths.failed_jobs_dashboard') . "/$encodedUuid",
             default => config('horizonhub.horizon_paths.pending_jobs') . "/$encodedUuid",
         };
 

@@ -125,6 +125,27 @@ class HorizonClientTest extends TestCase
         $this->assertSame(1, $calls);
     }
 
+    public function test_get_failed_jobs_calls_horizon_api_jobs_failed_path(): void
+    {
+        Http::fake([
+            'https://service-failed-path.test/horizon/api/jobs/failed*' => Http::response(['jobs' => []], 200),
+        ]);
+
+        $service = Service::create([
+            'name' => 'svc-failed-path',
+            'base_url' => 'https://service-failed-path.test',
+            'status' => 'online',
+        ]);
+
+        $proxy = new HorizonClientService;
+        $result = $proxy->getFailedJobs($service, ['starting_at' => 0, 'limit' => 10]);
+
+        $this->assertTrue($result['success']);
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://service-failed-path.test/horizon/api/jobs/failed?starting_at=0&limit=10';
+        });
+    }
+
     public function test_get_failed_jobs_retries_on_429_then_succeeds(): void
     {
         $calls = 0;
@@ -144,7 +165,7 @@ class HorizonClientTest extends TestCase
             'retry_on_status' => [429, 502, 503, 504],
         ]);
         \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
-        \config()->set('horizonhub.horizon_paths.failed_jobs', '/failed');
+        \config()->set('horizonhub.horizon_paths.failed_jobs', '/jobs/failed');
 
         $service = Service::create([
             'name' => 'svc-retry-429',
@@ -172,7 +193,7 @@ class HorizonClientTest extends TestCase
             'retry_on_status' => [429, 502, 503, 504],
         ]);
         \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
-        \config()->set('horizonhub.horizon_paths.failed_jobs', '/failed');
+        \config()->set('horizonhub.horizon_paths.failed_jobs', '/jobs/failed');
 
         $service = Service::create([
             'name' => 'svc-plain-text-error',
@@ -474,7 +495,7 @@ class HorizonClientTest extends TestCase
         \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
         \config()->set('horizonhub.horizon_paths.completed_jobs', '/jobs/completed');
         \config()->set('horizonhub.horizon_paths.pending_jobs', '/jobs/pending');
-        \config()->set('horizonhub.horizon_paths.failed_jobs', '/failed');
+        \config()->set('horizonhub.horizon_paths.failed_jobs', '/jobs/failed');
         \config()->set('horizonhub.horizon_paths.job', '/jobs/{id}');
         \config()->set('horizonhub.horizon_paths.masters', '/masters');
         \config()->set('horizonhub.horizon_paths.ping', '/stats');

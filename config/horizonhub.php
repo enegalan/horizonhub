@@ -20,9 +20,11 @@ return [
     |   API for a given service.
     | - workload: the relative path used to read queue workload from
     |   Horizon API.
-    | - job: the relative path to read a single job
-    | - failed_jobs: the relative path to list failed jobs.
-    |   by UUID; the "{id}" placeholder will be replaced with the job UUID.
+    | - job: the relative path to read a single job by UUID; the "{id}"
+    |   placeholder will be replaced with the job UUID.
+    | - failed_jobs: the relative API path to list failed jobs.
+    | - failed_jobs_dashboard: the relative dashboard path to open a failed job
+    |   in Horizon's UI (Horizon uses /failed/{id}, not /jobs/failed/{id}, what a mess :v).
     | - completed_jobs: the relative path to list completed jobs.
     | - pending_jobs: the relative path to list pending/processing jobs.
     | - masters: the relative path to list Horizon masters.
@@ -34,7 +36,8 @@ return [
         'ping' => '/stats',
         'workload' => '/workload',
         'job' => '/jobs/{id}',
-        'failed_jobs' => '/failed',
+        'failed_jobs' => '/jobs/failed',
+        'failed_jobs_dashboard' => '/failed',
         'completed_jobs' => '/jobs/completed',
         'pending_jobs' => '/jobs/pending',
         'masters' => '/masters',
