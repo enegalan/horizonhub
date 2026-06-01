@@ -3,9 +3,6 @@
 namespace App\Http\Requests\Horizon;
 
 use App\Models\NotificationProvider;
-use App\Services\Notifiers\DiscordNotifierService;
-use App\Services\Notifiers\EmailNotifierService;
-use App\Services\Notifiers\SlackNotifierService;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpsertProviderRequest extends FormRequest
