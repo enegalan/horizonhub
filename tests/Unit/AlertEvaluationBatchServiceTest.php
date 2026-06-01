@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Jobs\EvaluateAlertJob;
 use App\Models\Alert;
 use App\Services\Alerts\AlertEvaluationBatchService;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
@@ -39,8 +40,8 @@ class AlertEvaluationBatchServiceTest extends TestCase
         Cache::flush();
         Bus::fake();
 
-        $a1 = Alert::query()->create(['name' => 'a1', 'rule_type' => Alert::RULE_FAILURE_COUNT, 'enabled' => true]);
-        $a2 = Alert::query()->create(['name' => 'a2', 'rule_type' => Alert::RULE_FAILURE_COUNT, 'enabled' => true]);
+        $a1 = Alert::query()->create(['name' => 'a1', 'rule_type' => FailureCount::type(), 'enabled' => true]);
+        $a2 = Alert::query()->create(['name' => 'a2', 'rule_type' => FailureCount::type(), 'enabled' => true]);
 
         $service = new AlertEvaluationBatchService;
         $result = $service->startEvaluateAll();
@@ -76,7 +77,7 @@ class AlertEvaluationBatchServiceTest extends TestCase
 
         Alert::query()->create([
             'name' => 'disabled',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => false,
         ]);
 

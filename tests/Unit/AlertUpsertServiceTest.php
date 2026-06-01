@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\AlertUpsertService;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -20,7 +21,7 @@ class AlertUpsertServiceTest extends TestCase
 
         $this->assertNotContains('job_specific_failure', $keys);
         $this->assertNotContains('job_type_failure', $keys);
-        $this->assertContains(Alert::RULE_FAILURE_COUNT, $keys);
+        $this->assertContains(FailureCount::type(), $keys);
     }
 
     public function test_form_services_include_disabled_services_still_in_alert_scope(): void
@@ -29,7 +30,7 @@ class AlertUpsertServiceTest extends TestCase
         $disabled = Service::factory()->create(['name' => 'beta', 'enabled' => false]);
         $otherDisabled = Service::factory()->create(['name' => 'gamma', 'enabled' => false]);
         $alert = Alert::query()->create([
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => true,
             'service_ids' => [$enabled->id, $disabled->id],
         ]);

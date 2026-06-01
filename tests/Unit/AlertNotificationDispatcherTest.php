@@ -7,6 +7,7 @@ use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\Engine\AlertNotificationDispatcher;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
 use App\Services\Notifiers\DiscordNotifierService;
 use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Notifiers\SlackNotifierService;
@@ -21,7 +22,7 @@ class AlertNotificationDispatcherTest extends TestCase
     {
         $alert = Alert::query()->create([
             'name' => 'notif2',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
         $service = Service::query()->create([
@@ -61,7 +62,7 @@ class AlertNotificationDispatcherTest extends TestCase
     {
         $alert = Alert::query()->create([
             'name' => 'notif',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
         $service = Service::query()->create([

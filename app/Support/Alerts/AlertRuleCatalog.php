@@ -3,6 +3,12 @@
 namespace App\Support\Alerts;
 
 use App\Models\Alert;
+use App\Services\Alerts\Rules\Strategies\AvgExecutionTime;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
+use App\Services\Alerts\Rules\Strategies\HorizonOffline;
+use App\Services\Alerts\Rules\Strategies\QueueBlocked;
+use App\Services\Alerts\Rules\Strategies\SupervisorOffline;
+use App\Services\Alerts\Rules\Strategies\WorkerOffline;
 
 final class AlertRuleCatalog
 {
@@ -17,16 +23,16 @@ final class AlertRuleCatalog
     public static function conditionSummary(Alert $alert, ?string $detectedAt = null): string
     {
         $summary = match ($alert->rule_type) {
-            Alert::RULE_FAILURE_COUNT => 'At least ' . $alert->getThresholdCount() . " failures in the last {$alert->getThresholdMinutes()} minutes",
-            Alert::RULE_AVG_EXECUTION_TIME => 'Average execution time exceeds ' . $alert->getThresholdSeconds() . "s in the last {$alert->getThresholdMinutes()} minutes",
-            Alert::RULE_QUEUE_BLOCKED => "Queue blocked for {$alert->getThresholdMinutes()} minutes",
-            Alert::RULE_WORKER_OFFLINE => "Worker offline for {$alert->getThresholdMinutes()} minutes",
-            Alert::RULE_SUPERVISOR_OFFLINE => "Supervisor offline for {$alert->getThresholdMinutes()} minutes",
-            Alert::RULE_HORIZON_OFFLINE => "Horizon offline for {$alert->getThresholdMinutes()} minutes" . (filled($detectedAt) ? " (detected at {$detectedAt})" : ''),
+            FailureCount::type() => 'At least ' . $alert->getThresholdCount() . " failures in the last {$alert->getThresholdMinutes()} minutes",
+            AvgExecutionTime::type() => 'Average execution time exceeds ' . $alert->getThresholdSeconds() . "s in the last {$alert->getThresholdMinutes()} minutes",
+            QueueBlocked::type() => "Queue blocked for {$alert->getThresholdMinutes()} minutes",
+            WorkerOffline::type() => "Worker offline for {$alert->getThresholdMinutes()} minutes",
+            SupervisorOffline::type() => "Supervisor offline for {$alert->getThresholdMinutes()} minutes",
+            HorizonOffline::type() => "Horizon offline for {$alert->getThresholdMinutes()} minutes" . (filled($detectedAt) ? " (detected at {$detectedAt})" : ''),
             default => 'Alert condition met',
         };
 
-        if ($alert->rule_type === Alert::RULE_FAILURE_COUNT) {
+        if ($alert->rule_type === FailureCount::type()) {
             $queuePatterns = $alert->getQueuePatterns();
 
             if (\count($queuePatterns) === 1) {
@@ -53,7 +59,7 @@ final class AlertRuleCatalog
     public static function formRuleMetadata(): array
     {
         return [
-            'defaultRuleType' => Alert::RULE_FAILURE_COUNT,
+            'defaultRuleType' => FailureCount::type(),
             'queuePatternRuleTypes' => self::ruleTypesWithQueuePatterns(),
             'jobPatternRuleTypes' => self::ruleTypesWithJobPatterns(),
             'thresholdRuleTypes' => self::ruleTypesRequiringMinutes(),
@@ -71,12 +77,12 @@ final class AlertRuleCatalog
     public static function ruleTypeLabels(): array
     {
         return [
-            Alert::RULE_FAILURE_COUNT => 'Failure count in window',
-            Alert::RULE_AVG_EXECUTION_TIME => 'Avg execution time exceeded',
-            Alert::RULE_QUEUE_BLOCKED => 'Queue blocked',
-            Alert::RULE_WORKER_OFFLINE => 'Worker offline',
-            Alert::RULE_SUPERVISOR_OFFLINE => 'Supervisor offline',
-            Alert::RULE_HORIZON_OFFLINE => 'Horizon offline',
+            FailureCount::type() => 'Failure count in window',
+            AvgExecutionTime::type() => 'Avg execution time exceeded',
+            QueueBlocked::type() => 'Queue blocked',
+            WorkerOffline::type() => 'Worker offline',
+            SupervisorOffline::type() => 'Supervisor offline',
+            HorizonOffline::type() => 'Horizon offline',
         ];
     }
 
@@ -87,7 +93,7 @@ final class AlertRuleCatalog
      */
     public static function ruleTypesRequiringCount(): array
     {
-        return [Alert::RULE_FAILURE_COUNT];
+        return [FailureCount::type()];
     }
 
     /**
@@ -98,12 +104,12 @@ final class AlertRuleCatalog
     public static function ruleTypesRequiringMinutes(): array
     {
         return [
-            Alert::RULE_FAILURE_COUNT,
-            Alert::RULE_AVG_EXECUTION_TIME,
-            Alert::RULE_QUEUE_BLOCKED,
-            Alert::RULE_WORKER_OFFLINE,
-            Alert::RULE_SUPERVISOR_OFFLINE,
-            Alert::RULE_HORIZON_OFFLINE,
+            FailureCount::type(),
+            AvgExecutionTime::type(),
+            QueueBlocked::type(),
+            WorkerOffline::type(),
+            SupervisorOffline::type(),
+            HorizonOffline::type(),
         ];
     }
 
@@ -114,7 +120,7 @@ final class AlertRuleCatalog
      */
     public static function ruleTypesRequiringSeconds(): array
     {
-        return [Alert::RULE_AVG_EXECUTION_TIME];
+        return [AvgExecutionTime::type()];
     }
 
     /**
@@ -124,7 +130,7 @@ final class AlertRuleCatalog
      */
     public static function ruleTypesWithJobPatterns(): array
     {
-        return [Alert::RULE_FAILURE_COUNT, Alert::RULE_AVG_EXECUTION_TIME];
+        return [FailureCount::type(), AvgExecutionTime::type()];
     }
 
     /**
@@ -135,10 +141,10 @@ final class AlertRuleCatalog
     public static function ruleTypesWithMinutesOnlyThreshold(): array
     {
         return [
-            Alert::RULE_QUEUE_BLOCKED,
-            Alert::RULE_WORKER_OFFLINE,
-            Alert::RULE_SUPERVISOR_OFFLINE,
-            Alert::RULE_HORIZON_OFFLINE,
+            QueueBlocked::type(),
+            WorkerOffline::type(),
+            SupervisorOffline::type(),
+            HorizonOffline::type(),
         ];
     }
 
@@ -150,9 +156,9 @@ final class AlertRuleCatalog
     public static function ruleTypesWithQueuePatterns(): array
     {
         return [
-            Alert::RULE_FAILURE_COUNT,
-            Alert::RULE_AVG_EXECUTION_TIME,
-            Alert::RULE_QUEUE_BLOCKED,
+            FailureCount::type(),
+            AvgExecutionTime::type(),
+            QueueBlocked::type(),
         ];
     }
 }

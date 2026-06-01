@@ -7,6 +7,7 @@ use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\AlertDataService;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
 use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Notifiers\SlackNotifierService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -37,7 +38,7 @@ class AlertLogTest extends TestCase
 
         $slackAlert = Alert::create([
             'name' => 'slack-alert',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'threshold' => ['count' => 1, 'minutes' => 5],
             'enabled' => true,
         ]);
@@ -45,7 +46,7 @@ class AlertLogTest extends TestCase
 
         $dualAlert = Alert::create([
             'name' => 'dual-alert',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'threshold' => ['count' => 1, 'minutes' => 5],
             'enabled' => true,
         ]);
@@ -53,7 +54,7 @@ class AlertLogTest extends TestCase
 
         $emailOnlyAlert = Alert::create([
             'name' => 'email-alert',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'threshold' => ['count' => 1, 'minutes' => 5],
             'enabled' => true,
         ]);

@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\AlertDataService;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -23,14 +24,14 @@ class AlertDataServiceTest extends TestCase
 
         Alert::create([
             'name' => 'enabled-alert',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'threshold' => ['count' => 1, 'minutes' => 5],
             'enabled' => true,
             'service_ids' => [$includedService->id, $missingServiceId],
         ]);
         Alert::create([
             'name' => 'disabled-alert',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'threshold' => ['count' => 1, 'minutes' => 5],
             'enabled' => false,
             'service_ids' => [],

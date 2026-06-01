@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Models\Alert;
 use App\Services\Alerts\Engine\AlertBatchStore;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
@@ -17,7 +18,7 @@ class AlertBatchStoreTest extends TestCase
         Cache::flush();
         $alert = Alert::query()->create([
             'name' => 'b1',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
         $service = new AlertBatchStore;
@@ -38,7 +39,7 @@ class AlertBatchStoreTest extends TestCase
         Cache::flush();
         $alert = Alert::query()->create([
             'name' => 'b2',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => true,
             'email_interval_minutes' => 10,
         ]);

@@ -2,6 +2,12 @@
 
 namespace App\Models;
 
+use App\Services\Alerts\Rules\Strategies\AvgExecutionTime;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
+use App\Services\Alerts\Rules\Strategies\HorizonOffline;
+use App\Services\Alerts\Rules\Strategies\QueueBlocked;
+use App\Services\Alerts\Rules\Strategies\SupervisorOffline;
+use App\Services\Alerts\Rules\Strategies\WorkerOffline;
 use Database\Factories\AlertFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -18,18 +24,6 @@ class Alert extends Model
 {
     /** @use HasFactory<AlertFactory> */
     use HasFactory;
-
-    public const RULE_AVG_EXECUTION_TIME = 'avg_execution_time';
-
-    public const RULE_FAILURE_COUNT = 'failure_count';
-
-    public const RULE_HORIZON_OFFLINE = 'horizon_offline';
-
-    public const RULE_QUEUE_BLOCKED = 'queue_blocked';
-
-    public const RULE_SUPERVISOR_OFFLINE = 'supervisor_offline';
-
-    public const RULE_WORKER_OFFLINE = 'worker_offline';
 
     /**
      * The model's default values for attributes.
@@ -65,6 +59,23 @@ class Alert extends Model
         'enabled',
         'email_interval_minutes',
     ];
+
+    /**
+     * Get the rules.
+     *
+     * @return array<string, class-string>
+     */
+    public static function getProviders(): array
+    {
+        return [
+            FailureCount::type() => FailureCount::class,
+            AvgExecutionTime::type() => AvgExecutionTime::class,
+            QueueBlocked::type() => QueueBlocked::class,
+            WorkerOffline::type() => WorkerOffline::class,
+            SupervisorOffline::type() => SupervisorOffline::class,
+            HorizonOffline::type() => HorizonOffline::class,
+        ];
+    }
 
     /**
      * Get the alert logs of the alert.
@@ -175,6 +186,11 @@ class Alert extends Model
         return $query->where('enabled', true);
     }
 
+    /**
+     * The name attribute.
+     *
+     * @return Attribute<string, null>
+     */
     protected function name(): Attribute
     {
         return Attribute::make(

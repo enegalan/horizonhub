@@ -61,8 +61,6 @@ class EmailNotifierService extends AbstractAlertNotifier
 
     /**
      * Get the type.
-     *
-     * @return non-empty-string
      */
     public static function type(): string
     {

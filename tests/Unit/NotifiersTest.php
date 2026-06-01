@@ -6,6 +6,8 @@ use App\Mail\AlertBatchedMail;
 use App\Models\Alert;
 use App\Models\NotificationProvider;
 use App\Models\Service;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
+use App\Services\Alerts\Rules\Strategies\HorizonOffline;
 use App\Services\Horizon\HorizonClientService;
 use App\Services\Notifiers\Contracts\AlertNotifierMetadata;
 use App\Services\Notifiers\DiscordNotifierService;
@@ -37,7 +39,7 @@ class NotifiersTest extends TestCase
         $notifier = new DiscordNotifierService($api);
         $alert = Alert::query()->create([
             'name' => 'd',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => true,
             'threshold' => ['count' => 2, 'minutes' => 5, 'queue_patterns' => ['critical']],
         ]);
@@ -67,7 +69,7 @@ class NotifiersTest extends TestCase
         Http::fake();
         $api = $this->createMock(HorizonClientService::class);
         $notifier = new DiscordNotifierService($api);
-        $alert = Alert::query()->create(['name' => 'd', 'rule_type' => Alert::RULE_HORIZON_OFFLINE, 'enabled' => true]);
+        $alert = Alert::query()->create(['name' => 'd', 'rule_type' => HorizonOffline::type(), 'enabled' => true]);
         $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
         $events = [['service_id' => $service->id, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]];
 
@@ -102,7 +104,7 @@ class NotifiersTest extends TestCase
         Mail::fake();
         $api = $this->createMock(HorizonClientService::class);
         $notifier = new EmailNotifierService($api);
-        $alert = Alert::query()->create(['name' => 'e', 'rule_type' => Alert::RULE_FAILURE_COUNT, 'enabled' => true]);
+        $alert = Alert::query()->create(['name' => 'e', 'rule_type' => FailureCount::type(), 'enabled' => true]);
         $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
         $events = [['service_id' => $service->id, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]];
 
@@ -148,7 +150,7 @@ class NotifiersTest extends TestCase
         $notifier = new SlackNotifierService($api);
         $alert = Alert::query()->create([
             'name' => 's',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => true,
             'threshold' => ['count' => 2, 'minutes' => 5, 'queue_patterns' => ['critical']],
         ]);
@@ -178,7 +180,7 @@ class NotifiersTest extends TestCase
         Http::fake();
         $api = $this->createMock(HorizonClientService::class);
         $notifier = new SlackNotifierService($api);
-        $alert = Alert::query()->create(['name' => 's', 'rule_type' => Alert::RULE_HORIZON_OFFLINE, 'enabled' => true]);
+        $alert = Alert::query()->create(['name' => 's', 'rule_type' => HorizonOffline::type(), 'enabled' => true]);
         $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
         $events = [['service_id' => $service->id, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]];
 

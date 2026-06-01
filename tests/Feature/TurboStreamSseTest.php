@@ -8,6 +8,7 @@ use App\Models\Alert;
 use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\AlertChartDataService;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
 use App\Services\Horizon\HorizonClientService;
 use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Services\ServiceFilterService;
@@ -22,7 +23,7 @@ class TurboStreamSseTest extends TestCase
     {
         $alert = Alert::create([
             'name' => 'stream-alert-detail',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'threshold' => ['count' => 1, 'minutes' => 5],
             'enabled' => true,
         ]);
@@ -336,7 +337,7 @@ class TurboStreamSseTest extends TestCase
     {
         $alert = Alert::create([
             'name' => 'stream-alert-detail-sse',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'threshold' => ['count' => 1, 'minutes' => 5],
             'enabled' => true,
         ]);

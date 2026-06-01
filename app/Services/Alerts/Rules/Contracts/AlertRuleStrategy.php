@@ -7,6 +7,11 @@ use App\Models\Alert;
 interface AlertRuleStrategy
 {
     /**
+     * Get the type.
+     */
+    public static function type(): string;
+
+    /**
      * Evaluate the rule and return whether it triggered plus triggering job UUIDs (if applicable).
      *
      * @return array{triggered: bool, job_uuids: array<int, string>}

@@ -5,6 +5,7 @@ namespace App\Services\Alerts;
 use App\Models\Alert;
 use App\Models\NotificationProvider;
 use App\Models\Service;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
 use App\Support\Alerts\AlertRuleCatalog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -104,7 +105,7 @@ class AlertUpsertService
             'name' => 'nullable|string|max:255',
         ];
 
-        $ruleType = (string) $request->input('rule_type', Alert::RULE_FAILURE_COUNT);
+        $ruleType = (string) $request->input('rule_type', \array_key_first(Alert::getProviders()));
 
         if (\in_array($ruleType, AlertRuleCatalog::ruleTypesRequiringMinutes(), true)) {
             $baseRules['thresholdMinutes'] = 'required|integer|min:1';

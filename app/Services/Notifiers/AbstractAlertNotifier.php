@@ -61,8 +61,6 @@ abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMeta
 
     /**
      * Get the type.
-     *
-     * @return non-empty-string
      */
     abstract public static function type(): string;
 

@@ -20,8 +20,6 @@ interface AlertNotifierMetadata
 
     /**
      * Get the type.
-     *
-     * @return non-empty-string
      */
     public static function type(): string;
 }

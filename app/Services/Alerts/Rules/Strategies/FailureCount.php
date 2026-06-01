@@ -25,6 +25,14 @@ final class FailureCount implements AlertRuleContract
     }
 
     /**
+     * Get the type.
+     */
+    public static function type(): string
+    {
+        return 'failure_count';
+    }
+
+    /**
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
     public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array

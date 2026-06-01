@@ -2,10 +2,11 @@
 
 namespace Tests\Unit;
 
-use App\Models\Alert;
 use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\AlertUpsertService;
+use App\Services\Alerts\Rules\Strategies\AvgExecutionTime;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
 use App\Services\Notifiers\EmailNotifierService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -28,7 +29,7 @@ class AlertUpsertServiceValidationTest extends TestCase
 
         $request = Request::create('/horizon/alerts', 'POST', [
             'name' => 'alert-scope',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'service_ids' => [$enabled->id],
             'thresholdCount' => 1,
             'thresholdMinutes' => 5,
@@ -53,7 +54,7 @@ class AlertUpsertServiceValidationTest extends TestCase
 
         $request = Request::create('/horizon/alerts', 'POST', [
             'name' => 'alert-a',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'service_ids' => [$service->id, $service->id],
             'job_patterns' => [' App\\Jobs\\Sync ', ''],
             'queue_patterns' => ['default'],
@@ -85,7 +86,7 @@ class AlertUpsertServiceValidationTest extends TestCase
 
         $request = Request::create('/horizon/alerts', 'POST', [
             'name' => 'alert-no-services',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'thresholdCount' => 1,
             'thresholdMinutes' => 5,
             'provider_ids' => [$provider->id],
@@ -108,7 +109,7 @@ class AlertUpsertServiceValidationTest extends TestCase
 
         $request = Request::create('/horizon/alerts', 'POST', [
             'name' => 'alert-b',
-            'rule_type' => Alert::RULE_AVG_EXECUTION_TIME,
+            'rule_type' => AvgExecutionTime::type(),
             'service_ids' => [$service->id],
             'thresholdMinutes' => 5,
             'provider_ids' => [$provider->id],

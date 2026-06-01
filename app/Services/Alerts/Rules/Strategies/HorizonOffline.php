@@ -32,6 +32,14 @@ final class HorizonOffline implements AlertRuleContract
     }
 
     /**
+     * Get the type.
+     */
+    public static function type(): string
+    {
+        return 'horizon_offline';
+    }
+
+    /**
      * Evaluate the rule and return whether it triggered plus triggering job UUIDs (if applicable).
      *
      * @return array{triggered: bool, job_uuids: array<int, string>}
@@ -60,7 +68,8 @@ final class HorizonOffline implements AlertRuleContract
         $offlineSinceTimestamp = Cache::get($cacheKey);
 
         if (! \is_numeric($offlineSinceTimestamp)) {
-            Cache::put($cacheKey, \now()->getTimestamp(), $this->private__cacheTtlSeconds($alert));
+            $cacheTtlSeconds = ($alert->getThresholdMinutes() + self::CACHE_TTL_MARGIN_MINUTES) * 60;
+            Cache::put($cacheKey, \now()->getTimestamp(), $cacheTtlSeconds);
 
             return ['triggered' => false, 'job_uuids' => []];
         }
@@ -74,13 +83,5 @@ final class HorizonOffline implements AlertRuleContract
             'triggered' => $triggered,
             'job_uuids' => [],
         ];
-    }
-
-    /**
-     * Cache TTL long enough to outlive the alert grace period plus a safety margin.
-     */
-    private function private__cacheTtlSeconds(Alert $alert): int
-    {
-        return ($alert->getThresholdMinutes() + self::CACHE_TTL_MARGIN_MINUTES) * 60;
     }
 }

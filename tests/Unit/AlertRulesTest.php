@@ -60,7 +60,7 @@ class AlertRulesTest extends TestCase
         ]);
         $alert = Alert::query()->create([
             'name' => 'a1',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'threshold' => ['count' => 2, 'minutes' => 10],
             'enabled' => true,
         ]);
@@ -96,7 +96,7 @@ class AlertRulesTest extends TestCase
         ]);
         $alert = Alert::query()->create([
             'name' => 'long-offline',
-            'rule_type' => Alert::RULE_HORIZON_OFFLINE,
+            'rule_type' => HorizonOffline::type(),
             'threshold' => ['minutes' => 2000],
             'enabled' => true,
         ]);
@@ -126,31 +126,31 @@ class AlertRulesTest extends TestCase
 
         $avgAlert = Alert::query()->create([
             'name' => 'avg',
-            'rule_type' => Alert::RULE_AVG_EXECUTION_TIME,
+            'rule_type' => AvgExecutionTime::type(),
             'threshold' => ['seconds' => 20, 'minutes' => 10],
             'enabled' => true,
         ]);
         $queueAlert = Alert::query()->create([
             'name' => 'queue',
-            'rule_type' => Alert::RULE_QUEUE_BLOCKED,
+            'rule_type' => QueueBlocked::type(),
             'threshold' => ['minutes' => 5],
             'enabled' => true,
         ]);
         $workerAlert = Alert::query()->create([
             'name' => 'worker',
-            'rule_type' => Alert::RULE_WORKER_OFFLINE,
+            'rule_type' => WorkerOffline::type(),
             'threshold' => ['minutes' => 30],
             'enabled' => true,
         ]);
         $supAlert = Alert::query()->create([
             'name' => 'sup',
-            'rule_type' => Alert::RULE_SUPERVISOR_OFFLINE,
+            'rule_type' => SupervisorOffline::type(),
             'threshold' => ['minutes' => 15],
             'enabled' => true,
         ]);
         $horizonAlert = Alert::query()->create([
             'name' => 'hoff',
-            'rule_type' => Alert::RULE_HORIZON_OFFLINE,
+            'rule_type' => HorizonOffline::type(),
             'threshold' => ['minutes' => 5],
             'enabled' => true,
         ]);
@@ -215,7 +215,7 @@ class AlertRulesTest extends TestCase
         $this->app->instance(HorizonClientService::class, $api);
         $registry = $this->app->make(AlertRuleStrategyRegistry::class);
 
-        $this->assertInstanceOf(FailureCount::class, $registry->resolve(Alert::RULE_FAILURE_COUNT));
+        $this->assertInstanceOf(FailureCount::class, $registry->resolve(FailureCount::type()));
         $this->assertInstanceOf(NullRule::class, $registry->resolve('unknown-rule'));
     }
 }

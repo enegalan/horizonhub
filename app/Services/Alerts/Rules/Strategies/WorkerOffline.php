@@ -9,6 +9,14 @@ use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 final class WorkerOffline implements AlertRuleContract
 {
     /**
+     * Get the type.
+     */
+    public static function type(): string
+    {
+        return 'worker_offline';
+    }
+
+    /**
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
     public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array

@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\Service;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
 use App\Support\Alerts\AlertDeliveryLogPresenter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -19,7 +20,7 @@ class AlertDeliveryLogPresenterTest extends TestCase
 
         config()->set('horizonhub.alerts.delivery_log_max_distinct_jobs', 1);
         $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
-        $alert = Alert::query()->create(['name' => 'a', 'rule_type' => Alert::RULE_FAILURE_COUNT, 'enabled' => true]);
+        $alert = Alert::query()->create(['name' => 'a', 'rule_type' => FailureCount::type(), 'enabled' => true]);
         $log = AlertLog::query()->create([
             'alert_id' => $alert->id,
             'service_id' => $service->id,

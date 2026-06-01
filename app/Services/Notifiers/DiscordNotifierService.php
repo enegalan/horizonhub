@@ -53,9 +53,6 @@ class DiscordNotifierService extends AbstractAlertNotifier
         return ['webhook_url' => (string) ($validated['webhook_url'] ?? '')];
     }
 
-    /**
-     * @return non-empty-string
-     */
     public static function type(): string
     {
         return 'discord';

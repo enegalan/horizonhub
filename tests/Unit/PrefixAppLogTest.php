@@ -19,10 +19,10 @@ class PrefixAppLogTest extends TestCase
         $logger = new Logger($monolog);
 
         (new PrefixAppLog)($logger);
-        $logger->warning('HorizonHub: already prefixed');
+        $logger->warning('[HorizonHub] already prefixed');
 
         $this->assertSame(
-            'HorizonHub: already prefixed',
+            '[HorizonHub] already prefixed',
             $handler->getRecords()[0]['message'],
         );
     }
@@ -40,7 +40,7 @@ class PrefixAppLogTest extends TestCase
 
         $this->assertTrue($handler->hasWarningRecords());
         $this->assertSame(
-            'HorizonHub: email provider has no recipients, skip',
+            '[HorizonHub] email provider has no recipients, skip',
             $handler->getRecords()[0]['message'],
         );
     }

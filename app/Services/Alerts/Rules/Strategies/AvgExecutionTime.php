@@ -26,6 +26,14 @@ final class AvgExecutionTime implements AlertRuleContract
     }
 
     /**
+     * Get the type.
+     */
+    public static function type(): string
+    {
+        return 'avg_execution_time';
+    }
+
+    /**
      * Evaluate the rule and return whether it triggered plus triggering job UUIDs (if applicable).
      *
      * @param Alert $alert The alert.

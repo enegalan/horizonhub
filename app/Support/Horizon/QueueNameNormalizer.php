@@ -15,7 +15,7 @@ final class QueueNameNormalizer
      * Fallback: Horizon-style `{connection}.{queue}` / `{connection}:{queue}` where the connection
      * segment matches a typical Laravel `config/queue.php` connection key (letter-first identifier).
      *
-     * @var non-empty-string
+     * @var string
      */
     private const FALLBACK_CONNECTION_PREFIX_PATTERN = '/^([a-zA-Z][a-zA-Z0-9_-]*)[.:](.+)$/D';
 

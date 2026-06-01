@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\Service;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
 use App\Services\Dashboard\DashboardDataService;
 use App\Services\Horizon\HorizonClientService;
 use App\Services\Metrics\MetricsDataService;
@@ -25,7 +26,7 @@ class DashboardDataServiceTest extends TestCase
 
         $alert = Alert::query()->create([
             'name' => 'dash-alert',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
 

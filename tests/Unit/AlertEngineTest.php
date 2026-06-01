@@ -10,6 +10,8 @@ use App\Services\Alerts\Engine\AlertBatchStore;
 use App\Services\Alerts\Engine\AlertEngine;
 use App\Services\Alerts\Engine\AlertNotificationDispatcher;
 use App\Services\Alerts\Rules\AlertRuleStrategyRegistry;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
+use App\Services\Alerts\Rules\Strategies\HorizonOffline;
 use App\Services\Horizon\HorizonClientService;
 use App\Services\Notifiers\EmailNotifierService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,7 +27,7 @@ class AlertEngineTest extends TestCase
         $alert = Alert::query()->create([
             'name' => 'no-trigger',
             'service_ids' => [$service->id],
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'threshold' => ['count' => 1, 'minutes' => 5],
             'enabled' => true,
         ]);
@@ -52,7 +54,7 @@ class AlertEngineTest extends TestCase
     {
         $alert = Alert::query()->create([
             'name' => 'pending-flush-error',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
 
@@ -75,7 +77,7 @@ class AlertEngineTest extends TestCase
     {
         $alert = Alert::query()->create([
             'name' => 'failure',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'threshold' => ['count' => 1, 'minutes' => 5],
             'enabled' => true,
         ]);
@@ -95,7 +97,7 @@ class AlertEngineTest extends TestCase
     {
         Alert::query()->create([
             'name' => 'offline',
-            'rule_type' => Alert::RULE_HORIZON_OFFLINE,
+            'rule_type' => HorizonOffline::type(),
             'enabled' => true,
         ]);
 
@@ -120,7 +122,7 @@ class AlertEngineTest extends TestCase
         $alert = Alert::query()->create([
             'name' => 'scheduled-failure',
             'service_ids' => [$service->id],
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'threshold' => ['count' => 1, 'minutes' => 5],
             'enabled' => true,
         ]);
@@ -165,7 +167,7 @@ class AlertEngineTest extends TestCase
         $alert = Alert::query()->create([
             'name' => 'failure-ex',
             'service_ids' => [$service->id],
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'threshold' => ['count' => 1, 'minutes' => 5],
             'enabled' => true,
         ]);
@@ -194,7 +196,7 @@ class AlertEngineTest extends TestCase
         $alert = Alert::query()->create([
             'name' => 'failure-pending',
             'service_ids' => [$service->id],
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'threshold' => ['count' => 1, 'minutes' => 5],
             'enabled' => true,
         ]);
@@ -221,7 +223,7 @@ class AlertEngineTest extends TestCase
         ]);
         $alert = Alert::query()->create([
             'name' => 'a',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
         $failed = AlertLog::query()->create([

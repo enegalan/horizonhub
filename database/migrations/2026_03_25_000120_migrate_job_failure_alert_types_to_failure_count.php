@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Alert;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
 use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
@@ -25,7 +26,7 @@ return new class extends Migration
                     $minutes = (int) ($threshold['minutes'] ?? config('horizonhub.alerts.default_minutes'));
                     $threshold['minutes'] = $minutes;
 
-                    $alert->rule_type = Alert::RULE_FAILURE_COUNT;
+                    $alert->rule_type = FailureCount::type();
                     $alert->threshold = $threshold;
                     $alert->save();
                 }

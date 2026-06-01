@@ -6,6 +6,7 @@ use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 use App\Models\Service;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
 use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Notifiers\SlackNotifierService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,7 +19,7 @@ class ModelAndProviderTest extends TestCase
     public function test_alert_name_defaults_when_missing(): void
     {
         $alert = Alert::query()->create([
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
 
@@ -38,7 +39,7 @@ class ModelAndProviderTest extends TestCase
         $alert = Alert::query()->create([
             'name' => 'z',
             'service_ids' => [$s1->id, $s2->id],
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
 
@@ -49,14 +50,14 @@ class ModelAndProviderTest extends TestCase
         $unscopedAlert = Alert::query()->create([
             'name' => 'unscoped',
             'service_ids' => [],
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
         $this->assertFalse($unscopedAlert->appliesToServiceId($s1->id));
 
         $defaultScopeAlert = new Alert([
             'name' => 'defaults',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
         $this->assertSame([], $defaultScopeAlert->service_ids);
@@ -88,7 +89,7 @@ class ModelAndProviderTest extends TestCase
         ]);
         $this->assertNull($emptyEmail->deliverableConfig());
 
-        $alert = Alert::query()->create(['name' => 'a', 'rule_type' => Alert::RULE_FAILURE_COUNT, 'enabled' => true]);
+        $alert = Alert::query()->create(['name' => 'a', 'rule_type' => FailureCount::type(), 'enabled' => true]);
         $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
         $log = AlertLog::query()->create([
             'alert_id' => $alert->id,

@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Jobs\EvaluateAlertJob;
 use App\Models\Alert;
 use App\Services\Alerts\Engine\AlertEngine;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
@@ -18,7 +19,7 @@ class EvaluateAlertJobTest extends TestCase
         Cache::flush();
         $alert = Alert::query()->create([
             'name' => 'x2',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
         $engine = $this->createMock(AlertEngine::class);
@@ -48,7 +49,7 @@ class EvaluateAlertJobTest extends TestCase
         Cache::flush();
         $alert = Alert::query()->create([
             'name' => 'x',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
 

@@ -8,6 +8,14 @@ use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 final class NullRule implements AlertRuleContract
 {
     /**
+     * Get the type.
+     */
+    public static function type(): string
+    {
+        return 'null';
+    }
+
+    /**
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
     public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array

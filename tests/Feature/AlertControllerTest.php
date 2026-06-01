@@ -10,6 +10,7 @@ use App\Services\Alerts\AlertChartDataService;
 use App\Services\Alerts\AlertEvaluationBatchService;
 use App\Services\Alerts\AlertUpsertService;
 use App\Services\Alerts\Engine\AlertEngine;
+use App\Services\Alerts\Rules\Strategies\FailureCount;
 use App\Services\Notifiers\EmailNotifierService;
 use App\Support\FormDrawer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -29,7 +30,7 @@ class AlertControllerTest extends TestCase
         ]);
         $alert = Alert::query()->create([
             'name' => 'old-alert',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => true,
             'service_ids' => [$service->id],
         ]);
@@ -64,7 +65,7 @@ class AlertControllerTest extends TestCase
             'alert' => $alert,
             'services' => collect([$service]),
             'providers' => collect([$provider]),
-            'ruleTypes' => [Alert::RULE_FAILURE_COUNT => 'Failure count in window'],
+            'ruleTypes' => [FailureCount::type() => 'Failure count in window'],
             'selectedProviderIds' => [$provider->id],
             'selectedServiceIds' => [$service->id],
             'header' => 'Edit alert',
@@ -73,7 +74,7 @@ class AlertControllerTest extends TestCase
             'alert' => [
                 'name' => 'new-alert',
                 'service_ids' => [$service->id],
-                'rule_type' => Alert::RULE_FAILURE_COUNT,
+                'rule_type' => FailureCount::type(),
                 'threshold' => ['count' => 1, 'minutes' => 5],
                 'enabled' => true,
                 'email_interval_minutes' => 0,
@@ -134,7 +135,7 @@ class AlertControllerTest extends TestCase
     {
         Alert::query()->create([
             'name' => 'a1',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
 
@@ -147,7 +148,7 @@ class AlertControllerTest extends TestCase
     public function test_retry_log_calls_engine_only_for_failed_logs(): void
     {
         $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
-        $alert = Alert::query()->create(['name' => 'a1', 'rule_type' => Alert::RULE_FAILURE_COUNT, 'enabled' => true]);
+        $alert = Alert::query()->create(['name' => 'a1', 'rule_type' => FailureCount::type(), 'enabled' => true]);
         $failedLog = AlertLog::query()->create([
             'alert_id' => $alert->id,
             'service_id' => $service->id,
@@ -175,7 +176,7 @@ class AlertControllerTest extends TestCase
     {
         $alert = Alert::query()->create([
             'name' => 'toggle-alert',
-            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
 
