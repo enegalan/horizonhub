@@ -93,7 +93,6 @@
                                 type="text"
                                 class="w-full"
                                 x-model="tagInput"
-                                placeholder="production"
                                 autocomplete="off"
                                 role="combobox"
                                 aria-autocomplete="list"
