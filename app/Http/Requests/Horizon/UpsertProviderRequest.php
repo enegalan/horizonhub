@@ -18,7 +18,7 @@ class UpsertProviderRequest extends FormRequest
     public function normalizedProviderData(): array
     {
         $validated = $this->validated();
-        $notifierClass = NotificationProvider::getProviders()[$validated['type']] ?? null;
+        $notifierClass = (new NotificationProvider(['type' => $validated['type']]))->notifierClass();
 
         if ($notifierClass === null) {
             \abort(422, 'Invalid provider type.');
