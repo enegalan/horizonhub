@@ -22,7 +22,7 @@
                 <div class="grid gap-3 px-5 py-5 sm:grid-cols-3 sm:px-2">
                     @foreach(\App\Models\NotificationProvider::getProviders() as $type => $class)
                         @php
-                            $meta = $class::meta();
+                            $meta = (new \App\Models\NotificationProvider(['type' => $type]))->meta();
                         @endphp
                         <label
                             class="relative cursor-pointer rounded-xl border p-2 transition-colors"
@@ -66,83 +66,71 @@
                             id="name"
                             name="name"
                             value="{{ old('name', $provider->name) }}"
-                            x-bind:placeholder="type === 'slack' ? 'e.g. Slack #ops' : (type === 'discord' ? 'e.g. Discord #alerts' : 'e.g. Alerts team')"
+                            placeholder="e.g. Ops alerts"
                             class="w-full"
                         />
                         @error('name') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
 
-                    <div
-                        class="rounded-xl border px-4 py-4 transition-colors"
-                        x-show="type === 'slack'"
-                        x-cloak
-                        :class="type === 'slack' ? 'border-violet-500/20 bg-violet-500/5' : 'border-border bg-muted/20'"
-                    >
-                        <div class="mb-3 flex items-center gap-2">
-                            <x-icons.link class="size-4 text-violet-700 dark:text-violet-300" />
-                            <p class="text-sm font-medium text-foreground">Slack webhook</p>
-                        </div>
-                        <div class="space-y-2">
-                            <x-input-label for="webhook_url">Webhook URL</x-input-label>
-                            <x-text-input
-                                type="url"
-                                id="webhook_url"
-                                name="webhook_url"
-                                value="{{ old('webhook_url', $webhookUrl) }}"
-                                placeholder="https://hooks.slack.com/services/..."
-                                class="w-full font-mono text-sm"
-                            />
-                            @error('webhook_url') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
-                        </div>
-                    </div>
+                    @foreach(\App\Models\NotificationProvider::getProviders() as $type => $class)
+                        @php
+                            $typeProvider = new \App\Models\NotificationProvider(['type' => $type]);
+                            $meta = $typeProvider->meta();
+                            $color = $meta['color'];
+                        @endphp
 
-                    <div
-                        class="rounded-xl border px-4 py-4 transition-colors"
-                        x-show="type === 'discord'"
-                        x-cloak
-                        :class="type === 'discord' ? 'border-indigo-500/20 bg-indigo-500/5' : 'border-border bg-muted/20'"
-                    >
-                        <div class="mb-3 flex items-center gap-2">
-                            <x-icons.link class="size-4 text-indigo-700 dark:text-indigo-300" />
-                            <p class="text-sm font-medium text-foreground">Discord webhook</p>
-                        </div>
-                        <div class="space-y-2">
-                            <x-input-label for="discord_webhook_url">Webhook URL</x-input-label>
-                            <x-text-input
-                                type="url"
-                                id="discord_webhook_url"
-                                name="webhook_url"
-                                value="{{ old('webhook_url', $webhookUrl) }}"
-                                placeholder="https://discord.com/api/webhooks/..."
-                                class="w-full font-mono text-sm"
-                            />
-                            @error('webhook_url') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
-                        </div>
-                    </div>
-
-                    <div
-                        class="rounded-xl border px-4 py-4 transition-colors"
-                        x-show="type === 'email'"
-                        x-cloak
-                        :class="type === 'email' ? 'border-sky-500/20 bg-sky-500/5' : 'border-border bg-muted/20'"
-                    >
-                        <div class="mb-3 flex items-center gap-2">
-                            <x-icons.users class="size-4 text-sky-700 dark:text-sky-300" />
-                            <p class="text-sm font-medium text-foreground">Email recipients</p>
-                        </div>
-                        <div class="space-y-2">
-                            <x-input-label for="email_to">Recipients (comma-separated)</x-input-label>
-                            <x-text-input
-                                type="text"
-                                id="email_to"
-                                name="email_to"
-                                value="{{ old('email_to', $emailTo) }}"
-                                placeholder="alerts@example.com, oncall@example.com"
-                                class="w-full"
-                            />
-                            @error('email_to') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
-                        </div>
-                    </div>
+                        @if($typeProvider->usesWebhook())
+                            <div
+                                class="rounded-xl border px-4 py-4 transition-colors"
+                                x-show="type === '{{ $type }}'"
+                                x-cloak
+                                :class="type === '{{ $type }}' ? 'border-{{ $color }}-500/20 bg-{{ $color }}-500/5' : 'border-border bg-muted/20'"
+                            >
+                                <div class="mb-3 flex items-center gap-2">
+                                    <x-icons.link class="size-4 text-{{ $color }}-700 dark:text-{{ $color }}-300" />
+                                    <p class="text-sm font-medium text-foreground">{{ $meta['label'] }} webhook</p>
+                                </div>
+                                <div class="space-y-2">
+                                    <x-input-label for="webhook_url_{{ $type }}">Webhook URL</x-input-label>
+                                    <x-text-input
+                                        type="url"
+                                        id="webhook_url_{{ $type }}"
+                                        name="webhook_url"
+                                        value="{{ old('webhook_url', ($provider->type ?? '') === $type ? $provider->getWebhookUrl() : '') }}"
+                                        placeholder="https://..."
+                                        class="w-full font-mono text-sm"
+                                        x-bind:disabled="type !== '{{ $type }}'"
+                                    />
+                                    @error('webhook_url') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                        @elseif($typeProvider->usesMailing())
+                            <div
+                                class="rounded-xl border px-4 py-4 transition-colors"
+                                x-show="type === '{{ $type }}'"
+                                x-cloak
+                                :class="type === '{{ $type }}' ? 'border-{{ $color }}-500/20 bg-{{ $color }}-500/5' : 'border-border bg-muted/20'"
+                            >
+                                <div class="mb-3 flex items-center gap-2">
+                                    <x-icons.users class="size-4 text-{{ $color }}-700 dark:text-{{ $color }}-300" />
+                                    <p class="text-sm font-medium text-foreground">Email recipients</p>
+                                </div>
+                                <div class="space-y-2">
+                                    <x-input-label for="email_to_{{ $type }}">Recipients (comma-separated)</x-input-label>
+                                    <x-text-input
+                                        type="text"
+                                        id="email_to_{{ $type }}"
+                                        name="email_to"
+                                        value="{{ old('email_to', ($provider->type ?? '') === $type ? implode(', ', $provider->getToEmails()) : '') }}"
+                                        placeholder="alerts@example.com, oncall@example.com"
+                                        class="w-full"
+                                        x-bind:disabled="type !== '{{ $type }}'"
+                                    />
+                                    @error('email_to') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                        @endif
+                    @endforeach
                 </div>
             </div>
 
