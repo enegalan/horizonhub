@@ -69,5 +69,5 @@ export default {
 
     plugins: [forms],
     // Some are set via PHP; Tailwind cannot see dynamic class strings.
-    safelist: ['bg-slate-400', 'bg-orange-500', 'bg-amber-500', 'bg-emerald-500'],
+    safelist: ['bg-slate-400', 'bg-orange-500', 'bg-amber-500', 'bg-emerald-500', 'border-violet-500/50', 'ring-violet-500/20', 'border-indigo-500/50', 'ring-indigo-500/20', 'border-sky-500/50', 'ring-sky-500/20'],
 };

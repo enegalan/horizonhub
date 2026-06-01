@@ -16,7 +16,10 @@ class ProviderController extends Controller
      */
     public function create(): View
     {
-        return $this->private__formView(new NotificationProvider);
+        return \view('horizon.providers.form', [
+            'provider' => new NotificationProvider,
+            'header' => 'New provider',
+        ]);
     }
 
     /**
@@ -36,7 +39,10 @@ class ProviderController extends Controller
      */
     public function edit(NotificationProvider $provider): View
     {
-        return $this->private__formView($provider);
+        return \view('horizon.providers.form', [
+            'provider' => $provider,
+            'header' => 'Edit provider',
+        ]);
     }
 
     /**
@@ -73,23 +79,5 @@ class ProviderController extends Controller
         return redirect()
             ->route('horizon.providers.index')
             ->with('status', FlashStatus::success('Provider updated.'));
-    }
-
-    /**
-     * Build data for the provider form view.
-     */
-    private function private__formView(NotificationProvider $provider): View
-    {
-        $webhookUrl = $provider->usesWebhook() ? $provider->getWebhookUrl() : '';
-
-        $toEmails = $provider->getToEmails();
-        $emailTo = \implode(', ', $toEmails);
-
-        return \view('horizon.providers.form', [
-            'provider' => $provider,
-            'webhookUrl' => $webhookUrl,
-            'emailTo' => $emailTo,
-            'header' => $provider->exists ? 'Edit provider' : 'New provider',
-        ]);
     }
 }
