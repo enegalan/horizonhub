@@ -44,6 +44,8 @@ class NotificationProvider extends Model
     }
 
     /**
+     * Get the deliverable config for the provider.
+     *
      * @return array<string, mixed>|null
      */
     public function deliverableConfig(): ?array
