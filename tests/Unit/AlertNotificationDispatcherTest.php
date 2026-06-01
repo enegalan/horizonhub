@@ -52,7 +52,7 @@ class AlertNotificationDispatcherTest extends TestCase
         $slack = $this->createMock(SlackNotifierService::class);
         $slack->method('sendBatched')->willThrowException(new \RuntimeException('boom'));
 
-        $dispatcher = new AlertNotificationDispatcher($discord, $email, $slack);
+        $dispatcher = $this->private__dispatcherWithNotifiers($discord, $email, $slack);
         $dispatcher->dispatch($alert, [['service_id' => 1, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]], $log);
 
         $log->refresh();
@@ -110,7 +110,19 @@ class AlertNotificationDispatcherTest extends TestCase
         $slack = $this->createMock(SlackNotifierService::class);
         $slack->expects($this->once())->method('sendBatched');
 
-        $dispatcher = new AlertNotificationDispatcher($discord, $email, $slack);
+        $dispatcher = $this->private__dispatcherWithNotifiers($discord, $email, $slack);
         $dispatcher->dispatch($alert, [['service_id' => 1, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]], $log);
+    }
+
+    private function private__dispatcherWithNotifiers(
+        DiscordNotifierService $discord,
+        EmailNotifierService $email,
+        SlackNotifierService $slack,
+    ): AlertNotificationDispatcher {
+        $this->app->instance(DiscordNotifierService::class, $discord);
+        $this->app->instance(EmailNotifierService::class, $email);
+        $this->app->instance(SlackNotifierService::class, $slack);
+
+        return $this->app->make(AlertNotificationDispatcher::class);
     }
 }

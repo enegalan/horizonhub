@@ -41,8 +41,9 @@ class UpsertProviderRequest extends FormRequest
         $webhookRules = ['nullable', 'url'];
         $mailingRules = [];
 
-        /** @var NotificationProvider $provider */
-        foreach ($providers as $type => $provider) {
+        foreach (\array_keys($providers) as $type) {
+            $provider = new NotificationProvider(['type' => $type]);
+
             if ($provider->usesWebhook()) {
                 $webhookRules[] = "required_if:type,$type";
             }

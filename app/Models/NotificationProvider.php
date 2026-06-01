@@ -118,18 +118,18 @@ class NotificationProvider extends Model
     }
 
     /**
-     * Whether the provider delivers via webhook URL.
-     */
-    public function usesWebhook(): bool
-    {
-        return \in_array($this->type, [SlackNotifierService::type(), DiscordNotifierService::type()], true);
-    }
-
-    /**
      * Whether the provider delivers via mailing.
      */
     public function usesMailing(): bool
     {
         return \in_array($this->type, [EmailNotifierService::type()], true);
+    }
+
+    /**
+     * Whether the provider delivers via webhook URL.
+     */
+    public function usesWebhook(): bool
+    {
+        return \in_array($this->type, [SlackNotifierService::type(), DiscordNotifierService::type()], true);
     }
 }
