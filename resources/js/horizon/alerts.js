@@ -1,5 +1,6 @@
 import { getChartColors, applyChartOptions } from '../charts/metrics-charts';
 import { parseJsonFromElement } from '../lib/parse';
+import { isHotReloadEnabled } from '../lib/sse';
 
 /**
  * Alert detail charts.
@@ -267,6 +268,9 @@ export function horizonAlertsList() {
             window.horizon.http.post(url, {}).then(function (data) {
                 var enabled = !!(data && data.enabled);
                 self.private__applyAlertEnabledState(articleEl, enabled);
+                if (!isHotReloadEnabled()) {
+                    window.location.reload();
+                }
             }).catch(function () {
             }).finally(function () {
                 btnEl.removeAttribute('data-alert-enabled-toggle-running');
