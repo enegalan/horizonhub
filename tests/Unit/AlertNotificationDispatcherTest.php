@@ -11,7 +11,6 @@ use App\Services\Notifiers\DiscordNotifierService;
 use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Notifiers\SlackNotifierService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class AlertNotificationDispatcherTest extends TestCase
@@ -20,8 +19,6 @@ class AlertNotificationDispatcherTest extends TestCase
 
     public function test_dispatch_marks_log_as_failed_when_notifier_throws(): void
     {
-        Log::spy();
-
         $alert = Alert::query()->create([
             'name' => 'notif2',
             'rule_type' => Alert::RULE_FAILURE_COUNT,

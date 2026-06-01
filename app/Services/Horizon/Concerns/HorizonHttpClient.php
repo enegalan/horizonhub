@@ -91,7 +91,7 @@ class HorizonHttpClient implements HorizonHttpClientContract
 
             if ($cached !== null) {
                 if (config('app.debug')) {
-                    Log::debug(config('app.name') . ': Horizon API call (cache hit)', [
+                    Log::channel('app')->debug('Horizon API call (cache hit)', [
                         'service_id' => $service->id ?? null,
                         'service_name' => $service->name ?? null,
                         'url' => $url,
@@ -106,7 +106,7 @@ class HorizonHttpClient implements HorizonHttpClientContract
         }
 
         if (config('app.debug')) {
-            Log::debug(config('app.name') . ': Horizon API call', [
+            Log::channel('app')->debug('Horizon API call', [
                 'service_id' => $service->id ?? null,
                 'service_name' => $service->name ?? null,
                 'url' => $url,
@@ -180,7 +180,7 @@ class HorizonHttpClient implements HorizonHttpClientContract
 
             return $result;
         } catch (\Throwable $e) {
-            Log::error(config('app.name') . ': Horizon API call exception' . ($withDashboardSession ? ' (with dashboard session)' : ''), [
+            Log::channel('app')->error('Horizon API call exception' . ($withDashboardSession ? ' (with dashboard session)' : ''), [
                 'service_id' => $service->id ?? null,
                 'url' => $url,
                 'error' => $e->getMessage(),
@@ -225,7 +225,7 @@ class HorizonHttpClient implements HorizonHttpClientContract
                 ->withOptions(['cookies' => $cookieJar])
                 ->get($dashboardUrl);
         } catch (\Throwable $e) {
-            Log::warning(config('app.name') . ': failed to bootstrap Horizon dashboard session', [
+            Log::channel('app')->warning('failed to bootstrap Horizon dashboard session', [
                 'service_id' => $service->id ?? null,
                 'url' => $dashboardUrl,
                 'error' => $e->getMessage(),
@@ -235,7 +235,7 @@ class HorizonHttpClient implements HorizonHttpClientContract
         }
 
         if (! $response->ok()) {
-            Log::warning(config('app.name') . ': unexpected status when bootstrapping Horizon dashboard session', [
+            Log::channel('app')->warning('unexpected status when bootstrapping Horizon dashboard session', [
                 'service_id' => $service->id ?? null,
                 'url' => $dashboardUrl,
                 'status' => $response->status(),
@@ -248,7 +248,7 @@ class HorizonHttpClient implements HorizonHttpClientContract
         $matches = [];
 
         if (! \preg_match('/<meta\s+name=["\']csrf-token["\']\s+content=["\']([^"\']+)["\']/', $html, $matches)) {
-            Log::warning(config('app.name') . ': unable to extract CSRF token from Horizon dashboard', [
+            Log::channel('app')->warning('unable to extract CSRF token from Horizon dashboard', [
                 'service_id' => $service->id ?? null,
                 'url' => $dashboardUrl,
             ]);
@@ -382,7 +382,7 @@ class HorizonHttpClient implements HorizonHttpClientContract
         }
 
         $message = $this->private__buildErrorMessageFromResponse($response);
-        Log::warning(config('app.name') . ': Horizon API call failed ' . $logContext, [
+        Log::channel('app')->warning('Horizon API call failed ' . $logContext, [
             'service_id' => $service->id,
             'url' => $url,
             'status' => $response->status(),

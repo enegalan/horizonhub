@@ -63,7 +63,7 @@ class EvaluateAlertJob implements ShouldQueue
 
             $cache->recordEvaluationResult($engine->evaluateAlert($alert));
         } catch (\Throwable $e) {
-            Log::error(config('app.name') . ': alert evaluation job failed', [
+            Log::channel('hub')->error('alert evaluation job failed', [
                 'alert_id' => $this->alertId,
                 'evaluation_id' => $this->evaluationId,
                 'error' => $e->getMessage(),
