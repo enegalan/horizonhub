@@ -124,4 +124,12 @@ class NotificationProvider extends Model
     {
         return \in_array($this->type, [SlackNotifierService::type(), DiscordNotifierService::type()], true);
     }
+
+    /**
+     * Whether the provider delivers via mailing.
+     */
+    public function usesMailing(): bool
+    {
+        return \in_array($this->type, [EmailNotifierService::type()], true);
+    }
 }

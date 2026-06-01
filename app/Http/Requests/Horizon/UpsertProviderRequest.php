@@ -39,16 +39,27 @@ class UpsertProviderRequest extends FormRequest
      */
     public function rules(): array
     {
+        $providers = NotificationProvider::getProviders();
+
+        $webhookRules = ['nullable', 'url'];
+        $mailingRules = [];
+
+        /** @var NotificationProvider $provider */
+        foreach ($providers as $type => $provider) {
+            if ($provider->usesWebhook()) {
+                $webhookRules[] = "required_if:type,$type";
+            }
+
+            if ($provider->usesMailing()) {
+                $mailingRules[] = "required_if:type,$type";
+            }
+        }
+
         return [
             'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'in:' . \implode(',', \array_keys(NotificationProvider::getProviders()))],
-            'webhook_url' => [
-                'required_if:type,' . SlackNotifierService::type(),
-                'required_if:type,' . DiscordNotifierService::type(),
-                'nullable',
-                'url',
-            ],
-            'email_to' => ['required_if:type,' . EmailNotifierService::type(), 'nullable', 'string'],
+            'type' => ['required', 'in:' . implode(',', array_keys($providers))],
+            'webhook_url' => $webhookRules,
+            'email_to' => $mailingRules,
         ];
     }
 }
