@@ -38,7 +38,11 @@
                 : 'All jobs');
     @endphp
     <article
-        class="card group relative overflow-hidden transition-colors hover:border-primary/30"
+        @class([
+            'card group relative overflow-hidden transition-colors',
+            'hover:border-emerald-500/45 dark:hover:border-emerald-400/50' => $alert->enabled,
+            'hover:border-amber-500/45 dark:hover:border-amber-400/50' => ! $alert->enabled,
+        ])
         data-stream-row-id="alt-{{ (int) $alert->id }}"
         data-horizon-stream-sig="{{ $streamSig }}"
     >

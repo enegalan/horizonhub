@@ -154,6 +154,19 @@ export function horizonAlertsList() {
         private__applyAlertEnabledState(articleEl, enabled) {
             if (!articleEl) return;
 
+            var hoverBorderClasses = [
+                'hover:border-emerald-500/45',
+                'dark:hover:border-emerald-400/50',
+                'hover:border-amber-500/45',
+                'dark:hover:border-amber-400/50',
+            ];
+            articleEl.classList.remove.apply(articleEl.classList, hoverBorderClasses);
+            if (enabled) {
+                articleEl.classList.add('hover:border-emerald-500/45', 'dark:hover:border-emerald-400/50');
+            } else {
+                articleEl.classList.add('hover:border-amber-500/45', 'dark:hover:border-amber-400/50');
+            }
+
             var accentEl = articleEl.querySelector('[data-alert-enabled-accent="1"]');
             if (accentEl) {
                 accentEl.classList.remove(
