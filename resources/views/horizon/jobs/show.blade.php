@@ -2,10 +2,7 @@
 
 @section('content')
     <div
-        x-data="window.horizonJobDetail({
-            retryUrl: '{{ route('horizon.jobs.retry', ['uuid' => $job->uuid ?? '', 'service_id' => optional($job->service)->id ?? 0]) }}',
-            canRetry: {{ ($job->service ?? null) && ($job->status ?? '') === 'failed' ? 'true' : 'false' }},
-        })"
+        x-data="window.horizonJobDetail()"
         x-init="typeof init === 'function' ? init() : null"
         id="horizon-job-detail"
         data-horizon-job-detail-root="1"

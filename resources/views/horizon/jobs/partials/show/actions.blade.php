@@ -5,6 +5,7 @@
         aria-label="Retry"
         title="Retry"
         data-job-detail-retry="1"
+        data-job-detail-retry-url="{{ route('horizon.jobs.retry', ['uuid' => $job->uuid, 'service_id' => $job->service->id]) }}"
     >
         <x-icons.arrow-path class="size-4" />
     </x-button>

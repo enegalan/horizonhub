@@ -556,10 +556,9 @@ export function horizonJobRowRetry(config) {
 
 /**
  * Horizon job detail.
- * @param {object} config
  * @returns {object}
  */
-export function horizonJobDetail(config) {
+export function horizonJobDetail() {
     return {
         /**
          * Retrying.
@@ -578,22 +577,6 @@ export function horizonJobDetail(config) {
         init() {
             this.restorePersistedUiState();
             initJsonTrees();
-            var root = this.$el;
-            if (!root || root.dataset.jobDetailRetryDelegated === '1') {
-                return;
-            }
-            root.dataset.jobDetailRetryDelegated = '1';
-            root.addEventListener('click', function (e) {
-                var btn = e.target.closest('[data-job-detail-retry]');
-                if (!btn || !root.contains(btn)) {
-                    return;
-                }
-                var data = window.Alpine && typeof window.Alpine.$data === 'function' ? window.Alpine.$data(root) : null;
-                if (data && typeof data.retry === 'function') {
-                    e.preventDefault();
-                    data.retry();
-                }
-            });
         },
         /**
          * Build the localStorage key for exception toggle state.
@@ -640,8 +623,15 @@ export function horizonJobDetail(config) {
          * @returns {void}
          */
         retry() {
-            if (!config.canRetry) return;
-            postSingleJobRetry(config.retryUrl, this, 'Retry requested.');
+            var btn = this.$el ? this.$el.querySelector('[data-job-detail-retry]') : null;
+            if (!btn) {
+                return;
+            }
+            var retryUrl = btn.getAttribute('data-job-detail-retry-url');
+            if (!retryUrl) {
+                return;
+            }
+            postSingleJobRetry(retryUrl, this, 'Retry requested.');
         },
         /**
          * Toggle exception lines.
@@ -662,7 +652,7 @@ export function horizonJobDetail(config) {
  * @returns {void}
  */
 function postSingleJobRetry(retryUrl, component, toastMessage) {
-    if (!window.horizon || !window.horizon.http) return;
+    if (!window.horizon || !window.horizon.http || component.retrying) return;
     component.retrying = true;
     window.horizon.http.post(retryUrl, {}).then(function () {
         window.toast.info(toastMessage);

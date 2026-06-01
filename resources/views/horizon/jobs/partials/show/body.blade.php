@@ -1,8 +1,15 @@
 @include('horizon.jobs.partials.show.breadcrumbs')
 <div data-horizon-job-detail-card="1" @class(['card space-y-4 p-4'])>
     <div id="horizon-job-detail-actions">
-        <div class="flex flex-wrap gap-2" x-bind:class="{ 'pointer-events-none opacity-50': retrying }">
-            <div id="horizon-job-detail-actions-stream">
+        <div
+            x-bind:class="{
+                'pointer-events-none opacity-50': retrying,
+                '[&_.job-detail-retry-trigger_svg]:animate-spin': retrying,
+            }"
+            x-bind:aria-busy="retrying"
+            @click="if ($event.target.closest('[data-job-detail-retry]')) retry()"
+        >
+            <div class="flex flex-wrap gap-2" id="horizon-job-detail-actions-stream">
                 @if(!empty($defer))
                     @include('horizon.jobs.partials.show.skeletons.actions')
                 @else
