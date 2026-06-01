@@ -83,7 +83,7 @@ class ProviderController extends Controller
         $webhookUrl = $provider->usesWebhook() ? $provider->getWebhookUrl() : '';
 
         $toEmails = $provider->getToEmails();
-        $emailTo = \is_array($toEmails) ? \implode(', ', $toEmails) : (string) $toEmails;
+        $emailTo = \implode(', ', $toEmails);
 
         return \view('horizon.providers.form', [
             'provider' => $provider,
