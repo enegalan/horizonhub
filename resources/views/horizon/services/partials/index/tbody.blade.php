@@ -105,17 +105,27 @@
                             {{ $isEnabled ? 'On' : 'Off' }}
                         </span>
                     </button>
-                    @if($isEnabled)
-                        @if($isOnline)
-                            <span class="badge-success shrink-0 text-[10px]">Online</span>
-                        @elseif($isStandBy)
-                            <span class="badge-warning shrink-0 text-[10px]">Stand-by</span>
+                    <span
+                        @class([
+                            'shrink-0 text-[10px]',
+                            'badge-success' => $isEnabled && $isOnline,
+                            'badge-warning' => ($isEnabled && $isStandBy) || ! $isEnabled,
+                            'badge-danger' => $isEnabled && ! $isOnline && ! $isStandBy,
+                        ])
+                        data-service-connectivity-badge="1"
+                    >
+                        @if($isEnabled)
+                            @if($isOnline)
+                                Online
+                            @elseif($isStandBy)
+                                Stand-by
+                            @else
+                                Offline
+                            @endif
                         @else
-                            <span class="badge-danger shrink-0 text-[10px]">Offline</span>
+                            Disabled
                         @endif
-                    @else
-                        <span class="badge-warning shrink-0 text-[10px]">Disabled</span>
-                    @endif
+                    </span>
                 </div>
             </div>
 

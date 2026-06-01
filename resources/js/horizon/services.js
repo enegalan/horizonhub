@@ -1,3 +1,5 @@
+import { isHotReloadEnabled } from '../lib/sse';
+
 /**
  * Service create/edit form.
  *
@@ -291,6 +293,24 @@ export function horizonServicesList() {
                 badgeEl.classList.add(enabled ? 'badge-success' : 'badge-danger');
                 badgeEl.textContent = enabled ? 'On' : 'Off';
             }
+
+            var connectivityBadgeEl = articleEl.querySelector('[data-service-connectivity-badge="1"]');
+            if (connectivityBadgeEl) {
+                connectivityBadgeEl.classList.remove('badge-success', 'badge-warning', 'badge-danger');
+                if (!enabled) {
+                    connectivityBadgeEl.classList.add('badge-warning');
+                    connectivityBadgeEl.textContent = 'Disabled';
+                } else if (connectivity === 'online') {
+                    connectivityBadgeEl.classList.add('badge-success');
+                    connectivityBadgeEl.textContent = 'Online';
+                } else if (connectivity === 'stand_by') {
+                    connectivityBadgeEl.classList.add('badge-warning');
+                    connectivityBadgeEl.textContent = 'Stand-by';
+                } else {
+                    connectivityBadgeEl.classList.add('badge-danger');
+                    connectivityBadgeEl.textContent = 'Offline';
+                }
+            }
         },
 
         /**
@@ -313,6 +333,9 @@ export function horizonServicesList() {
             window.horizon.http.post(url, {}).then(function (data) {
                 var enabled = !!(data && data.enabled);
                 self.private__applyServiceEnabledState(articleEl, enabled);
+                if (!isHotReloadEnabled()) {
+                    window.location.reload();
+                }
             }).catch(function () {
             }).finally(function () {
                 btnEl.removeAttribute('data-service-enabled-toggle-running');

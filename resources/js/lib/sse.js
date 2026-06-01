@@ -4,7 +4,7 @@ import { connectStreamSource, disconnectStreamSource } from '@hotwired/turbo';
  * Whether Horizon Hub hot reload (SSE refresh) is enabled.
  * @returns {boolean}
  */
-function isHotReloadEnabled() {
+export function isHotReloadEnabled() {
     return localStorage.getItem('horizonhub_hotreload') !== 'false';
 }
 
