@@ -55,7 +55,7 @@ class AlertNotificationDispatcher
 
                 if ($config === null) {
                     if (! $provider->usesWebhook()) {
-                        Log::warning(config('app.name') . ': email provider has no recipients, skip', ['alert_id' => $alert->id, 'provider_id' => $provider->id]);
+                        Log::channel('app')->warning('email provider has no recipients, skip', ['alert_id' => $alert->id, 'provider_id' => $provider->id]);
                     }
 
                     continue;
@@ -63,7 +63,7 @@ class AlertNotificationDispatcher
 
                 $this->notifiers[$notifierClass]->sendBatched($alert, $events, $config);
             } catch (\Throwable $e) {
-                Log::error(config('app.name') . ': alert notification failed', ['alert_id' => $alert->id, 'provider_id' => $provider->id, 'error' => $e->getMessage()]);
+                Log::channel('app')->error('alert notification failed', ['alert_id' => $alert->id, 'provider_id' => $provider->id, 'error' => $e->getMessage()]);
                 $log->update(['status' => 'failed', 'failure_message' => $e->getMessage()]);
             }
         }
