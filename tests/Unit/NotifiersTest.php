@@ -4,8 +4,10 @@ namespace Tests\Unit;
 
 use App\Mail\AlertBatchedMail;
 use App\Models\Alert;
+use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
+use App\Services\Notifiers\Contracts\AlertNotifierMetadata;
 use App\Services\Notifiers\DiscordNotifierService;
 use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Notifiers\SlackNotifierService;
@@ -79,6 +81,22 @@ class NotifiersTest extends TestCase
         });
     }
 
+    public function test_each_notifier_normalizes_config_from_validated_input(): void
+    {
+        $this->assertSame(
+            ['webhook_url' => 'https://hooks.slack.test/x'],
+            SlackNotifierService::normalizedConfig(['webhook_url' => 'https://hooks.slack.test/x']),
+        );
+        $this->assertSame(
+            ['webhook_url' => 'https://discord.com/api/webhooks/1/token'],
+            DiscordNotifierService::normalizedConfig(['webhook_url' => 'https://discord.com/api/webhooks/1/token']),
+        );
+        $this->assertSame(
+            ['to' => ['a@example.com', 'b@example.com']],
+            EmailNotifierService::normalizedConfig(['email_to' => 'a@example.com, b@example.com']),
+        );
+    }
+
     public function test_email_notifier_skips_without_recipients_and_sends_with_recipients(): void
     {
         Mail::fake();
@@ -96,6 +114,21 @@ class NotifiersTest extends TestCase
             return isset($mail->notification['ruleLabel'])
                 && $mail->notification['ruleLabel'] === 'Failure count in window';
         });
+    }
+
+    public function test_registered_providers_define_type_and_meta(): void
+    {
+        foreach (NotificationProvider::getProviders() as $type => $class) {
+            $this->assertTrue(\is_subclass_of($class, AlertNotifierMetadata::class));
+            $this->assertSame($type, $class::type());
+            $meta = $class::meta();
+
+            foreach (['label', 'icon', 'description', 'color'] as $key) {
+                $this->assertArrayHasKey($key, $meta);
+                $this->assertNotSame('', $meta[$key]);
+            }
+        }
+
     }
 
     public function test_slack_notifier_builds_failure_count_payload_with_enriched_event_details(): void

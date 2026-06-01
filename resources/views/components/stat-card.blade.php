@@ -31,6 +31,10 @@
             'border' => 'border-violet-500/20 bg-violet-500/5',
             'label' => 'text-violet-700 dark:text-violet-300',
         ],
+        'indigo' => [
+            'border' => 'border-indigo-500/20 bg-indigo-500/5',
+            'label' => 'text-indigo-700 dark:text-indigo-300',
+        ],
     ];
 
     $toneConfig = $toneClasses[$tone] ?? $toneClasses['neutral'];

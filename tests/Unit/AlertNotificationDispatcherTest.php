@@ -41,7 +41,7 @@ class AlertNotificationDispatcherTest extends TestCase
         ]);
         $provider = NotificationProvider::query()->create([
             'name' => 's',
-            'type' => NotificationProvider::TYPE_SLACK,
+            'type' => SlackNotifierService::type(),
             'config' => ['webhook_url' => 'https://hooks.slack.test/abc'],
         ]);
         $alert->notificationProviders()->sync([$provider->id]);
@@ -82,22 +82,22 @@ class AlertNotificationDispatcherTest extends TestCase
 
         $slackProvider = NotificationProvider::query()->create([
             'name' => 's',
-            'type' => NotificationProvider::TYPE_SLACK,
+            'type' => SlackNotifierService::type(),
             'config' => ['webhook_url' => 'https://hooks.slack.test/abc'],
         ]);
         $emailProvider = NotificationProvider::query()->create([
             'name' => 'e',
-            'type' => NotificationProvider::TYPE_EMAIL,
+            'type' => EmailNotifierService::type(),
             'config' => ['to' => ['a@example.com']],
         ]);
         $discordProvider = NotificationProvider::query()->create([
             'name' => 'd',
-            'type' => NotificationProvider::TYPE_DISCORD,
+            'type' => DiscordNotifierService::type(),
             'config' => ['webhook_url' => 'https://discord.com/api/webhooks/1/token'],
         ]);
         $emptyEmailProvider = NotificationProvider::query()->create([
             'name' => 'e2',
-            'type' => NotificationProvider::TYPE_EMAIL,
+            'type' => EmailNotifierService::type(),
             'config' => ['to' => []],
         ]);
         $alert->notificationProviders()->sync([$slackProvider->id, $emailProvider->id, $discordProvider->id, $emptyEmailProvider->id]);

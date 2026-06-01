@@ -21,6 +21,55 @@ class EmailNotifierService extends AbstractAlertNotifier
     }
 
     /**
+     * Get the metadata.
+     *
+     * @return array{label: string, icon: string, description: string, color: string}
+     */
+    public static function meta(): array
+    {
+        return [
+            'label' => 'Email',
+            'icon' => 'envelope',
+            'description' => 'Deliver alerts to one or more email recipients.',
+            'color' => 'sky',
+        ];
+    }
+
+    /**
+     * Normalize the config.
+     *
+     * @param array<string, mixed> $validated
+     *
+     * @return array<string, mixed>
+     */
+    public static function normalizedConfig(array $validated): array
+    {
+        $emails = \array_values(\array_filter(\array_map('trim', \explode(',', (string) ($validated['email_to'] ?? '')))));
+
+        foreach ($emails as $email) {
+            if (! \filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                \abort(422, 'One or more email addresses are invalid.');
+            }
+        }
+
+        if (empty($emails)) {
+            \abort(422, 'Email recipients are required.');
+        }
+
+        return ['to' => $emails];
+    }
+
+    /**
+     * Get the type.
+     *
+     * @return non-empty-string
+     */
+    public static function type(): string
+    {
+        return 'email';
+    }
+
+    /**
      * Send a batched alert.
      *
      * @param Alert $alert The alert.

@@ -3,10 +3,7 @@
 @endphp
 @forelse($providers as $provider)
     @php
-        $providerType = $provider->type;
-        $isSlack = $providerType === \App\Models\NotificationProvider::TYPE_SLACK;
-        $isDiscord = $providerType === \App\Models\NotificationProvider::TYPE_DISCORD;
-        $isEmail = $providerType === \App\Models\NotificationProvider::TYPE_EMAIL;
+        $providerMeta = $provider->meta();
         $usesWebhook = $provider->usesWebhook();
         $configSummary = $usesWebhook
             ? ($provider->getWebhookUrl() ?: 'No webhook configured')
@@ -22,17 +19,10 @@
             'to_emails' => $usesWebhook ? [] : $emailsForSig,
         ], \JSON_THROW_ON_ERROR));
 
-        $typeLabel = match ($providerType) {
-            \App\Models\NotificationProvider::TYPE_SLACK => 'Slack',
-            \App\Models\NotificationProvider::TYPE_DISCORD => 'Discord',
-            default => 'Email',
-        };
         $configLabel = $usesWebhook ? 'Webhook' : 'Recipients';
-        $subtitle = match ($providerType) {
-            \App\Models\NotificationProvider::TYPE_SLACK => 'Slack webhook',
-            \App\Models\NotificationProvider::TYPE_DISCORD => 'Discord webhook',
-            default => 'Email recipients',
-        };
+        $subtitle = $usesWebhook
+            ? "{$providerMeta['label']} webhook"
+            : "{$providerMeta['label']} recipients";
     @endphp
     <article
         class="card group relative overflow-hidden transition-colors hover:border-primary/30"
@@ -40,33 +30,15 @@
         data-horizon-stream-sig="{{ $streamSig }}"
     >
         <div
-            @class([
-                'absolute inset-x-0 top-0 h-1',
-                'bg-gradient-to-r from-violet-500/80 via-violet-400/60 to-transparent' => $isSlack,
-                'bg-gradient-to-r from-indigo-500/80 via-indigo-400/60 to-transparent' => $isDiscord,
-                'bg-gradient-to-r from-sky-500/80 via-sky-400/60 to-transparent' => $isEmail,
-            ])
+            class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-{{ $providerMeta['color'] }}-500/80 via-{{ $providerMeta['color'] }}-400/60 to-transparent"
             aria-hidden="true"
         ></div>
 
         <div class="flex h-full flex-col p-4">
             <div class="flex items-start justify-between gap-3">
                 <div class="flex min-w-0 items-start gap-3">
-                    <div
-                        @class([
-                            'flex size-11 shrink-0 items-center justify-center rounded-xl border',
-                            'border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-300' => $isSlack,
-                            'border-indigo-500/20 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' => $isDiscord,
-                            'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300' => $isEmail,
-                        ])
-                    >
-                        @if($isSlack)
-                            <x-icons.slack class="size-5" />
-                        @elseif($isDiscord)
-                            <x-icons.discord class="size-5" />
-                        @else
-                            <x-icons.envelope class="size-5" />
-                        @endif
+                    <div class="flex size-11 shrink-0 items-center justify-center rounded-xl border border-{{ $providerMeta['color'] }}-500/20 bg-{{ $providerMeta['color'] }}-500/10 text-{{ $providerMeta['color'] }}-700 dark:text-{{ $providerMeta['color'] }}-300">
+                        <x-dynamic-component :component="'icons.' . $providerMeta['icon']" class="size-5" />
                     </div>
                     <div class="min-w-0">
                         <p class="truncate text-sm font-semibold text-foreground">{{ $provider->name }}</p>
@@ -75,15 +47,8 @@
                         </p>
                     </div>
                 </div>
-                <span
-                    @class([
-                        'badge shrink-0 border-transparent',
-                        'bg-violet-500/15 text-violet-700 dark:text-violet-300' => $isSlack,
-                        'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300' => $isDiscord,
-                        'bg-sky-500/15 text-sky-700 dark:text-sky-300' => $isEmail,
-                    ])
-                >
-                    {{ $typeLabel }}
+                <span class="badge shrink-0 border-transparent bg-{{ $providerMeta['color'] }}-500/15 text-{{ $providerMeta['color'] }}-700 dark:text-{{ $providerMeta['color'] }}-300">
+                    {{ $providerMeta['label'] }}
                 </span>
             </div>
 

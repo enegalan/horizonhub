@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\NotificationProvider;
+use App\Services\Notifiers\EmailNotifierService;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -19,7 +20,7 @@ class NotificationProviderFactory extends Factory
     {
         return [
             'name' => $this->faker->words(2, true),
-            'type' => NotificationProvider::TYPE_EMAIL,
+            'type' => EmailNotifierService::type(),
             'config' => ['to' => [$this->faker->safeEmail()]],
         ];
     }

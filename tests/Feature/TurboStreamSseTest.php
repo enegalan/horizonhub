@@ -9,6 +9,7 @@ use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\AlertChartDataService;
 use App\Services\Horizon\HorizonClientService;
+use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Services\ServiceFilterService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -195,7 +196,7 @@ class TurboStreamSseTest extends TestCase
     {
         NotificationProvider::query()->create([
             'name' => 'stream-provider',
-            'type' => NotificationProvider::TYPE_EMAIL,
+            'type' => EmailNotifierService::type(),
             'config' => ['to' => ['ops@example.test']],
         ]);
 

@@ -29,6 +29,39 @@ class DiscordNotifierService extends AbstractAlertNotifier
     }
 
     /**
+     * @return array{label: string, icon: string, description: string, color: string}
+     */
+    public static function meta(): array
+    {
+        return [
+            'label' => 'Discord',
+            'icon' => 'discord',
+            'description' => 'Send alerts to a channel using a Discord webhook.',
+            'color' => 'indigo',
+        ];
+    }
+
+    /**
+     * Normalize the config.
+     *
+     * @param array<string, mixed> $validated
+     *
+     * @return array<string, mixed>
+     */
+    public static function normalizedConfig(array $validated): array
+    {
+        return ['webhook_url' => (string) ($validated['webhook_url'] ?? '')];
+    }
+
+    /**
+     * @return non-empty-string
+     */
+    public static function type(): string
+    {
+        return 'discord';
+    }
+
+    /**
      * Send a batched alert.
      *
      * @param Alert $alert The alert.

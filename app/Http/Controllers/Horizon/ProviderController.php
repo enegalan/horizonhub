@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Horizon;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Horizon\UpsertProviderRequest;
 use App\Models\NotificationProvider;
+use App\Services\Notifiers\EmailNotifierService;
 use App\Support\FlashStatus;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -84,7 +85,7 @@ class ProviderController extends Controller
         $webhookUrl = $provider->usesWebhook() ? (string) ($config['webhook_url'] ?? '') : '';
         $emailTo = '';
 
-        if ($provider->type === NotificationProvider::TYPE_EMAIL) {
+        if ($provider->type === EmailNotifierService::type()) {
             $to = $config['to'] ?? [];
             $emailTo = \is_array($to) ? \implode(', ', $to) : (string) $to;
         }

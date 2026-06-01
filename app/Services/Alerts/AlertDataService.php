@@ -45,7 +45,7 @@ final class AlertDataService
      */
     public function countsByProviderType(): array
     {
-        $countsByProviderType = AlertLog::query()
+        $countsByProviderTypes = AlertLog::query()
             ->selectRaw('notification_providers.type, COUNT(*) as aggregate')
             ->join('alerts', 'alerts.id', '=', 'alert_logs.alert_id')
             ->join('alert_notification_provider', 'alert_notification_provider.alert_id', '=', 'alerts.id')
@@ -53,12 +53,17 @@ final class AlertDataService
             ->groupBy('notification_providers.type')
             ->pluck('aggregate', 'notification_providers.type');
 
-        return [
+        $providerTypes = array_keys(NotificationProvider::getProviders());
+
+        $counts = [
             'total' => AlertLog::query()->count(),
-            'slack' => $countsByProviderType[NotificationProvider::TYPE_SLACK] ?? 0,
-            'email' => $countsByProviderType[NotificationProvider::TYPE_EMAIL] ?? 0,
-            'discord' => $countsByProviderType[NotificationProvider::TYPE_DISCORD] ?? 0,
         ];
+
+        foreach ($providerTypes as $providerType) {
+            $counts[$providerType] = $countsByProviderTypes[$providerType] ?? 0;
+        }
+
+        return $counts;
     }
 
     /**
