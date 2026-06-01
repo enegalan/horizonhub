@@ -19,6 +19,43 @@ class SlackNotifierService extends AbstractAlertNotifier
     }
 
     /**
+     * Get the metadata.
+     *
+     * @return array{label: string, icon: string, description: string, color: string}
+     */
+    public static function meta(): array
+    {
+        return [
+            'label' => 'Slack',
+            'icon' => 'slack',
+            'description' => 'Send alerts to a channel using an incoming webhook.',
+            'color' => 'violet',
+        ];
+    }
+
+    /**
+     * Normalize the config.
+     *
+     * @param array<string, mixed> $validated
+     *
+     * @return array<string, mixed>
+     */
+    public static function normalizedConfig(array $validated): array
+    {
+        return ['webhook_url' => (string) ($validated['webhook_url'] ?? '')];
+    }
+
+    /**
+     * Get the type.
+     *
+     * @return non-empty-string
+     */
+    public static function type(): string
+    {
+        return 'slack';
+    }
+
+    /**
      * Send a batched alert.
      *
      * @param Alert $alert The alert.

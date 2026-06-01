@@ -80,14 +80,10 @@ class ProviderController extends Controller
      */
     private function private__formView(NotificationProvider $provider): View
     {
-        $config = $provider->config ?? [];
-        $webhookUrl = $provider->usesWebhook() ? (string) ($config['webhook_url'] ?? '') : '';
-        $emailTo = '';
+        $webhookUrl = $provider->usesWebhook() ? $provider->getWebhookUrl() : '';
 
-        if ($provider->type === NotificationProvider::TYPE_EMAIL) {
-            $to = $config['to'] ?? [];
-            $emailTo = \is_array($to) ? \implode(', ', $to) : (string) $to;
-        }
+        $toEmails = $provider->getToEmails();
+        $emailTo = \implode(', ', $toEmails);
 
         return \view('horizon.providers.form', [
             'provider' => $provider,

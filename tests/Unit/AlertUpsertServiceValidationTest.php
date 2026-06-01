@@ -6,6 +6,7 @@ use App\Models\Alert;
 use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\AlertUpsertService;
+use App\Services\Notifiers\EmailNotifierService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -15,12 +16,38 @@ class AlertUpsertServiceValidationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_validate_alert_accepts_scope_without_disabled_service(): void
+    {
+        $enabled = Service::factory()->create(['enabled' => true]);
+        Service::factory()->create(['enabled' => false]);
+        $provider = NotificationProvider::query()->create([
+            'name' => 'mail',
+            'type' => EmailNotifierService::type(),
+            'config' => ['to' => ['ops@example.com']],
+        ]);
+
+        $request = Request::create('/horizon/alerts', 'POST', [
+            'name' => 'alert-scope',
+            'rule_type' => Alert::RULE_FAILURE_COUNT,
+            'service_ids' => [$enabled->id],
+            'thresholdCount' => 1,
+            'thresholdMinutes' => 5,
+            'provider_ids' => [$provider->id],
+            'email_interval_minutes' => 0,
+            'enabled' => true,
+        ]);
+
+        $data = (new AlertUpsertService)->validateAlert($request);
+
+        $this->assertSame([$enabled->id], $data['alert']['service_ids']);
+    }
+
     public function test_validate_alert_builds_failure_count_payload_with_patterns(): void
     {
         $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);
         $provider = NotificationProvider::query()->create([
             'name' => 'mail',
-            'type' => NotificationProvider::TYPE_EMAIL,
+            'type' => EmailNotifierService::type(),
             'config' => ['to' => ['ops@example.com']],
         ]);
 
@@ -52,7 +79,7 @@ class AlertUpsertServiceValidationTest extends TestCase
     {
         $provider = NotificationProvider::query()->create([
             'name' => 'mail',
-            'type' => NotificationProvider::TYPE_EMAIL,
+            'type' => EmailNotifierService::type(),
             'config' => ['to' => ['ops@example.com']],
         ]);
 
@@ -75,7 +102,7 @@ class AlertUpsertServiceValidationTest extends TestCase
         $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);
         $provider = NotificationProvider::query()->create([
             'name' => 'mail',
-            'type' => NotificationProvider::TYPE_EMAIL,
+            'type' => EmailNotifierService::type(),
             'config' => ['to' => ['ops@example.com']],
         ]);
 

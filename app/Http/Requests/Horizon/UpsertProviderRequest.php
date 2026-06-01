@@ -18,29 +18,16 @@ class UpsertProviderRequest extends FormRequest
     public function normalizedProviderData(): array
     {
         $validated = $this->validated();
+        $notifierClass = (new NotificationProvider(['type' => $validated['type']]))->notifierClass();
 
-        if ($validated['type'] === NotificationProvider::TYPE_EMAIL) {
-            $emails = \array_values(\array_filter(\array_map('trim', \explode(',', (string) ($validated['email_to'] ?? '')))));
-
-            foreach ($emails as $email) {
-                if (! \filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                    \abort(422, 'One or more email addresses are invalid.');
-                }
-            }
-
-            if (empty($emails)) {
-                \abort(422, 'Email recipients are required.');
-            }
-
-            $config = ['to' => $emails];
-        } else {
-            $config = ['webhook_url' => (string) ($validated['webhook_url'] ?? '')];
+        if ($notifierClass === null) {
+            \abort(422, 'Invalid provider type.');
         }
 
         return [
             'name' => $validated['name'],
             'type' => $validated['type'],
-            'config' => $config,
+            'config' => $notifierClass::normalizedConfig($validated),
         ];
     }
 
@@ -49,11 +36,28 @@ class UpsertProviderRequest extends FormRequest
      */
     public function rules(): array
     {
+        $providers = NotificationProvider::getProviders();
+
+        $webhookRules = ['nullable', 'url'];
+        $mailingRules = [];
+
+        foreach (\array_keys($providers) as $type) {
+            $provider = new NotificationProvider(['type' => $type]);
+
+            if ($provider->usesWebhook()) {
+                $webhookRules[] = "required_if:type,$type";
+            }
+
+            if ($provider->usesMailing()) {
+                $mailingRules[] = "required_if:type,$type";
+            }
+        }
+
         return [
             'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'in:slack,email,discord'],
-            'webhook_url' => ['required_if:type,slack', 'required_if:type,discord', 'nullable', 'url'],
-            'email_to' => ['required_if:type,email', 'nullable', 'string'],
+            'type' => ['required', 'in:' . implode(',', array_keys($providers))],
+            'webhook_url' => $webhookRules,
+            'email_to' => $mailingRules,
         ];
     }
 }

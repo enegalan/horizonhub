@@ -6,6 +6,8 @@ use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 use App\Models\Service;
+use App\Services\Notifiers\EmailNotifierService;
+use App\Services\Notifiers\SlackNotifierService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -64,18 +66,27 @@ class ModelAndProviderTest extends TestCase
     {
         $email = NotificationProvider::query()->create([
             'name' => 'mail',
-            'type' => NotificationProvider::TYPE_EMAIL,
+            'type' => EmailNotifierService::type(),
             'config' => ['to' => ['  a@example.com ', '']],
         ]);
         $slack = NotificationProvider::query()->create([
             'name' => 'slack',
-            'type' => NotificationProvider::TYPE_SLACK,
+            'type' => SlackNotifierService::type(),
             'config' => ['webhook_url' => 'https://hooks.slack.test'],
         ]);
 
         $this->assertSame(['a@example.com'], $email->getToEmails());
+        $this->assertSame(['to' => ['a@example.com']], $email->deliverableConfig());
         $this->assertSame([], $slack->getToEmails());
         $this->assertSame('https://hooks.slack.test', $slack->getWebhookUrl());
+        $this->assertSame(['webhook_url' => 'https://hooks.slack.test'], $slack->deliverableConfig());
+
+        $emptyEmail = NotificationProvider::query()->create([
+            'name' => 'empty-mail',
+            'type' => EmailNotifierService::type(),
+            'config' => ['to' => []],
+        ]);
+        $this->assertNull($emptyEmail->deliverableConfig());
 
         $alert = Alert::query()->create(['name' => 'a', 'rule_type' => Alert::RULE_FAILURE_COUNT, 'enabled' => true]);
         $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);

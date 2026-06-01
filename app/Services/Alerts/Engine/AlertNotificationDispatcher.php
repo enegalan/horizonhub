@@ -5,40 +5,26 @@ namespace App\Services\Alerts\Engine;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
-use App\Services\Notifiers\DiscordNotifierService;
-use App\Services\Notifiers\EmailNotifierService;
-use App\Services\Notifiers\SlackNotifierService;
+use App\Services\Notifiers\Contracts\AlertNotifier;
 use Illuminate\Support\Facades\Log;
 
 class AlertNotificationDispatcher
 {
     /**
-     * The discord notifier.
+     * The notifiers.
+     *
+     * @var array<class-string, AlertNotifier>
      */
-    private DiscordNotifierService $discordNotifier;
-
-    /**
-     * The email notifier.
-     */
-    private EmailNotifierService $emailNotifier;
-
-    /**
-     * The slack notifier.
-     */
-    private SlackNotifierService $slackNotifier;
+    private array $notifiers;
 
     /**
      * The constructor.
-     *
-     * @param DiscordNotifierService $discordNotifier The discord notifier.
-     * @param EmailNotifierService $emailNotifier The email notifier.
-     * @param SlackNotifierService $slackNotifier The slack notifier.
      */
-    public function __construct(DiscordNotifierService $discordNotifier, EmailNotifierService $emailNotifier, SlackNotifierService $slackNotifier)
+    public function __construct()
     {
-        $this->discordNotifier = $discordNotifier;
-        $this->emailNotifier = $emailNotifier;
-        $this->slackNotifier = $slackNotifier;
+        foreach (NotificationProvider::getProviders() as $notifierClass) {
+            $this->notifiers[$notifierClass] = app($notifierClass);
+        }
     }
 
     /**
@@ -59,27 +45,23 @@ class AlertNotificationDispatcher
         /** @var NotificationProvider $provider */
         foreach ($providers as $provider) {
             try {
-                if ($provider->type === NotificationProvider::TYPE_SLACK || $provider->type === NotificationProvider::TYPE_DISCORD) {
-                    $webhookUrl = $provider->getWebhookUrl();
+                $notifierClass = $provider->notifierClass();
 
-                    if (! empty($webhookUrl)) {
-                        if ($provider->type === NotificationProvider::TYPE_SLACK) {
-                            $this->slackNotifier->sendBatched($alert, $events, ['webhook_url' => $webhookUrl]);
-                        } else {
-                            $this->discordNotifier->sendBatched($alert, $events, ['webhook_url' => $webhookUrl]);
-                        }
-                    }
+                if ($notifierClass === null) {
+                    continue;
                 }
 
-                if ($provider->type === NotificationProvider::TYPE_EMAIL) {
-                    $to = $provider->getToEmails();
+                $config = $provider->deliverableConfig();
 
-                    if (! empty($to)) {
-                        $this->emailNotifier->sendBatched($alert, $events, ['to' => $to]);
-                    } else {
+                if ($config === null) {
+                    if (! $provider->usesWebhook()) {
                         Log::warning(config('app.name') . ': email provider has no recipients, skip', ['alert_id' => $alert->id, 'provider_id' => $provider->id]);
                     }
+
+                    continue;
                 }
+
+                $this->notifiers[$notifierClass]->sendBatched($alert, $events, $config);
             } catch (\Throwable $e) {
                 Log::error(config('app.name') . ': alert notification failed', ['alert_id' => $alert->id, 'provider_id' => $provider->id, 'error' => $e->getMessage()]);
                 $log->update(['status' => 'failed', 'failure_message' => $e->getMessage()]);

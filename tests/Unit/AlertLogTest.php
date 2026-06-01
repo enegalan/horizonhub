@@ -7,6 +7,8 @@ use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\AlertDataService;
+use App\Services\Notifiers\EmailNotifierService;
+use App\Services\Notifiers\SlackNotifierService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -24,12 +26,12 @@ class AlertLogTest extends TestCase
 
         $slackProvider = NotificationProvider::query()->create([
             'name' => 'slack-stats',
-            'type' => NotificationProvider::TYPE_SLACK,
+            'type' => SlackNotifierService::type(),
             'config' => ['webhook_url' => 'https://hooks.slack.test/services/T/B'],
         ]);
         $emailProvider = NotificationProvider::query()->create([
             'name' => 'email-stats',
-            'type' => NotificationProvider::TYPE_EMAIL,
+            'type' => EmailNotifierService::type(),
             'config' => ['to' => ['ops@example.test']],
         ]);
 

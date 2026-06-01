@@ -6,6 +6,7 @@ use App\Models\Alert;
 use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Support\Alerts\AlertRuleCatalog;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -20,7 +21,17 @@ class AlertUpsertService
      */
     public function buildFormViewVariables(Alert $alert): array
     {
-        $services = Service::query()->enabled()->orderBy('name')->get();
+        $selectedIds = $alert->exists ? $alert->service_ids : [];
+        $services = Service::query()
+            ->where(function (Builder $query) use ($selectedIds): void {
+                $query->enabled();
+
+                if ($selectedIds !== []) {
+                    $query->orWhere(fn (Builder $q) => $q->where('enabled', false)->whereIn('id', $selectedIds));
+                }
+            })
+            ->orderBy('name')
+            ->get();
         $providers = NotificationProvider::orderBy('type')->orderBy('name')->get();
         $ruleTypes = AlertRuleCatalog::ruleTypeLabels();
         $header = $alert->exists ? 'Edit alert' : 'New alert';

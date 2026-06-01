@@ -41,7 +41,7 @@ class AlertNotificationDispatcherTest extends TestCase
         ]);
         $provider = NotificationProvider::query()->create([
             'name' => 's',
-            'type' => NotificationProvider::TYPE_SLACK,
+            'type' => SlackNotifierService::type(),
             'config' => ['webhook_url' => 'https://hooks.slack.test/abc'],
         ]);
         $alert->notificationProviders()->sync([$provider->id]);
@@ -52,7 +52,7 @@ class AlertNotificationDispatcherTest extends TestCase
         $slack = $this->createMock(SlackNotifierService::class);
         $slack->method('sendBatched')->willThrowException(new \RuntimeException('boom'));
 
-        $dispatcher = new AlertNotificationDispatcher($discord, $email, $slack);
+        $dispatcher = $this->private__dispatcherWithNotifiers($discord, $email, $slack);
         $dispatcher->dispatch($alert, [['service_id' => 1, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]], $log);
 
         $log->refresh();
@@ -82,22 +82,22 @@ class AlertNotificationDispatcherTest extends TestCase
 
         $slackProvider = NotificationProvider::query()->create([
             'name' => 's',
-            'type' => NotificationProvider::TYPE_SLACK,
+            'type' => SlackNotifierService::type(),
             'config' => ['webhook_url' => 'https://hooks.slack.test/abc'],
         ]);
         $emailProvider = NotificationProvider::query()->create([
             'name' => 'e',
-            'type' => NotificationProvider::TYPE_EMAIL,
+            'type' => EmailNotifierService::type(),
             'config' => ['to' => ['a@example.com']],
         ]);
         $discordProvider = NotificationProvider::query()->create([
             'name' => 'd',
-            'type' => NotificationProvider::TYPE_DISCORD,
+            'type' => DiscordNotifierService::type(),
             'config' => ['webhook_url' => 'https://discord.com/api/webhooks/1/token'],
         ]);
         $emptyEmailProvider = NotificationProvider::query()->create([
             'name' => 'e2',
-            'type' => NotificationProvider::TYPE_EMAIL,
+            'type' => EmailNotifierService::type(),
             'config' => ['to' => []],
         ]);
         $alert->notificationProviders()->sync([$slackProvider->id, $emailProvider->id, $discordProvider->id, $emptyEmailProvider->id]);
@@ -110,7 +110,19 @@ class AlertNotificationDispatcherTest extends TestCase
         $slack = $this->createMock(SlackNotifierService::class);
         $slack->expects($this->once())->method('sendBatched');
 
-        $dispatcher = new AlertNotificationDispatcher($discord, $email, $slack);
+        $dispatcher = $this->private__dispatcherWithNotifiers($discord, $email, $slack);
         $dispatcher->dispatch($alert, [['service_id' => 1, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]], $log);
+    }
+
+    private function private__dispatcherWithNotifiers(
+        DiscordNotifierService $discord,
+        EmailNotifierService $email,
+        SlackNotifierService $slack,
+    ): AlertNotificationDispatcher {
+        $this->app->instance(DiscordNotifierService::class, $discord);
+        $this->app->instance(EmailNotifierService::class, $email);
+        $this->app->instance(SlackNotifierService::class, $slack);
+
+        return $this->app->make(AlertNotificationDispatcher::class);
     }
 }

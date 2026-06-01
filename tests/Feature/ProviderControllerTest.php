@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\NotificationProvider;
+use App\Services\Notifiers\DiscordNotifierService;
+use App\Services\Notifiers\EmailNotifierService;
+use App\Services\Notifiers\SlackNotifierService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -23,7 +26,7 @@ class ProviderControllerTest extends TestCase
     {
         $response = $this->post(route('horizon.providers.store'), [
             'name' => 'ops-discord',
-            'type' => NotificationProvider::TYPE_DISCORD,
+            'type' => DiscordNotifierService::type(),
             'webhook_url' => 'https://discord.com/api/webhooks/1/token',
         ]);
 
@@ -34,7 +37,7 @@ class ProviderControllerTest extends TestCase
         ]);
         $this->assertDatabaseHas('notification_providers', [
             'name' => 'ops-discord',
-            'type' => NotificationProvider::TYPE_DISCORD,
+            'type' => DiscordNotifierService::type(),
         ]);
         $provider = NotificationProvider::query()->where('name', 'ops-discord')->firstOrFail();
         $this->assertSame('https://discord.com/api/webhooks/1/token', $provider->config['webhook_url'] ?? null);
@@ -44,7 +47,7 @@ class ProviderControllerTest extends TestCase
     {
         $response = $this->post(route('horizon.providers.store'), [
             'name' => 'ops-slack',
-            'type' => NotificationProvider::TYPE_SLACK,
+            'type' => SlackNotifierService::type(),
             'webhook_url' => 'https://hooks.slack.test/services/T/B',
         ]);
 
@@ -55,7 +58,7 @@ class ProviderControllerTest extends TestCase
         ]);
         $this->assertDatabaseHas('notification_providers', [
             'name' => 'ops-slack',
-            'type' => NotificationProvider::TYPE_SLACK,
+            'type' => SlackNotifierService::type(),
         ]);
         $provider = NotificationProvider::query()->where('name', 'ops-slack')->firstOrFail();
         $this->assertSame('https://hooks.slack.test/services/T/B', $provider->config['webhook_url'] ?? null);
@@ -65,7 +68,7 @@ class ProviderControllerTest extends TestCase
     {
         $validResponse = $this->post(route('horizon.providers.store'), [
             'name' => 'ops-mail',
-            'type' => NotificationProvider::TYPE_EMAIL,
+            'type' => EmailNotifierService::type(),
             'email_to' => '  a@example.com , b@example.com ',
         ]);
 
@@ -75,7 +78,7 @@ class ProviderControllerTest extends TestCase
 
         $invalidResponse = $this->post(route('horizon.providers.store'), [
             'name' => 'bad-mail',
-            'type' => NotificationProvider::TYPE_EMAIL,
+            'type' => EmailNotifierService::type(),
             'email_to' => 'not-an-email',
         ]);
 
@@ -86,13 +89,13 @@ class ProviderControllerTest extends TestCase
     {
         $provider = NotificationProvider::query()->create([
             'name' => 'old-name',
-            'type' => NotificationProvider::TYPE_SLACK,
+            'type' => SlackNotifierService::type(),
             'config' => ['webhook_url' => 'https://hooks.slack.test/old'],
         ]);
 
         $this->put(route('horizon.providers.update', ['provider' => $provider]), [
             'name' => 'new-name',
-            'type' => NotificationProvider::TYPE_SLACK,
+            'type' => SlackNotifierService::type(),
             'webhook_url' => 'https://hooks.slack.test/new',
         ])->assertRedirect(route('horizon.providers.index'))
             ->assertSessionHas('status', [

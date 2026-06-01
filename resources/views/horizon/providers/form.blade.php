@@ -4,7 +4,7 @@
     @php
         $isEdit = $provider->exists;
         $action = $isEdit ? route('horizon.providers.update', $provider) : route('horizon.providers.store');
-        $currentType = old('type', $provider->type ?? \App\Models\NotificationProvider::TYPE_SLACK);
+        $currentType = $provider->type ?? \array_key_first(\App\Models\NotificationProvider::getProviders());
     @endphp
 
     <div class="space-y-6" x-data="{ type: '{{ $currentType }}' }">
@@ -20,80 +20,35 @@
                     <p class="mt-1 text-sm text-muted-foreground">Choose where alert notifications should be delivered.</p>
                 </div>
                 <div class="grid gap-3 px-5 py-5 sm:grid-cols-3 sm:px-2">
-                    <label
-                        class="relative cursor-pointer rounded-xl border p-2 transition-colors"
-                        :class="type === 'slack'
-                            ? 'border-violet-500/50 bg-violet-500/5 ring-1 ring-violet-500/20'
-                            : 'border-border bg-card hover:border-violet-500/30 hover:bg-violet-500/5'"
-                    >
-                        <input
-                            type="radio"
-                            name="type"
-                            value="slack"
-                            class="sr-only"
-                            x-model="type"
-                            @checked($currentType === 'slack')
+                    @foreach(\App\Models\NotificationProvider::getProviders() as $type => $class)
+                        @php
+                            $meta = $class::meta();
+                        @endphp
+                        <label
+                            class="relative cursor-pointer rounded-xl border p-2 transition-colors"
+                            :class="type === '{{ $type }}'
+                                ? 'border-{{ $meta['color'] }}-500/50 bg-{{ $meta['color'] }}-500/5 ring-1 ring-{{ $meta['color'] }}-500/20'
+                                : 'border-border bg-card hover:border-{{ $meta['color'] }}-500/30 hover:bg-{{ $meta['color'] }}-500/5'"
                         >
-                        <div class="flex items-center gap-2">
-                            <div class="flex size-11 shrink-0 items-center justify-center rounded-xl border border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-300">
-                                <x-icons.slack class="size-5" />
+                            <input
+                                type="radio"
+                                name="type"
+                                value="{{ $type }}"
+                                class="sr-only"
+                                x-model="type"
+                                @checked($currentType === $type)
+                            >
+                            <div class="flex items-center gap-2">
+                                <div class="flex size-11 shrink-0 items-center justify-center rounded-xl border border-{{ $meta['color'] }}-500/20 bg-{{ $meta['color'] }}-500/10 text-{{ $meta['color'] }}-700 dark:text-{{ $meta['color'] }}-300">
+                                    <x-dynamic-component :component="'icons.' . $meta['icon']" class="size-5" />
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-semibold text-foreground">{{ $meta['label'] }}</p>
+                                </div>
+                                <x-info-tooltip text="{{ $meta['description'] }}" />
                             </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="text-sm font-semibold text-foreground">Slack</p>
-                            </div>
-                            <x-info-tooltip text="Send alerts to a channel using an incoming webhook." />
-                        </div>
-                    </label>
-
-                    <label
-                        class="relative cursor-pointer rounded-xl border p-2 transition-colors"
-                        :class="type === 'discord'
-                            ? 'border-indigo-500/50 bg-indigo-500/5 ring-1 ring-indigo-500/20'
-                            : 'border-border bg-card hover:border-indigo-500/30 hover:bg-indigo-500/5'"
-                    >
-                        <input
-                            type="radio"
-                            name="type"
-                            value="discord"
-                            class="sr-only"
-                            x-model="type"
-                            @checked($currentType === 'discord')
-                        >
-                        <div class="flex items-center gap-2">
-                            <div class="flex size-11 shrink-0 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300">
-                                <x-icons.discord class="size-5" />
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="text-sm font-semibold text-foreground">Discord</p>
-                            </div>
-                            <x-info-tooltip text="Send alerts to a channel using a Discord webhook." />
-                        </div>
-                    </label>
-
-                    <label
-                        class="relative cursor-pointer rounded-xl border p-2 transition-colors"
-                        :class="type === 'email'
-                            ? 'border-sky-500/50 bg-sky-500/5 ring-1 ring-sky-500/20'
-                            : 'border-border bg-card hover:border-sky-500/30 hover:bg-sky-500/5'"
-                    >
-                        <input
-                            type="radio"
-                            name="type"
-                            value="email"
-                            class="sr-only"
-                            x-model="type"
-                            @checked($currentType === 'email')
-                        >
-                        <div class="flex items-center gap-2">
-                            <div class="flex size-11 shrink-0 items-center justify-center rounded-xl border border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300">
-                                <x-icons.envelope class="size-5" />
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="text-sm font-semibold text-foreground">Email</p>
-                            </div>
-                            <x-info-tooltip text="Deliver alerts to one or more email recipients." />
-                        </div>
-                    </label>
+                        </label>
+                    @endforeach
                 </div>
                 @error('type') <p class="px-5 pb-5 text-xs text-destructive sm:px-6">{{ $message }}</p> @enderror
             </div>

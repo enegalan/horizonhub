@@ -10,6 +10,7 @@ use App\Services\Alerts\AlertChartDataService;
 use App\Services\Alerts\AlertEvaluationBatchService;
 use App\Services\Alerts\AlertUpsertService;
 use App\Services\Alerts\Engine\AlertEngine;
+use App\Services\Notifiers\EmailNotifierService;
 use App\Support\FormDrawer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -23,7 +24,7 @@ class AlertControllerTest extends TestCase
         $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
         $provider = NotificationProvider::query()->create([
             'name' => 'mail',
-            'type' => NotificationProvider::TYPE_EMAIL,
+            'type' => EmailNotifierService::type(),
             'config' => ['to' => ['a@example.com']],
         ]);
         $alert = Alert::query()->create([

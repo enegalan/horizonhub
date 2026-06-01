@@ -11,6 +11,7 @@ use App\Services\Alerts\Engine\AlertEngine;
 use App\Services\Alerts\Engine\AlertNotificationDispatcher;
 use App\Services\Alerts\Rules\AlertRuleStrategyRegistry;
 use App\Services\Horizon\HorizonClientService;
+use App\Services\Notifiers\EmailNotifierService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -113,7 +114,7 @@ class AlertEngineTest extends TestCase
         $service = Service::query()->create(['name' => 'svc-sch', 'base_url' => 'https://sch.test', 'status' => 'online']);
         $provider = NotificationProvider::query()->create([
             'name' => 'mail-sch',
-            'type' => NotificationProvider::TYPE_EMAIL,
+            'type' => EmailNotifierService::type(),
             'config' => ['to' => ['alerts@example.com']],
         ]);
         $alert = Alert::query()->create([
@@ -158,7 +159,7 @@ class AlertEngineTest extends TestCase
         $service = Service::query()->create(['name' => 'svc-ex', 'base_url' => 'https://ex.test', 'status' => 'online']);
         $provider = NotificationProvider::query()->create([
             'name' => 'mail-ex',
-            'type' => NotificationProvider::TYPE_EMAIL,
+            'type' => EmailNotifierService::type(),
             'config' => ['to' => ['alerts@example.com']],
         ]);
         $alert = Alert::query()->create([
@@ -187,7 +188,7 @@ class AlertEngineTest extends TestCase
         $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
         $provider = NotificationProvider::query()->create([
             'name' => 'mail-2',
-            'type' => NotificationProvider::TYPE_EMAIL,
+            'type' => EmailNotifierService::type(),
             'config' => ['to' => ['alerts@example.com']],
         ]);
         $alert = Alert::query()->create([

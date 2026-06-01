@@ -6,12 +6,13 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
 use App\Services\Notifiers\Contracts\AlertNotifier;
+use App\Services\Notifiers\Contracts\AlertNotifierMetadata;
 use App\Support\Alerts\AlertRuleCatalog;
 use App\Support\Horizon\JobRuntimeHelper;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
-abstract class AbstractAlertNotifier implements AlertNotifier
+abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMetadata
 {
     /**
      * The Horizon API proxy service.
@@ -29,6 +30,22 @@ abstract class AbstractAlertNotifier implements AlertNotifier
     }
 
     /**
+     * Get the metadata.
+     *
+     * @return array{label: string, icon: string, description: string, color: string}
+     */
+    abstract public static function meta(): array;
+
+    /**
+     * Normalize the config.
+     *
+     * @param array<string, mixed> $validated
+     *
+     * @return array<string, mixed>
+     */
+    abstract public static function normalizedConfig(array $validated): array;
+
+    /**
      * Send an alert for a single event.
      */
     public function send(Alert $alert, int $serviceId, ?string $jobUuid, array $config): void
@@ -41,6 +58,13 @@ abstract class AbstractAlertNotifier implements AlertNotifier
             ],
         ], $config);
     }
+
+    /**
+     * Get the type.
+     *
+     * @return non-empty-string
+     */
+    abstract public static function type(): string;
 
     /**
      * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events
@@ -65,7 +89,6 @@ abstract class AbstractAlertNotifier implements AlertNotifier
         $previewLines = (int) config('horizonhub.failed_job_exception_preview_lines');
 
         foreach ($enrichedEvents as $index => $event) {
-            $eventServiceId = (int) $event['service_id'];
             $jobUuid = ! empty($event['job_uuid']) ? (string) $event['job_uuid'] : null;
             $full = $event['exception'];
             $preview = $full;

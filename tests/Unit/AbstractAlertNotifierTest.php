@@ -23,6 +23,21 @@ class AbstractAlertNotifierTest extends TestCase
 
         $notifier = new class($api) extends AbstractAlertNotifier
         {
+            public static function meta(): array
+            {
+                return ['label' => 'Test', 'icon' => 'test', 'description' => 'Test', 'color' => 'gray'];
+            }
+
+            public static function normalizedConfig(array $validated): array
+            {
+                return [];
+            }
+
+            public static function type(): string
+            {
+                return 'test';
+            }
+
             public function sendBatched(Alert $alert, array $events, array $config): void {}
         };
 
@@ -62,6 +77,21 @@ class AbstractAlertNotifierTest extends TestCase
         $notifier = new class($api) extends AbstractAlertNotifier
         {
             public array $captured = [];
+
+            public static function meta(): array
+            {
+                return ['label' => 'Test', 'icon' => 'test', 'description' => 'Test', 'color' => 'gray'];
+            }
+
+            public static function normalizedConfig(array $validated): array
+            {
+                return [];
+            }
+
+            public static function type(): string
+            {
+                return 'test';
+            }
 
             public function sendBatched(Alert $alert, array $events, array $config): void
             {

@@ -5,20 +5,8 @@
         $isEdit = $service->exists;
         $action = $isEdit ? route('horizon.services.update', $service) : route('horizon.services.store');
         $headersForForm = [];
-        $oldHeaders = old('headers');
 
-        if (\is_array($oldHeaders)) {
-            foreach ($oldHeaders as $headerRow) {
-                if (! \is_array($headerRow)) {
-                    continue;
-                }
-
-                $headersForForm[] = [
-                    'name' => (string) ($headerRow['name'] ?? ''),
-                    'value' => (string) ($headerRow['value'] ?? ''),
-                ];
-            }
-        } elseif ($isEdit) {
+        if ($isEdit) {
             foreach ($service->headers as $headerRow) {
                 $headersForForm[] = [
                     'name' => $headerRow->name,
@@ -32,15 +20,8 @@
         }
 
         $tagsForForm = [];
-        $oldTags = old('tags');
 
-        if (\is_array($oldTags)) {
-            foreach ($oldTags as $tag) {
-                if (\is_string($tag) && \trim($tag) !== '') {
-                    $tagsForForm[] = \trim($tag);
-                }
-            }
-        } elseif ($isEdit) {
+        if ($isEdit) {
             $tagsForForm = $service->tags ?? [];
         }
     @endphp
@@ -63,12 +44,12 @@
                 <div class="space-y-5 px-5 py-5 sm:px-6">
                     <div class="space-y-2">
                         <x-input-label>Name</x-input-label>
-                        <x-text-input type="text" name="name" value="{{ old('name', $service->name) }}" class="w-full" />
+                        <x-text-input type="text" name="name" value="{{ $service->name }}" class="w-full" />
                         @error('name') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
                     <div class="space-y-2 rounded-xl border border-border/70 bg-muted/20 px-4 py-4">
                         <x-input-label>Base URL</x-input-label>
-                        <x-text-input type="url" name="base_url" value="{{ old('base_url', $service->exists ? $service->getBaseUrl() : '') }}" class="w-full font-mono text-sm" />
+                        <x-text-input type="url" name="base_url" value="{{ $service->exists ? $service->getBaseUrl() : '' }}" class="w-full font-mono text-sm" />
                         @error('base_url') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                         <p class="text-xs text-muted-foreground">
                             Internal URL used to obtain events from the service.
@@ -76,7 +57,7 @@
                     </div>
                     <div class="space-y-2 rounded-xl border border-border/70 bg-muted/20 px-4 py-4">
                         <x-input-label>Public URL (optional)</x-input-label>
-                        <x-text-input type="url" name="public_url" value="{{ old('public_url', $service->exists ? $service->public_url : '') }}" class="w-full font-mono text-sm" />
+                        <x-text-input type="url" name="public_url" value="{{ $service->exists ? $service->public_url : '' }}" class="w-full font-mono text-sm" />
                         @error('public_url') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                         <p class="text-xs text-muted-foreground">
                             URL reachable from your browser.
