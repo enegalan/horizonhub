@@ -6,7 +6,6 @@ use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 use App\Models\Service;
-use App\Services\Alerts\AlertChartDataService;
 use App\Services\Alerts\AlertEvaluationBatchService;
 use App\Services\Alerts\AlertUpsertService;
 use App\Services\Alerts\Engine\AlertEngine;
@@ -43,10 +42,6 @@ class AlertControllerTest extends TestCase
             'trigger_count' => 1,
             'sent_at' => now(),
         ]);
-
-        $chart = $this->createMock(AlertChartDataService::class);
-        $chart->method('buildChart')->willReturn(['xAxis' => [], 'sent' => [], 'failed' => []]);
-        $this->app->instance(AlertChartDataService::class, $chart);
 
         $engine = $this->createMock(AlertEngine::class);
         $engine->method('evaluateAlert')->willReturn([

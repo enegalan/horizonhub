@@ -8,7 +8,6 @@ use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 use App\Models\Service;
-use App\Services\Alerts\AlertChartDataService;
 use App\Services\Alerts\Rules\Strategies\FailureCount;
 use App\Services\Horizon\HorizonClientService;
 use App\Services\Notifiers\EmailNotifierService;
@@ -23,6 +22,11 @@ class TurboStreamSseTest extends TestCase
 
     public function test_build_alert_show_streams_returns_chart_targets(): void
     {
+        $service = Service::create([
+            'name' => 'chart-svc',
+            'base_url' => 'https://chart.test',
+            'status' => 'online',
+        ]);
         $alert = Alert::create([
             'name' => 'stream-alert-detail',
             'rule_type' => FailureCount::type(),
@@ -30,14 +34,20 @@ class TurboStreamSseTest extends TestCase
             'enabled' => true,
         ]);
 
-        $this->mock(AlertChartDataService::class, function ($mock): void {
-            $mock->shouldReceive('buildChart')
-                ->andReturn([
-                    'xAxis' => [],
-                    'sent' => [],
-                    'failed' => [],
-                ]);
-        });
+        AlertLog::create([
+            'alert_id' => $alert->id,
+            'service_id' => $service->id,
+            'trigger_count' => 1,
+            'status' => 'sent',
+            'sent_at' => now()->subHours(2),
+        ]);
+        AlertLog::create([
+            'alert_id' => $alert->id,
+            'service_id' => $service->id,
+            'trigger_count' => 1,
+            'status' => 'failed',
+            'sent_at' => now()->subHours(2),
+        ]);
 
         $controller = $this->app->make(HorizonStreamsController::class);
 
@@ -92,6 +102,47 @@ class TurboStreamSseTest extends TestCase
         $this->assertMatchesRegularExpression('/Total.*?<span>2<\/span>/s', $result);
         $this->assertMatchesRegularExpression('/Enabled.*?<span>1<\/span>/s', $result);
         $this->assertMatchesRegularExpression('/Disabled.*?<span>1<\/span>/s', $result);
+    }
+
+    public function test_build_chart_buckets_sent_and_failed_counts_for_24h_window(): void
+    {
+        $service = Service::create([
+            'name' => 'svc',
+            'base_url' => 'https://x.test',
+            'status' => 'online',
+        ]);
+        $alert = Alert::create([
+            'name' => 'chart',
+            'rule_type' => FailureCount::type(),
+            'threshold' => ['count' => 1, 'minutes' => 5],
+            'enabled' => true,
+        ]);
+
+        AlertLog::create([
+            'alert_id' => $alert->id,
+            'service_id' => $service->id,
+            'trigger_count' => 1,
+            'status' => 'sent',
+            'sent_at' => now()->subHours(2),
+        ]);
+        AlertLog::create([
+            'alert_id' => $alert->id,
+            'service_id' => $service->id,
+            'trigger_count' => 1,
+            'status' => 'failed',
+            'sent_at' => now()->subHours(2),
+        ]);
+
+        $controller = $this->app->make(HorizonStreamsController::class);
+        $reflection = new \ReflectionMethod($controller, 'private__buildChart');
+        $reflection->setAccessible(true);
+
+        $chart = $reflection->invoke($controller, $alert, 1);
+
+        $this->assertArrayHasKey('xAxis', $chart);
+        $this->assertCount(24, $chart['xAxis']);
+        $this->assertContains(1, $chart['sent']);
+        $this->assertContains(1, $chart['failed']);
     }
 
     public function test_build_dashboard_streams_returns_expected_targets(): void

@@ -13,7 +13,6 @@ use App\Http\Controllers\Stream\Concerns\BuildsServiceStreams;
 use App\Http\Controllers\StreamController;
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Alerts\AlertChartDataService;
 use App\Services\Dashboard\DashboardDataService;
 use App\Services\Horizon\HorizonClientService;
 use App\Services\Jobs\JobDetailService;
@@ -36,11 +35,6 @@ class HorizonStreamsController extends StreamController
     use BuildsProviderStreams;
     use BuildsQueueStreams;
     use BuildsServiceStreams;
-
-    /**
-     * The alert chart data service.
-     */
-    private AlertChartDataService $alertChartData;
 
     /**
      * The dashboard data service.
@@ -98,10 +92,9 @@ class HorizonStreamsController extends StreamController
      * @param JobServiceResolver $jobServiceResolver The job service resolver.
      * @param ServiceDetailService $serviceDetail The service detail service.
      * @param ServiceStatsAttachmentService $serviceStats The service stats attachment service.
-     * @param AlertChartDataService $alertChartData The alert chart data service.
      * @param ServiceFilterService $serviceFilter The service filter service.
      */
-    public function __construct(DashboardDataService $dashboardData, MetricsDataService $metrics, HorizonClientService $horizonApi, JobListService $jobList, JobDetailService $jobDetail, JobServiceResolver $jobServiceResolver, ServiceDetailService $serviceDetail, ServiceStatsAttachmentService $serviceStats, AlertChartDataService $alertChartData, ServiceFilterService $serviceFilter)
+    public function __construct(DashboardDataService $dashboardData, MetricsDataService $metrics, HorizonClientService $horizonApi, JobListService $jobList, JobDetailService $jobDetail, JobServiceResolver $jobServiceResolver, ServiceDetailService $serviceDetail, ServiceStatsAttachmentService $serviceStats, ServiceFilterService $serviceFilter)
     {
         $this->dashboardData = $dashboardData;
         $this->metrics = $metrics;
@@ -111,7 +104,6 @@ class HorizonStreamsController extends StreamController
         $this->jobServiceResolver = $jobServiceResolver;
         $this->serviceDetail = $serviceDetail;
         $this->serviceStats = $serviceStats;
-        $this->alertChartData = $alertChartData;
         $this->serviceFilter = $serviceFilter;
     }
 
