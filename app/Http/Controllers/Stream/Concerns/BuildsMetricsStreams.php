@@ -4,6 +4,13 @@ namespace App\Http\Controllers\Stream\Concerns;
 
 trait BuildsMetricsStreams
 {
+    /**
+     * Build the metrics streams.
+     *
+     * @param string $query The query.
+     *
+     * @return string
+     */
     private function buildMetrics(string $query): string
     {
         $d = $this->metrics->buildMetricsDashboardData($this->serviceFilter->resolveFromQuery($query));

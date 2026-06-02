@@ -4,6 +4,13 @@ namespace App\Http\Controllers\Stream\Concerns;
 
 trait BuildsQueueStreams
 {
+    /**
+     * Build the queues streams.
+     *
+     * @param string $query The query.
+     *
+     * @return string
+     */
     private function buildQueues(string $query): string
     {
         $serviceFilterIds = $this->serviceFilter->resolveFromQuery($query);

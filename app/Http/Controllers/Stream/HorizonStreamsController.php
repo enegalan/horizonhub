@@ -13,9 +13,7 @@ use App\Http\Controllers\Stream\Concerns\BuildsServiceStreams;
 use App\Http\Controllers\StreamController;
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Dashboard\DashboardDataService;
 use App\Services\Horizon\HorizonClientService;
-use App\Services\Jobs\JobDetailService;
 use App\Services\Jobs\JobListService;
 use App\Services\Jobs\JobServiceResolver;
 use App\Services\Metrics\MetricsDataService;
@@ -37,19 +35,9 @@ class HorizonStreamsController extends StreamController
     use BuildsServiceStreams;
 
     /**
-     * The dashboard data service.
-     */
-    private DashboardDataService $dashboardData;
-
-    /**
      * The horizon api proxy service.
      */
     private HorizonClientService $horizonApi;
-
-    /**
-     * The job detail service.
-     */
-    private JobDetailService $jobDetail;
 
     /**
      * The job list service.
@@ -84,23 +72,19 @@ class HorizonStreamsController extends StreamController
     /**
      * The constructor.
      *
-     * @param DashboardDataService $dashboardData The dashboard data service.
      * @param MetricsDataService $metrics The metrics data service.
      * @param HorizonClientService $horizonApi The horizon API client.
      * @param JobListService $jobList The job list service.
-     * @param JobDetailService $jobDetail The job detail service.
      * @param JobServiceResolver $jobServiceResolver The job service resolver.
      * @param ServiceDetailService $serviceDetail The service detail service.
      * @param ServiceStatsAttachmentService $serviceStats The service stats attachment service.
      * @param ServiceFilterService $serviceFilter The service filter service.
      */
-    public function __construct(DashboardDataService $dashboardData, MetricsDataService $metrics, HorizonClientService $horizonApi, JobListService $jobList, JobDetailService $jobDetail, JobServiceResolver $jobServiceResolver, ServiceDetailService $serviceDetail, ServiceStatsAttachmentService $serviceStats, ServiceFilterService $serviceFilter)
+    public function __construct(MetricsDataService $metrics, HorizonClientService $horizonApi, JobListService $jobList, JobServiceResolver $jobServiceResolver, ServiceDetailService $serviceDetail, ServiceStatsAttachmentService $serviceStats, ServiceFilterService $serviceFilter)
     {
-        $this->dashboardData = $dashboardData;
         $this->metrics = $metrics;
         $this->horizonApi = $horizonApi;
         $this->jobList = $jobList;
-        $this->jobDetail = $jobDetail;
         $this->jobServiceResolver = $jobServiceResolver;
         $this->serviceDetail = $serviceDetail;
         $this->serviceStats = $serviceStats;

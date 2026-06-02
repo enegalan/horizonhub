@@ -2,14 +2,14 @@
 
 namespace Tests\Unit;
 
+use App\Http\Controllers\Stream\HorizonStreamsController;
 use App\Jobs\EvaluateAlertJob;
 use App\Models\Service;
-use App\Services\Jobs\JobDetailService;
 use Carbon\Carbon;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-class JobDetailServiceTest extends TestCase
+class JobShowViewDataTest extends TestCase
 {
     #[Test]
     public function it_computes_runtime_from_reserved_to_failed_when_runtime_is_missing(): void
@@ -30,8 +30,7 @@ class JobDetailServiceTest extends TestCase
             'failed_at' => '1711111111.140',
         ];
 
-        $serviceUnderTest = new JobDetailService;
-        $result = $serviceUnderTest->buildShowViewData($service, $jobData);
+        $result = $this->private__invokeBuildJobShowViewData($service, $jobData);
 
         $this->assertSame('0.04 s', $result->runtime);
     }
@@ -64,8 +63,7 @@ class JobDetailServiceTest extends TestCase
             ],
         ];
 
-        $serviceUnderTest = new JobDetailService;
-        $result = $serviceUnderTest->buildShowViewData($service, $jobData);
+        $result = $this->private__invokeBuildJobShowViewData($service, $jobData);
 
         $this->assertNull($result->available_at);
     }
@@ -91,8 +89,7 @@ class JobDetailServiceTest extends TestCase
             'failed_at' => '2026-03-24T10:10:00+00:00',
         ];
 
-        $serviceUnderTest = new JobDetailService;
-        $result = $serviceUnderTest->buildShowViewData($service, $jobData);
+        $result = $this->private__invokeBuildJobShowViewData($service, $jobData);
 
         $this->assertNull($result->runtime);
     }
@@ -125,8 +122,7 @@ class JobDetailServiceTest extends TestCase
             ],
         ];
 
-        $serviceUnderTest = new JobDetailService;
-        $result = $serviceUnderTest->buildShowViewData($service, $jobData);
+        $result = $this->private__invokeBuildJobShowViewData($service, $jobData);
 
         $this->assertInstanceOf(Carbon::class, $result->available_at);
         $this->assertSame($delayAt->toIso8601String(), $result->available_at->toIso8601String());
@@ -170,8 +166,7 @@ class JobDetailServiceTest extends TestCase
             ],
         ];
 
-        $serviceUnderTest = new JobDetailService;
-        $result = $serviceUnderTest->buildShowViewData($service, $jobData);
+        $result = $this->private__invokeBuildJobShowViewData($service, $jobData);
 
         $this->assertSame(2, $result->retries);
         $this->assertSame([
@@ -223,8 +218,7 @@ class JobDetailServiceTest extends TestCase
             ],
         ];
 
-        $serviceUnderTest = new JobDetailService;
-        $result = $serviceUnderTest->buildShowViewData($service, $jobData);
+        $result = $this->private__invokeBuildJobShowViewData($service, $jobData);
 
         $this->assertSame([
             'sender' => [
@@ -257,8 +251,7 @@ class JobDetailServiceTest extends TestCase
             ],
         ];
 
-        $serviceUnderTest = new JobDetailService;
-        $result = $serviceUnderTest->buildShowViewData($service, $jobData);
+        $result = $this->private__invokeBuildJobShowViewData($service, $jobData);
 
         $this->assertSame('processed', $result->status);
         $this->assertInstanceOf(Carbon::class, $result->queued_at);
@@ -291,8 +284,7 @@ class JobDetailServiceTest extends TestCase
             ],
         ];
 
-        $serviceUnderTest = new JobDetailService;
-        $result = $serviceUnderTest->buildShowViewData($service, $jobData);
+        $result = $this->private__invokeBuildJobShowViewData($service, $jobData);
 
         $this->assertNull($result->available_at);
     }
@@ -326,10 +318,21 @@ class JobDetailServiceTest extends TestCase
             ],
         ];
 
-        $serviceUnderTest = new JobDetailService;
-        $result = $serviceUnderTest->buildShowViewData($service, $jobData);
+        $result = $this->private__invokeBuildJobShowViewData($service, $jobData);
 
         $this->assertInstanceOf(Carbon::class, $result->available_at);
         $this->assertSame($delayAt->toIso8601String(), $result->available_at->toIso8601String());
+    }
+
+    /**
+     * @param array<string, mixed> $jobData
+     */
+    private function private__invokeBuildJobShowViewData(Service $service, array $jobData): object
+    {
+        $controller = $this->app->make(HorizonStreamsController::class);
+        $reflection = new \ReflectionMethod($controller, 'private__buildJobShowViewData');
+        $reflection->setAccessible(true);
+
+        return $reflection->invoke($controller, $service, $jobData);
     }
 }

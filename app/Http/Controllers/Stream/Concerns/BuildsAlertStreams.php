@@ -9,6 +9,9 @@ use Carbon\Carbon;
 
 trait BuildsAlertStreams
 {
+    /**
+     * Build the alerts index streams.
+     */
     private function buildAlerts(): string
     {
         $alerts = Alert::query()
@@ -50,6 +53,11 @@ trait BuildsAlertStreams
         ]);
     }
 
+    /**
+     * Build the alert show streams.
+     *
+     * @param Alert $alert The alert.
+     */
     private function buildAlertShow(Alert $alert): string
     {
         $chartData = [

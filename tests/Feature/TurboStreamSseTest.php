@@ -10,9 +10,11 @@ use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Strategies\FailureCount;
 use App\Services\Horizon\HorizonClientService;
+use App\Services\Metrics\MetricsDataService;
 use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Notifiers\SlackNotifierService;
 use App\Services\Services\ServiceFilterService;
+use App\Services\Services\ServiceStatsAttachmentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -143,6 +145,83 @@ class TurboStreamSseTest extends TestCase
         $this->assertCount(24, $chart['xAxis']);
         $this->assertContains(1, $chart['sent']);
         $this->assertContains(1, $chart['failed']);
+    }
+
+    public function test_build_dashboard_data_merges_metrics_with_service_health_and_recent_alert_logs(): void
+    {
+        $online = Service::create(['name' => 'online-svc', 'base_url' => 'https://online.test', 'status' => 'online']);
+        $offline = Service::create(['name' => 'offline-svc', 'base_url' => 'https://offline.test', 'status' => 'offline']);
+        $standBy = Service::create(['name' => 'standby-svc', 'base_url' => 'https://standby.test', 'status' => 'stand_by']);
+
+        $alert = Alert::create([
+            'name' => 'dash-alert',
+            'rule_type' => FailureCount::type(),
+            'threshold' => ['count' => 1, 'minutes' => 5],
+            'enabled' => true,
+        ]);
+
+        foreach ([$online, $offline, $standBy] as $index => $service) {
+            AlertLog::create([
+                'alert_id' => $alert->id,
+                'service_id' => $service->id,
+                'status' => 'sent',
+                'trigger_count' => 1,
+                'sent_at' => now()->subMinutes($index),
+            ]);
+        }
+
+        $this->mock(MetricsDataService::class, function ($mock): void {
+            $mock->shouldReceive('buildMetricsDashboardData')
+                ->once()
+                ->with([])
+                ->andReturn([
+                    'jobsPastMinute' => 4,
+                    'workloadRows' => [['service' => 'online-svc', 'queue' => 'default', 'jobs' => 1]],
+                ]);
+        });
+
+        $this->mock(ServiceStatsAttachmentService::class, function ($mock): void {
+            $mock->shouldReceive('attachHorizonStats')->once();
+        });
+
+        $controller = $this->app->make(HorizonStreamsController::class);
+        $reflection = new \ReflectionMethod($controller, 'private__buildDashboardData');
+        $reflection->setAccessible(true);
+
+        $result = $reflection->invoke($controller);
+
+        $this->assertSame(4, $result['jobsPastMinute']);
+        $this->assertSame(1, $result['servicesOnlineCount']);
+        $this->assertSame(3, $result['servicesTotal']);
+        $this->assertSame('bg-orange-500', $result['servicesHealthDotClass']);
+        $this->assertCount(3, $result['recentAlertLogs']);
+        $this->assertSame($online->id, $result['recentAlertLogs'][0]->service_id);
+    }
+
+    public function test_build_dashboard_data_uses_neutral_health_dot_when_no_services_exist(): void
+    {
+        $this->mock(MetricsDataService::class, function ($mock): void {
+            $mock->shouldReceive('buildMetricsDashboardData')
+                ->once()
+                ->with([])
+                ->andReturn([
+                    'workloadRows' => [],
+                ]);
+        });
+
+        $this->mock(ServiceStatsAttachmentService::class, function ($mock): void {
+            $mock->shouldReceive('attachHorizonStats')->once();
+        });
+
+        $controller = $this->app->make(HorizonStreamsController::class);
+        $reflection = new \ReflectionMethod($controller, 'private__buildDashboardData');
+        $reflection->setAccessible(true);
+
+        $result = $reflection->invoke($controller);
+
+        $this->assertSame('bg-slate-400', $result['servicesHealthDotClass']);
+        $this->assertSame(0, $result['servicesTotal']);
+        $this->assertSame(0, $result['servicesOnlineCount']);
     }
 
     public function test_build_dashboard_streams_returns_expected_targets(): void
