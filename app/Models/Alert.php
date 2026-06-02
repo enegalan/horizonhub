@@ -175,6 +175,18 @@ class Alert extends Model
     }
 
     /**
+     * Scope to disabled alerts only.
+     *
+     * @param Builder<Alert> $query
+     *
+     * @return Builder<Alert>
+     */
+    public function scopeDisabled($query)
+    {
+        return $query->where('enabled', false);
+    }
+
+    /**
      * Scope to enabled alerts only.
      *
      * @param Builder<Alert> $query

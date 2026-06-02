@@ -27,7 +27,7 @@ class AlertUpsertService
                 $query->enabled();
 
                 if ($selectedIds !== []) {
-                    $query->orWhere(fn (Builder $q) => $q->where('enabled', false)->whereIn('id', $selectedIds));
+                    $query->orWhere(fn (Builder $q) => $q->disabled()->whereIn('id', $selectedIds));
                 }
             })
             ->orderBy('name')

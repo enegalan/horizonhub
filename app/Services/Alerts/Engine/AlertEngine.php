@@ -103,8 +103,6 @@ class AlertEngine
         $lastSentAtBefore = null;
 
         try {
-            $alert->loadMissing('notificationProviders');
-
             $lastSentAtBefore = $this->batchStore->getLastSentAt($alert);
             $pendingFlushed = $this->private__flushPendingIfDue($alert);
         } catch (\Throwable $e) {
@@ -179,9 +177,7 @@ class AlertEngine
         $this->flushPendingAlerts();
 
         /** @var Collection<int, Alert> $alerts */
-        $alerts = Alert::where('enabled', true)
-            ->with('notificationProviders')
-            ->get();
+        $alerts = Alert::enabled()->get();
 
         foreach ($alerts as $alert) {
             try {
@@ -207,29 +203,12 @@ class AlertEngine
     }
 
     /**
-     * Evaluate the alert rule and return whether it triggered plus the list of job UUIDs that triggered it.
-     *
-     * @param Alert $alert The alert.
-     * @param int $serviceId The service ID.
-     *
-     * @return array{triggered: bool, job_uuids: array<int, string>}
-     */
-    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
-    {
-        $strategy = $this->ruleStrategyRegistry->resolve((string) $alert->rule_type);
-
-        return $strategy->evaluateWithTriggeringJobs($alert, $serviceId);
-    }
-
-    /**
      * Flush pending alerts.
      */
     public function flushPendingAlerts(): void
     {
         /** @var Collection<int, Alert> $alerts */
-        $alerts = Alert::where('enabled', true)
-            ->with('notificationProviders')
-            ->get();
+        $alerts = Alert::enabled()->get();
 
         foreach ($alerts as $alert) {
             try {
@@ -282,8 +261,14 @@ class AlertEngine
      */
     private function private__evaluateFirstTriggeredService(Alert $alert, array $serviceIds): ?array
     {
+        $cachedStrategies = [];
+
         foreach ($serviceIds as $serviceId) {
-            $result = $this->evaluateWithTriggeringJobs($alert, (int) $serviceId);
+            if (! isset($cachedStrategies[$alert->rule_type])) {
+                $cachedStrategies[$alert->rule_type] = $this->ruleStrategyRegistry->resolve((string) $alert->rule_type);
+            }
+
+            $result = $cachedStrategies[$alert->rule_type]->evaluateWithTriggeringJobs($alert, (int) $serviceId);
 
             if ($result['triggered']) {
                 return [
@@ -336,7 +321,7 @@ class AlertEngine
             $events[] = [
                 'service_id' => $serviceId,
                 'job_uuid' => $jobUuid,
-                'triggered_at' => \now()->toIso8601String(),
+                'triggered_at' => $log->sent_at->toIso8601String(),
             ];
         }
         $expectedCount = (int) ($log->trigger_count ?? \count($events));
@@ -346,7 +331,7 @@ class AlertEngine
             $events[] = [
                 'service_id' => $serviceId,
                 'job_uuid' => null,
-                'triggered_at' => \now()->toIso8601String(),
+                'triggered_at' => $log->sent_at->toIso8601String(),
             ];
         }
 

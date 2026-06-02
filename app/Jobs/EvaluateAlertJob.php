@@ -52,7 +52,6 @@ class EvaluateAlertJob implements ShouldQueue
 
         try {
             $alert = Alert::query()
-                ->with('notificationProviders')
                 ->find($this->alertId);
 
             if (! $alert) {
