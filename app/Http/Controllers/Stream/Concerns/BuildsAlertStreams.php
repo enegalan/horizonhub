@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Stream\Concerns;
 
 use App\Models\Alert;
+use App\Models\Service;
 
 trait BuildsAlertStreams
 {
@@ -30,7 +31,38 @@ trait BuildsAlertStreams
 
     private function private__buildAlertsStreams(): string
     {
-        $payload = $this->alertIndexStreamData->build();
+        $alerts = Alert::query()
+            ->withCount('alertLogs')
+            ->withMax('alertLogs', 'sent_at')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $serviceNamesById = Service::query()->pluck('name', 'id')->all();
+        $labelsByAlertId = [];
+
+        foreach ($alerts as $alert) {
+            $labels = [];
+
+            foreach ($alert->service_ids as $serviceId) {
+                $name = $serviceNamesById[$serviceId] ?? null;
+
+                if (! empty($name)) {
+                    $labels[] = $name;
+                }
+            }
+
+            $labelsByAlertId[$alert->id] = $labels;
+        }
+
+        $payload = [
+            'alerts' => $alerts,
+            'alertStats' => [
+                'total' => $alerts->count(),
+                'enabled' => $alerts->where('enabled')->count(),
+                'disabled' => $alerts->where('enabled', false)->count(),
+            ],
+            'serviceLabelsByAlertId' => $labelsByAlertId,
+        ];
 
         return $this->buildStreams([
             ['update', 'turbo-horizon-alert-stats', \view('horizon.alerts.partials.index.stats', ['alertStats' => $payload['alertStats']])->render(), 'morph'],
