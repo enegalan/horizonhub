@@ -189,7 +189,7 @@ class Alert extends Model
     /**
      * The name attribute.
      *
-     * @return Attribute<string, null>
+     * @return Attribute<string, ?string>
      */
     protected function name(): Attribute
     {
