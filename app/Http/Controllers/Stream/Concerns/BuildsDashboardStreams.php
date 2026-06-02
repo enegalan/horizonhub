@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Stream\Concerns;
 
 trait BuildsDashboardStreams
 {
-    private function private__buildDashboardStreams(): string
+    private function buildDashboard(): string
     {
         $d = $this->dashboardData->build($this->horizonApi);
 

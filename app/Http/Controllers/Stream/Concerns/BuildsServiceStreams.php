@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 
 trait BuildsServiceStreams
 {
-    private function private__buildServiceShowStreams(Service $service, string $query): string
+    private function buildServiceShow(Service $service, string $query): string
     {
         $url = \route('horizon.services.show', ['service' => $service->id], true);
         $queryParams = [];
@@ -29,7 +29,7 @@ trait BuildsServiceStreams
             ['update', 'service-show-supervisor-groups', \view('horizon.services.partials.show.supervisor-groups', $d)->render(), 'morph'],
         ]);
 
-        $streams[] = $this->private__streamsForJobListSections(
+        $streams[] = $this->streamsForJobListSections(
             [
                 'processing' => $d['jobsProcessing'],
                 'processed' => $d['jobsProcessed'],
@@ -43,7 +43,7 @@ trait BuildsServiceStreams
         return \implode("\n", $streams);
     }
 
-    private function private__buildServicesStreams(string $query): string
+    private function buildServices(string $query): string
     {
         $serviceIds = $this->serviceFilter->resolveFromQuery($query);
         $servicesQuery = Service::query()->orderBy('name');

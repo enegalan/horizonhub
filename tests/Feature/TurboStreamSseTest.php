@@ -41,7 +41,7 @@ class TurboStreamSseTest extends TestCase
 
         $controller = $this->app->make(HorizonStreamsController::class);
 
-        $reflection = new \ReflectionMethod($controller, 'private__buildAlertShowStreams');
+        $reflection = new \ReflectionMethod($controller, 'buildAlertShow');
         $reflection->setAccessible(true);
 
         $result = $reflection->invoke($controller, $alert);
@@ -77,7 +77,7 @@ class TurboStreamSseTest extends TestCase
 
         $controller = $this->app->make(HorizonStreamsController::class);
 
-        $reflection = new \ReflectionMethod($controller, 'private__buildAlertsStreams');
+        $reflection = new \ReflectionMethod($controller, 'buildAlerts');
         $reflection->setAccessible(true);
 
         $result = $reflection->invoke($controller);
@@ -98,7 +98,7 @@ class TurboStreamSseTest extends TestCase
     {
         $controller = $this->app->make(HorizonStreamsController::class);
 
-        $reflection = new \ReflectionMethod($controller, 'private__buildDashboardStreams');
+        $reflection = new \ReflectionMethod($controller, 'buildDashboard');
         $reflection->setAccessible(true);
 
         $result = $reflection->invoke($controller);
@@ -138,7 +138,7 @@ class TurboStreamSseTest extends TestCase
 
         $controller = $this->app->make(HorizonStreamsController::class);
 
-        $reflection = new \ReflectionMethod($controller, 'private__buildJobShowStreams');
+        $reflection = new \ReflectionMethod($controller, 'buildJobShow');
         $reflection->setAccessible(true);
 
         $result = $reflection->invoke($controller, $jobUuid);
@@ -153,7 +153,7 @@ class TurboStreamSseTest extends TestCase
     public function test_build_job_show_streams_returns_null_for_missing_service_or_api_failure(): void
     {
         $controller = $this->app->make(HorizonStreamsController::class);
-        $reflection = new \ReflectionMethod($controller, 'private__buildJobShowStreams');
+        $reflection = new \ReflectionMethod($controller, 'buildJobShow');
         $reflection->setAccessible(true);
 
         $this->assertNull($reflection->invoke($controller, 'uuid-x'));
@@ -167,7 +167,7 @@ class TurboStreamSseTest extends TestCase
             $mock->shouldReceive('getJob')->andReturn(['success' => false]);
         });
         $controller = $this->app->make(HorizonStreamsController::class);
-        $reflection = new \ReflectionMethod($controller, 'private__buildJobShowStreams');
+        $reflection = new \ReflectionMethod($controller, 'buildJobShow');
         $reflection->setAccessible(true);
 
         $this->assertNull($reflection->invoke($controller, 'uuid-y'));
@@ -177,7 +177,7 @@ class TurboStreamSseTest extends TestCase
     {
         $controller = $this->app->make(HorizonStreamsController::class);
 
-        $reflection = new \ReflectionMethod($controller, 'private__buildJobsIndexStreams');
+        $reflection = new \ReflectionMethod($controller, 'buildJobsIndex');
         $reflection->setAccessible(true);
 
         $result = $reflection->invoke($controller, '');
@@ -193,7 +193,7 @@ class TurboStreamSseTest extends TestCase
     public function test_build_jobs_index_streams_with_query_preserves_section_updates(): void
     {
         $controller = $this->app->make(HorizonStreamsController::class);
-        $reflection = new \ReflectionMethod($controller, 'private__buildJobsIndexStreams');
+        $reflection = new \ReflectionMethod($controller, 'buildJobsIndex');
         $reflection->setAccessible(true);
 
         $result = $reflection->invoke($controller, 'search=abc');
@@ -207,7 +207,7 @@ class TurboStreamSseTest extends TestCase
     {
         $controller = $this->app->make(HorizonStreamsController::class);
 
-        $reflection = new \ReflectionMethod($controller, 'private__buildMetricsStreams');
+        $reflection = new \ReflectionMethod($controller, 'buildMetrics');
         $reflection->setAccessible(true);
 
         $result = $reflection->invoke($controller, '');
@@ -278,7 +278,7 @@ class TurboStreamSseTest extends TestCase
 
         $controller = $this->app->make(HorizonStreamsController::class);
 
-        $reflection = new \ReflectionMethod($controller, 'private__buildProvidersStreams');
+        $reflection = new \ReflectionMethod($controller, 'buildProviders');
         $reflection->setAccessible(true);
 
         $result = $reflection->invoke($controller);
@@ -300,7 +300,7 @@ class TurboStreamSseTest extends TestCase
 
         $controller = $this->app->make(HorizonStreamsController::class);
 
-        $reflection = new \ReflectionMethod($controller, 'private__buildProvidersStreams');
+        $reflection = new \ReflectionMethod($controller, 'buildProviders');
         $reflection->setAccessible(true);
 
         $result = $reflection->invoke($controller);
@@ -322,7 +322,7 @@ class TurboStreamSseTest extends TestCase
 
         $controller = $this->app->make(HorizonStreamsController::class);
 
-        $reflection = new \ReflectionMethod($controller, 'private__buildQueuesStreams');
+        $reflection = new \ReflectionMethod($controller, 'buildQueues');
         $reflection->setAccessible(true);
 
         $result = $reflection->invoke($controller, '');
@@ -342,7 +342,7 @@ class TurboStreamSseTest extends TestCase
         ]);
 
         $controller = $this->app->make(HorizonStreamsController::class);
-        $reflection = new \ReflectionMethod($controller, 'private__buildServiceShowStreams');
+        $reflection = new \ReflectionMethod($controller, 'buildServiceShow');
         $reflection->setAccessible(true);
         $result = $reflection->invoke($controller, $service, '');
 
@@ -362,7 +362,7 @@ class TurboStreamSseTest extends TestCase
 
         $controller = $this->app->make(HorizonStreamsController::class);
 
-        $reflection = new \ReflectionMethod($controller, 'private__buildServicesStreams');
+        $reflection = new \ReflectionMethod($controller, 'buildServices');
         $reflection->setAccessible(true);
 
         $result = $reflection->invoke($controller, '');

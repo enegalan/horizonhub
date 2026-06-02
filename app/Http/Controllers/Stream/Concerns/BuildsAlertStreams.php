@@ -7,7 +7,7 @@ use App\Models\Service;
 
 trait BuildsAlertStreams
 {
-    private function private__buildAlertShowStreams(Alert $alert): string
+    private function buildAlertShow(Alert $alert): string
     {
         $chartData = [
             'chart24h' => $this->alertChartData->buildChart($alert, 1),
@@ -29,7 +29,7 @@ trait BuildsAlertStreams
         ]);
     }
 
-    private function private__buildAlertsStreams(): string
+    private function buildAlerts(): string
     {
         $alerts = Alert::query()
             ->withCount('alertLogs')

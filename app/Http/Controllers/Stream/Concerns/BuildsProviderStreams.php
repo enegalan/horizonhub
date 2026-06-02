@@ -7,7 +7,7 @@ use App\Models\NotificationProvider;
 
 trait BuildsProviderStreams
 {
-    private function private__buildProvidersStreams(): string
+    private function buildProviders(): string
     {
         $providers = NotificationProvider::query()
             ->orderBy('type')

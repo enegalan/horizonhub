@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 
 trait BuildsJobStreams
 {
-    private function private__buildJobShowStreams(string $routeJobUuid): ?string
+    private function buildJobShow(string $routeJobUuid): ?string
     {
         $resolved = $this->jobServiceResolver->resolve($routeJobUuid);
 
@@ -43,7 +43,7 @@ trait BuildsJobStreams
         ]);
     }
 
-    private function private__buildJobsIndexStreams(string $query): string
+    private function buildJobsIndex(string $query): string
     {
         $url = \route('horizon.jobs.index', [], true);
 
@@ -54,7 +54,7 @@ trait BuildsJobStreams
 
         $index = $this->jobList->buildAggregatedJobsIndexFromRequest($pageRequest);
 
-        return $this->private__streamsForJobListSections(
+        return $this->streamsForJobListSections(
             [
                 'processing' => $index['processing'],
                 'processed' => $index['processed'],
