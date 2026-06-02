@@ -14,7 +14,7 @@ class PrefixAppLog
     {
         foreach ($logger->getHandlers() as $handler) {
             $handler->pushProcessor(function (LogRecord $record): LogRecord {
-                $prefix = "[" . config('app.name') . "] ";
+                $prefix = '[' . config('app.name') . '] ';
 
                 if (str_starts_with($record->message, $prefix)) {
                     return $record;

@@ -5,7 +5,6 @@ namespace App\Services\Alerts;
 use App\Models\Alert;
 use App\Models\NotificationProvider;
 use App\Models\Service;
-use App\Services\Alerts\Rules\Strategies\FailureCount;
 use App\Support\Alerts\AlertRuleCatalog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
