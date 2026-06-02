@@ -8,18 +8,113 @@ use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\Engine\AlertBatchStore;
 use App\Services\Alerts\Engine\AlertEngine;
-use App\Services\Alerts\Engine\AlertNotificationDispatcher;
 use App\Services\Alerts\Rules\AlertRuleStrategyRegistry;
 use App\Services\Alerts\Rules\Strategies\FailureCount;
 use App\Services\Alerts\Rules\Strategies\HorizonOffline;
 use App\Services\Horizon\HorizonClientService;
+use App\Services\Notifiers\DiscordNotifierService;
 use App\Services\Notifiers\EmailNotifierService;
+use App\Services\Notifiers\SlackNotifierService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class AlertEngineTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_dispatch_marks_log_as_failed_when_notifier_throws(): void
+    {
+        $alert = Alert::query()->create([
+            'name' => 'notif2',
+            'rule_type' => FailureCount::type(),
+            'enabled' => true,
+        ]);
+        $service = Service::query()->create([
+            'name' => 'svc',
+            'base_url' => 'https://x.test',
+            'status' => 'online',
+        ]);
+        $log = AlertLog::query()->create([
+            'alert_id' => $alert->id,
+            'service_id' => $service->id,
+            'status' => 'sent',
+            'trigger_count' => 1,
+            'sent_at' => now(),
+        ]);
+        $provider = NotificationProvider::query()->create([
+            'name' => 's',
+            'type' => SlackNotifierService::type(),
+            'config' => ['webhook_url' => 'https://hooks.slack.test/abc'],
+        ]);
+        $alert->notificationProviders()->sync([$provider->id]);
+        $alert->load('notificationProviders');
+
+        $discord = $this->createMock(DiscordNotifierService::class);
+        $email = $this->createMock(EmailNotifierService::class);
+        $slack = $this->createMock(SlackNotifierService::class);
+        $slack->method('sendBatched')->willThrowException(new \RuntimeException('boom'));
+
+        $engine = $this->private__engineWithNotifiers($discord, $email, $slack);
+        $engine->dispatch($alert, [['service_id' => 1, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]], $log);
+
+        $log->refresh();
+        $this->assertSame('failed', $log->status);
+        $this->assertSame('boom', $log->failure_message);
+    }
+
+    public function test_dispatch_routes_notifications_and_skips_empty_configs(): void
+    {
+        $alert = Alert::query()->create([
+            'name' => 'notif',
+            'rule_type' => FailureCount::type(),
+            'enabled' => true,
+        ]);
+        $service = Service::query()->create([
+            'name' => 'svc',
+            'base_url' => 'https://x.test',
+            'status' => 'online',
+        ]);
+        $log = AlertLog::query()->create([
+            'alert_id' => $alert->id,
+            'service_id' => $service->id,
+            'status' => 'sent',
+            'trigger_count' => 1,
+            'sent_at' => now(),
+        ]);
+
+        $slackProvider = NotificationProvider::query()->create([
+            'name' => 's',
+            'type' => SlackNotifierService::type(),
+            'config' => ['webhook_url' => 'https://hooks.slack.test/abc'],
+        ]);
+        $emailProvider = NotificationProvider::query()->create([
+            'name' => 'e',
+            'type' => EmailNotifierService::type(),
+            'config' => ['to' => ['a@example.com']],
+        ]);
+        $discordProvider = NotificationProvider::query()->create([
+            'name' => 'd',
+            'type' => DiscordNotifierService::type(),
+            'config' => ['webhook_url' => 'https://discord.com/api/webhooks/1/token'],
+        ]);
+        $emptyEmailProvider = NotificationProvider::query()->create([
+            'name' => 'e2',
+            'type' => EmailNotifierService::type(),
+            'config' => ['to' => []],
+        ]);
+        $alert->notificationProviders()->sync([$slackProvider->id, $emailProvider->id, $discordProvider->id, $emptyEmailProvider->id]);
+        $alert->load('notificationProviders');
+
+        $discord = $this->createMock(DiscordNotifierService::class);
+        $discord->expects($this->once())->method('sendBatched');
+        $email = $this->createMock(EmailNotifierService::class);
+        $email->expects($this->once())->method('sendBatched');
+        $slack = $this->createMock(SlackNotifierService::class);
+        $slack->expects($this->once())->method('sendBatched');
+
+        $engine = $this->private__engineWithNotifiers($discord, $email, $slack);
+        $engine->dispatch($alert, [['service_id' => 1, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]], $log);
+    }
 
     public function test_evaluate_alert_does_not_error_when_services_exist_but_alert_does_not_trigger(): void
     {
@@ -40,7 +135,6 @@ class AlertEngineTest extends TestCase
 
         $engine = new AlertEngine(
             new AlertBatchStore,
-            $this->createMock(AlertNotificationDispatcher::class),
             $this->private__resolveRegistry($api),
         );
 
@@ -64,7 +158,6 @@ class AlertEngineTest extends TestCase
 
         $engine = new AlertEngine(
             $batch,
-            $this->createMock(AlertNotificationDispatcher::class),
             $this->private__resolveRegistry($this->createMock(HorizonClientService::class)),
         );
         $result = $engine->evaluateAlert($alert);
@@ -83,9 +176,8 @@ class AlertEngineTest extends TestCase
         ]);
 
         $batch = new AlertBatchStore;
-        $dispatcher = $this->createMock(AlertNotificationDispatcher::class);
         $registry = $this->private__resolveRegistry($this->createMock(HorizonClientService::class));
-        $engine = new AlertEngine($batch, $dispatcher, $registry);
+        $engine = new AlertEngine($batch, $registry);
 
         $result = $engine->evaluateAlert($alert);
 
@@ -103,7 +195,6 @@ class AlertEngineTest extends TestCase
 
         $engine = new AlertEngine(
             new AlertBatchStore,
-            $this->createMock(AlertNotificationDispatcher::class),
             $this->private__resolveRegistry($this->createMock(HorizonClientService::class)),
         );
 
@@ -134,10 +225,12 @@ class AlertEngineTest extends TestCase
             'data' => ['jobs' => [['id' => 'uuid-z', 'failed_at' => now()->toIso8601String(), 'queue' => '', 'payload' => []]]],
         ]);
 
-        $dispatcher = $this->createMock(AlertNotificationDispatcher::class);
-        $dispatcher->expects($this->exactly(2))->method('dispatch');
+        $engine = $this->getMockBuilder(AlertEngine::class)
+            ->setConstructorArgs([new AlertBatchStore, $this->private__resolveRegistry($api)])
+            ->onlyMethods(['dispatch'])
+            ->getMock();
+        $engine->expects($this->exactly(2))->method('dispatch');
 
-        $engine = new AlertEngine(new AlertBatchStore, $dispatcher, $this->private__resolveRegistry($api));
         $engine->evaluateScheduled();
         $this->assertDatabaseCount('alert_logs', 1);
 
@@ -176,10 +269,12 @@ class AlertEngineTest extends TestCase
         $batch = new AlertBatchStore;
         $batch->setPending($alert, [['service_id' => $service->id, 'job_uuid' => 'u-ex', 'triggered_at' => now()->toIso8601String()]]);
 
-        $dispatcher = $this->createMock(AlertNotificationDispatcher::class);
-        $dispatcher->method('dispatch')->willThrowException(new \RuntimeException('dispatch fail'));
+        $engine = $this->getMockBuilder(AlertEngine::class)
+            ->setConstructorArgs([$batch, $this->private__resolveRegistry($this->createMock(HorizonClientService::class))])
+            ->onlyMethods(['dispatch'])
+            ->getMock();
+        $engine->method('dispatch')->willThrowException(new \RuntimeException('dispatch fail'));
 
-        $engine = new AlertEngine($batch, $dispatcher, $this->private__resolveRegistry($this->createMock(HorizonClientService::class)));
         $engine->flushPendingAlerts();
 
         $this->assertNotSame([], $batch->getPending($alert));
@@ -205,9 +300,11 @@ class AlertEngineTest extends TestCase
         $batch = new AlertBatchStore;
         $batch->setPending($alert, [['service_id' => $service->id, 'job_uuid' => 'u1', 'triggered_at' => now()->toIso8601String()]]);
 
-        $dispatcher = $this->createMock(AlertNotificationDispatcher::class);
-        $dispatcher->expects($this->once())->method('dispatch');
-        $engine = new AlertEngine($batch, $dispatcher, $this->private__resolveRegistry($this->createMock(HorizonClientService::class)));
+        $engine = $this->getMockBuilder(AlertEngine::class)
+            ->setConstructorArgs([$batch, $this->private__resolveRegistry($this->createMock(HorizonClientService::class))])
+            ->onlyMethods(['dispatch'])
+            ->getMock();
+        $engine->expects($this->once())->method('dispatch');
 
         $engine->flushPendingAlerts();
 
@@ -244,16 +341,33 @@ class AlertEngineTest extends TestCase
         ]);
 
         $batch = new AlertBatchStore;
-        $dispatcher = $this->createMock(AlertNotificationDispatcher::class);
-        $dispatcher->expects($this->once())->method('dispatch');
         $registry = $this->private__resolveRegistry($this->createMock(HorizonClientService::class));
-        $engine = new AlertEngine($batch, $dispatcher, $registry);
+        $engine = $this->getMockBuilder(AlertEngine::class)
+            ->setConstructorArgs([$batch, $registry])
+            ->onlyMethods(['dispatch'])
+            ->getMock();
+        $engine->expects($this->once())->method('dispatch');
 
         $engine->retryAlertLog($sent);
         $this->assertDatabaseCount('alert_logs', 2);
 
         $engine->retryAlertLog($failed);
         $this->assertDatabaseCount('alert_logs', 3);
+    }
+
+    private function private__engineWithNotifiers(
+        DiscordNotifierService $discord,
+        EmailNotifierService $email,
+        SlackNotifierService $slack,
+    ): AlertEngine {
+        $this->app->instance(DiscordNotifierService::class, $discord);
+        $this->app->instance(EmailNotifierService::class, $email);
+        $this->app->instance(SlackNotifierService::class, $slack);
+
+        return new AlertEngine(
+            new AlertBatchStore,
+            $this->private__resolveRegistry($this->createMock(HorizonClientService::class)),
+        );
     }
 
     private function private__resolveRegistry(HorizonClientService $api): AlertRuleStrategyRegistry

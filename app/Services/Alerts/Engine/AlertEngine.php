@@ -4,6 +4,7 @@ namespace App\Services\Alerts\Engine;
 
 use App\Models\Alert;
 use App\Models\AlertLog;
+use App\Models\NotificationProvider;
 use App\Services\Alerts\Rules\AlertRuleStrategyRegistry;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
@@ -16,11 +17,6 @@ class AlertEngine
     private AlertBatchStore $batchStore;
 
     /**
-     * The notification dispatcher.
-     */
-    private AlertNotificationDispatcher $notificationDispatcher;
-
-    /**
      * The rule strategy registry.
      */
     private AlertRuleStrategyRegistry $ruleStrategyRegistry;
@@ -29,14 +25,54 @@ class AlertEngine
      * The constructor.
      *
      * @param AlertBatchStore $batchStore The batch store.
-     * @param AlertNotificationDispatcher $notificationDispatcher The notification dispatcher.
      * @param AlertRuleStrategyRegistry $ruleStrategyRegistry The rule strategy registry.
      */
-    public function __construct(AlertBatchStore $batchStore, AlertNotificationDispatcher $notificationDispatcher, AlertRuleStrategyRegistry $ruleStrategyRegistry)
+    public function __construct(AlertBatchStore $batchStore, AlertRuleStrategyRegistry $ruleStrategyRegistry)
     {
         $this->batchStore = $batchStore;
-        $this->notificationDispatcher = $notificationDispatcher;
         $this->ruleStrategyRegistry = $ruleStrategyRegistry;
+    }
+
+    /**
+     * Send alert notifications for the given log using notification providers.
+     *
+     * @param Alert $alert The alert.
+     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events The events.
+     * @param AlertLog $log The alert log.
+     */
+    public function dispatch(Alert $alert, array $events, AlertLog $log): void
+    {
+        $providers = $alert->notificationProviders;
+
+        if ($providers->isEmpty()) {
+            return;
+        }
+
+        /** @var NotificationProvider $provider */
+        foreach ($providers as $provider) {
+            try {
+                $notifierClass = $provider->notifierClass();
+
+                if ($notifierClass === null) {
+                    continue;
+                }
+
+                $config = $provider->deliverableConfig();
+
+                if ($config === null) {
+                    if (! $provider->usesWebhook()) {
+                        Log::channel('app')->warning('email provider has no recipients, skip', ['alert_id' => $alert->id, 'provider_id' => $provider->id]);
+                    }
+
+                    continue;
+                }
+
+                app($notifierClass)->sendBatched($alert, $events, $config);
+            } catch (\Throwable $e) {
+                Log::channel('app')->error('alert notification failed', ['alert_id' => $alert->id, 'provider_id' => $provider->id, 'error' => $e->getMessage()]);
+                $log->update(['status' => 'failed', 'failure_message' => $e->getMessage()]);
+            }
+        }
     }
 
     /**
@@ -233,7 +269,7 @@ class AlertEngine
             'sent_at' => \now(),
         ]);
 
-        $this->notificationDispatcher->dispatch($alert, $events, $newLog);
+        $this->dispatch($alert, $events, $newLog);
     }
 
     /**
@@ -338,7 +374,7 @@ class AlertEngine
             'sent_at' => \now(),
         ]);
 
-        $this->notificationDispatcher->dispatch($alert, $events, $log);
+        $this->dispatch($alert, $events, $log);
     }
 
     /**
