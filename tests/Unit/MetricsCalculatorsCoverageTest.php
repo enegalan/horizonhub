@@ -19,7 +19,7 @@ class MetricsCalculatorsCoverageTest extends TestCase
     public function test_jobs_volume_last24h_returns_bucketed_series(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-04-30 12:00:00'));
-        $service = Service::query()->create(['name' => 'svc-volume', 'base_url' => 'https://v.test', 'status' => 'online']);
+        $service = Service::create(['name' => 'svc-volume', 'base_url' => 'https://v.test', 'status' => 'online']);
         $since = now()->subHours(24)->getTimestamp();
 
         $api = $this->createMock(HorizonClientService::class);
@@ -43,7 +43,7 @@ class MetricsCalculatorsCoverageTest extends TestCase
     public function test_runtime_calculator_returns_completed_and_failed_points(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-04-30 12:00:00'));
-        $service = Service::query()->create(['name' => 'svc-runtime-calc', 'base_url' => 'https://r.test', 'status' => 'online']);
+        $service = Service::create(['name' => 'svc-runtime-calc', 'base_url' => 'https://r.test', 'status' => 'online']);
         $since = now()->subHours(24)->getTimestamp();
 
         $api = $this->createMock(HorizonClientService::class);
@@ -76,8 +76,8 @@ class MetricsCalculatorsCoverageTest extends TestCase
 
     public function test_workload_calculator_builds_data_and_fallback_from_masters(): void
     {
-        $serviceA = Service::query()->create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
-        $serviceB = Service::query()->create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
+        $serviceA = Service::create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
+        $serviceB = Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
         $api = $this->createMock(HorizonClientService::class);
         $api->method('getWorkload')->willReturnCallback(function (Service $service): array {

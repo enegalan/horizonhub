@@ -15,8 +15,8 @@ class JobsThroughputMetricsCalculatorTest extends TestCase
 
     public function test_jobs_throughput_calculator_handles_service_and_global_paths(): void
     {
-        $s1 = Service::query()->create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
-        Service::query()->create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
+        $s1 = Service::create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
+        Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
         $api = $this->createMock(HorizonClientService::class);
         $api->method('getStats')->willReturnCallback(function (Service $service) use ($s1) {

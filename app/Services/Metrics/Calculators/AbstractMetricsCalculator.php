@@ -140,7 +140,7 @@ abstract class AbstractMetricsCalculator
      */
     protected function private__getServicesForMetrics(array $serviceScope = [], bool $orderByName = false, array $selectColumns = []): Collection
     {
-        $servicesQuery = Service::query()->enabled();
+        $servicesQuery = Service::enabled();
 
         if (! empty($serviceScope)) {
             $ids = \array_values(\array_unique(\array_filter(

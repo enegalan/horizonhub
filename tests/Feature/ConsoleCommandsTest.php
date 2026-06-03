@@ -25,13 +25,13 @@ class ConsoleCommandsTest extends TestCase
         config()->set('horizonhub.stale_service_minutes', 30);
         config()->set('horizonhub.dead_service_minutes', 60);
 
-        $standBy = Service::query()->create([
+        $standBy = Service::create([
             'name' => 'standby',
             'base_url' => 'https://standby.test',
             'status' => 'online',
             'last_seen_at' => now()->subMinutes(35),
         ]);
-        $offline = Service::query()->create([
+        $offline = Service::create([
             'name' => 'offline',
             'base_url' => 'https://offline.test',
             'status' => 'online',

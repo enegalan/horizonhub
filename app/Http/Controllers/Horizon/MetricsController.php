@@ -16,7 +16,7 @@ class MetricsController extends Controller
     public function index(Request $request, ServiceFilterService $serviceFilter): View
     {
         return \view('horizon.metrics.index', \array_merge([
-            'services' => Service::query()->enabled()->orderBy('name')->get(['id', 'name']),
+            'services' => Service::enabled()->orderBy('name')->get(['id', 'name']),
             'header' => 'Metrics',
             'defer' => true,
             'metricsChartData' => [],

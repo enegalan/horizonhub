@@ -51,8 +51,7 @@ class EvaluateAlertJob implements ShouldQueue
         $cache = new AlertEvaluationBatchCache($this->evaluationId);
 
         try {
-            $alert = Alert::query()
-                ->find($this->alertId);
+            $alert = Alert::find($this->alertId);
 
             if (! $alert) {
                 $cache->recordEvaluationError('Alert not found');

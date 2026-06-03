@@ -15,7 +15,7 @@ class ServiceStatsAttachmentServiceTest extends TestCase
 
     public function test_attach_horizon_stats_fetches_stats_for_enabled_services(): void
     {
-        $service = Service::query()->create(['name' => 'a', 'base_url' => 'https://a.test', 'status' => 'online']);
+        $service = Service::create(['name' => 'a', 'base_url' => 'https://a.test', 'status' => 'online']);
 
         $api = $this->createMock(HorizonClientService::class);
         $api->method('getStats')->willReturn([
@@ -32,7 +32,7 @@ class ServiceStatsAttachmentServiceTest extends TestCase
 
     public function test_attach_horizon_stats_skips_disabled_services(): void
     {
-        $disabled = Service::query()->create([
+        $disabled = Service::create([
             'name' => 'disabled-svc',
             'base_url' => 'https://disabled.test',
             'status' => 'online',
@@ -53,6 +53,6 @@ class ServiceStatsAttachmentServiceTest extends TestCase
     {
         $this->expectException(ValidationException::class);
 
-        Service::query()->create(['name' => 'no-url', 'base_url' => '', 'status' => 'online']);
+        Service::create(['name' => 'no-url', 'base_url' => '', 'status' => 'online']);
     }
 }

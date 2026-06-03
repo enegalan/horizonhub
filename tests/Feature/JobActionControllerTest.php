@@ -14,13 +14,13 @@ class JobActionControllerTest extends TestCase
 
     public function test_failed_list_filters_services_by_tag(): void
     {
-        $matching = Service::query()->create([
+        $matching = Service::create([
             'name' => 'svc-tagged',
             'base_url' => 'https://tagged.test',
             'status' => 'online',
             'tags' => ['production'],
         ]);
-        Service::query()->create([
+        Service::create([
             'name' => 'svc-other',
             'base_url' => 'https://other.test',
             'status' => 'online',
@@ -60,7 +60,7 @@ class JobActionControllerTest extends TestCase
 
     public function test_failed_list_selection_all_returns_compact_jobs_shape(): void
     {
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
+        $service = Service::create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
         $jobList = $this->createMock(JobListService::class);
         $jobList->method('buildFailedJobsRetryModalPage')->willReturn([
             'rows' => [
@@ -91,7 +91,7 @@ class JobActionControllerTest extends TestCase
 
     public function test_retry_and_retry_batch_handle_success_and_service_missing_cases(): void
     {
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
+        $service = Service::create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
         $api = $this->createMock(HorizonClientService::class);
         $api->method('retryJob')->willReturnCallback(function ($svc, $uuid) {
             if ($uuid === 'u-2') {
@@ -122,7 +122,7 @@ class JobActionControllerTest extends TestCase
 
     public function test_retry_batch_returns_failed_result_when_api_retry_fails(): void
     {
-        $service = Service::query()->create(['name' => 'svc-retry-fail', 'base_url' => 'https://retry-fail.test', 'status' => 'online']);
+        $service = Service::create(['name' => 'svc-retry-fail', 'base_url' => 'https://retry-fail.test', 'status' => 'online']);
         $api = $this->createMock(HorizonClientService::class);
         $api->method('retryJob')->willReturn(['success' => false, 'message' => 'api fail']);
         $this->app->instance(HorizonClientService::class, $api);
@@ -147,7 +147,7 @@ class JobActionControllerTest extends TestCase
 
     public function test_retry_returns_api_error_status_and_message_when_retry_fails(): void
     {
-        $service = Service::query()->create(['name' => 'svc2', 'base_url' => 'https://x2.test', 'status' => 'online']);
+        $service = Service::create(['name' => 'svc2', 'base_url' => 'https://x2.test', 'status' => 'online']);
         $api = $this->createMock(HorizonClientService::class);
         $api->method('retryJob')->willReturn([
             'success' => false,

@@ -42,9 +42,7 @@ final class JobServiceResolver
         $cachedServiceId = (int) Cache::get($cacheKey, 0);
 
         if ($cachedServiceId > 0) {
-            $service = Service::query()
-                ->enabled()
-                ->find($cachedServiceId);
+            $service = Service::enabled()->find($cachedServiceId);
 
             if ($service !== null) {
                 $resolved = $this->private__fetchFromService($service, $jobUuid);
@@ -58,8 +56,7 @@ final class JobServiceResolver
         }
 
         /** @var Collection<int, Service> $services */
-        $services = Service::query()
-            ->enabled()
+        $services = Service::enabled()
             ->orderBy('name')
             ->get();
 

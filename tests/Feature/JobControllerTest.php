@@ -12,7 +12,7 @@ class JobControllerTest extends TestCase
 
     public function test_index_renders_with_aggregated_data_and_filters(): void
     {
-        $service = Service::query()->create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
+        $service = Service::create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
 
         $response = $this->get(route('horizon.jobs.index', ['search' => 'job', 'service_id' => [$service->id]]));
         $response->assertOk();

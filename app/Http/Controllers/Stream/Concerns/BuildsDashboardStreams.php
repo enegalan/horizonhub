@@ -14,7 +14,7 @@ trait BuildsDashboardStreams
     {
         $metrics = $this->metrics->buildMetricsDashboardData([]);
 
-        $services = Service::query()->orderBy('name')->get();
+        $services = Service::orderBy('name')->get();
         $this->serviceStats->attachHorizonStats($services, $this->horizonApi);
 
         $onlineCount = 0;
@@ -41,8 +41,7 @@ trait BuildsDashboardStreams
             ($anyOffline ? 'bg-orange-500' :
                 ($anyStandBy ? 'bg-amber-500' : 'bg-emerald-500'));
 
-        $recentAlertLogs = AlertLog::query()
-            ->with(['alert', 'service'])
+        $recentAlertLogs = AlertLog::with(['alert', 'service'])
             ->orderByDesc('sent_at')
             ->limit(5) // TODO: make this configurable
             ->get();

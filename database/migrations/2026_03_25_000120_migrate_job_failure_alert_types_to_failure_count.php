@@ -11,8 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Alert::query()
-            ->whereIn('rule_type', ['job_specific_failure', 'job_type_failure'])
+        Alert::whereIn('rule_type', ['job_specific_failure', 'job_type_failure'])
             ->orderBy('id')
             ->chunkById(100, function ($alerts): void {
                 /** @var Alert $alert */

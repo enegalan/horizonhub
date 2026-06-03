@@ -19,9 +19,9 @@ class AlertDeliveryLogPresenterTest extends TestCase
         $this->assertNull(AlertDeliveryLogPresenter::payloadFromLog(null));
 
         config()->set('horizonhub.alerts.delivery_log_max_distinct_jobs', 1);
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
-        $alert = Alert::query()->create(['name' => 'a', 'rule_type' => FailureCount::type(), 'enabled' => true]);
-        $log = AlertLog::query()->create([
+        $service = Service::create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
+        $alert = Alert::create(['name' => 'a', 'rule_type' => FailureCount::type(), 'enabled' => true]);
+        $log = AlertLog::create([
             'alert_id' => $alert->id,
             'service_id' => $service->id,
             'trigger_count' => 3,

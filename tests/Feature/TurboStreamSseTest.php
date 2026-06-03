@@ -363,12 +363,12 @@ class TurboStreamSseTest extends TestCase
             'status' => 'online',
         ]);
 
-        $slackProvider = NotificationProvider::query()->create([
+        $slackProvider = NotificationProvider::create([
             'name' => 'slack-stats',
             'type' => SlackNotifierService::type(),
             'config' => ['webhook_url' => 'https://hooks.slack.test/services/T/B'],
         ]);
-        $emailProvider = NotificationProvider::query()->create([
+        $emailProvider = NotificationProvider::create([
             'name' => 'email-stats',
             'type' => EmailNotifierService::type(),
             'config' => ['to' => ['ops@example.test']],
@@ -424,7 +424,7 @@ class TurboStreamSseTest extends TestCase
 
     public function test_build_providers_streams_returns_tbody_morph_update(): void
     {
-        NotificationProvider::query()->create([
+        NotificationProvider::create([
             'name' => 'stream-provider',
             'type' => EmailNotifierService::type(),
             'config' => ['to' => ['ops@example.test']],

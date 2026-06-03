@@ -24,7 +24,7 @@ class ServiceRequest extends FormRequest
         $values = \is_array($raw) ? $raw : [$raw];
         $serviceIds = \array_values(\array_unique($values));
 
-        $existing = Service::query()->whereIn('id', $serviceIds)->pluck('id')->all();
+        $existing = Service::whereIn('id', $serviceIds)->pluck('id')->all();
         \sort($existing);
 
         return $existing;

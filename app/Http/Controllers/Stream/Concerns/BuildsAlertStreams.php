@@ -14,13 +14,12 @@ trait BuildsAlertStreams
      */
     protected function buildAlerts(): string
     {
-        $alerts = Alert::query()
-            ->withCount('alertLogs')
+        $alerts = Alert::withCount('alertLogs')
             ->withMax('alertLogs', 'sent_at')
             ->orderByDesc('created_at')
             ->get();
 
-        $serviceNamesById = Service::query()->pluck('name', 'id')->all();
+        $serviceNamesById = Service::pluck('name', 'id')->all();
         $labelsByAlertId = [];
 
         foreach ($alerts as $alert) {

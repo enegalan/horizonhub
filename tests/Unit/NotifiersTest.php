@@ -37,13 +37,13 @@ class NotifiersTest extends TestCase
             ],
         ]);
         $notifier = new DiscordNotifierService($api);
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'name' => 'd',
             'rule_type' => FailureCount::type(),
             'enabled' => true,
             'threshold' => ['count' => 2, 'minutes' => 5, 'queue_patterns' => ['critical']],
         ]);
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
+        $service = Service::create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
         $events = [
             ['service_id' => $service->id, 'job_uuid' => 'job-1', 'triggered_at' => now()->toIso8601String()],
             ['service_id' => $service->id, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()],
@@ -69,8 +69,8 @@ class NotifiersTest extends TestCase
         Http::fake();
         $api = $this->createMock(HorizonClientService::class);
         $notifier = new DiscordNotifierService($api);
-        $alert = Alert::query()->create(['name' => 'd', 'rule_type' => HorizonOffline::type(), 'enabled' => true]);
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
+        $alert = Alert::create(['name' => 'd', 'rule_type' => HorizonOffline::type(), 'enabled' => true]);
+        $service = Service::create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
         $events = [['service_id' => $service->id, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]];
 
         $notifier->sendBatched($alert, $events, ['webhook_url' => '']);
@@ -104,8 +104,8 @@ class NotifiersTest extends TestCase
         Mail::fake();
         $api = $this->createMock(HorizonClientService::class);
         $notifier = new EmailNotifierService($api);
-        $alert = Alert::query()->create(['name' => 'e', 'rule_type' => FailureCount::type(), 'enabled' => true]);
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
+        $alert = Alert::create(['name' => 'e', 'rule_type' => FailureCount::type(), 'enabled' => true]);
+        $service = Service::create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
         $events = [['service_id' => $service->id, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]];
 
         $notifier->sendBatched($alert, $events, ['to' => []]);
@@ -148,13 +148,13 @@ class NotifiersTest extends TestCase
             ],
         ]);
         $notifier = new SlackNotifierService($api);
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'name' => 's',
             'rule_type' => FailureCount::type(),
             'enabled' => true,
             'threshold' => ['count' => 2, 'minutes' => 5, 'queue_patterns' => ['critical']],
         ]);
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
+        $service = Service::create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
         $events = [
             ['service_id' => $service->id, 'job_uuid' => 'job-1', 'triggered_at' => now()->toIso8601String()],
             ['service_id' => $service->id, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()],
@@ -180,8 +180,8 @@ class NotifiersTest extends TestCase
         Http::fake();
         $api = $this->createMock(HorizonClientService::class);
         $notifier = new SlackNotifierService($api);
-        $alert = Alert::query()->create(['name' => 's', 'rule_type' => HorizonOffline::type(), 'enabled' => true]);
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
+        $alert = Alert::create(['name' => 's', 'rule_type' => HorizonOffline::type(), 'enabled' => true]);
+        $service = Service::create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
         $events = [['service_id' => $service->id, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]];
 
         $notifier->sendBatched($alert, $events, ['webhook_url' => '']);

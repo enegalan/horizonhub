@@ -24,24 +24,24 @@ class AlertEngineTest extends TestCase
 
     public function test_dispatch_marks_log_as_failed_when_notifier_throws(): void
     {
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'name' => 'notif2',
             'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
-        $service = Service::query()->create([
+        $service = Service::create([
             'name' => 'svc',
             'base_url' => 'https://x.test',
             'status' => 'online',
         ]);
-        $log = AlertLog::query()->create([
+        $log = AlertLog::create([
             'alert_id' => $alert->id,
             'service_id' => $service->id,
             'status' => 'sent',
             'trigger_count' => 1,
             'sent_at' => now(),
         ]);
-        $provider = NotificationProvider::query()->create([
+        $provider = NotificationProvider::create([
             'name' => 's',
             'type' => SlackNotifierService::type(),
             'config' => ['webhook_url' => 'https://hooks.slack.test/abc'],
@@ -64,17 +64,17 @@ class AlertEngineTest extends TestCase
 
     public function test_dispatch_routes_notifications_and_skips_empty_configs(): void
     {
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'name' => 'notif',
             'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
-        $service = Service::query()->create([
+        $service = Service::create([
             'name' => 'svc',
             'base_url' => 'https://x.test',
             'status' => 'online',
         ]);
-        $log = AlertLog::query()->create([
+        $log = AlertLog::create([
             'alert_id' => $alert->id,
             'service_id' => $service->id,
             'status' => 'sent',
@@ -82,22 +82,22 @@ class AlertEngineTest extends TestCase
             'sent_at' => now(),
         ]);
 
-        $slackProvider = NotificationProvider::query()->create([
+        $slackProvider = NotificationProvider::create([
             'name' => 's',
             'type' => SlackNotifierService::type(),
             'config' => ['webhook_url' => 'https://hooks.slack.test/abc'],
         ]);
-        $emailProvider = NotificationProvider::query()->create([
+        $emailProvider = NotificationProvider::create([
             'name' => 'e',
             'type' => EmailNotifierService::type(),
             'config' => ['to' => ['a@example.com']],
         ]);
-        $discordProvider = NotificationProvider::query()->create([
+        $discordProvider = NotificationProvider::create([
             'name' => 'd',
             'type' => DiscordNotifierService::type(),
             'config' => ['webhook_url' => 'https://discord.com/api/webhooks/1/token'],
         ]);
-        $emptyEmailProvider = NotificationProvider::query()->create([
+        $emptyEmailProvider = NotificationProvider::create([
             'name' => 'e2',
             'type' => EmailNotifierService::type(),
             'config' => ['to' => []],
@@ -118,8 +118,8 @@ class AlertEngineTest extends TestCase
 
     public function test_evaluate_alert_does_not_error_when_services_exist_but_alert_does_not_trigger(): void
     {
-        $service = Service::query()->create(['name' => 'svc-ok', 'base_url' => 'https://ok.test', 'status' => 'online']);
-        $alert = Alert::query()->create([
+        $service = Service::create(['name' => 'svc-ok', 'base_url' => 'https://ok.test', 'status' => 'online']);
+        $alert = Alert::create([
             'name' => 'no-trigger',
             'service_ids' => [$service->id],
             'rule_type' => FailureCount::type(),
@@ -146,7 +146,7 @@ class AlertEngineTest extends TestCase
 
     public function test_evaluate_alert_reports_pending_flush_error_when_batch_store_throws(): void
     {
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'name' => 'pending-flush-error',
             'rule_type' => FailureCount::type(),
             'enabled' => true,
@@ -168,7 +168,7 @@ class AlertEngineTest extends TestCase
 
     public function test_evaluate_alert_returns_error_when_no_services_available(): void
     {
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'name' => 'failure',
             'rule_type' => FailureCount::type(),
             'threshold' => ['count' => 1, 'minutes' => 5],
@@ -187,7 +187,7 @@ class AlertEngineTest extends TestCase
 
     public function test_evaluate_scheduled_handles_empty_scope_without_errors(): void
     {
-        Alert::query()->create([
+        Alert::create([
             'name' => 'offline',
             'rule_type' => HorizonOffline::type(),
             'enabled' => true,
@@ -204,13 +204,13 @@ class AlertEngineTest extends TestCase
 
     public function test_evaluate_scheduled_triggers_alert_and_retry_rebuilds_missing_events(): void
     {
-        $service = Service::query()->create(['name' => 'svc-sch', 'base_url' => 'https://sch.test', 'status' => 'online']);
-        $provider = NotificationProvider::query()->create([
+        $service = Service::create(['name' => 'svc-sch', 'base_url' => 'https://sch.test', 'status' => 'online']);
+        $provider = NotificationProvider::create([
             'name' => 'mail-sch',
             'type' => EmailNotifierService::type(),
             'config' => ['to' => ['alerts@example.com']],
         ]);
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'name' => 'scheduled-failure',
             'service_ids' => [$service->id],
             'rule_type' => FailureCount::type(),
@@ -234,7 +234,7 @@ class AlertEngineTest extends TestCase
         $engine->evaluateScheduled();
         $this->assertDatabaseCount('alert_logs', 1);
 
-        $failedLog = AlertLog::query()->create([
+        $failedLog = AlertLog::create([
             'alert_id' => $alert->id,
             'service_id' => $service->id,
             'trigger_count' => 3,
@@ -244,20 +244,20 @@ class AlertEngineTest extends TestCase
         ]);
         $engine->retryAlertLog($failedLog);
 
-        $retried = AlertLog::query()->latest('id')->first();
+        $retried = AlertLog::latest('id')->first();
         $this->assertSame(3, $retried->trigger_count);
         $this->assertSame(['u1'], $retried->job_uuids);
     }
 
     public function test_flush_pending_alerts_handles_dispatcher_exceptions_without_stopping(): void
     {
-        $service = Service::query()->create(['name' => 'svc-ex', 'base_url' => 'https://ex.test', 'status' => 'online']);
-        $provider = NotificationProvider::query()->create([
+        $service = Service::create(['name' => 'svc-ex', 'base_url' => 'https://ex.test', 'status' => 'online']);
+        $provider = NotificationProvider::create([
             'name' => 'mail-ex',
             'type' => EmailNotifierService::type(),
             'config' => ['to' => ['alerts@example.com']],
         ]);
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'name' => 'failure-ex',
             'service_ids' => [$service->id],
             'rule_type' => FailureCount::type(),
@@ -282,13 +282,13 @@ class AlertEngineTest extends TestCase
 
     public function test_flush_pending_alerts_sends_when_due_and_clears_pending(): void
     {
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
-        $provider = NotificationProvider::query()->create([
+        $service = Service::create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
+        $provider = NotificationProvider::create([
             'name' => 'mail-2',
             'type' => EmailNotifierService::type(),
             'config' => ['to' => ['alerts@example.com']],
         ]);
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'name' => 'failure-pending',
             'service_ids' => [$service->id],
             'rule_type' => FailureCount::type(),
@@ -313,17 +313,17 @@ class AlertEngineTest extends TestCase
 
     public function test_retry_alert_log_only_processes_failed_logs_with_alert(): void
     {
-        $service = Service::query()->create([
+        $service = Service::create([
             'name' => 'svc',
             'base_url' => 'https://x.test',
             'status' => 'online',
         ]);
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'name' => 'a',
             'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
-        $failed = AlertLog::query()->create([
+        $failed = AlertLog::create([
             'alert_id' => $alert->id,
             'service_id' => $service->id,
             'trigger_count' => 2,
@@ -331,7 +331,7 @@ class AlertEngineTest extends TestCase
             'status' => 'failed',
             'sent_at' => now(),
         ]);
-        $sent = AlertLog::query()->create([
+        $sent = AlertLog::create([
             'alert_id' => $alert->id,
             'service_id' => $service->id,
             'trigger_count' => 1,

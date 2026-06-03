@@ -23,7 +23,7 @@ class ServiceController extends Controller
         return \view('horizon.services.form', [
             'service' => new Service,
             'header' => 'Register service',
-            'existingTags' => Service::query()->get(['tags'])->pluck('tags')->flatten()->unique()->sort()->values()->all(),
+            'existingTags' => Service::get(['tags'])->pluck('tags')->flatten()->unique()->sort()->values()->all(),
         ]);
     }
 
@@ -47,7 +47,7 @@ class ServiceController extends Controller
         return \view('horizon.services.form', [
             'service' => $service,
             'header' => 'Edit service',
-            'existingTags' => Service::query()->get(['tags'])->pluck('tags')->flatten()->unique()->sort()->values()->all(),
+            'existingTags' => Service::get(['tags'])->pluck('tags')->flatten()->unique()->sort()->values()->all(),
         ]);
     }
 

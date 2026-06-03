@@ -58,7 +58,7 @@ class JobListService
 
         $perPage = (int) config('horizonhub.jobs_per_page');
 
-        $servicesQuery = Service::query()->enabled();
+        $servicesQuery = Service::enabled();
 
         if (! empty($serviceFilterIds)) {
             $servicesQuery->whereIn('id', $serviceFilterIds);

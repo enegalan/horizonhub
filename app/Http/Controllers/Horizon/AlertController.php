@@ -103,7 +103,7 @@ class AlertController extends Controller
         return \view('horizon.alerts.index', [
             'alerts' => collect(),
             'defer' => true,
-            'evaluateAllAlertsVisible' => Alert::query()->enabled()->exists(),
+            'evaluateAllAlertsVisible' => Alert::enabled()->exists(),
             'header' => 'Alerts',
         ]);
     }
@@ -160,7 +160,7 @@ class AlertController extends Controller
             'logs' => $logs,
             'chartData' => new \stdClass,
             'defer' => true,
-            'services' => Service::query()->enabled()->orderBy('name')->get(),
+            'services' => Service::enabled()->orderBy('name')->get(),
             'selectedLog' => $selectedLog,
             'initialDeliveryLogPayload' => AlertDeliveryLogPresenter::payloadFromLog($selectedLog),
             'filters' => [

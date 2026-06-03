@@ -20,7 +20,7 @@ trait BuildsServiceStreams
     protected function buildServices(string $query): string
     {
         $serviceIds = $this->serviceFilter->resolveFromQuery($query);
-        $servicesQuery = Service::query()->orderBy('name');
+        $servicesQuery = Service::orderBy('name');
 
         if (! empty($serviceIds)) {
             $servicesQuery->whereIn('id', $serviceIds);

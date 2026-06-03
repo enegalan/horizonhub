@@ -12,13 +12,11 @@ trait BuildsProviderStreams
      */
     protected function buildProviders(): string
     {
-        $providers = NotificationProvider::query()
-            ->orderBy('type')
+        $providers = NotificationProvider::orderBy('type')
             ->orderBy('name')
             ->get();
 
-        $countsByProviderTypes = AlertLog::query()
-            ->selectRaw('notification_providers.type, COUNT(*) as aggregate')
+        $countsByProviderTypes = AlertLog::selectRaw('notification_providers.type, COUNT(*) as aggregate')
             ->join('alerts', 'alerts.id', '=', 'alert_logs.alert_id')
             ->join('alert_notification_provider', 'alert_notification_provider.alert_id', '=', 'alerts.id')
             ->join('notification_providers', 'notification_providers.id', '=', 'alert_notification_provider.notification_provider_id')
@@ -26,7 +24,7 @@ trait BuildsProviderStreams
             ->pluck('aggregate', 'notification_providers.type');
 
         $deliveryStats = [
-            'total' => AlertLog::query()->count(),
+            'total' => AlertLog::count(),
         ];
 
         foreach (array_keys(NotificationProvider::getProviders()) as $providerType) {

@@ -27,7 +27,7 @@ class HorizonMetricsComputationTest extends TestCase
             }
         };
 
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
+        $service = Service::create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
         $this->assertCount(1, $probe->public__services([$service->id, 0, -1]));
         $this->assertCount(0, $probe->public__services([0, -1]));
 

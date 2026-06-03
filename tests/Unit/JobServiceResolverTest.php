@@ -22,8 +22,8 @@ class JobServiceResolverTest extends TestCase
 
     public function test_resolve_caches_service_id_after_first_match(): void
     {
-        $first = Service::query()->create(['name' => 'alpha', 'base_url' => 'https://alpha.test', 'status' => 'online']);
-        $second = Service::query()->create(['name' => 'beta', 'base_url' => 'https://beta.test', 'status' => 'online']);
+        $first = Service::create(['name' => 'alpha', 'base_url' => 'https://alpha.test', 'status' => 'online']);
+        $second = Service::create(['name' => 'beta', 'base_url' => 'https://beta.test', 'status' => 'online']);
 
         $api = $this->createMock(HorizonClientService::class);
         $api->expects($this->exactly(2))
@@ -58,7 +58,7 @@ class JobServiceResolverTest extends TestCase
 
     public function test_resolve_returns_null_when_no_service_has_job(): void
     {
-        Service::query()->create(['name' => 'alpha', 'base_url' => 'https://alpha.test', 'status' => 'online']);
+        Service::create(['name' => 'alpha', 'base_url' => 'https://alpha.test', 'status' => 'online']);
 
         $api = $this->createMock(HorizonClientService::class);
         $api->method('getJob')->willReturn(['success' => false]);
@@ -70,8 +70,8 @@ class JobServiceResolverTest extends TestCase
 
     public function test_resolve_uses_cached_service_id(): void
     {
-        Service::query()->create(['name' => 'alpha', 'base_url' => 'https://alpha.test', 'status' => 'online']);
-        $second = Service::query()->create(['name' => 'beta', 'base_url' => 'https://beta.test', 'status' => 'online']);
+        Service::create(['name' => 'alpha', 'base_url' => 'https://alpha.test', 'status' => 'online']);
+        $second = Service::create(['name' => 'beta', 'base_url' => 'https://beta.test', 'status' => 'online']);
 
         Cache::forever('horizonhub:job-service:job-uuid-1', $second->id);
 

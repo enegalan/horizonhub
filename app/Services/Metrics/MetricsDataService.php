@@ -332,7 +332,7 @@ class MetricsDataService
         $hour = 0;
         $failed = 0;
 
-        $services = Service::query()->whereIn('id', $serviceIds)->orderBy('name')->get();
+        $services = Service::whereIn('id', $serviceIds)->orderBy('name')->get();
 
         /** @var Service $service */
         foreach ($services as $service) {

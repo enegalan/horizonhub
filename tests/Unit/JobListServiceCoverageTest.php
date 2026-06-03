@@ -20,8 +20,8 @@ class JobListServiceCoverageTest extends TestCase
         config()->set('horizonhub.max_horizon_pages', 2);
         config()->set('horizonhub.horizon_api_job_list_page_size', 2);
 
-        $s1 = Service::query()->create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
-        $s2 = Service::query()->create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
+        $s1 = Service::create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
+        $s2 = Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
         $api = $this->createMock(HorizonClientService::class);
         $api->method('getPendingJobs')->willReturn([

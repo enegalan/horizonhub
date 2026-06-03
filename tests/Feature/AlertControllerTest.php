@@ -21,13 +21,13 @@ class AlertControllerTest extends TestCase
 
     public function test_destroy_evaluate_single_show_store_and_update_paths(): void
     {
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
-        $provider = NotificationProvider::query()->create([
+        $service = Service::create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
+        $provider = NotificationProvider::create([
             'name' => 'mail',
             'type' => EmailNotifierService::type(),
             'config' => ['to' => ['a@example.com']],
         ]);
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'name' => 'old-alert',
             'rule_type' => FailureCount::type(),
             'enabled' => true,
@@ -35,7 +35,7 @@ class AlertControllerTest extends TestCase
         ]);
         $alert->notificationProviders()->sync([$provider->id]);
 
-        AlertLog::query()->create([
+        AlertLog::create([
             'alert_id' => $alert->id,
             'service_id' => $service->id,
             'status' => 'sent',
@@ -76,7 +76,7 @@ class AlertControllerTest extends TestCase
         $this->post(route('horizon.alerts.evaluate', ['alert' => $alert]))->assertOk()->assertJsonPath('alert_id', $alert->id);
 
         $this->post(route('horizon.alerts.store'))->assertRedirect(route('horizon.alerts.index'));
-        $created = Alert::query()->where('name', 'new-alert')->latest('id')->first();
+        $created = Alert::where('name', 'new-alert')->latest('id')->first();
         $this->assertNotNull($created);
 
         $this->put(route('horizon.alerts.update', ['alert' => $alert]))->assertRedirect(route('horizon.alerts.index'));
@@ -119,7 +119,7 @@ class AlertControllerTest extends TestCase
 
     public function test_index_and_create_pages_render(): void
     {
-        Alert::query()->create([
+        Alert::create([
             'name' => 'a1',
             'rule_type' => FailureCount::type(),
             'enabled' => true,
@@ -133,16 +133,16 @@ class AlertControllerTest extends TestCase
 
     public function test_retry_log_calls_engine_only_for_failed_logs(): void
     {
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
-        $alert = Alert::query()->create(['name' => 'a1', 'rule_type' => FailureCount::type(), 'enabled' => true]);
-        $failedLog = AlertLog::query()->create([
+        $service = Service::create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
+        $alert = Alert::create(['name' => 'a1', 'rule_type' => FailureCount::type(), 'enabled' => true]);
+        $failedLog = AlertLog::create([
             'alert_id' => $alert->id,
             'service_id' => $service->id,
             'status' => 'failed',
             'trigger_count' => 1,
             'sent_at' => now(),
         ]);
-        $sentLog = AlertLog::query()->create([
+        $sentLog = AlertLog::create([
             'alert_id' => $alert->id,
             'service_id' => $service->id,
             'status' => 'sent',
@@ -160,7 +160,7 @@ class AlertControllerTest extends TestCase
 
     public function test_toggle_enabled_updates_alert_state(): void
     {
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'name' => 'toggle-alert',
             'rule_type' => FailureCount::type(),
             'enabled' => true,

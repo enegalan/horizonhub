@@ -18,7 +18,7 @@ class ServiceShowViewDataTest extends TestCase
 
     public function test_build_collects_stats_supervisors_workload_and_paginators(): void
     {
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);
+        $service = Service::create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);
         $request = Request::create('/horizon/services/' . $service->id, 'GET', ['search' => 'job-x']);
 
         $metrics = $this->createMock(MetricsDataService::class);
@@ -77,7 +77,7 @@ class ServiceShowViewDataTest extends TestCase
 
     public function test_build_returns_empty_data_when_service_is_disabled(): void
     {
-        $service = Service::query()->create([
+        $service = Service::create([
             'name' => 'disabled-svc',
             'base_url' => 'https://disabled.test',
             'status' => 'online',

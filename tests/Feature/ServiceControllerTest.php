@@ -14,7 +14,7 @@ class ServiceControllerTest extends TestCase
 
     public function test_index_edit_show_store_update_destroy_and_connection_paths(): void
     {
-        $service = Service::query()->create([
+        $service = Service::create([
             'name' => 'svc-a',
             'base_url' => 'https://svc-a.test',
             'public_url' => 'https://public-a.test',
@@ -56,7 +56,7 @@ class ServiceControllerTest extends TestCase
             'tags' => ['Production', ' mailing '],
         ])->assertRedirect(route('horizon.services.index'));
         $this->assertDatabaseHas('services', ['name' => 'svc-b', 'base_url' => 'https://svc-b.test', 'public_url' => 'https://public-b.test']);
-        $created = Service::query()->where('name', 'svc-b')->first();
+        $created = Service::where('name', 'svc-b')->first();
         $this->assertNotNull($created);
         $this->assertSame(['mailing', 'production'], $created->tags);
 
@@ -109,7 +109,7 @@ class ServiceControllerTest extends TestCase
             ],
         ])->assertRedirect(route('horizon.services.index'));
 
-        $service = Service::query()->where('name', 'svc-headers')->firstOrFail();
+        $service = Service::where('name', 'svc-headers')->firstOrFail();
 
         $this->assertDatabaseHas('service_headers', [
             'service_id' => $service->id,
@@ -152,7 +152,7 @@ class ServiceControllerTest extends TestCase
             ],
         ])->assertRedirect(route('horizon.services.index'));
 
-        $service = Service::query()->where('name', 'svc-ws-empty')->firstOrFail();
+        $service = Service::where('name', 'svc-ws-empty')->firstOrFail();
 
         $this->assertDatabaseCount('service_headers', 1);
         $this->assertDatabaseHas('service_headers', [

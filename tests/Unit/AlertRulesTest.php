@@ -53,12 +53,12 @@ class AlertRulesTest extends TestCase
 
     public function test_failure_count_strategy_handles_threshold_and_service_guards(): void
     {
-        $service = Service::query()->create([
+        $service = Service::create([
             'name' => 'svc-a',
             'base_url' => 'https://example.test',
             'status' => 'online',
         ]);
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'name' => 'a1',
             'rule_type' => FailureCount::type(),
             'threshold' => ['count' => 2, 'minutes' => 10],
@@ -89,12 +89,12 @@ class AlertRulesTest extends TestCase
     {
         Cache::flush();
 
-        $service = Service::query()->create([
+        $service = Service::create([
             'name' => 'svc-long-offline',
             'base_url' => 'https://example.test',
             'status' => 'online',
         ]);
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'name' => 'long-offline',
             'rule_type' => HorizonOffline::type(),
             'threshold' => ['minutes' => 2000],
@@ -117,38 +117,38 @@ class AlertRulesTest extends TestCase
 
     public function test_other_strategies_cover_normal_and_edge_paths(): void
     {
-        $service = Service::query()->create([
+        $service = Service::create([
             'name' => 'svc-b',
             'base_url' => 'https://example.test',
             'status' => 'online',
             'last_seen_at' => now()->subMinutes(90),
         ]);
 
-        $avgAlert = Alert::query()->create([
+        $avgAlert = Alert::create([
             'name' => 'avg',
             'rule_type' => AvgExecutionTime::type(),
             'threshold' => ['seconds' => 20, 'minutes' => 10],
             'enabled' => true,
         ]);
-        $queueAlert = Alert::query()->create([
+        $queueAlert = Alert::create([
             'name' => 'queue',
             'rule_type' => QueueBlocked::type(),
             'threshold' => ['minutes' => 5],
             'enabled' => true,
         ]);
-        $workerAlert = Alert::query()->create([
+        $workerAlert = Alert::create([
             'name' => 'worker',
             'rule_type' => WorkerOffline::type(),
             'threshold' => ['minutes' => 30],
             'enabled' => true,
         ]);
-        $supAlert = Alert::query()->create([
+        $supAlert = Alert::create([
             'name' => 'sup',
             'rule_type' => SupervisorOffline::type(),
             'threshold' => ['minutes' => 15],
             'enabled' => true,
         ]);
-        $horizonAlert = Alert::query()->create([
+        $horizonAlert = Alert::create([
             'name' => 'hoff',
             'rule_type' => HorizonOffline::type(),
             'threshold' => ['minutes' => 5],

@@ -163,8 +163,7 @@ class Alert extends Model
             return [];
         }
 
-        $ids = Service::query()
-            ->enabled()
+        $ids = Service::enabled()
             ->whereIn('id', $this->service_ids)
             ->pluck('id')
             ->all();

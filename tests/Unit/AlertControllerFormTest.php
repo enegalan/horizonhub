@@ -28,7 +28,7 @@ class AlertControllerFormTest extends TestCase
         $enabled = Service::factory()->create(['name' => 'alpha', 'enabled' => true]);
         $disabled = Service::factory()->create(['name' => 'beta', 'enabled' => false]);
         $otherDisabled = Service::factory()->create(['name' => 'gamma', 'enabled' => false]);
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'rule_type' => FailureCount::type(),
             'enabled' => true,
             'service_ids' => [$enabled->id, $disabled->id],

@@ -17,7 +17,7 @@ class EvaluateAlertJobTest extends TestCase
     public function test_job_catches_engine_exceptions_and_updates_error_counters(): void
     {
         Cache::flush();
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'name' => 'x2',
             'rule_type' => FailureCount::type(),
             'enabled' => true,
@@ -47,7 +47,7 @@ class EvaluateAlertJobTest extends TestCase
     public function test_job_updates_counters_and_first_error_message_once(): void
     {
         Cache::flush();
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'name' => 'x',
             'rule_type' => FailureCount::type(),
             'enabled' => true,

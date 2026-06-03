@@ -18,7 +18,7 @@ class FailureMetricsCalculatorTest extends TestCase
     public function test_get_failure_rate_24h_aggregates_paginated_jobs(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-04-30 12:00:00'));
-        $service = Service::query()->create(['name' => 'svc-failure', 'base_url' => 'https://f.test', 'status' => 'online']);
+        $service = Service::create(['name' => 'svc-failure', 'base_url' => 'https://f.test', 'status' => 'online']);
         $since = now()->subDay()->startOfDay()->getTimestamp();
 
         $api = $this->createMock(HorizonClientService::class);
@@ -48,7 +48,7 @@ class FailureMetricsCalculatorTest extends TestCase
     public function test_get_processed_failed_by_queue_aggregates_within_seven_day_window(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-04-30 12:00:00'));
-        $service = Service::query()->create(['name' => 'svc-queues', 'base_url' => 'https://q.test', 'status' => 'online']);
+        $service = Service::create(['name' => 'svc-queues', 'base_url' => 'https://q.test', 'status' => 'online']);
         $since = now()->subDays(7)->getTimestamp();
 
         $api = $this->createMock(HorizonClientService::class);

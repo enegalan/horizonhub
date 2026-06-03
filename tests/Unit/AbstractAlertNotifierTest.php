@@ -16,8 +16,8 @@ class AbstractAlertNotifierTest extends TestCase
 
     public function test_enrich_events_includes_all_batch_events(): void
     {
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);
-        $alert = Alert::query()->create(['name' => 'a', 'rule_type' => FailureCount::type(), 'enabled' => true]);
+        $service = Service::create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);
+        $alert = Alert::create(['name' => 'a', 'rule_type' => FailureCount::type(), 'enabled' => true]);
 
         $api = $this->createMock(HorizonClientService::class);
         $api->method('getJob')->willReturn(['success' => false]);
@@ -59,8 +59,8 @@ class AbstractAlertNotifierTest extends TestCase
 
     public function test_send_and_enrich_events_preserves_full_exception_text(): void
     {
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);
-        $alert = Alert::query()->create(['name' => 'a', 'rule_type' => FailureCount::type(), 'enabled' => true]);
+        $service = Service::create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);
+        $alert = Alert::create(['name' => 'a', 'rule_type' => FailureCount::type(), 'enabled' => true]);
         $exception = "line1\nline2\nline3\nline4\nline5\nline6";
 
         $api = $this->createMock(HorizonClientService::class);

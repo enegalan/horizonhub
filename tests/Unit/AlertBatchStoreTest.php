@@ -16,7 +16,7 @@ class AlertBatchStoreTest extends TestCase
     public function test_pending_and_last_sent_cache_workflows(): void
     {
         Cache::flush();
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'name' => 'b1',
             'rule_type' => FailureCount::type(),
             'enabled' => true,
@@ -37,7 +37,7 @@ class AlertBatchStoreTest extends TestCase
     public function test_should_send_now_honors_interval_and_fallbacks(): void
     {
         Cache::flush();
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'name' => 'b2',
             'rule_type' => FailureCount::type(),
             'enabled' => true,

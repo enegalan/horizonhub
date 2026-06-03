@@ -36,8 +36,7 @@ final class ServiceFilterService
             return $serviceIds;
         }
 
-        $tagIds = Service::query()
-            ->matchingTags($tags)
+        $tagIds = Service::matchingTags($tags)
             ->pluck('id')
             ->all();
 
@@ -54,7 +53,7 @@ final class ServiceFilterService
     public function viewData(Request $request): array
     {
         return [
-            'allTags' => Service::query()->enabled()->get(['tags'])->pluck('tags')->flatten()->unique()->sort()->values()->all(),
+            'allTags' => Service::enabled()->get(['tags'])->pluck('tags')->flatten()->unique()->sort()->values()->all(),
             'selectedServiceIds' => ServiceRequest::existingIdsFromRequest($request),
             'selectedTags' => $request->query('service_tag', []),
         ];

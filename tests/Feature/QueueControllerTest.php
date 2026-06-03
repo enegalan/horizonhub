@@ -12,7 +12,7 @@ class QueueControllerTest extends TestCase
 
     public function test_index_renders_queue_page_with_services_and_deferred_loading(): void
     {
-        $service = Service::query()->create([
+        $service = Service::create([
             'name' => 'queue-svc',
             'base_url' => 'https://queue-svc.test',
             'status' => 'online',
@@ -29,7 +29,7 @@ class QueueControllerTest extends TestCase
 
     public function test_index_restricts_service_ids_to_existing_services(): void
     {
-        $service = Service::query()->create([
+        $service = Service::create([
             'name' => 'scoped-queue-svc',
             'base_url' => 'https://scoped-queue-svc.test',
             'status' => 'online',

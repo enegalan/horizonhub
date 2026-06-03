@@ -40,8 +40,8 @@ class AlertEvaluationBatchServiceTest extends TestCase
         Cache::flush();
         Bus::fake();
 
-        $a1 = Alert::query()->create(['name' => 'a1', 'rule_type' => FailureCount::type(), 'enabled' => true]);
-        $a2 = Alert::query()->create(['name' => 'a2', 'rule_type' => FailureCount::type(), 'enabled' => true]);
+        $a1 = Alert::create(['name' => 'a1', 'rule_type' => FailureCount::type(), 'enabled' => true]);
+        $a2 = Alert::create(['name' => 'a2', 'rule_type' => FailureCount::type(), 'enabled' => true]);
 
         $service = new AlertEvaluationBatchService;
         $result = $service->startEvaluateAll();
@@ -75,7 +75,7 @@ class AlertEvaluationBatchServiceTest extends TestCase
         Cache::flush();
         Bus::fake();
 
-        Alert::query()->create([
+        Alert::create([
             'name' => 'disabled',
             'rule_type' => FailureCount::type(),
             'enabled' => false,

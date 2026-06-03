@@ -18,7 +18,7 @@ class QueueController extends Controller
         return \view('horizon.queues.index', \array_merge([
             'queueCount' => 0,
             'queues' => \collect(),
-            'services' => Service::query()->enabled()->orderBy('name')->get(),
+            'services' => Service::enabled()->orderBy('name')->get(),
             'totalJobs' => 0,
             'defer' => true,
             'header' => 'Queues',

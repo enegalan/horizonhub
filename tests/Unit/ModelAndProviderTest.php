@@ -18,7 +18,7 @@ class ModelAndProviderTest extends TestCase
 
     public function test_alert_name_defaults_when_missing(): void
     {
-        $alert = Alert::query()->create([
+        $alert = Alert::create([
             'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
@@ -34,9 +34,9 @@ class ModelAndProviderTest extends TestCase
 
     public function test_alert_service_scope_and_relations(): void
     {
-        $s1 = Service::query()->create(['name' => 'A', 'base_url' => 'https://a.test', 'status' => 'online']);
-        $s2 = Service::query()->create(['name' => 'B', 'base_url' => 'https://b.test', 'status' => 'online']);
-        $alert = Alert::query()->create([
+        $s1 = Service::create(['name' => 'A', 'base_url' => 'https://a.test', 'status' => 'online']);
+        $s2 = Service::create(['name' => 'B', 'base_url' => 'https://b.test', 'status' => 'online']);
+        $alert = Alert::create([
             'name' => 'z',
             'service_ids' => [$s1->id, $s2->id],
             'rule_type' => FailureCount::type(),
@@ -47,7 +47,7 @@ class ModelAndProviderTest extends TestCase
         $this->assertTrue($alert->appliesToServiceId($s1->id));
         $this->assertFalse($alert->appliesToServiceId(999));
 
-        $unscopedAlert = Alert::query()->create([
+        $unscopedAlert = Alert::create([
             'name' => 'unscoped',
             'service_ids' => [],
             'rule_type' => FailureCount::type(),
@@ -65,12 +65,12 @@ class ModelAndProviderTest extends TestCase
 
     public function test_notification_provider_helpers_and_alert_log_casts(): void
     {
-        $email = NotificationProvider::query()->create([
+        $email = NotificationProvider::create([
             'name' => 'mail',
             'type' => EmailNotifierService::type(),
             'config' => ['to' => ['  a@example.com ', '']],
         ]);
-        $slack = NotificationProvider::query()->create([
+        $slack = NotificationProvider::create([
             'name' => 'slack',
             'type' => SlackNotifierService::type(),
             'config' => ['webhook_url' => 'https://hooks.slack.test'],
@@ -82,16 +82,16 @@ class ModelAndProviderTest extends TestCase
         $this->assertSame('https://hooks.slack.test', $slack->getWebhookUrl());
         $this->assertSame(['webhook_url' => 'https://hooks.slack.test'], $slack->deliverableConfig());
 
-        $emptyEmail = NotificationProvider::query()->create([
+        $emptyEmail = NotificationProvider::create([
             'name' => 'empty-mail',
             'type' => EmailNotifierService::type(),
             'config' => ['to' => []],
         ]);
         $this->assertNull($emptyEmail->deliverableConfig());
 
-        $alert = Alert::query()->create(['name' => 'a', 'rule_type' => FailureCount::type(), 'enabled' => true]);
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
-        $log = AlertLog::query()->create([
+        $alert = Alert::create(['name' => 'a', 'rule_type' => FailureCount::type(), 'enabled' => true]);
+        $service = Service::create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
+        $log = AlertLog::create([
             'alert_id' => $alert->id,
             'service_id' => $service->id,
             'trigger_count' => 1,

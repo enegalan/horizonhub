@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $enabledServiceIds = Service::query()->enabled()->pluck('id')->all();
+        $enabledServiceIds = Service::enabled()->pluck('id')->all();
 
         if (empty($enabledServiceIds)) {
             return;
@@ -16,8 +16,7 @@ return new class extends Migration
 
         \sort($enabledServiceIds);
 
-        Alert::query()
-            ->orderBy('id')
+        Alert::orderBy('id')
             ->each(function (Alert $alert) use ($enabledServiceIds): void {
                 if (! empty($alert->service_ids)) {
                     return;

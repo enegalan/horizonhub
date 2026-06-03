@@ -21,7 +21,7 @@ class AlertUpsertServiceValidationTest extends TestCase
     {
         $enabled = Service::factory()->create(['enabled' => true]);
         Service::factory()->create(['enabled' => false]);
-        $provider = NotificationProvider::query()->create([
+        $provider = NotificationProvider::create([
             'name' => 'mail',
             'type' => EmailNotifierService::type(),
             'config' => ['to' => ['ops@example.com']],
@@ -45,8 +45,8 @@ class AlertUpsertServiceValidationTest extends TestCase
 
     public function test_validate_alert_builds_failure_count_payload_with_patterns(): void
     {
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);
-        $provider = NotificationProvider::query()->create([
+        $service = Service::create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);
+        $provider = NotificationProvider::create([
             'name' => 'mail',
             'type' => EmailNotifierService::type(),
             'config' => ['to' => ['ops@example.com']],
@@ -78,7 +78,7 @@ class AlertUpsertServiceValidationTest extends TestCase
 
     public function test_validate_alert_requires_at_least_one_service(): void
     {
-        $provider = NotificationProvider::query()->create([
+        $provider = NotificationProvider::create([
             'name' => 'mail',
             'type' => EmailNotifierService::type(),
             'config' => ['to' => ['ops@example.com']],
@@ -100,8 +100,8 @@ class AlertUpsertServiceValidationTest extends TestCase
 
     public function test_validate_alert_requires_seconds_for_avg_execution_time_rule(): void
     {
-        $service = Service::query()->create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);
-        $provider = NotificationProvider::query()->create([
+        $service = Service::create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);
+        $provider = NotificationProvider::create([
             'name' => 'mail',
             'type' => EmailNotifierService::type(),
             'config' => ['to' => ['ops@example.com']],
