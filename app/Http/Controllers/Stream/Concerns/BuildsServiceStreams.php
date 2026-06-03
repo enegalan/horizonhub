@@ -55,9 +55,8 @@ trait BuildsServiceStreams
         $queryParams = [];
 
         \parse_str($query, $queryParams);
-        $pageRequest = Request::create($url, 'GET', $queryParams);
 
-        $d = $this->private__buildServiceShowData($service, $pageRequest, $this->horizonApi);
+        $d = $this->private__buildServiceShowData($service, Request::create($url, 'GET', $queryParams), $this->horizonApi);
 
         $workloadCount = $d['workloadQueues']->count();
 
@@ -66,7 +65,7 @@ trait BuildsServiceStreams
             ['update', 'service-show-stats-row-1', \view('horizon.services.partials.show.stats-row-1', $d)->render(), null],
             ['update', 'service-show-stats-row-2', \view('horizon.services.partials.show.stats-row-2', $d)->render(), null],
             ['update', 'service-show-supervisors-panel', \view('horizon.services.partials.show.supervisors-panel', $d)->render(), null],
-            ['update', 'service-show-workload-count', e($workloadCount > 0 ? $workloadCount . ' queue(s)' : ''), null],
+            ['update', 'service-show-workload-count', e($workloadCount > 0 ? "$workloadCount queue(s)" : ''), null],
             ['update', 'service-show-workload-body', \view('horizon.services.partials.show.workload-tbody', ['workloadQueues' => $d['workloadQueues']])->render(), 'morph'],
             ['update', 'service-show-supervisor-groups', \view('horizon.services.partials.show.supervisor-groups', $d)->render(), 'morph'],
         ]);

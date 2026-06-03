@@ -59,12 +59,11 @@ trait BuildsJobStreams
     protected function buildJobsIndex(string $query): string
     {
         $url = \route('horizon.jobs.index', [], true);
+        $queryParams = [];
 
-        if ($query !== '') {
-            $url .= "?$query";
-        }
+        \parse_str($query, $queryParams);
 
-        $index = $this->jobList->buildAggregatedJobsIndexFromRequest(Request::create($url, 'GET'));
+        $index = $this->jobList->buildAggregatedJobsIndexFromRequest(Request::create($url, 'GET', $queryParams));
 
         return $this->streamsForJobListSections(
             [
