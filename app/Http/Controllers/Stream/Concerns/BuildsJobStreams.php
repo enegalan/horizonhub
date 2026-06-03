@@ -14,7 +14,7 @@ trait BuildsJobStreams
      *
      * @param string $routeJobUuid The job UUID.
      */
-    private function buildJobShow(string $routeJobUuid): ?string
+    protected function buildJobShow(string $routeJobUuid): ?string
     {
         $resolved = $this->jobServiceResolver->resolve($routeJobUuid);
 
@@ -56,7 +56,7 @@ trait BuildsJobStreams
      *
      * @param string $query The query.
      */
-    private function buildJobsIndex(string $query): string
+    protected function buildJobsIndex(string $query): string
     {
         $url = \route('horizon.jobs.index', [], true);
 

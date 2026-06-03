@@ -10,7 +10,7 @@ trait BuildsDashboardStreams
     /**
      * Build the dashboard streams.
      */
-    private function buildDashboard(): string
+    protected function buildDashboard(): string
     {
         $d = $this->private__buildDashboardData();
 
@@ -34,7 +34,7 @@ trait BuildsDashboardStreams
      *
      * @return array<string, mixed>
      */
-    private function private__buildDashboardData(): array
+    protected function private__buildDashboardData(): array
     {
         $metrics = $this->metrics->buildMetricsDashboardData([]);
 

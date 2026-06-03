@@ -17,7 +17,7 @@ trait BuildsServiceStreams
      *
      * @param string $query The query.
      */
-    private function buildServices(string $query): string
+    protected function buildServices(string $query): string
     {
         $serviceIds = $this->serviceFilter->resolveFromQuery($query);
         $servicesQuery = Service::query()->orderBy('name');
@@ -49,7 +49,7 @@ trait BuildsServiceStreams
      * @param Service $service The service.
      * @param string $query The query.
      */
-    private function buildServiceShow(Service $service, string $query): string
+    protected function buildServiceShow(Service $service, string $query): string
     {
         $url = \route('horizon.services.show', ['service' => $service->id], true);
         $queryParams = [];

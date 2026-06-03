@@ -9,7 +9,7 @@ trait BuildsQueueStreams
      *
      * @param string $query The query.
      */
-    private function buildQueues(string $query): string
+    protected function buildQueues(string $query): string
     {
         $serviceFilterIds = $this->serviceFilter->resolveFromQuery($query);
         $queues = $this->metrics->buildQueuesCollectionForServiceFilter($serviceFilterIds);

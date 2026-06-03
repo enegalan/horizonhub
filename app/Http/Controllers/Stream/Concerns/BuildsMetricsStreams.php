@@ -9,7 +9,7 @@ trait BuildsMetricsStreams
      *
      * @param string $query The query.
      */
-    private function buildMetrics(string $query): string
+    protected function buildMetrics(string $query): string
     {
         $d = $this->metrics->buildMetricsDashboardData($this->serviceFilter->resolveFromQuery($query));
 

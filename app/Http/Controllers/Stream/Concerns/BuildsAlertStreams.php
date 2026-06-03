@@ -12,7 +12,7 @@ trait BuildsAlertStreams
     /**
      * Build the alerts index streams.
      */
-    private function buildAlerts(): string
+    protected function buildAlerts(): string
     {
         $alerts = Alert::query()
             ->withCount('alertLogs')
@@ -58,7 +58,7 @@ trait BuildsAlertStreams
      *
      * @param Alert $alert The alert.
      */
-    private function buildAlertShow(Alert $alert): string
+    protected function buildAlertShow(Alert $alert): string
     {
         $chartData = [
             'chart24h' => $this->private__buildChart($alert, 1),

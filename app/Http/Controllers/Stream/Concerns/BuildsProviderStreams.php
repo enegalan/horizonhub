@@ -10,7 +10,7 @@ trait BuildsProviderStreams
     /**
      * Build the providers streams.
      */
-    private function buildProviders(): string
+    protected function buildProviders(): string
     {
         $providers = NotificationProvider::query()
             ->orderBy('type')
