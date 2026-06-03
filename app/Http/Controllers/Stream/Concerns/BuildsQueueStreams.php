@@ -14,11 +14,9 @@ trait BuildsQueueStreams
         $serviceFilterIds = $this->serviceFilter->resolveFromQuery($query);
         $queues = $this->metrics->buildQueuesCollectionForServiceFilter($serviceFilterIds);
 
-        $totalJobs = (int) $queues->sum(static fn ($r): int => (int) ($r->job_count ?? 0));
-
         $statsHtml = \view('horizon.queues.partials.index.stats', [
             'queueCount' => $queues->count(),
-            'totalJobs' => $totalJobs,
+            'totalJobs' => (int) $queues->sum(static fn ($r): int => (int) ($r->job_count ?? 0)),
         ])->render();
 
         $tbodyHtml = \view('horizon.queues.partials.index.tbody', ['queues' => $queues])->render();
