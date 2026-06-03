@@ -37,19 +37,9 @@ trait BuildsAlertStreams
             $labelsByAlertId[$alert->id] = $labels;
         }
 
-        $payload = [
-            'alerts' => $alerts,
-            'alertStats' => [
-                'total' => $alerts->count(),
-                'enabled' => $alerts->where('enabled')->count(),
-                'disabled' => $alerts->where('enabled', false)->count(),
-            ],
-            'serviceLabelsByAlertId' => $labelsByAlertId,
-        ];
-
         return $this->buildStreams([
-            ['update', 'turbo-horizon-alert-stats', \view('horizon.alerts.partials.index.stats', ['alertStats' => $payload['alertStats']])->render(), 'morph'],
-            ['update', 'turbo-tbody-horizon-alerts-list', \view('horizon.alerts.partials.index.tbody', ['alerts' => $payload['alerts'], 'serviceLabelsByAlertId' => $payload['serviceLabelsByAlertId']])->render(), 'morph'],
+            ['update', 'turbo-horizon-alert-stats', \view('horizon.alerts.partials.index.stats', ['alertStats' => ['total' => $alerts->count(), 'enabled' => $alerts->where('enabled')->count(), 'disabled' => $alerts->where('enabled', false)->count()]])->render(), 'morph'],
+            ['update', 'turbo-tbody-horizon-alerts-list', \view('horizon.alerts.partials.index.tbody', ['alerts' => $alerts, 'serviceLabelsByAlertId' => $labelsByAlertId])->render(), 'morph'],
         ]);
     }
 
