@@ -1,20 +1,89 @@
 <?php
 
-namespace App\Services\Jobs;
+namespace App\Http\Controllers\Stream\Concerns;
 
 use App\Models\Service;
 use App\Support\Horizon\JobCommandDataExtractor;
 use App\Support\Horizon\JobRuntimeHelper;
+use Illuminate\Http\Request;
 
-final class JobDetailService
+trait BuildsJobStreams
 {
     /**
-     * Build the show view data.
+     * Build the job show streams.
+     *
+     * @param string $routeJobUuid The job UUID.
+     */
+    protected function buildJobShow(string $routeJobUuid): ?string
+    {
+        $resolved = $this->jobServiceResolver->resolve($routeJobUuid);
+
+        if ($resolved === null) {
+            return null;
+        }
+
+        $jobView = $this->private__buildJobShowViewData($resolved['service'], $resolved['data']);
+
+        $exception = ($jobView->exception ?? null) ? html_entity_decode((string) $jobView->exception, ENT_QUOTES | ENT_HTML401, 'UTF-8') : null;
+        $exceptionTrace = $exception ? (\preg_split("/\r\n|\n|\r/", $exception) ?: []) : [];
+        $retryHistory = \is_array($jobView->retried_by ?? null) ? $jobView->retried_by : [];
+        $payload = $jobView->payload ? json_encode($jobView->payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
+        $context = ($jobView->context ?? null) ? json_encode($jobView->context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
+        $commandData = ($jobView->command_data ?? null) ? json_encode($jobView->command_data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
+
+        $vars = [
+            'job' => $jobView,
+            'exception' => $exceptionTrace,
+            'retryHistory' => $retryHistory,
+            'payload' => $payload,
+            'context' => $context,
+            'commandData' => $commandData,
+        ];
+
+        return $this->buildStreams([
+            ['update', 'horizon-job-detail-actions-stream', \view('horizon.jobs.partials.show.actions', $vars)->render(), null],
+            ['update', 'horizon-job-detail-meta', \view('horizon.jobs.partials.show.meta', $vars)->render(), null],
+            ['update', 'horizon-job-detail-exception', \view('horizon.jobs.partials.show.exception', $vars)->render(), null],
+            ['update', 'horizon-job-detail-context', \view('horizon.jobs.partials.show.context', $vars)->render(), null],
+            ['update', 'horizon-job-detail-retry-history', \view('horizon.jobs.partials.show.retry-history', $vars)->render(), null],
+            ['update', 'horizon-job-detail-data', \view('horizon.jobs.partials.show.data', $vars)->render(), null],
+            ['update', 'horizon-job-detail-payload', \view('horizon.jobs.partials.show.payload', $vars)->render(), null],
+        ]);
+    }
+
+    /**
+     * Build the jobs index streams.
+     *
+     * @param string $query The query.
+     */
+    protected function buildJobsIndex(string $query): string
+    {
+        $url = \route('horizon.jobs.index', [], true);
+        $queryParams = [];
+
+        \parse_str($query, $queryParams);
+
+        $index = $this->jobList->buildAggregatedJobsIndexFromRequest(Request::create($url, 'GET', $queryParams));
+
+        return $this->streamsForJobListSections(
+            [
+                'processing' => $index['processing'],
+                'processed' => $index['processed'],
+                'failed' => $index['failed'],
+            ],
+            'horizon-job-list',
+            true,
+            null,
+        );
+    }
+
+    /**
+     * Build the job show view data.
      *
      * @param Service $service The service.
      * @param array<string, mixed> $jobData The job data.
      */
-    public function buildShowViewData(Service $service, array $jobData): object
+    private function private__buildJobShowViewData(Service $service, array $jobData): object
     {
         $payload = isset($jobData['payload']) && \is_array($jobData['payload']) ? $jobData['payload'] : [];
 
@@ -86,7 +155,7 @@ final class JobDetailService
             JobRuntimeHelper::getRuntimeSeconds($runtimeSeconds, $reservedAt, $processedAt, $failedAt),
         );
 
-        $jobView = (object) [
+        return (object) [
             'uuid' => $jobData['id'],
             'name' => $jobData['name'],
             'queue' => $jobData['queue'],
@@ -107,7 +176,5 @@ final class JobDetailService
             'payload' => $payload,
             'service' => $service,
         ];
-
-        return $jobView;
     }
 }

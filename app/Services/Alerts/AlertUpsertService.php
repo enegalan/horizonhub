@@ -3,79 +3,12 @@
 namespace App\Services\Alerts;
 
 use App\Models\Alert;
-use App\Models\NotificationProvider;
-use App\Models\Service;
 use App\Support\Alerts\AlertRuleCatalog;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class AlertUpsertService
 {
-    /**
-     * Build the form view variables.
-     *
-     * @param Alert $alert The alert.
-     *
-     * @return array<string, mixed>
-     */
-    public function buildFormViewVariables(Alert $alert): array
-    {
-        $selectedIds = $alert->exists ? $alert->service_ids : [];
-        $services = Service::query()
-            ->where(function (Builder $query) use ($selectedIds): void {
-                $query->enabled();
-
-                if ($selectedIds !== []) {
-                    $query->orWhere(fn (Builder $q) => $q->disabled()->whereIn('id', $selectedIds));
-                }
-            })
-            ->orderBy('name')
-            ->get();
-        $providers = NotificationProvider::orderBy('type')->orderBy('name')->get();
-        $ruleTypes = AlertRuleCatalog::ruleTypeLabels();
-        $header = $alert->exists ? 'Edit alert' : 'New alert';
-
-        return [
-            'alert' => $alert,
-            'services' => $services,
-            'providers' => $providers,
-            'ruleTypes' => $ruleTypes,
-            'formRuleMetadata' => AlertRuleCatalog::formRuleMetadata(),
-            'selectedProviderIds' => $alert->exists ? $alert->notificationProviders()->pluck('notification_providers.id')->all() : [],
-            'selectedServiceIds' => $alert->service_ids,
-            'header' => $header,
-        ];
-    }
-
-    /**
-     * Sanitize the pattern array.
-     *
-     * @param mixed $raw The raw value to sanitize.
-     *
-     * @return list<string>
-     */
-    public function sanitizePatternArray(mixed $raw): array
-    {
-        if (! \is_array($raw)) {
-            return [];
-        }
-        $out = [];
-
-        foreach ($raw as $v) {
-            if (! \is_string($v)) {
-                continue;
-            }
-            $t = \trim($v);
-
-            if ($t !== '') {
-                $out[] = $t;
-            }
-        }
-
-        return \array_values(\array_unique($out));
-    }
-
     /**
      * Validate the alert.
      *
@@ -121,8 +54,8 @@ class AlertUpsertService
         $upsert = $this;
         $validator = Validator::make($request->all(), $baseRules);
         $validator->after(function (\Illuminate\Validation\Validator $v) use ($request, $upsert): void {
-            $jobPatterns = $upsert->sanitizePatternArray($request->input('job_patterns'));
-            $queuePatterns = $upsert->sanitizePatternArray($request->input('queue_patterns'));
+            $jobPatterns = $upsert->private__sanitizePatternArray($request->input('job_patterns'));
+            $queuePatterns = $upsert->private__sanitizePatternArray($request->input('queue_patterns'));
 
             foreach ($jobPatterns as $p) {
                 if (\strlen($p) > 255) {
@@ -143,8 +76,8 @@ class AlertUpsertService
 
         $validated = $validator->validate();
 
-        $jobPatterns = $this->sanitizePatternArray($request->input('job_patterns'));
-        $queuePatterns = $this->sanitizePatternArray($request->input('queue_patterns'));
+        $jobPatterns = $this->private__sanitizePatternArray($request->input('job_patterns'));
+        $queuePatterns = $this->private__sanitizePatternArray($request->input('queue_patterns'));
 
         $threshold = [];
 
@@ -183,5 +116,33 @@ class AlertUpsertService
             ],
             'provider_ids' => $validated['provider_ids'],
         ];
+    }
+
+    /**
+     * Sanitize the pattern array.
+     *
+     * @param mixed $raw The raw value to sanitize.
+     *
+     * @return list<string>
+     */
+    private function private__sanitizePatternArray(mixed $raw): array
+    {
+        if (! \is_array($raw)) {
+            return [];
+        }
+        $out = [];
+
+        foreach ($raw as $v) {
+            if (! \is_string($v)) {
+                continue;
+            }
+            $t = \trim($v);
+
+            if ($t !== '') {
+                $out[] = $t;
+            }
+        }
+
+        return \array_values(\array_unique($out));
     }
 }

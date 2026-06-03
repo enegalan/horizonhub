@@ -6,7 +6,6 @@ use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 use App\Models\Service;
-use App\Services\Alerts\AlertChartDataService;
 use App\Services\Alerts\AlertEvaluationBatchService;
 use App\Services\Alerts\AlertUpsertService;
 use App\Services\Alerts\Engine\AlertEngine;
@@ -44,10 +43,6 @@ class AlertControllerTest extends TestCase
             'sent_at' => now(),
         ]);
 
-        $chart = $this->createMock(AlertChartDataService::class);
-        $chart->method('buildChart')->willReturn(['xAxis' => [], 'sent' => [], 'failed' => []]);
-        $this->app->instance(AlertChartDataService::class, $chart);
-
         $engine = $this->createMock(AlertEngine::class);
         $engine->method('evaluateAlert')->willReturn([
             'alert_id' => $alert->id,
@@ -61,15 +56,6 @@ class AlertControllerTest extends TestCase
         $this->app->instance(AlertEngine::class, $engine);
 
         $upsert = $this->createMock(AlertUpsertService::class);
-        $upsert->method('buildFormViewVariables')->willReturn([
-            'alert' => $alert,
-            'services' => collect([$service]),
-            'providers' => collect([$provider]),
-            'ruleTypes' => [FailureCount::type() => 'Failure count in window'],
-            'selectedProviderIds' => [$provider->id],
-            'selectedServiceIds' => [$service->id],
-            'header' => 'Edit alert',
-        ]);
         $upsert->method('validateAlert')->willReturn([
             'alert' => [
                 'name' => 'new-alert',
