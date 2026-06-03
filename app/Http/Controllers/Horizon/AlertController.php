@@ -234,19 +234,16 @@ class AlertController extends Controller
             })
             ->orderBy('name')
             ->get();
-        $providers = NotificationProvider::orderBy('type')->orderBy('name')->get();
-        $ruleTypes = AlertRuleCatalog::ruleTypeLabels();
-        $header = $alert->exists ? 'Edit alert' : 'New alert';
 
         return [
             'alert' => $alert,
             'services' => $services,
-            'providers' => $providers,
-            'ruleTypes' => $ruleTypes,
+            'providers' => NotificationProvider::orderBy('type')->orderBy('name')->get(),
+            'ruleTypes' => AlertRuleCatalog::ruleTypeLabels(),
             'formRuleMetadata' => AlertRuleCatalog::formRuleMetadata(),
             'selectedProviderIds' => $alert->exists ? $alert->notificationProviders()->pluck('notification_providers.id')->all() : [],
             'selectedServiceIds' => $alert->service_ids,
-            'header' => $header,
+            'header' => $alert->exists ? 'Edit alert' : 'New alert',
         ];
     }
 }
