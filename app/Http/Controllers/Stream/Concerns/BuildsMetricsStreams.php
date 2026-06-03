@@ -26,7 +26,7 @@ trait BuildsMetricsStreams
             ['update', 'metrics-workload-summary', e($d['workloadSummary']), null],
             ['update', 'metrics-supervisors-summary', e($d['supervisorsSummary']), null],
             ['update', 'metrics-value-failure-rate', $failureRateHtml, null],
-            ['replace', 'metrics-chart-data', '<script type="application/json" id="metrics-chart-data">' . $chartJson . '</script>', null],
+            ['replace', 'metrics-chart-data', "<script type='application/json' id='metrics-chart-data'>$chartJson</script>", null],
             ['update', 'metrics-workload-body', \view('horizon.metrics.partials.index.workload-tbody', ['workloadRows' => $d['workloadRows']])->render(), 'morph'],
             ['update', 'metrics-supervisors-body', \view('horizon.metrics.partials.index.supervisors-tbody', ['supervisorsRows' => $d['supervisorsRows']])->render(), 'morph'],
         ]);
