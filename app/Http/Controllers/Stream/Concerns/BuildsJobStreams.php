@@ -84,8 +84,6 @@ trait BuildsJobStreams
      *
      * @param Service $service The service.
      * @param array<string, mixed> $jobData The job data.
-     *
-     * @return object
      */
     private function private__buildJobShowViewData(Service $service, array $jobData): object
     {

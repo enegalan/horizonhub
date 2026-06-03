@@ -9,8 +9,6 @@ trait BuildsProviderStreams
 {
     /**
      * Build the providers streams.
-     *
-     * @return string
      */
     private function buildProviders(): string
     {

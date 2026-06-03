@@ -56,15 +56,6 @@ class AlertControllerTest extends TestCase
         $this->app->instance(AlertEngine::class, $engine);
 
         $upsert = $this->createMock(AlertUpsertService::class);
-        $upsert->method('buildFormViewVariables')->willReturn([
-            'alert' => $alert,
-            'services' => collect([$service]),
-            'providers' => collect([$provider]),
-            'ruleTypes' => [FailureCount::type() => 'Failure count in window'],
-            'selectedProviderIds' => [$provider->id],
-            'selectedServiceIds' => [$service->id],
-            'header' => 'Edit alert',
-        ]);
         $upsert->method('validateAlert')->willReturn([
             'alert' => [
                 'name' => 'new-alert',

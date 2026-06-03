@@ -482,6 +482,29 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('target="job-count-horizon-service-dashboard-jobs-processing"', $result);
     }
 
+    public function test_build_services_streams_counts_online_offline_and_stand_by(): void
+    {
+        Service::create(['name' => 'online-svc', 'base_url' => 'https://online.test', 'status' => 'online']);
+        Service::create(['name' => 'offline-svc', 'base_url' => 'https://offline.test', 'status' => 'offline']);
+        Service::create(['name' => 'standby-svc', 'base_url' => 'https://standby.test', 'status' => 'stand_by']);
+
+        $this->mock(ServiceStatsAttachmentService::class, function ($mock): void {
+            $mock->shouldReceive('attachHorizonStats')->once();
+        });
+
+        $controller = $this->app->make(HorizonStreamsController::class);
+
+        $reflection = new \ReflectionMethod($controller, 'buildServices');
+        $reflection->setAccessible(true);
+
+        $result = $reflection->invoke($controller, '');
+
+        $this->assertNotNull($result);
+        $this->assertMatchesRegularExpression('/Total.*?<span>3<\/span>/s', $result);
+        $this->assertMatchesRegularExpression('/Online.*?<span>1<\/span>/s', $result);
+        $this->assertMatchesRegularExpression('/Offline.*?<span>2<\/span>/s', $result);
+    }
+
     public function test_build_services_streams_returns_tbody_morph_update(): void
     {
         Service::create([

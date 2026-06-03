@@ -17,7 +17,6 @@ use App\Services\Horizon\HorizonClientService;
 use App\Services\Jobs\JobListService;
 use App\Services\Jobs\JobServiceResolver;
 use App\Services\Metrics\MetricsDataService;
-use App\Services\Services\ServiceDetailService;
 use App\Services\Services\ServiceFilterService;
 use App\Services\Services\ServiceStatsAttachmentService;
 use Illuminate\Http\Request;
@@ -55,11 +54,6 @@ class HorizonStreamsController extends StreamController
     private MetricsDataService $metrics;
 
     /**
-     * The service detail service.
-     */
-    private ServiceDetailService $serviceDetail;
-
-    /**
      * The service filter service.
      */
     private ServiceFilterService $serviceFilter;
@@ -76,17 +70,15 @@ class HorizonStreamsController extends StreamController
      * @param HorizonClientService $horizonApi The horizon API client.
      * @param JobListService $jobList The job list service.
      * @param JobServiceResolver $jobServiceResolver The job service resolver.
-     * @param ServiceDetailService $serviceDetail The service detail service.
      * @param ServiceStatsAttachmentService $serviceStats The service stats attachment service.
      * @param ServiceFilterService $serviceFilter The service filter service.
      */
-    public function __construct(MetricsDataService $metrics, HorizonClientService $horizonApi, JobListService $jobList, JobServiceResolver $jobServiceResolver, ServiceDetailService $serviceDetail, ServiceStatsAttachmentService $serviceStats, ServiceFilterService $serviceFilter)
+    public function __construct(MetricsDataService $metrics, HorizonClientService $horizonApi, JobListService $jobList, JobServiceResolver $jobServiceResolver, ServiceStatsAttachmentService $serviceStats, ServiceFilterService $serviceFilter)
     {
         $this->metrics = $metrics;
         $this->horizonApi = $horizonApi;
         $this->jobList = $jobList;
         $this->jobServiceResolver = $jobServiceResolver;
-        $this->serviceDetail = $serviceDetail;
         $this->serviceStats = $serviceStats;
         $this->serviceFilter = $serviceFilter;
     }

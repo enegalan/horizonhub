@@ -5,13 +5,16 @@ namespace App\Http\Controllers\Horizon;
 use App\Http\Controllers\Controller;
 use App\Models\Alert;
 use App\Models\AlertLog;
+use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\AlertEvaluationBatchService;
 use App\Services\Alerts\AlertUpsertService;
 use App\Services\Alerts\Engine\AlertEngine;
 use App\Support\Alerts\AlertDeliveryLogPresenter;
+use App\Support\Alerts\AlertRuleCatalog;
 use App\Support\FlashStatus;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -45,7 +48,7 @@ class AlertController extends Controller
      */
     public function create(): View
     {
-        return \view('horizon.alerts.form', $this->alertUpsert->buildFormViewVariables(new Alert));
+        return \view('horizon.alerts.form', $this->private__buildFormViewVariables(new Alert));
     }
 
     /**
@@ -65,7 +68,7 @@ class AlertController extends Controller
      */
     public function edit(Alert $alert): View
     {
-        return \view('horizon.alerts.form', $this->alertUpsert->buildFormViewVariables($alert));
+        return \view('horizon.alerts.form', $this->private__buildFormViewVariables($alert));
     }
 
     /**
@@ -209,5 +212,41 @@ class AlertController extends Controller
         return redirect()
             ->route('horizon.alerts.index')
             ->with('status', FlashStatus::success('Alert updated.'));
+    }
+
+    /**
+     * Build the form view variables.
+     *
+     * @param Alert $alert The alert.
+     *
+     * @return array<string, mixed>
+     */
+    private function private__buildFormViewVariables(Alert $alert): array
+    {
+        $selectedIds = $alert->exists ? $alert->service_ids : [];
+        $services = Service::query()
+            ->where(function (Builder $query) use ($selectedIds): void {
+                $query->enabled();
+
+                if ($selectedIds !== []) {
+                    $query->orWhere(fn (Builder $q) => $q->disabled()->whereIn('id', $selectedIds));
+                }
+            })
+            ->orderBy('name')
+            ->get();
+        $providers = NotificationProvider::orderBy('type')->orderBy('name')->get();
+        $ruleTypes = AlertRuleCatalog::ruleTypeLabels();
+        $header = $alert->exists ? 'Edit alert' : 'New alert';
+
+        return [
+            'alert' => $alert,
+            'services' => $services,
+            'providers' => $providers,
+            'ruleTypes' => $ruleTypes,
+            'formRuleMetadata' => AlertRuleCatalog::formRuleMetadata(),
+            'selectedProviderIds' => $alert->exists ? $alert->notificationProviders()->pluck('notification_providers.id')->all() : [],
+            'selectedServiceIds' => $alert->service_ids,
+            'header' => $header,
+        ];
     }
 }
