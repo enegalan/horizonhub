@@ -25,13 +25,11 @@ trait BuildsProviderStreams
             ->groupBy('notification_providers.type')
             ->pluck('aggregate', 'notification_providers.type');
 
-        $providerTypes = array_keys(NotificationProvider::getProviders());
-
         $deliveryStats = [
             'total' => AlertLog::query()->count(),
         ];
 
-        foreach ($providerTypes as $providerType) {
+        foreach (array_keys(NotificationProvider::getProviders()) as $providerType) {
             $deliveryStats[$providerType] = $countsByProviderTypes[$providerType] ?? 0;
         }
 
