@@ -9,9 +9,25 @@
             <x-page-hero
                 eyebrow="Overview"
                 title="Dashboard"
-                description="Live health and workload across your connected Horizon services."
-                class="border-b-0"
+                description="Live health and workload across your connected Horizon services. Filter by tag or service to focus on a subset."
             />
+
+            <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
+                <form method="GET" action="{{ route('horizon.index') }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="_top" data-service-tag-filter="1" data-service-tag-filter-manual="1">
+                    <x-service-tag-filter
+                        :all-tags="$allTags ?? []"
+                        :selected-tags="$selectedTags ?? []"
+                        :show-service-multiselect="true"
+                        :services="$services ?? collect()"
+                        :service-ids="$selectedServiceIds ?? []"
+                        service-multiselect-id="dashboard-index-services"
+                        service-multiselect-label="Services"
+                    />
+                    <x-button type="submit" class="h-9 shrink-0 text-sm">
+                        Filter
+                    </x-button>
+                </form>
+            </div>
         </div>
 
         <x-kpi-grid gradient>

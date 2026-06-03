@@ -9,12 +9,21 @@ trait BuildsDashboardStreams
 {
     /**
      * Build the dashboard streams.
+     *
+     * @param string $query The query.
      */
-    protected function buildDashboard(): string
+    protected function buildDashboard(string $query): string
     {
-        $metrics = $this->metrics->buildMetricsDashboardData([]);
+        $serviceFilterIds = $this->serviceFilter->resolveFromQuery($query);
+        $metrics = $this->metrics->buildMetricsDashboardData($serviceFilterIds);
 
-        $services = Service::orderBy('name')->get();
+        $servicesQuery = Service::orderBy('name');
+
+        if (! empty($serviceFilterIds)) {
+            $servicesQuery->whereIn('id', $serviceFilterIds);
+        }
+
+        $services = $servicesQuery->get();
         $this->serviceStats->attachHorizonStats($services, $this->horizonApi);
 
         $onlineCount = 0;
@@ -41,8 +50,14 @@ trait BuildsDashboardStreams
             ($anyOffline ? 'bg-orange-500' :
                 ($anyStandBy ? 'bg-amber-500' : 'bg-emerald-500'));
 
-        $recentAlertLogs = AlertLog::with(['alert', 'service'])
-            ->orderByDesc('sent_at')
+        $recentAlertLogsQuery = AlertLog::with(['alert', 'service'])
+            ->orderByDesc('sent_at');
+
+        if (! empty($serviceFilterIds)) {
+            $recentAlertLogsQuery->whereIn('service_id', $serviceFilterIds);
+        }
+
+        $recentAlertLogs = $recentAlertLogsQuery
             ->limit(5) // TODO: make this configurable
             ->get();
 

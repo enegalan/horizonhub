@@ -92,7 +92,7 @@ class TurboStreamSseTest extends TestCase
         $reflection = new \ReflectionMethod($controller, 'buildAlerts');
         $reflection->setAccessible(true);
 
-        $result = $reflection->invoke($controller);
+        $result = $reflection->invoke($controller, '');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="turbo-horizon-alert-stats" method="morph"', $result);
@@ -188,7 +188,7 @@ class TurboStreamSseTest extends TestCase
         $reflection = new \ReflectionMethod($controller, 'buildDashboard');
         $reflection->setAccessible(true);
 
-        $result = $reflection->invoke($controller);
+        $result = $reflection->invoke($controller, '');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="dashboard-value-jobs-minute"', $result);
@@ -207,7 +207,7 @@ class TurboStreamSseTest extends TestCase
         $reflection = new \ReflectionMethod($controller, 'buildDashboard');
         $reflection->setAccessible(true);
 
-        $result = $reflection->invoke($controller);
+        $result = $reflection->invoke($controller, '');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="dashboard-value-jobs-minute"', $result);
@@ -235,7 +235,7 @@ class TurboStreamSseTest extends TestCase
         $reflection = new \ReflectionMethod($controller, 'buildDashboard');
         $reflection->setAccessible(true);
 
-        $result = $reflection->invoke($controller);
+        $result = $reflection->invoke($controller, '');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('bg-slate-400', $result);
@@ -413,7 +413,7 @@ class TurboStreamSseTest extends TestCase
         $reflection = new \ReflectionMethod($controller, 'buildProviders');
         $reflection->setAccessible(true);
 
-        $result = $reflection->invoke($controller);
+        $result = $reflection->invoke($controller, '');
 
         $this->assertNotNull($result);
         $this->assertMatchesRegularExpression('/Total.*?<span>3<\/span>/s', $result);
@@ -435,7 +435,7 @@ class TurboStreamSseTest extends TestCase
         $reflection = new \ReflectionMethod($controller, 'buildProviders');
         $reflection->setAccessible(true);
 
-        $result = $reflection->invoke($controller);
+        $result = $reflection->invoke($controller, '');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="turbo-horizon-provider-stats" method="morph"', $result);

@@ -93,9 +93,11 @@ class HorizonStreamsController extends StreamController
         return $this->runStream(fn (): string => $this->buildAlertShow($alert));
     }
 
-    public function dashboard(): StreamedResponse
+    public function dashboard(Request $request): StreamedResponse
     {
-        return $this->runStream(fn (): string => $this->buildDashboard());
+        $query = $request->getQueryString() ?? '';
+
+        return $this->runStream(fn (): string => $this->buildDashboard($query));
     }
 
     public function jobs(Request $request): StreamedResponse
