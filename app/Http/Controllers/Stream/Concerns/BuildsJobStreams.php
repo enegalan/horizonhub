@@ -63,9 +63,8 @@ trait BuildsJobStreams
         if ($query !== '') {
             $url .= "?$query";
         }
-        $pageRequest = Request::create($url, 'GET');
 
-        $index = $this->jobList->buildAggregatedJobsIndexFromRequest($pageRequest);
+        $index = $this->jobList->buildAggregatedJobsIndexFromRequest(Request::create($url, 'GET'));
 
         return $this->streamsForJobListSections(
             [
