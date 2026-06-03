@@ -12,30 +12,6 @@ trait BuildsDashboardStreams
      */
     protected function buildDashboard(): string
     {
-        $d = $this->private__buildDashboardData();
-
-        return $this->buildStreams([
-            ['update', 'dashboard-value-jobs-minute', e($d['jobsPastMinute'] ?? '—'), null],
-            ['update', 'dashboard-value-jobs-hour', e($d['jobsPastHour'] ?? '—'), null],
-            ['update', 'dashboard-value-failed-seven', e($d['failedPastSevenDays'] ?? '—'), null],
-            ['update', 'dashboard-services-kpi-inner', \view('horizon.dashboard.partials.index.kpi-services-online', [
-                'servicesHealthDotClass' => $d['servicesHealthDotClass'] ?? 'bg-slate-400',
-                'servicesOnlineCount' => $d['servicesOnlineCount'] ?? 0,
-                'servicesTotal' => $d['servicesTotal'] ?? 0,
-            ])->render(), 'morph'],
-            ['update', 'dashboard-service-health-grid', \view('horizon.dashboard.partials.index.service-health-grid', ['services' => $d['services'] ?? collect()])->render(), 'morph'],
-            ['update', 'dashboard-recent-alerts-body', \view('horizon.dashboard.partials.index.recent-alerts-tbody', ['recentAlertLogs' => $d['recentAlertLogs'] ?? collect()])->render(), 'morph'],
-            ['update', 'dashboard-workload-summary-body', \view('horizon.dashboard.partials.index.workload-summary-tbody', ['workloadRows' => $d['workloadRows'] ?? []])->render(), 'morph'],
-        ]);
-    }
-
-    /**
-     * Build the dashboard data.
-     *
-     * @return array<string, mixed>
-     */
-    protected function private__buildDashboardData(): array
-    {
         $metrics = $this->metrics->buildMetricsDashboardData([]);
 
         $services = Service::query()->orderBy('name')->get();
@@ -68,16 +44,21 @@ trait BuildsDashboardStreams
         $recentAlertLogs = AlertLog::query()
             ->with(['alert', 'service'])
             ->orderByDesc('sent_at')
-            ->limit(5)
+            ->limit(5) // TODO: make this configurable
             ->get();
 
-        return \array_merge($metrics, [
-            'services' => $services,
-            'servicesOnlineCount' => $onlineCount,
-            'servicesTotal' => $enabledServices->count(),
-            'servicesHealthDotClass' => $servicesHealthDotClass,
-            'recentAlertLogs' => $recentAlertLogs,
-            'workloadRows' => $metrics['workloadRows'],
+        return $this->buildStreams([
+            ['update', 'dashboard-value-jobs-minute', e($metrics['jobsPastMinute'] ?? '—'), null],
+            ['update', 'dashboard-value-jobs-hour', e($metrics['jobsPastHour'] ?? '—'), null],
+            ['update', 'dashboard-value-failed-seven', e($metrics['failedPastSevenDays'] ?? '—'), null],
+            ['update', 'dashboard-services-kpi-inner', \view('horizon.dashboard.partials.index.kpi-services-online', [
+                'servicesHealthDotClass' => $servicesHealthDotClass,
+                'servicesOnlineCount' => $onlineCount,
+                'servicesTotal' => $enabledServices->count(),
+            ])->render(), 'morph'],
+            ['update', 'dashboard-service-health-grid', \view('horizon.dashboard.partials.index.service-health-grid', ['services' => $services])->render(), 'morph'],
+            ['update', 'dashboard-recent-alerts-body', \view('horizon.dashboard.partials.index.recent-alerts-tbody', ['recentAlertLogs' => $recentAlertLogs])->render(), 'morph'],
+            ['update', 'dashboard-workload-summary-body', \view('horizon.dashboard.partials.index.workload-summary-tbody', ['workloadRows' => $metrics['workloadRows']])->render(), 'morph'],
         ]);
     }
 }

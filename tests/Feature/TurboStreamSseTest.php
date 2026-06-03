@@ -147,7 +147,7 @@ class TurboStreamSseTest extends TestCase
         $this->assertContains(1, $chart['failed']);
     }
 
-    public function test_build_dashboard_data_merges_metrics_with_service_health_and_recent_alert_logs(): void
+    public function test_build_dashboard_streams_merges_metrics_with_service_health_and_recent_alert_logs(): void
     {
         $online = Service::create(['name' => 'online-svc', 'base_url' => 'https://online.test', 'status' => 'online']);
         $offline = Service::create(['name' => 'offline-svc', 'base_url' => 'https://offline.test', 'status' => 'offline']);
@@ -185,43 +185,19 @@ class TurboStreamSseTest extends TestCase
         });
 
         $controller = $this->app->make(HorizonStreamsController::class);
-        $reflection = new \ReflectionMethod($controller, 'private__buildDashboardData');
+        $reflection = new \ReflectionMethod($controller, 'buildDashboard');
         $reflection->setAccessible(true);
 
         $result = $reflection->invoke($controller);
 
-        $this->assertSame(4, $result['jobsPastMinute']);
-        $this->assertSame(1, $result['servicesOnlineCount']);
-        $this->assertSame(3, $result['servicesTotal']);
-        $this->assertSame('bg-orange-500', $result['servicesHealthDotClass']);
-        $this->assertCount(3, $result['recentAlertLogs']);
-        $this->assertSame($online->id, $result['recentAlertLogs'][0]->service_id);
-    }
-
-    public function test_build_dashboard_data_uses_neutral_health_dot_when_no_services_exist(): void
-    {
-        $this->mock(MetricsDataService::class, function ($mock): void {
-            $mock->shouldReceive('buildMetricsDashboardData')
-                ->once()
-                ->with([])
-                ->andReturn([
-                    'workloadRows' => [],
-                ]);
-        });
-
-        $this->mock(ServiceStatsAttachmentService::class, function ($mock): void {
-            $mock->shouldReceive('attachHorizonStats')->once();
-        });
-
-        $controller = $this->app->make(HorizonStreamsController::class);
-        $reflection = new \ReflectionMethod($controller, 'private__buildDashboardData');
-        $reflection->setAccessible(true);
-
-        $result = $reflection->invoke($controller);
-
-        $this->assertSame('bg-slate-400', $result['servicesHealthDotClass']);
-        $this->assertSame(0, $result['servicesTotal']);
-        $this->assertSame(0, $result['servicesOnlineCount']);
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('target="dashboard-value-jobs-minute"', $result);
+        $this->assertStringContainsString('>4<', $result);
+        $this->assertStringContainsString('bg-orange-500', $result);
+        $this->assertMatchesRegularExpression('/dashboard-value-services-online.*?1\s*\/\s*3/s', $result);
+        $this->assertStringContainsString('dash-alert', $result);
+        $this->assertStringContainsString('online-svc', $result);
+        $this->assertStringContainsString('target="dashboard-workload-summary-body" method="morph"', $result);
     }
 
     public function test_build_dashboard_streams_returns_expected_targets(): void
@@ -238,6 +214,32 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('target="dashboard-service-health-grid" method="morph"', $result);
         $this->assertStringContainsString('target="dashboard-recent-alerts-body" method="morph"', $result);
         $this->assertStringContainsString('target="dashboard-workload-summary-body" method="morph"', $result);
+    }
+
+    public function test_build_dashboard_streams_uses_neutral_health_dot_when_no_services_exist(): void
+    {
+        $this->mock(MetricsDataService::class, function ($mock): void {
+            $mock->shouldReceive('buildMetricsDashboardData')
+                ->once()
+                ->with([])
+                ->andReturn([
+                    'workloadRows' => [],
+                ]);
+        });
+
+        $this->mock(ServiceStatsAttachmentService::class, function ($mock): void {
+            $mock->shouldReceive('attachHorizonStats')->once();
+        });
+
+        $controller = $this->app->make(HorizonStreamsController::class);
+        $reflection = new \ReflectionMethod($controller, 'buildDashboard');
+        $reflection->setAccessible(true);
+
+        $result = $reflection->invoke($controller);
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('bg-slate-400', $result);
+        $this->assertMatchesRegularExpression('/dashboard-value-services-online.*?0\s*\/\s*0/s', $result);
     }
 
     public function test_build_job_show_streams_returns_granular_detail_updates(): void
