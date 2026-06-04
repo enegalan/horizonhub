@@ -86,6 +86,7 @@
         placeholder: {{ json_encode($placeholder) }},
         emptyMessage: {{ json_encode($emptyMessage) }},
         openMenu() {
+            window.dispatchEvent(new CustomEvent('horizonhub-select-open'));
             this.filterQuery = '';
             this.open = true;
             var self = this;
@@ -167,6 +168,7 @@
         },
     }"
     @click.window="handleOutsideClick($event)"
+    @horizonhub-select-open.window="closeMenu()"
 >
     <select x-ref="optionSource" multiple class="sr-only" tabindex="-1" aria-hidden="true">
         {{ $slot }}

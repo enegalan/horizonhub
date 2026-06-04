@@ -28,6 +28,7 @@
         placeholder: {{ json_encode($placeholder) }},
         emptyMessage: {{ json_encode($emptyMessage) }},
         openMenu() {
+            window.dispatchEvent(new CustomEvent('horizonhub-select-open'));
             this.open = true;
             var self = this;
             this.$nextTick(function () {
@@ -101,6 +102,7 @@
         $watch('open', (open) => { if (open) sync(); });
     "
     @click.window="handleOutsideClick($event)"
+    @horizonhub-select-open.window="closeMenu()"
     >
     <select x-ref="hidden"
         {{ $selectAttrs->merge(['class' => 'sr-only']) }}>
