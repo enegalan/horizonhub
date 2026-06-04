@@ -2,7 +2,7 @@
 
 namespace App\Support\HorizonHub;
 
-use App\Contracts\HorizonHubStore;
+use App\Contracts\HorizonHubStore as HorizonHubStoreContract;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
@@ -14,7 +14,7 @@ use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
-class MockHorizonHubStore implements HorizonHubStore
+class MockHorizonHubStore implements HorizonHubStoreContract
 {
     /** @var Collection<int, AlertLog> */
     private Collection $alertLogs;

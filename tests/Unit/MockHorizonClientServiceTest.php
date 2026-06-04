@@ -8,6 +8,8 @@ use Tests\TestCase;
 
 class MockHorizonClientServiceTest extends TestCase
 {
+    protected static bool $useMockEnvironment = true;
+
     public function test_get_job_resolves_pending_job_from_list_fixture(): void
     {
         $service = new Service(['id' => 1, 'name' => 'billing-api', 'base_url' => 'https://b.test', 'enabled' => true]);

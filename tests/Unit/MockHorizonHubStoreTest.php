@@ -7,6 +7,8 @@ use Tests\TestCase;
 
 class MockHorizonHubStoreTest extends TestCase
 {
+    protected static bool $useMockEnvironment = true;
+
     public function test_alerts_index_stream_data_includes_service_labels(): void
     {
         $store = new MockHorizonHubStore;

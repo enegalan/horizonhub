@@ -2,7 +2,7 @@
 
 namespace App\Support\HorizonHub;
 
-use App\Contracts\HorizonHubStore;
+use App\Contracts\HorizonHubStore as HorizonHubStoreContract;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
@@ -12,7 +12,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
-class HorizonHubStore implements HorizonHubStore
+class HorizonHubStore implements HorizonHubStoreContract
 {
     public function alertLogCountsByProviderType(): array
     {
