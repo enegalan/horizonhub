@@ -13,6 +13,10 @@ class EvaluateAlertsCommand extends Command
 
     public function handle(AlertEngine $engine): int
     {
+        if (config('horizonhub.mock')) {
+            return self::SUCCESS;
+        }
+
         $engine->evaluateScheduled();
 
         return self::SUCCESS;

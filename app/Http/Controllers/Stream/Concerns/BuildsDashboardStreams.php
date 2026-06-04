@@ -2,9 +2,6 @@
 
 namespace App\Http\Controllers\Stream\Concerns;
 
-use App\Models\AlertLog;
-use App\Models\Service;
-
 trait BuildsDashboardStreams
 {
     /**
@@ -17,13 +14,9 @@ trait BuildsDashboardStreams
         $serviceFilterIds = $this->serviceFilter->resolveFromQuery($query);
         $metrics = $this->metrics->buildMetricsDashboardData($serviceFilterIds);
 
-        $servicesQuery = Service::orderBy('name');
-
-        if (! empty($serviceFilterIds)) {
-            $servicesQuery->whereIn('id', $serviceFilterIds);
-        }
-
-        $services = $servicesQuery->get();
+        $services = $this->store->servicesOrdered(
+            ! empty($serviceFilterIds) ? $serviceFilterIds : null,
+        );
         $this->serviceStats->attachHorizonStats($services, $this->horizonApi);
 
         $onlineCount = 0;
@@ -50,16 +43,8 @@ trait BuildsDashboardStreams
             ($anyOffline ? 'bg-orange-500' :
                 ($anyStandBy ? 'bg-amber-500' : 'bg-emerald-500'));
 
-        $recentAlertLogsQuery = AlertLog::with(['alert', 'service'])
-            ->orderByDesc('sent_at');
-
-        if (! empty($serviceFilterIds)) {
-            $recentAlertLogsQuery->whereIn('service_id', $serviceFilterIds);
-        }
-
-        $recentAlertLogs = $recentAlertLogsQuery
-            ->limit(5) // TODO: make this configurable
-            ->get();
+        // TODO: make this $limit configurable.
+        $recentAlertLogs = $this->store->recentAlertLogs(5, $serviceFilterIds !== [] ? $serviceFilterIds : null);
 
         return $this->buildStreams([
             ['update', 'dashboard-value-jobs-minute', e($metrics['jobsPastMinute'] ?? '—'), null],

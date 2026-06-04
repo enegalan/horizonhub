@@ -70,6 +70,23 @@ Custom paths can be adjusted in config if a deployment uses non-default Horizon 
 
 Disabled services are excluded from polling, metrics, and alert evaluation.
 
+### Mock mode (landing / local UI)
+
+Set `API_ENVIRONMENT=mock` to run Horizon Hub with a fixed in-memory catalog and a mock Horizon API client. Omit `API_ENVIRONMENT` or set any other value for normal operation (database and real Horizon HTTP).
+
+Recommended `.env` values when using mock:
+
+- `API_ENVIRONMENT=mock`
+- `SESSION_DRIVER=array`
+- `CACHE_STORE=array`
+- `QUEUE_CONNECTION=sync`
+
+Limitations in mock mode:
+
+- All `POST`/`PUT`/`DELETE` routes under `/horizon` return a read-only error (no CRUD).
+- Scheduled commands `hh:evaluate-alerts` and `hh:mark-stale-services-offline` are not registered.
+- Mock data is built by `App\Support\HorizonHub\Mock\MockDataset` (catalog and Horizon fixtures) and exposed as `config('demo.catalog')`, `config('demo.horizon')`, and `config('demo.job_service_index')` (defaults: 96 services, 30 providers, 64 alerts, 1200 alert logs, capped jobs per status). Tune volume with `MOCK_*` env vars (`MOCK_SERVICE_COUNT`, `MOCK_PROVIDER_COUNT`, `MOCK_ALERT_COUNT`, `MOCK_ALERT_LOG_COUNT`, `MOCK_JOBS_PER_STATUS`); `DEMO_*` names remain supported as fallbacks.
+
 ## Architecture and data flow
 
 ```mermaid

@@ -9,6 +9,11 @@ use App\Services\Horizon\Contracts\HorizonClientCache as HorizonClientCacheContr
 class HorizonClientApi implements HorizonClientApiContract
 {
     /**
+     * The cache for Horizon API calls.
+     */
+    private HorizonClientCacheContract $cache;
+
+    /**
      * The HTTP client.
      */
     private HorizonHttpClient $http;
@@ -20,6 +25,7 @@ class HorizonClientApi implements HorizonClientApiContract
      */
     public function __construct(HorizonClientCacheContract $cache)
     {
+        $this->cache = $cache;
         $this->http = new HorizonHttpClient($cache);
     }
 
@@ -137,6 +143,16 @@ class HorizonClientApi implements HorizonClientApiContract
         $relativePath = (string) config('horizonhub.horizon_paths.ping');
 
         return $this->http->call($service, $relativePath, 'get', allowWhenDisabled: true, bypassFailureCooldown: true);
+    }
+
+    /**
+     * Reset the failure cooldown for a service.
+     *
+     * @param Service $service The service instance.
+     */
+    public function resetFailureCooldown(Service $service): void
+    {
+        $this->cache->forgetFailureCooldown($service);
     }
 
     /**

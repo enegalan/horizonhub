@@ -2,12 +2,26 @@
 
 namespace App\Services\Alerts\Rules\Strategies;
 
+use App\Contracts\HorizonHubStore;
 use App\Models\Alert;
-use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 
 final class WorkerOffline implements AlertRuleContract
 {
+    /**
+     * The horizon hub store.
+     */
+    private HorizonHubStore $store;
+
+    /**
+     * The constructor.
+     *
+     * @param HorizonHubStore $store The horizon hub store.
+     */
+    public function __construct(HorizonHubStore $store) {
+        $this->store = $store;
+    }
+
     /**
      * Get the type.
      */
@@ -21,7 +35,7 @@ final class WorkerOffline implements AlertRuleContract
      */
     public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
     {
-        $service = Service::find($serviceId);
+        $service = $this->store->findService($serviceId);
 
         $triggered = false;
 

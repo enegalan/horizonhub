@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Stream\Concerns;
 
-use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 
 trait BuildsProviderStreams
@@ -12,22 +11,14 @@ trait BuildsProviderStreams
      */
     protected function buildProviders(): string
     {
-        $providers = NotificationProvider::orderBy('type')
-            ->orderBy('name')
-            ->get();
-
-        $countsByProviderTypes = AlertLog::selectRaw('notification_providers.type, COUNT(*) as aggregate')
-            ->join('alerts', 'alerts.id', '=', 'alert_logs.alert_id')
-            ->join('alert_notification_provider', 'alert_notification_provider.alert_id', '=', 'alerts.id')
-            ->join('notification_providers', 'notification_providers.id', '=', 'alert_notification_provider.notification_provider_id')
-            ->groupBy('notification_providers.type')
-            ->pluck('aggregate', 'notification_providers.type');
+        $providers = $this->store->providersOrdered();
+        $countsByProviderTypes = $this->store->alertLogCountsByProviderType();
 
         $deliveryStats = [
-            'total' => AlertLog::count(),
+            'total' => $this->store->alertLogTotalCount(),
         ];
 
-        foreach (array_keys(NotificationProvider::getProviders()) as $providerType) {
+        foreach (\array_keys(NotificationProvider::getProviders()) as $providerType) {
             $deliveryStats[$providerType] = $countsByProviderTypes[$providerType] ?? 0;
         }
 

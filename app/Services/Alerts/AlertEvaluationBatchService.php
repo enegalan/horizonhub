@@ -2,8 +2,8 @@
 
 namespace App\Services\Alerts;
 
+use App\Contracts\HorizonHubStore;
 use App\Jobs\EvaluateAlertJob;
-use App\Models\Alert;
 use App\Support\Alerts\AlertEvaluationBatchCache;
 use Illuminate\Bus\Batch;
 use Illuminate\Support\Facades\Bus;
@@ -11,6 +11,20 @@ use Illuminate\Support\Str;
 
 class AlertEvaluationBatchService
 {
+    /**
+     * The horizon hub store.
+     */
+    private HorizonHubStore $store;
+
+    /**
+     * The constructor.
+     *
+     * @param HorizonHubStore $store The horizon hub store.
+     */
+    public function __construct(HorizonHubStore $store) {
+        $this->store = $store;
+    }
+
     /**
      * Get the evaluation status.
      *
@@ -42,9 +56,7 @@ class AlertEvaluationBatchService
      */
     public function startEvaluateAll(): array
     {
-        $alertIds = Alert::enabled()
-            ->pluck('id')
-            ->all();
+        $alertIds = $this->store->enabledAlertIds();
 
         $total = \count($alertIds);
         $evaluationId = (string) Str::uuid();

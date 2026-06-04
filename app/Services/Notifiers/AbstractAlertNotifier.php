@@ -2,9 +2,10 @@
 
 namespace App\Services\Notifiers;
 
+use App\Contracts\HorizonHubStore;
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Services\Notifiers\Contracts\AlertNotifier;
 use App\Services\Notifiers\Contracts\AlertNotifierMetadata;
 use App\Support\Alerts\AlertRuleCatalog;
@@ -17,16 +18,23 @@ abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMeta
     /**
      * The Horizon API proxy service.
      */
-    protected HorizonClientService $horizonApi;
+    protected HorizonClientApi $horizonApi;
+
+    /**
+     * The horizon hub store.
+     */
+    protected HorizonHubStore $store;
 
     /**
      * The constructor.
      *
-     * @param HorizonClientService $horizonApi The horizon API client.
+     * @param HorizonClientApi $horizonApi The horizon API client.
+     * @param HorizonHubStore $store The horizon hub data store.
      */
-    public function __construct(HorizonClientService $horizonApi)
+    public function __construct(HorizonClientApi $horizonApi, HorizonHubStore $store)
     {
         $this->horizonApi = $horizonApi;
+        $this->store = $store;
     }
 
     /**
@@ -71,7 +79,7 @@ abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMeta
      */
     protected function buildNotification(Alert $alert, array $events): array
     {
-        $service = Service::find((int) ($events[0]['service_id']));
+        $service = $this->store->findService((int) ($events[0]['service_id']));
 
         $enrichedEvents = $this->enrichEvents($events);
 
@@ -160,7 +168,7 @@ abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMeta
 
         if (! empty($events)) {
             $serviceId = (int) ($events[0]['service_id'] ?? 0);
-            $service = Service::find($serviceId);
+            $service = $this->store->findService((int) $serviceId);
         }
         $jobs = (empty($jobUuids) || ! $service) ? \collect() : $this->getJobs($service, $jobUuids);
 

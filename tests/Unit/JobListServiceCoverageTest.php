@@ -2,8 +2,9 @@
 
 namespace Tests\Unit;
 
+use App\Contracts\HorizonHubStore;
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Services\Jobs\JobListService;
 use App\Services\Services\ServiceFilterService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,7 +24,7 @@ class JobListServiceCoverageTest extends TestCase
         $s1 = Service::create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
         $s2 = Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getPendingJobs')->willReturn([
             'success' => true,
             'data' => ['jobs' => [
@@ -43,7 +44,7 @@ class JobListServiceCoverageTest extends TestCase
             ]],
         ]);
 
-        $service = new JobListService($api, new ServiceFilterService);
+        $service = new JobListService($api, $this->app->make(ServiceFilterService::class), $this->app->make(HorizonHubStore::class));
 
         $request = Request::create('/horizon/jobs', 'GET', [
             'search' => 'Job',

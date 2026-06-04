@@ -2,8 +2,9 @@
 
 namespace Tests\Unit;
 
+use App\Contracts\HorizonHubStore;
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Services\Jobs\JobsWindowFetcher;
 use App\Services\Metrics\Calculators\FailureMetricsCalculator;
 use App\Services\Metrics\Calculators\JobsThroughputMetricsCalculator;
@@ -23,7 +24,7 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_build_queues_collection_for_service_filter_maps_and_sorts_rows(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $serviceA = Service::create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
         $serviceB = Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
@@ -35,6 +36,7 @@ class MetricsDataServiceTest extends TestCase
             ['service_id' => $serviceA->id, 'queue' => 'redis.zeta', 'jobs' => 1],
             ['service_id' => $serviceB->id, 'queue' => 'redis.alpha', 'jobs' => 2],
         ]);
+        $this->private__injectStoreOntoMetricsMock($metrics);
 
         $rows = $metrics->buildQueuesCollectionForServiceFilter([$serviceB->id]);
 
@@ -46,7 +48,7 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_failure_rate_24h_fetches_multiple_horizon_pages_using_index_cursor(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
 
         $now = Carbon::parse('2026-03-20 15:30:00');
         Carbon::setTestNow($now);
@@ -105,7 +107,7 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_failure_rate_over_time_builds_expected_buckets_and_rates(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
 
         $now = Carbon::parse('2026-03-20 15:30:00');
         Carbon::setTestNow($now);
@@ -177,7 +179,7 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_job_runtimes_last24h_returns_sorted_points_with_seconds(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
 
         $now = Carbon::parse('2026-03-20 15:30:00');
         Carbon::setTestNow($now);
@@ -250,7 +252,7 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_jobs_volume_last24h_counts_hourly_completed_and_failed(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
 
         $now = Carbon::parse('2026-03-21 15:30:00');
         Carbon::setTestNow($now);
@@ -299,7 +301,7 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_supervisors_data_aggregates_jobs_by_queue_and_processes(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
 
         $service = Service::create([
             'name' => 'svc-supervisors',
@@ -365,7 +367,7 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_throughput_totals_for_service_ids_handles_all_and_scoped_modes(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getCompletedJobs')->willReturn(['success' => true, 'data' => ['jobs' => []]]);
         $api->method('getFailedJobs')->willReturn(['success' => true, 'data' => ['jobs' => []]]);
 
@@ -376,6 +378,7 @@ class MetricsDataServiceTest extends TestCase
             ->disableOriginalConstructor()
             ->onlyMethods(['getJobsPastMinute', 'getJobsPastHour', 'getFailedPastSevenDays'])
             ->getMock();
+        $this->private__injectStoreOntoMetricsMock($metrics);
 
         $metrics->method('getJobsPastMinute')->willReturnCallback(function ($service = null): int {
             if ($service === null) {
@@ -408,7 +411,7 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_wait_by_queue_chart_data_picks_top_queues_by_max_wait(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $metrics = $this->private__makeMetricsDataService($api);
 
         $workload = [
@@ -428,7 +431,7 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_wait_by_queue_chart_data_returns_null_when_no_wait_values(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $metrics = $this->private__makeMetricsDataService($api);
 
         $this->assertNull($metrics->getWaitByQueueChartData([
@@ -439,7 +442,7 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_workload_for_service_accepts_numeric_indexed_rows(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getWorkload')->willReturn([
             'success' => true,
             'data' => [
@@ -463,7 +466,7 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_workload_for_service_maps_nested_data_payload(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->expects($this->once())
             ->method('getWorkload')
             ->willReturn([
@@ -493,7 +496,7 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_workload_for_service_returns_empty_when_api_fails(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getWorkload')->willReturn([
             'success' => false,
             'status' => 503,
@@ -541,18 +544,26 @@ class MetricsDataServiceTest extends TestCase
         $this->assertSame('alpha', QueueNameNormalizer::normalize('alpha'));
     }
 
-    private function private__makeMetricsDataService(HorizonClientService $api): MetricsDataService
+    private function private__injectStoreOntoMetricsMock(MetricsDataService $metrics): void
+    {
+        $property = new \ReflectionProperty(MetricsDataService::class, 'store');
+        $property->setValue($metrics, $this->app->make(HorizonHubStore::class));
+    }
+
+    private function private__makeMetricsDataService(HorizonClientApi $api): MetricsDataService
     {
         $fetcher = new JobsWindowFetcher($api);
+        $store = $this->app->make(HorizonHubStore::class);
 
         return new MetricsDataService(
-            new FailureMetricsCalculator($api, $fetcher),
-            new JobsThroughputMetricsCalculator($api, $fetcher),
-            new JobsVolumeLast24hCalculator($api, $fetcher),
-            new QueueFailureCountersCalculator($api, $fetcher),
-            new RuntimeMetricsCalculator($api, $fetcher),
-            new WorkloadMetricsCalculator($api, $fetcher),
+            new FailureMetricsCalculator($api, $fetcher, $store),
+            new JobsThroughputMetricsCalculator($api, $fetcher, $store),
+            new JobsVolumeLast24hCalculator($api, $fetcher, $store),
+            new QueueFailureCountersCalculator($api, $fetcher, $store),
+            new RuntimeMetricsCalculator($api, $fetcher, $store),
+            new WorkloadMetricsCalculator($api, $fetcher, $store),
             $fetcher,
+            $store,
         );
     }
 }

@@ -2,8 +2,8 @@
 
 namespace App\Services\Alerts\Rules\Strategies;
 
+use App\Contracts\HorizonHubStore;
 use App\Models\Alert;
-use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Support\Alerts\AlertRuleEvaluation;
 use App\Support\Horizon\JobRuntimeHelper;
@@ -16,13 +16,18 @@ final class AvgExecutionTime implements AlertRuleContract
     private AlertRuleEvaluation $support;
 
     /**
+     * The horizon hub store.
+     */
+    private HorizonHubStore $store;
+
+    /**
      * The constructor.
      *
      * @param AlertRuleEvaluation $support The evaluation support.
      */
-    public function __construct(AlertRuleEvaluation $support)
-    {
+    public function __construct(AlertRuleEvaluation $support, HorizonHubStore $store) {
         $this->support = $support;
+        $this->store = $store;
     }
 
     /**
@@ -43,7 +48,7 @@ final class AvgExecutionTime implements AlertRuleContract
      */
     public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
     {
-        $service = Service::find($serviceId);
+        $service = $this->store->findService($serviceId);
 
         if ($service === null) {
             return ['triggered' => false, 'job_uuids' => []];

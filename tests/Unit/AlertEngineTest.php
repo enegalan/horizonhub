@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Contracts\HorizonHubStore;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
@@ -11,7 +12,7 @@ use App\Services\Alerts\Engine\AlertEngine;
 use App\Services\Alerts\Rules\AlertRuleStrategyRegistry;
 use App\Services\Alerts\Rules\Strategies\FailureCount;
 use App\Services\Alerts\Rules\Strategies\HorizonOffline;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Services\Notifiers\DiscordNotifierService;
 use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Notifiers\SlackNotifierService;
@@ -127,7 +128,7 @@ class AlertEngineTest extends TestCase
             'enabled' => true,
         ]);
 
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getFailedJobs')->willReturn([
             'success' => true,
             'data' => ['jobs' => []],
@@ -136,6 +137,7 @@ class AlertEngineTest extends TestCase
         $engine = new AlertEngine(
             new AlertBatchStore,
             $this->private__resolveRegistry($api),
+            $this->private__store(),
         );
 
         $result = $engine->evaluateAlert($alert);
@@ -158,7 +160,8 @@ class AlertEngineTest extends TestCase
 
         $engine = new AlertEngine(
             $batch,
-            $this->private__resolveRegistry($this->createMock(HorizonClientService::class)),
+            $this->private__resolveRegistry($this->createMock(HorizonClientApi::class)),
+            $this->private__store(),
         );
         $result = $engine->evaluateAlert($alert);
 
@@ -176,8 +179,8 @@ class AlertEngineTest extends TestCase
         ]);
 
         $batch = new AlertBatchStore;
-        $registry = $this->private__resolveRegistry($this->createMock(HorizonClientService::class));
-        $engine = new AlertEngine($batch, $registry);
+        $registry = $this->private__resolveRegistry($this->createMock(HorizonClientApi::class));
+        $engine = new AlertEngine($batch, $registry, $this->private__store());
 
         $result = $engine->evaluateAlert($alert);
 
@@ -195,7 +198,8 @@ class AlertEngineTest extends TestCase
 
         $engine = new AlertEngine(
             new AlertBatchStore,
-            $this->private__resolveRegistry($this->createMock(HorizonClientService::class)),
+            $this->private__resolveRegistry($this->createMock(HorizonClientApi::class)),
+            $this->private__store(),
         );
 
         $engine->evaluateScheduled();
@@ -219,14 +223,14 @@ class AlertEngineTest extends TestCase
         ]);
         $alert->notificationProviders()->sync([$provider->id]);
 
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getFailedJobs')->willReturn([
             'success' => true,
             'data' => ['jobs' => [['id' => 'uuid-z', 'failed_at' => now()->toIso8601String(), 'queue' => '', 'payload' => []]]],
         ]);
 
         $engine = $this->getMockBuilder(AlertEngine::class)
-            ->setConstructorArgs([new AlertBatchStore, $this->private__resolveRegistry($api)])
+            ->setConstructorArgs([new AlertBatchStore, $this->private__resolveRegistry($api), $this->private__store()])
             ->onlyMethods(['dispatch'])
             ->getMock();
         $engine->expects($this->exactly(2))->method('dispatch');
@@ -270,7 +274,7 @@ class AlertEngineTest extends TestCase
         $batch->setPending($alert, [['service_id' => $service->id, 'job_uuid' => 'u-ex', 'triggered_at' => now()->toIso8601String()]]);
 
         $engine = $this->getMockBuilder(AlertEngine::class)
-            ->setConstructorArgs([$batch, $this->private__resolveRegistry($this->createMock(HorizonClientService::class))])
+            ->setConstructorArgs([$batch, $this->private__resolveRegistry($this->createMock(HorizonClientApi::class)), $this->private__store()])
             ->onlyMethods(['dispatch'])
             ->getMock();
         $engine->method('dispatch')->willThrowException(new \RuntimeException('dispatch fail'));
@@ -301,7 +305,7 @@ class AlertEngineTest extends TestCase
         $batch->setPending($alert, [['service_id' => $service->id, 'job_uuid' => 'u1', 'triggered_at' => now()->toIso8601String()]]);
 
         $engine = $this->getMockBuilder(AlertEngine::class)
-            ->setConstructorArgs([$batch, $this->private__resolveRegistry($this->createMock(HorizonClientService::class))])
+            ->setConstructorArgs([$batch, $this->private__resolveRegistry($this->createMock(HorizonClientApi::class)), $this->private__store()])
             ->onlyMethods(['dispatch'])
             ->getMock();
         $engine->expects($this->once())->method('dispatch');
@@ -341,9 +345,9 @@ class AlertEngineTest extends TestCase
         ]);
 
         $batch = new AlertBatchStore;
-        $registry = $this->private__resolveRegistry($this->createMock(HorizonClientService::class));
+        $registry = $this->private__resolveRegistry($this->createMock(HorizonClientApi::class));
         $engine = $this->getMockBuilder(AlertEngine::class)
-            ->setConstructorArgs([$batch, $registry])
+            ->setConstructorArgs([$batch, $registry, $this->private__store()])
             ->onlyMethods(['dispatch'])
             ->getMock();
         $engine->expects($this->once())->method('dispatch');
@@ -366,14 +370,20 @@ class AlertEngineTest extends TestCase
 
         return new AlertEngine(
             new AlertBatchStore,
-            $this->private__resolveRegistry($this->createMock(HorizonClientService::class)),
+            $this->private__resolveRegistry($this->createMock(HorizonClientApi::class)),
+            $this->app->make(HorizonHubStore::class),
         );
     }
 
-    private function private__resolveRegistry(HorizonClientService $api): AlertRuleStrategyRegistry
+    private function private__resolveRegistry(HorizonClientApi $api): AlertRuleStrategyRegistry
     {
-        $this->app->instance(HorizonClientService::class, $api);
+        $this->app->instance(HorizonClientApi::class, $api);
 
         return $this->app->make(AlertRuleStrategyRegistry::class);
+    }
+
+    private function private__store(): HorizonHubStore
+    {
+        return $this->app->make(HorizonHubStore::class);
     }
 }

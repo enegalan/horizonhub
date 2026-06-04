@@ -8,7 +8,7 @@ use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Strategies\FailureCount;
 use App\Services\Alerts\Rules\Strategies\HorizonOffline;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Services\Notifiers\Contracts\AlertNotifierMetadata;
 use App\Services\Notifiers\DiscordNotifierService;
 use App\Services\Notifiers\EmailNotifierService;
@@ -25,7 +25,7 @@ class NotifiersTest extends TestCase
     public function test_discord_notifier_builds_failure_count_payload_with_enriched_event_details(): void
     {
         Http::fake();
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getJob')->willReturn([
             'success' => true,
             'data' => [
@@ -36,7 +36,8 @@ class NotifiersTest extends TestCase
                 'attempts' => 3,
             ],
         ]);
-        $notifier = new DiscordNotifierService($api);
+        $this->app->instance(HorizonClientApi::class, $api);
+        $notifier = $this->app->make(DiscordNotifierService::class);
         $alert = Alert::create([
             'name' => 'd',
             'rule_type' => FailureCount::type(),
@@ -67,8 +68,9 @@ class NotifiersTest extends TestCase
     public function test_discord_notifier_skips_without_webhook_and_posts_payload_when_present(): void
     {
         Http::fake();
-        $api = $this->createMock(HorizonClientService::class);
-        $notifier = new DiscordNotifierService($api);
+        $api = $this->createMock(HorizonClientApi::class);
+        $this->app->instance(HorizonClientApi::class, $api);
+        $notifier = $this->app->make(DiscordNotifierService::class);
         $alert = Alert::create(['name' => 'd', 'rule_type' => HorizonOffline::type(), 'enabled' => true]);
         $service = Service::create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
         $events = [['service_id' => $service->id, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]];
@@ -102,8 +104,9 @@ class NotifiersTest extends TestCase
     public function test_email_notifier_skips_without_recipients_and_sends_with_recipients(): void
     {
         Mail::fake();
-        $api = $this->createMock(HorizonClientService::class);
-        $notifier = new EmailNotifierService($api);
+        $api = $this->createMock(HorizonClientApi::class);
+        $this->app->instance(HorizonClientApi::class, $api);
+        $notifier = $this->app->make(EmailNotifierService::class);
         $alert = Alert::create(['name' => 'e', 'rule_type' => FailureCount::type(), 'enabled' => true]);
         $service = Service::create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
         $events = [['service_id' => $service->id, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]];
@@ -136,7 +139,7 @@ class NotifiersTest extends TestCase
     public function test_slack_notifier_builds_failure_count_payload_with_enriched_event_details(): void
     {
         Http::fake();
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getJob')->willReturn([
             'success' => true,
             'data' => [
@@ -147,7 +150,8 @@ class NotifiersTest extends TestCase
                 'attempts' => 3,
             ],
         ]);
-        $notifier = new SlackNotifierService($api);
+        $this->app->instance(HorizonClientApi::class, $api);
+        $notifier = $this->app->make(SlackNotifierService::class);
         $alert = Alert::create([
             'name' => 's',
             'rule_type' => FailureCount::type(),
@@ -178,8 +182,9 @@ class NotifiersTest extends TestCase
     public function test_slack_notifier_skips_without_webhook_and_posts_payload_when_present(): void
     {
         Http::fake();
-        $api = $this->createMock(HorizonClientService::class);
-        $notifier = new SlackNotifierService($api);
+        $api = $this->createMock(HorizonClientApi::class);
+        $this->app->instance(HorizonClientApi::class, $api);
+        $notifier = $this->app->make(SlackNotifierService::class);
         $alert = Alert::create(['name' => 's', 'rule_type' => HorizonOffline::type(), 'enabled' => true]);
         $service = Service::create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
         $events = [['service_id' => $service->id, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]];

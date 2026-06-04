@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 Route::redirect('/', '/horizon');
 Route::get('/dashboard', fn () => redirect()->route('horizon.index'))->name('dashboard');
 
-Route::prefix('horizon')->name('horizon.')->group(function (): void {
+Route::prefix('horizon')->name('horizon.')->middleware('mock')->group(function (): void {
     // Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('index');
 

@@ -3,7 +3,7 @@
 namespace App\Services\Jobs;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Support\Horizon\HorizonJobPaginator;
 use App\Support\Horizon\JobRuntimeHelper;
 
@@ -12,7 +12,7 @@ final class JobsWindowFetcher
     /**
      * The Horizon API client.
      */
-    private HorizonClientService $horizonApi;
+    private HorizonClientApi $horizonApi;
 
     /**
      * @var array<string, list<array<string, mixed>>>
@@ -22,9 +22,9 @@ final class JobsWindowFetcher
     /**
      * The constructor.
      *
-     * @param HorizonClientService $horizonApi The horizon API client.
+     * @param HorizonClientApi $horizonApi The horizon API client.
      */
-    public function __construct(HorizonClientService $horizonApi)
+    public function __construct(HorizonClientApi $horizonApi)
     {
         $this->horizonApi = $horizonApi;
     }

@@ -2,8 +2,9 @@
 
 namespace Tests\Unit;
 
+use App\Contracts\HorizonHubStore;
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Services\Jobs\JobsWindowFetcher;
 use App\Services\Metrics\Calculators\JobsThroughputMetricsCalculator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,7 +19,7 @@ class JobsThroughputMetricsCalculatorTest extends TestCase
         $s1 = Service::create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
         Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getStats')->willReturnCallback(function (Service $service) use ($s1) {
             if ($service->id === $s1->id) {
                 return ['success' => true, 'data' => ['failedJobs' => 2, 'recentJobs' => 20, 'jobsPerMinute' => 3.4]];
@@ -27,7 +28,8 @@ class JobsThroughputMetricsCalculatorTest extends TestCase
             return ['success' => true, 'data' => ['failedJobs' => 1, 'recentJobs' => 10, 'periods' => ['recentJobs' => 20]]];
         });
 
-        $calc = new JobsThroughputMetricsCalculator($api, new JobsWindowFetcher($api));
+        $store = $this->app->make(HorizonHubStore::class);
+        $calc = new JobsThroughputMetricsCalculator($api, new JobsWindowFetcher($api), $store);
 
         $this->assertSame(2, $calc->getFailedPastSevenDays($s1));
         $this->assertSame(3, $calc->getJobsPastMinute($s1));

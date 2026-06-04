@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Stream;
 
+use App\Contracts\HorizonHubStore;
 use App\Http\Controllers\Stream\Concerns\BuildsAlertStreams;
 use App\Http\Controllers\Stream\Concerns\BuildsDashboardStreams;
 use App\Http\Controllers\Stream\Concerns\BuildsJobListSectionStreams;
@@ -13,7 +14,7 @@ use App\Http\Controllers\Stream\Concerns\BuildsServiceStreams;
 use App\Http\Controllers\StreamController;
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Services\Jobs\JobListService;
 use App\Services\Jobs\JobServiceResolver;
 use App\Services\Metrics\MetricsDataService;
@@ -34,9 +35,14 @@ class HorizonStreamsController extends StreamController
     use BuildsServiceStreams;
 
     /**
-     * The horizon api proxy service.
+     * The horizon api client.
      */
-    private HorizonClientService $horizonApi;
+    protected HorizonClientApi $horizonApi;
+
+    /**
+     * The horizon hub data store.
+     */
+    protected HorizonHubStore $store;
 
     /**
      * The job list service.
@@ -67,13 +73,14 @@ class HorizonStreamsController extends StreamController
      * The constructor.
      *
      * @param MetricsDataService $metrics The metrics data service.
-     * @param HorizonClientService $horizonApi The horizon API client.
+     * @param HorizonClientApi $horizonApi The horizon API client.
      * @param JobListService $jobList The job list service.
      * @param JobServiceResolver $jobServiceResolver The job service resolver.
      * @param ServiceStatsAttachmentService $serviceStats The service stats attachment service.
      * @param ServiceFilterService $serviceFilter The service filter service.
+     * @param HorizonHubStore $store The horizon hub data store.
      */
-    public function __construct(MetricsDataService $metrics, HorizonClientService $horizonApi, JobListService $jobList, JobServiceResolver $jobServiceResolver, ServiceStatsAttachmentService $serviceStats, ServiceFilterService $serviceFilter)
+    public function __construct(MetricsDataService $metrics, HorizonClientApi $horizonApi, JobListService $jobList, JobServiceResolver $jobServiceResolver, ServiceStatsAttachmentService $serviceStats, ServiceFilterService $serviceFilter, HorizonHubStore $store)
     {
         $this->metrics = $metrics;
         $this->horizonApi = $horizonApi;
@@ -81,6 +88,7 @@ class HorizonStreamsController extends StreamController
         $this->jobServiceResolver = $jobServiceResolver;
         $this->serviceStats = $serviceStats;
         $this->serviceFilter = $serviceFilter;
+        $this->store = $store;
     }
 
     public function alerts(): StreamedResponse

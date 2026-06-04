@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Horizon;
 
+use App\Contracts\HorizonHubStore;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Horizon\UpsertProviderRequest;
 use App\Models\NotificationProvider;
@@ -11,6 +12,20 @@ use Illuminate\Http\RedirectResponse;
 
 class ProviderController extends Controller
 {
+    /**
+     * The store.
+     */
+    private HorizonHubStore $store;
+
+    /**
+     * The constructor.
+     *
+     * @param HorizonHubStore $store The store.
+     */
+    public function __construct(HorizonHubStore $store) {
+        $this->store = $store;
+    }
+
     /**
      * Show the form to create a new provider.
      */
@@ -27,7 +42,7 @@ class ProviderController extends Controller
      */
     public function destroy(NotificationProvider $provider): RedirectResponse
     {
-        $provider->delete();
+        $this->store->deleteNotificationProvider($provider);
 
         return redirect()
             ->route('horizon.providers.index')
@@ -62,7 +77,7 @@ class ProviderController extends Controller
      */
     public function store(UpsertProviderRequest $request): RedirectResponse
     {
-        NotificationProvider::create($request->normalizedProviderData());
+        $this->store->createNotificationProvider($request->normalizedProviderData());
 
         return redirect()
             ->route('horizon.providers.index')
@@ -74,7 +89,7 @@ class ProviderController extends Controller
      */
     public function update(UpsertProviderRequest $request, NotificationProvider $provider): RedirectResponse
     {
-        $provider->update($request->normalizedProviderData());
+        $this->store->updateNotificationProvider($provider, $request->normalizedProviderData());
 
         return redirect()
             ->route('horizon.providers.index')

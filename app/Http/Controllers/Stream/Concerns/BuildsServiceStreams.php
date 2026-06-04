@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Stream\Concerns;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Support\Horizon\HorizonMastersReader;
 use App\Support\Horizon\HorizonStatsReader;
 use Illuminate\Http\Request;
@@ -20,13 +20,7 @@ trait BuildsServiceStreams
     protected function buildServices(string $query): string
     {
         $serviceIds = $this->serviceFilter->resolveFromQuery($query);
-        $servicesQuery = Service::orderBy('name');
-
-        if (! empty($serviceIds)) {
-            $servicesQuery->whereIn('id', $serviceIds);
-        }
-
-        $services = $servicesQuery->get();
+        $services = $this->store->servicesOrdered(! empty($serviceIds) ? $serviceIds : null);
         $this->serviceStats->attachHorizonStats($services, $this->horizonApi);
 
         $enabledServices = $services->where('enabled', true);
@@ -89,7 +83,7 @@ trait BuildsServiceStreams
      *
      * @param Service $service The service.
      * @param Request $request The request.
-     * @param HorizonClientService $horizonApi The horizon API client.
+     * @param HorizonClientApi $horizonApi The horizon API client.
      *
      * @return array{
      *     jobsPastMinute: int|mixed,
@@ -109,7 +103,7 @@ trait BuildsServiceStreams
      *     filters: array{search: string}
      * }
      */
-    private function private__buildServiceShowData(Service $service, Request $request, HorizonClientService $horizonApi): array
+    private function private__buildServiceShowData(Service $service, Request $request, HorizonClientApi $horizonApi): array
     {
         $search = (string) $request->query('search', '');
 

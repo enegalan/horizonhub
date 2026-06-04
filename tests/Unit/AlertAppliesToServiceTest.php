@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Contracts\HorizonHubStore;
 use App\Models\Alert;
 use App\Models\Service;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -34,7 +35,8 @@ class AlertAppliesToServiceTest extends TestCase
         ]);
 
         $this->assertFalse($alert->appliesToServiceId($service->id));
-        $this->assertSame([], $alert->resolvedServiceIds());
+        $store = $this->app->make(HorizonHubStore::class);
+        $this->assertSame([], $store->resolveEnabledServiceIds($alert->service_ids));
     }
 
     #[Test]
@@ -47,6 +49,7 @@ class AlertAppliesToServiceTest extends TestCase
             'service_ids' => [$included->id],
         ]);
 
-        $this->assertSame([$included->id], $alert->resolvedServiceIds());
+        $store = $this->app->make(HorizonHubStore::class);
+        $this->assertSame([$included->id], $store->resolveEnabledServiceIds($alert->service_ids));
     }
 }

@@ -9,7 +9,7 @@ use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Strategies\FailureCount;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Services\Metrics\MetricsDataService;
 use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Notifiers\SlackNotifierService;
@@ -252,7 +252,7 @@ class TurboStreamSseTest extends TestCase
 
         $jobUuid = '763dc9c2-a7cd-4b95-9da5-77beff5c264e';
 
-        $this->mock(HorizonClientService::class, function ($mock) use ($jobUuid): void {
+        $this->mock(HorizonClientApi::class, function ($mock) use ($jobUuid): void {
             $mock->shouldReceive('getJob')
                 ->zeroOrMoreTimes()
                 ->andReturn([
@@ -295,7 +295,7 @@ class TurboStreamSseTest extends TestCase
             'base_url' => 'https://horizon-api-stream-null.test',
             'status' => 'online',
         ]);
-        $this->mock(HorizonClientService::class, function ($mock): void {
+        $this->mock(HorizonClientApi::class, function ($mock): void {
             $mock->shouldReceive('getJob')->andReturn(['success' => false]);
         });
         $controller = $this->app->make(HorizonStreamsController::class);
@@ -615,7 +615,7 @@ class TurboStreamSseTest extends TestCase
 
         $jobUuid = '863dc9c2-a7cd-4b95-9da5-77beff5c264e';
 
-        $this->mock(HorizonClientService::class, function ($mock) use ($jobUuid): void {
+        $this->mock(HorizonClientApi::class, function ($mock) use ($jobUuid): void {
             $mock->shouldReceive('getJob')
                 ->zeroOrMoreTimes()
                 ->andReturn([

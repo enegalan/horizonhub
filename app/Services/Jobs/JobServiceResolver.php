@@ -2,8 +2,9 @@
 
 namespace App\Services\Jobs;
 
+use App\Contracts\HorizonHubStore;
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
@@ -12,16 +13,22 @@ final class JobServiceResolver
     /**
      * The Horizon API client.
      */
-    private HorizonClientService $horizonApi;
+    private HorizonClientApi $horizonApi;
+
+    /**
+     * The horizon hub store.
+     */
+    private HorizonHubStore $store;
 
     /**
      * The constructor.
      *
-     * @param HorizonClientService $horizonApi The horizon API client.
+     * @param HorizonClientApi $horizonApi The horizon API client.
+     * @param HorizonHubStore $store The horizon hub store.
      */
-    public function __construct(HorizonClientService $horizonApi)
-    {
+    public function __construct(HorizonClientApi $horizonApi, HorizonHubStore $store) {
         $this->horizonApi = $horizonApi;
+        $this->store = $store;
     }
 
     /**
@@ -39,10 +46,28 @@ final class JobServiceResolver
 
         $cacheKey = $this->private__cacheKey($jobUuid);
 
+        if (config('horizonhub.mock')) {
+            $indexedServiceId = (int) (config('demo.job_service_index')[$jobUuid] ?? 0);
+
+            if ($indexedServiceId > 0) {
+                $service = $this->store->findEnabledService($indexedServiceId);
+
+                if ($service !== null) {
+                    $resolved = $this->private__fetchFromService($service, $jobUuid);
+
+                    if ($resolved !== null) {
+                        Cache::forever($cacheKey, $indexedServiceId);
+
+                        return $resolved;
+                    }
+                }
+            }
+        }
+
         $cachedServiceId = (int) Cache::get($cacheKey, 0);
 
         if ($cachedServiceId > 0) {
-            $service = Service::enabled()->find($cachedServiceId);
+            $service = $this->store->findEnabledService($cachedServiceId);
 
             if ($service !== null) {
                 $resolved = $this->private__fetchFromService($service, $jobUuid);
@@ -56,9 +81,7 @@ final class JobServiceResolver
         }
 
         /** @var Collection<int, Service> $services */
-        $services = Service::enabled()
-            ->orderBy('name')
-            ->get();
+        $services = $this->store->enabledServicesOrdered();
 
         foreach ($services as $service) {
             $resolved = $this->private__fetchFromService($service, $jobUuid);

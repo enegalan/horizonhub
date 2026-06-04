@@ -2,7 +2,6 @@
 
 namespace Tests\Unit;
 
-use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
 use App\Services\Services\ServiceFilterService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,7 +18,7 @@ class ServiceFilterServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->filter = new ServiceFilterService;
+        $this->filter = $this->app->make(ServiceFilterService::class);
     }
 
     #[Test]
@@ -91,6 +90,7 @@ class ServiceFilterServiceTest extends TestCase
             'service_id' => [$staging->id],
         ]);
 
-        $this->assertSame([$staging->id], ServiceRequest::existingIdsFromRequest($request));
+        $filter = $this->app->make(ServiceFilterService::class);
+        $this->assertSame([$staging->id], $filter->existingServiceIdsFromRequest($request));
     }
 }

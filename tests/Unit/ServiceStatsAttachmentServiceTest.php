@@ -3,7 +3,7 @@
 namespace Tests\Unit;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Services\Services\ServiceStatsAttachmentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -17,7 +17,7 @@ class ServiceStatsAttachmentServiceTest extends TestCase
     {
         $service = Service::create(['name' => 'a', 'base_url' => 'https://a.test', 'status' => 'online']);
 
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getStats')->willReturn([
             'success' => true,
             'data' => ['failedJobs' => 4, 'recentJobs' => 9, 'status' => 'active'],
@@ -39,7 +39,7 @@ class ServiceStatsAttachmentServiceTest extends TestCase
             'enabled' => false,
         ]);
 
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->expects($this->never())->method('getStats');
 
         (new ServiceStatsAttachmentService)->attachHorizonStats([$disabled], $api);

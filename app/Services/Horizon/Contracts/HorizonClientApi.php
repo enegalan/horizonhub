@@ -47,6 +47,11 @@ interface HorizonClientApi
     public function ping(Service $service): array;
 
     /**
+     * Clear cached failure cooldown for a service after configuration changes.
+     */
+    public function resetFailureCooldown(Service $service): void;
+
+    /**
      * Retry a job through the Horizon HTTP API for a service.
      */
     public function retryJob(Service $service, string $jobUuid): array;

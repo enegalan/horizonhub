@@ -3,21 +3,10 @@
 namespace App\Services\Notifiers;
 
 use App\Models\Alert;
-use App\Services\Horizon\HorizonClientService;
 use Illuminate\Support\Facades\Http;
 
 class SlackNotifierService extends AbstractAlertNotifier
 {
-    /**
-     * The constructor.
-     *
-     * @param HorizonClientService $horizonApi The horizon API client.
-     */
-    public function __construct(HorizonClientService $horizonApi)
-    {
-        parent::__construct($horizonApi);
-    }
-
     /**
      * Get the metadata.
      *

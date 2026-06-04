@@ -2,32 +2,22 @@
 
 namespace App\Http\Requests\Horizon;
 
-use App\Models\Service;
+use App\Contracts\HorizonHubStore;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ServiceRequest extends FormRequest
 {
+    /** @var HorizonHubStore */
+    private $store;
     /**
-     * Parse `service_id` from the request and restrict to existing services.
+     * The constructor.
      *
-     * @return list<int>
+     * @param HorizonHubStore $store The horizon hub store.
      */
-    public static function existingIdsFromRequest(Request $request): array
-    {
-        $raw = $request->input('service_id');
-
-        if (blank($raw)) {
-            return [];
-        }
-
-        $values = \is_array($raw) ? $raw : [$raw];
-        $serviceIds = \array_values(\array_unique($values));
-
-        $existing = Service::whereIn('id', $serviceIds)->pluck('id')->all();
-        \sort($existing);
-
-        return $existing;
+    public function __construct(HorizonHubStore $store) {
+        parent::__construct();
+        $this->store = $store;
     }
 
     /**
@@ -47,7 +37,7 @@ class ServiceRequest extends FormRequest
     {
         return [
             'service_id' => ['nullable', 'array'],
-            'service_id.*' => ['integer', 'exists:services,id'],
+            'service_id.*' => ['integer', Rule::in($this->store->allServiceIds())],
             'service_tag' => ['nullable', 'array'],
             'service_tag.*' => ['string'],
         ];

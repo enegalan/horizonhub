@@ -2,6 +2,7 @@
 
 namespace App\Services\Metrics;
 
+use App\Contracts\HorizonHubStore;
 use App\Models\Service;
 use App\Services\Jobs\JobsWindowFetcher;
 use App\Services\Metrics\Calculators\AbstractMetricsCalculator;
@@ -47,6 +48,11 @@ class MetricsDataService
     private RuntimeMetricsCalculator $runtimeMetrics;
 
     /**
+     * The horizon hub data store.
+     */
+    private HorizonHubStore $store;
+
+    /**
      * The workload metrics calculator.
      */
     private WorkloadMetricsCalculator $workloadMetrics;
@@ -61,6 +67,7 @@ class MetricsDataService
      * @param RuntimeMetricsCalculator $runtimeMetrics The runtime metrics calculator.
      * @param WorkloadMetricsCalculator $workloadMetrics The workload metrics calculator.
      * @param JobsWindowFetcher $jobsWindowFetcher The jobs window fetcher.
+     * @param HorizonHubStore $store The horizon hub data store.
      */
     public function __construct(
         FailureMetricsCalculator $failureMetrics,
@@ -70,6 +77,7 @@ class MetricsDataService
         RuntimeMetricsCalculator $runtimeMetrics,
         WorkloadMetricsCalculator $workloadMetrics,
         JobsWindowFetcher $jobsWindowFetcher,
+        HorizonHubStore $store,
     ) {
         $this->failureMetrics = $failureMetrics;
         $this->jobsThroughputMetrics = $jobsThroughputMetrics;
@@ -78,6 +86,7 @@ class MetricsDataService
         $this->runtimeMetrics = $runtimeMetrics;
         $this->workloadMetrics = $workloadMetrics;
         $this->jobsWindowFetcher = $jobsWindowFetcher;
+        $this->store = $store;
     }
 
     /**
@@ -197,7 +206,7 @@ class MetricsDataService
 
         $servicesById = empty($serviceIds)
             ? \collect()
-            : Service::whereIn('id', $serviceIds)->get()->keyBy('id');
+            : $this->store->servicesByIds($serviceIds)->keyBy('id');
 
         $queues = \collect($workloadRows)
             ->map(function (array $row) use ($servicesById) {
@@ -332,7 +341,7 @@ class MetricsDataService
         $hour = 0;
         $failed = 0;
 
-        $services = Service::whereIn('id', $serviceIds)->orderBy('name')->get();
+        $services = $this->store->servicesByIds($serviceIds);
 
         /** @var Service $service */
         foreach ($services as $service) {

@@ -2,8 +2,9 @@
 
 namespace App\Services\Metrics\Calculators;
 
+use App\Contracts\HorizonHubStore;
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Services\Jobs\JobsWindowFetcher;
 use App\Support\Horizon\JobRuntimeHelper;
 use App\Support\Horizon\QueueNameNormalizer;
@@ -20,9 +21,9 @@ abstract class AbstractMetricsCalculator
     public const TOP_N_QUEUES = 12;
 
     /**
-     * The Horizon API proxy service.
+     * The Horizon API client.
      */
-    protected HorizonClientService $horizonApi;
+    protected HorizonClientApi $horizonApi;
 
     /**
      * The jobs window fetcher.
@@ -30,15 +31,22 @@ abstract class AbstractMetricsCalculator
     protected JobsWindowFetcher $jobsWindowFetcher;
 
     /**
+     * The horizon hub data store.
+     */
+    protected HorizonHubStore $store;
+
+    /**
      * The constructor.
      *
-     * @param HorizonClientService $horizonApi The horizon API client.
+     * @param HorizonClientApi $horizonApi The horizon API client.
      * @param JobsWindowFetcher $jobsWindowFetcher The jobs window fetcher.
+     * @param HorizonHubStore $store The horizon hub data store.
      */
-    public function __construct(HorizonClientService $horizonApi, JobsWindowFetcher $jobsWindowFetcher)
+    public function __construct(HorizonClientApi $horizonApi, JobsWindowFetcher $jobsWindowFetcher, HorizonHubStore $store)
     {
         $this->horizonApi = $horizonApi;
         $this->jobsWindowFetcher = $jobsWindowFetcher;
+        $this->store = $store;
     }
 
     /**
@@ -140,7 +148,7 @@ abstract class AbstractMetricsCalculator
      */
     protected function private__getServicesForMetrics(array $serviceScope = [], bool $orderByName = false, array $selectColumns = []): Collection
     {
-        $servicesQuery = Service::enabled();
+        $services = $this->store->enabledServices();
 
         if (! empty($serviceScope)) {
             $ids = \array_values(\array_unique(\array_filter(
@@ -151,18 +159,19 @@ abstract class AbstractMetricsCalculator
             if (empty($ids)) {
                 return new Collection;
             }
-            $servicesQuery->whereIn('id', $ids);
+
+            $services = $services->filter(static fn (Service $service): bool => \in_array((int) $service->id, $ids, true))->values();
         }
 
         if ($orderByName) {
-            $servicesQuery->orderBy('name');
+            $services = $services->sortBy('name')->values();
         }
 
         if (! empty($selectColumns)) {
-            return $servicesQuery->get($selectColumns);
+            return new Collection($services->map(static fn (Service $service): array => $service->only($selectColumns))->all());
         }
 
-        return $servicesQuery->get();
+        return new Collection($services->all());
     }
 
     /**

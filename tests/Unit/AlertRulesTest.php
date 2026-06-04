@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Contracts\HorizonHubStore;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\AlertRuleStrategyRegistry;
@@ -12,7 +13,7 @@ use App\Services\Alerts\Rules\Strategies\NullRule;
 use App\Services\Alerts\Rules\Strategies\QueueBlocked;
 use App\Services\Alerts\Rules\Strategies\SupervisorOffline;
 use App\Services\Alerts\Rules\Strategies\WorkerOffline;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Services\Jobs\JobsWindowFetcher;
 use App\Support\Alerts\AlertRuleEvaluation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,7 +26,7 @@ class AlertRulesTest extends TestCase
 
     public function test_evaluation_support_resolves_patterns_and_filters_jobs(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $support = new AlertRuleEvaluation(new JobsWindowFetcher($api));
         $alert = new Alert([
             'threshold' => [
@@ -65,7 +66,7 @@ class AlertRulesTest extends TestCase
             'enabled' => true,
         ]);
 
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getFailedJobs')->willReturn([
             'success' => true,
             'data' => [
@@ -76,7 +77,7 @@ class AlertRulesTest extends TestCase
             ],
         ]);
         $support = new AlertRuleEvaluation(new JobsWindowFetcher($api));
-        $strategy = new FailureCount($support);
+        $strategy = new FailureCount($support, $this->app->make(HorizonHubStore::class));
         $result = $strategy->evaluateWithTriggeringJobs($alert, $service->id);
 
         $this->assertTrue($result['triggered']);
@@ -101,9 +102,9 @@ class AlertRulesTest extends TestCase
             'enabled' => true,
         ]);
 
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getStats')->willReturn(['success' => true, 'data' => ['status' => 'inactive']]);
-        $strategy = new HorizonOffline($api);
+        $strategy = new HorizonOffline($api, $this->app->make(HorizonHubStore::class));
 
         $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, $service->id)['triggered']);
 
@@ -155,7 +156,7 @@ class AlertRulesTest extends TestCase
             'enabled' => true,
         ]);
 
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getCompletedJobs')->willReturn([
             'success' => true,
             'data' => [
@@ -181,27 +182,27 @@ class AlertRulesTest extends TestCase
 
         $support = new AlertRuleEvaluation(new JobsWindowFetcher($api));
 
-        $avg = new AvgExecutionTime($support);
+        $avg = new AvgExecutionTime($support, $this->app->make(HorizonHubStore::class));
         $this->assertTrue($avg->evaluateWithTriggeringJobs($avgAlert, $service->id)['triggered']);
 
-        $queueBlocked = new QueueBlocked($support);
+        $queueBlocked = new QueueBlocked($support, $this->app->make(HorizonHubStore::class));
         $this->assertFalse($queueBlocked->evaluateWithTriggeringJobs($queueAlert, $service->id)['triggered']);
 
-        $worker = new WorkerOffline;
+        $worker = new WorkerOffline($this->app->make(HorizonHubStore::class));
         $this->assertTrue($worker->evaluateWithTriggeringJobs($workerAlert, $service->id)['triggered']);
 
-        $supervisor = new SupervisorOffline($api);
+        $supervisor = new SupervisorOffline($api, $this->app->make(HorizonHubStore::class));
         $this->assertTrue($supervisor->evaluateWithTriggeringJobs($supAlert, $service->id)['triggered']);
 
-        $offline = new HorizonOffline($api);
+        $offline = new HorizonOffline($api, $this->app->make(HorizonHubStore::class));
         $this->assertFalse($offline->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
 
         $this->travel(6)->minutes();
         $this->assertTrue($offline->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
 
-        $apiOnline = $this->createMock(HorizonClientService::class);
+        $apiOnline = $this->createMock(HorizonClientApi::class);
         $apiOnline->method('getStats')->willReturn(['success' => true, 'data' => ['status' => 'active']]);
-        $onlineStrategy = new HorizonOffline($apiOnline);
+        $onlineStrategy = new HorizonOffline($apiOnline, $this->app->make(HorizonHubStore::class));
         $this->assertFalse($onlineStrategy->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
         $this->assertNull(Cache::get('horizon_offline_since:' . $service->id));
 
@@ -211,8 +212,8 @@ class AlertRulesTest extends TestCase
 
     public function test_registry_resolves_known_and_unknown_rules(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-        $this->app->instance(HorizonClientService::class, $api);
+        $api = $this->createMock(HorizonClientApi::class);
+        $this->app->instance(HorizonClientApi::class, $api);
         $registry = $this->app->make(AlertRuleStrategyRegistry::class);
 
         $this->assertInstanceOf(FailureCount::class, $registry->resolve(FailureCount::type()));

@@ -3,7 +3,6 @@
 namespace App\Services\Notifiers;
 
 use App\Models\Alert;
-use App\Services\Horizon\HorizonClientService;
 use Illuminate\Support\Facades\Http;
 
 class DiscordNotifierService extends AbstractAlertNotifier
@@ -17,16 +16,6 @@ class DiscordNotifierService extends AbstractAlertNotifier
      * Maximum embeds Discord allows per message.
      */
     private const MAX_EMBEDS = 10;
-
-    /**
-     * The constructor.
-     *
-     * @param HorizonClientService $horizonApi The horizon API client.
-     */
-    public function __construct(HorizonClientService $horizonApi)
-    {
-        parent::__construct($horizonApi);
-    }
 
     /**
      * @return array{label: string, icon: string, description: string, color: string}

@@ -3,8 +3,6 @@
 namespace App\Http\Controllers\Stream\Concerns;
 
 use App\Models\Alert;
-use App\Models\AlertLog;
-use App\Models\Service;
 use Carbon\Carbon;
 
 trait BuildsAlertStreams
@@ -14,27 +12,9 @@ trait BuildsAlertStreams
      */
     protected function buildAlerts(): string
     {
-        $alerts = Alert::withCount('alertLogs')
-            ->withMax('alertLogs', 'sent_at')
-            ->orderByDesc('created_at')
-            ->get();
-
-        $serviceNamesById = Service::pluck('name', 'id')->all();
-        $labelsByAlertId = [];
-
-        foreach ($alerts as $alert) {
-            $labels = [];
-
-            foreach ($alert->service_ids as $serviceId) {
-                $name = $serviceNamesById[$serviceId] ?? null;
-
-                if (! empty($name)) {
-                    $labels[] = $name;
-                }
-            }
-
-            $labelsByAlertId[$alert->id] = $labels;
-        }
+        $streamData = $this->store->alertsIndexStreamData();
+        $alerts = $streamData['alerts'];
+        $labelsByAlertId = $streamData['labelsByAlertId'];
 
         return $this->buildStreams([
             ['update', 'turbo-horizon-alert-stats', \view('horizon.alerts.partials.index.stats', ['alertStats' => ['total' => $alerts->count(), 'enabled' => $alerts->where('enabled')->count(), 'disabled' => $alerts->where('enabled', false)->count()]])->render(), 'morph'],
@@ -95,9 +75,7 @@ trait BuildsAlertStreams
             $buckets[$key] = ['sent' => 0, 'failed' => 0];
         }
 
-        $logs = AlertLog::where('alert_id', $alert->id)
-            ->where('sent_at', '>=', $since)
-            ->get(['sent_at', 'status']);
+        $logs = $this->store->alertLogsSinceForChart((int) $alert->id, $since);
 
         foreach ($logs as $log) {
             $key = $days === 1

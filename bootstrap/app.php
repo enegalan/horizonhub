@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\MockMiddleware;
 use App\Http\Middleware\RedirectFormToDrawer;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -15,7 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__ . '/../routes/console.php',
         health: '/up',
         then: function (): void {
-            Route::middleware([SubstituteBindings::class])
+            Route::middleware([SubstituteBindings::class, 'mock'])
                 ->prefix('horizon')
                 ->name('horizon.')
                 ->group(base_path('routes/streams.php'));
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
+            'mock' => MockMiddleware::class,
             'form.drawer' => RedirectFormToDrawer::class,
         ]);
     })

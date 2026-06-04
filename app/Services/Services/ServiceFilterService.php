@@ -2,12 +2,27 @@
 
 namespace App\Services\Services;
 
-use App\Http\Requests\Horizon\ServiceRequest;
-use App\Models\Service;
+use App\Contracts\HorizonHubStore;
 use Illuminate\Http\Request;
 
 final class ServiceFilterService
 {
+    /**
+     * The horizon hub store.
+     */
+    private HorizonHubStore $store;
+
+    /**
+     * The constructor.
+     *
+     * @param HorizonHubStore $store The horizon hub store.
+     */
+    public function __construct(
+        HorizonHubStore $store,
+    ) {
+        $this->store = $store;
+    }
+
     /**
      * @return list<int>
      */
@@ -28,7 +43,7 @@ final class ServiceFilterService
      */
     public function resolveServiceIds(Request $request): array
     {
-        $serviceIds = ServiceRequest::existingIdsFromRequest($request);
+        $serviceIds = $this->existingServiceIdsFromRequest($request);
 
         $tags = $request->query('service_tag', []);
 
@@ -36,9 +51,7 @@ final class ServiceFilterService
             return $serviceIds;
         }
 
-        $tagIds = Service::matchingTags($tags)
-            ->pluck('id')
-            ->all();
+        $tagIds = $this->store->matchingTagServiceIds($tags);
 
         if (empty($serviceIds)) {
             return $tagIds;
@@ -53,9 +66,28 @@ final class ServiceFilterService
     public function viewData(Request $request): array
     {
         return [
-            'allTags' => Service::enabled()->get(['tags'])->pluck('tags')->flatten()->unique()->sort()->values()->all(),
-            'selectedServiceIds' => ServiceRequest::existingIdsFromRequest($request),
+            'allTags' => $this->store->enabledServiceTags(),
+            'selectedServiceIds' => $this->existingServiceIdsFromRequest($request),
             'selectedTags' => $request->query('service_tag', []),
         ];
+    }
+
+    /**
+     * Parse `service_id` from the request and restrict to existing services.
+     *
+     * @return list<int>
+     */
+    public function existingServiceIdsFromRequest(Request $request): array
+    {
+        $raw = $request->input('service_id');
+
+        if (blank($raw)) {
+            return [];
+        }
+
+        $values = \is_array($raw) ? $raw : [$raw];
+        $serviceIds = \array_values(\array_unique($values));
+
+        return $this->store->existingServiceIds($serviceIds);
     }
 }

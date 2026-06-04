@@ -2,8 +2,9 @@
 
 namespace Tests\Unit;
 
+use App\Contracts\HorizonHubStore;
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Services\Jobs\JobServiceResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -25,7 +26,7 @@ class JobServiceResolverTest extends TestCase
         $first = Service::create(['name' => 'alpha', 'base_url' => 'https://alpha.test', 'status' => 'online']);
         $second = Service::create(['name' => 'beta', 'base_url' => 'https://beta.test', 'status' => 'online']);
 
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->expects($this->exactly(2))
             ->method('getJob')
             ->willReturnCallback(function (Service $service) use ($first): array {
@@ -39,7 +40,7 @@ class JobServiceResolverTest extends TestCase
                 ];
             });
 
-        $resolver = new JobServiceResolver($api);
+        $resolver = new JobServiceResolver($api, $this->app->make(HorizonHubStore::class));
         $resolved = $resolver->resolve('job-uuid-1');
 
         $this->assertTrue($resolved['service']->is($second));
@@ -48,10 +49,10 @@ class JobServiceResolverTest extends TestCase
 
     public function test_resolve_returns_null_for_blank_uuid(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->expects($this->never())->method('getJob');
 
-        $resolver = new JobServiceResolver($api);
+        $resolver = new JobServiceResolver($api, $this->app->make(HorizonHubStore::class));
 
         $this->assertNull($resolver->resolve(''));
     }
@@ -60,10 +61,10 @@ class JobServiceResolverTest extends TestCase
     {
         Service::create(['name' => 'alpha', 'base_url' => 'https://alpha.test', 'status' => 'online']);
 
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getJob')->willReturn(['success' => false]);
 
-        $resolver = new JobServiceResolver($api);
+        $resolver = new JobServiceResolver($api, $this->app->make(HorizonHubStore::class));
 
         $this->assertNull($resolver->resolve('missing-job'));
     }
@@ -75,12 +76,12 @@ class JobServiceResolverTest extends TestCase
 
         Cache::forever('horizonhub:job-service:job-uuid-1', $second->id);
 
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->expects($this->once())
             ->method('getJob')
             ->willReturn(['success' => true, 'data' => ['id' => 'job-uuid-1']]);
 
-        $resolver = new JobServiceResolver($api);
+        $resolver = new JobServiceResolver($api, $this->app->make(HorizonHubStore::class));
 
         $this->assertTrue($resolver->resolve('job-uuid-1')['service']->is($second));
     }

@@ -2,8 +2,9 @@
 
 namespace Tests\Unit;
 
+use App\Contracts\HorizonHubStore;
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Services\Jobs\JobsWindowFetcher;
 use App\Services\Metrics\Calculators\FailureMetricsCalculator;
 use App\Services\Metrics\Calculators\QueueFailureCountersCalculator;
@@ -21,7 +22,7 @@ class FailureMetricsCalculatorTest extends TestCase
         $service = Service::create(['name' => 'svc-failure', 'base_url' => 'https://f.test', 'status' => 'online']);
         $since = now()->subDay()->startOfDay()->getTimestamp();
 
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getCompletedJobs')->willReturn([
             'success' => true,
             'data' => ['jobs' => [
@@ -36,7 +37,8 @@ class FailureMetricsCalculatorTest extends TestCase
             ]],
         ]);
 
-        $calc = new FailureMetricsCalculator($api, new JobsWindowFetcher($api));
+        $store = $this->app->make(HorizonHubStore::class);
+        $calc = new FailureMetricsCalculator($api, new JobsWindowFetcher($api), $store);
         $result = $calc->getFailureRate24h(['service_id' => $service->id]);
 
         $this->assertSame(2, $result['processed']);
@@ -51,7 +53,7 @@ class FailureMetricsCalculatorTest extends TestCase
         $service = Service::create(['name' => 'svc-queues', 'base_url' => 'https://q.test', 'status' => 'online']);
         $since = now()->subDays(7)->getTimestamp();
 
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getCompletedJobs')->willReturn([
             'success' => true,
             'data' => ['jobs' => [
@@ -66,7 +68,8 @@ class FailureMetricsCalculatorTest extends TestCase
             ]],
         ]);
 
-        $calc = new QueueFailureCountersCalculator($api, new JobsWindowFetcher($api));
+        $store = $this->app->make(HorizonHubStore::class);
+        $calc = new QueueFailureCountersCalculator($api, new JobsWindowFetcher($api), $store);
         $result = $calc->getProcessedFailedByQueue(['service_id' => $service->id]);
 
         $this->assertSame(['default', 'mail'], $result['queues']);

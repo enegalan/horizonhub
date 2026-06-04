@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Models\Alert;
+use App\Contracts\HorizonHubStore;
 use App\Services\Alerts\Engine\AlertEngine;
 use App\Support\Alerts\AlertEvaluationBatchCache;
 use Illuminate\Bus\Batchable;
@@ -46,12 +46,12 @@ class EvaluateAlertJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(AlertEngine $engine): void
+    public function handle(AlertEngine $engine, HorizonHubStore $store): void
     {
         $cache = new AlertEvaluationBatchCache($this->evaluationId);
 
         try {
-            $alert = Alert::find($this->alertId);
+            $alert = $store->findAlert($this->alertId);
 
             if (! $alert) {
                 $cache->recordEvaluationError('Alert not found');

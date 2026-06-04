@@ -4,7 +4,7 @@ namespace Tests\Unit;
 
 use App\Http\Controllers\Stream\HorizonStreamsController;
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Services\Jobs\JobListService;
 use App\Services\Metrics\MetricsDataService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -39,7 +39,7 @@ class ServiceShowViewDataTest extends TestCase
         ]);
         $this->app->instance(JobListService::class, $jobList);
 
-        $horizonApi = $this->createMock(HorizonClientService::class);
+        $horizonApi = $this->createMock(HorizonClientApi::class);
         $horizonApi->method('getStats')->willReturn([
             'success' => true,
             'data' => [
@@ -93,7 +93,7 @@ class ServiceShowViewDataTest extends TestCase
         $jobList->expects($this->never())->method('buildServiceStatusPaginators');
         $this->app->instance(JobListService::class, $jobList);
 
-        $horizonApi = $this->createMock(HorizonClientService::class);
+        $horizonApi = $this->createMock(HorizonClientApi::class);
         $horizonApi->expects($this->never())->method('getStats');
 
         $data = $this->private__invokeBuildServiceShowData($service, $request, $horizonApi);
@@ -106,7 +106,7 @@ class ServiceShowViewDataTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    private function private__invokeBuildServiceShowData(Service $service, Request $request, HorizonClientService $horizonApi): array
+    private function private__invokeBuildServiceShowData(Service $service, Request $request, HorizonClientApi $horizonApi): array
     {
         $controller = $this->app->make(HorizonStreamsController::class);
         $reflection = new \ReflectionMethod($controller, 'private__buildServiceShowData');

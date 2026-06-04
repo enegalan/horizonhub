@@ -2,10 +2,10 @@
 
 namespace App\Services\Alerts\Rules\Strategies;
 
+use App\Contracts\HorizonHubStore;
 use App\Models\Alert;
-use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Support\Horizon\HorizonStatsReader;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -19,16 +19,22 @@ final class HorizonOffline implements AlertRuleContract
     /**
      * The Horizon API client.
      */
-    private HorizonClientService $horizonApi;
+    private HorizonClientApi $horizonApi;
+
+    /**
+     * The horizon hub store.
+     */
+    private HorizonHubStore $store;
 
     /**
      * The constructor.
      *
-     * @param HorizonClientService $horizonApi The Horizon API client.
+     * @param HorizonClientApi $horizonApi
+     * @param HorizonHubStore $store The horizon hub store.
      */
-    public function __construct(HorizonClientService $horizonApi)
-    {
+    public function __construct(HorizonClientApi $horizonApi, HorizonHubStore $store) {
         $this->horizonApi = $horizonApi;
+        $this->store = $store;
     }
 
     /**
@@ -46,7 +52,7 @@ final class HorizonOffline implements AlertRuleContract
      */
     public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
     {
-        $service = Service::find($serviceId);
+        $service = $this->store->findService($serviceId);
 
         if ($service === null) {
             return ['triggered' => false, 'job_uuids' => []];

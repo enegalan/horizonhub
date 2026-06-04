@@ -2,8 +2,9 @@
 
 namespace App\Services\Jobs;
 
+use App\Contracts\HorizonHubStore;
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Services\Services\ServiceFilterService;
 use App\Support\DatetimeBoundaryParser;
 use App\Support\Horizon\HorizonJobPaginator;
@@ -19,7 +20,7 @@ class JobListService
     /**
      * The Horizon API client.
      */
-    private HorizonClientService $horizonApi;
+    private HorizonClientApi $horizonApi;
 
     /**
      * The service filter service.
@@ -27,15 +28,22 @@ class JobListService
     private ServiceFilterService $serviceFilter;
 
     /**
+     * The horizon hub data store.
+     */
+    private HorizonHubStore $store;
+
+    /**
      * The constructor.
      *
-     * @param HorizonClientService $horizonApi The horizon API client.
+     * @param HorizonClientApi $horizonApi The horizon API client.
      * @param ServiceFilterService $serviceFilter The service filter service.
+     * @param HorizonHubStore $store The horizon hub data store.
      */
-    public function __construct(HorizonClientService $horizonApi, ServiceFilterService $serviceFilter)
+    public function __construct(HorizonClientApi $horizonApi, ServiceFilterService $serviceFilter, HorizonHubStore $store)
     {
         $this->horizonApi = $horizonApi;
         $this->serviceFilter = $serviceFilter;
+        $this->store = $store;
     }
 
     /**
@@ -58,14 +66,13 @@ class JobListService
 
         $perPage = (int) config('horizonhub.jobs_per_page');
 
-        $servicesQuery = Service::enabled();
+        $servicesWithApi = $this->store->enabledServices();
 
         if (! empty($serviceFilterIds)) {
-            $servicesQuery->whereIn('id', $serviceFilterIds);
+            $servicesWithApi = $servicesWithApi
+                ->filter(static fn (Service $service): bool => \in_array((int) $service->id, $serviceFilterIds, true))
+                ->values();
         }
-
-        /** @var Collection<int, Service> $servicesWithApi */
-        $servicesWithApi = $servicesQuery->get();
 
         $pageProcessing = \max(1, (int) $request->query('page_processing', 1));
         $pageProcessed = \max(1, (int) $request->query('page_processed', 1));

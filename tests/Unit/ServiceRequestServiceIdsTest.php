@@ -2,8 +2,8 @@
 
 namespace Tests\Unit;
 
-use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
+use App\Services\Services\ServiceFilterService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Tests\TestCase;
@@ -29,10 +29,11 @@ class ServiceRequestServiceIdsTest extends TestCase
             'service_id' => [$s1->id, $s2->id],
         ]);
 
-        $ids = ServiceRequest::existingIdsFromRequest($request);
+        $filter = $this->app->make(ServiceFilterService::class);
+        $ids = $filter->existingServiceIdsFromRequest($request);
         $this->assertSame([(int) $s1->id, (int) $s2->id], $ids);
 
         $request2 = Request::create('/x', 'GET');
-        $this->assertSame([], ServiceRequest::existingIdsFromRequest($request2));
+        $this->assertSame([], $filter->existingServiceIdsFromRequest($request2));
     }
 }

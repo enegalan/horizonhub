@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\Horizon;
 
+use App\Contracts\HorizonHubStore;
 use App\Http\Controllers\Controller;
 use App\Models\Alert;
 use App\Models\AlertLog;
-use App\Models\NotificationProvider;
-use App\Models\Service;
 use App\Services\Alerts\AlertEvaluationBatchService;
 use App\Services\Alerts\AlertUpsertService;
 use App\Services\Alerts\Engine\AlertEngine;
@@ -14,7 +13,6 @@ use App\Support\Alerts\AlertDeliveryLogPresenter;
 use App\Support\Alerts\AlertRuleCatalog;
 use App\Support\FlashStatus;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,15 +30,22 @@ class AlertController extends Controller
     private AlertEvaluationBatchService $evaluationBatch;
 
     /**
+     * The store.
+     */
+    private HorizonHubStore $store;
+
+    /**
      * The constructor.
      *
      * @param AlertEvaluationBatchService $evaluationBatch The alert evaluation batch service.
      * @param AlertUpsertService $alertUpsert The alert upsert service.
+     * @param HorizonHubStore $store The store.
      */
-    public function __construct(AlertEvaluationBatchService $evaluationBatch, AlertUpsertService $alertUpsert)
+    public function __construct(AlertEvaluationBatchService $evaluationBatch, AlertUpsertService $alertUpsert, HorizonHubStore $store)
     {
         $this->alertUpsert = $alertUpsert;
         $this->evaluationBatch = $evaluationBatch;
+        $this->store = $store;
     }
 
     /**
@@ -56,7 +61,7 @@ class AlertController extends Controller
      */
     public function destroy(Alert $alert): RedirectResponse
     {
-        $alert->delete();
+        $this->store->deleteAlert($alert);
 
         return redirect()
             ->route('horizon.alerts.index')
@@ -103,7 +108,7 @@ class AlertController extends Controller
         return \view('horizon.alerts.index', [
             'alerts' => collect(),
             'defer' => true,
-            'evaluateAllAlertsVisible' => Alert::enabled()->exists(),
+            'evaluateAllAlertsVisible' => $this->store->enabledAlertsExist(),
             'header' => 'Alerts',
         ]);
     }
@@ -131,27 +136,18 @@ class AlertController extends Controller
         $serviceFilter = $request->query('service_id');
         $perPage = (int) max(1, $request->query('per_page', config('horizonhub.jobs_per_page')));
 
-        $logsQuery = $alert->alertLogs()
-            ->with('service')
-            ->orderByDesc('sent_at');
-
-        if (! empty($serviceFilter)) {
-            $logsQuery->where('service_id', (int) $serviceFilter);
-        }
-
-        if (! empty($statusFilter)) {
-            $logsQuery->where('status', $statusFilter);
-        }
-
-        $logs = $logsQuery->paginate($perPage)->withQueryString();
+        $logs = $this->store->paginateAlertLogsForAlert($alert, [
+            'status' => $statusFilter,
+            'service_id' => $serviceFilter,
+            'per_page' => $perPage,
+            'page' => (int) $request->query('page', 1),
+        ]);
 
         $selectedLogId = $request->query('log');
         $selectedLog = null;
 
         if (! empty($selectedLogId)) {
-            $selectedLog = AlertLog::with('service')
-                ->where('alert_id', $alert->id)
-                ->find($selectedLogId);
+            $selectedLog = $this->store->findAlertLogForAlert((int) $alert->id, $selectedLogId);
         }
 
         return \view('horizon.alerts.show', [
@@ -160,7 +156,7 @@ class AlertController extends Controller
             'logs' => $logs,
             'chartData' => new \stdClass,
             'defer' => true,
-            'services' => Service::enabled()->orderBy('name')->get(),
+            'services' => $this->store->enabledServicesOrdered(),
             'selectedLog' => $selectedLog,
             'initialDeliveryLogPayload' => AlertDeliveryLogPresenter::payloadFromLog($selectedLog),
             'filters' => [
@@ -178,8 +174,7 @@ class AlertController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $this->alertUpsert->validateAlert($request);
-        $alert = Alert::create($data['alert']);
-        $alert->notificationProviders()->sync($data['provider_ids']);
+        $this->store->createAlert($data['alert'], $data['provider_ids']);
 
         return redirect()
             ->route('horizon.alerts.index')
@@ -191,8 +186,7 @@ class AlertController extends Controller
      */
     public function toggleEnabled(Alert $alert): JsonResponse
     {
-        $alert->enabled = ! $alert->enabled;
-        $alert->save();
+        $this->store->toggleAlertEnabled($alert);
 
         return \response()->json([
             'alert_id' => $alert->id,
@@ -206,8 +200,7 @@ class AlertController extends Controller
     public function update(Request $request, Alert $alert): RedirectResponse
     {
         $data = $this->alertUpsert->validateAlert($request);
-        $alert->update($data['alert']);
-        $alert->notificationProviders()->sync($data['provider_ids']);
+        $this->store->updateAlert($alert, $data['alert'], $data['provider_ids']);
 
         return redirect()
             ->route('horizon.alerts.index')
@@ -224,24 +217,14 @@ class AlertController extends Controller
     private function private__buildFormViewVariables(Alert $alert): array
     {
         $selectedIds = $alert->exists ? $alert->service_ids : [];
-        $services = Service::query()
-            ->where(function (Builder $query) use ($selectedIds): void {
-                $query->enabled();
-
-                if ($selectedIds !== []) {
-                    $query->orWhere(fn (Builder $q) => $q->disabled()->whereIn('id', $selectedIds));
-                }
-            })
-            ->orderBy('name')
-            ->get();
 
         return [
             'alert' => $alert,
-            'services' => $services,
-            'providers' => NotificationProvider::orderBy('type')->orderBy('name')->get(),
+            'services' => $this->store->servicesForAlertForm($selectedIds),
+            'providers' => $this->store->providersOrdered(),
             'ruleTypes' => AlertRuleCatalog::ruleTypeLabels(),
             'formRuleMetadata' => AlertRuleCatalog::formRuleMetadata(),
-            'selectedProviderIds' => $alert->exists ? $alert->notificationProviders()->pluck('notification_providers.id')->all() : [],
+            'selectedProviderIds' => $alert->exists ? $alert->notificationProviders->pluck('id')->all() : [],
             'selectedServiceIds' => $alert->service_ids,
             'header' => $alert->exists ? 'Edit alert' : 'New alert',
         ];

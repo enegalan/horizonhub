@@ -2,8 +2,9 @@
 
 namespace Tests\Unit;
 
+use App\Contracts\HorizonHubStore;
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Services\Jobs\JobListService;
 use App\Services\Services\ServiceFilterService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -16,7 +17,7 @@ class JobListServiceRetryModalTest extends TestCase
 
     public function test_build_failed_jobs_retry_modal_page_slice_matches_full_total(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getFailedJobs')
             ->willReturn([
                 'success' => true,
@@ -50,7 +51,7 @@ class JobListServiceRetryModalTest extends TestCase
             'status' => 'online',
         ]);
 
-        $list = new JobListService($api, new ServiceFilterService);
+        $list = new JobListService($api, $this->app->make(ServiceFilterService::class), $this->app->make(HorizonHubStore::class));
         $services = new Collection([$svc]);
 
         $page = $list->buildFailedJobsRetryModalPage($services, '', null, null, 1, 1);
@@ -64,7 +65,7 @@ class JobListServiceRetryModalTest extends TestCase
 
     public function test_build_failed_jobs_retry_modal_page_with_max_per_page_returns_all_rows(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getFailedJobs')
             ->willReturn([
                 'success' => true,
@@ -92,7 +93,7 @@ class JobListServiceRetryModalTest extends TestCase
             'status' => 'online',
         ]);
 
-        $list = new JobListService($api, new ServiceFilterService);
+        $list = new JobListService($api, $this->app->make(ServiceFilterService::class), $this->app->make(HorizonHubStore::class));
         $services = new Collection([$svc]);
 
         $all = $list->buildFailedJobsRetryModalPage($services, '', null, null, 1, \PHP_INT_MAX);

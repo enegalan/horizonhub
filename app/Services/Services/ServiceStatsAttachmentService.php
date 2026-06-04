@@ -3,7 +3,7 @@
 namespace App\Services\Services;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Support\Horizon\HorizonStatsReader;
 
 class ServiceStatsAttachmentService
@@ -12,9 +12,9 @@ class ServiceStatsAttachmentService
      * Attach the Horizon stats to the services.
      *
      * @param iterable<int, Service> $services The services.
-     * @param HorizonClientService $horizonApi The horizon API client.
+     * @param HorizonClientApi $horizonApi The horizon API client.
      */
-    public function attachHorizonStats(iterable $services, HorizonClientService $horizonApi): void
+    public function attachHorizonStats(iterable $services, HorizonClientApi $horizonApi): void
     {
         foreach ($services as $service) {
             if (! $service->enabled) {

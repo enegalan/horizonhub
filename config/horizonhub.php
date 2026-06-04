@@ -3,6 +3,17 @@
 return [
     /*
     |--------------------------------------------------------------------------
+    | Mock mode (API_ENVIRONMENT=mock only)
+    |--------------------------------------------------------------------------
+    |
+    | Set API_ENVIRONMENT=mock for in-memory catalog and mock Horizon client.
+    | Any other value, or omitting the variable, runs normal mode (database + HTTP).
+    |
+    */
+    'mock' => \strtolower(\trim((string) env('API_ENVIRONMENT', ''))) === 'mock',
+
+    /*
+    |--------------------------------------------------------------------------
     | Horizon HTTP API Configuration
     |--------------------------------------------------------------------------
     |
@@ -191,6 +202,17 @@ return [
     |
     */
     'max_horizon_pages' => (int) env('HORIZON_HUB_MAX_HORIZON_PAGES', 40),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Mock mode: jobs index service cap
+    |--------------------------------------------------------------------------
+    |
+    | When mock mode is active and no service filter is applied, aggregate jobs
+    | from at most this many enabled services (alphabetically) to avoid OOM.
+    |
+    */
+    'mock_job_list_max_services' => (int) env('MOCK_JOB_LIST_MAX_SERVICES', 25),
 
     /*
     |--------------------------------------------------------------------------

@@ -153,27 +153,6 @@ class Alert extends Model
     }
 
     /**
-     * Service ids this alert should evaluate against.
-     *
-     * @return list<int>
-     */
-    public function resolvedServiceIds(): array
-    {
-        if (empty($this->service_ids)) {
-            return [];
-        }
-
-        $ids = Service::enabled()
-            ->whereIn('id', $this->service_ids)
-            ->pluck('id')
-            ->all();
-
-        \sort($ids);
-
-        return $ids;
-    }
-
-    /**
      * Scope to disabled alerts only.
      *
      * @param Builder<Alert> $query

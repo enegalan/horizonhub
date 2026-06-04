@@ -2,10 +2,11 @@
 
 namespace Tests\Unit;
 
+use App\Contracts\HorizonHubStore;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Strategies\FailureCount;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Services\Notifiers\AbstractAlertNotifier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -19,10 +20,11 @@ class AbstractAlertNotifierTest extends TestCase
         $service = Service::create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);
         $alert = Alert::create(['name' => 'a', 'rule_type' => FailureCount::type(), 'enabled' => true]);
 
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getJob')->willReturn(['success' => false]);
+        $store = $this->app->make(HorizonHubStore::class);
 
-        $notifier = new class($api) extends AbstractAlertNotifier
+        $notifier = new class($api, $store) extends AbstractAlertNotifier
         {
             public static function meta(): array
             {
@@ -63,7 +65,7 @@ class AbstractAlertNotifierTest extends TestCase
         $alert = Alert::create(['name' => 'a', 'rule_type' => FailureCount::type(), 'enabled' => true]);
         $exception = "line1\nline2\nline3\nline4\nline5\nline6";
 
-        $api = $this->createMock(HorizonClientService::class);
+        $api = $this->createMock(HorizonClientApi::class);
         $api->method('getJob')->willReturn([
             'success' => true,
             'data' => [
@@ -74,8 +76,9 @@ class AbstractAlertNotifierTest extends TestCase
                 'attempts' => 2,
             ],
         ]);
+        $store = $this->app->make(HorizonHubStore::class);
 
-        $notifier = new class($api) extends AbstractAlertNotifier
+        $notifier = new class($api, $store) extends AbstractAlertNotifier
         {
             public array $captured = [];
 

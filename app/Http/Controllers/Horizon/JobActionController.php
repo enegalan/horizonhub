@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers\Horizon;
 
+use App\Contracts\HorizonHubStore;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Horizon\FailedJobsListRequest;
 use App\Http\Requests\Horizon\RetryBatchRequest;
 use App\Http\Requests\Horizon\RetryJobRequest;
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Services\Jobs\JobListService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
@@ -16,9 +17,9 @@ use Symfony\Component\HttpFoundation\Response;
 class JobActionController extends Controller
 {
     /**
-     * The Horizon API proxy service.
+     * The Horizon API client.
      */
-    private HorizonClientService $horizonApi;
+    private HorizonClientApi $horizonApi;
 
     /**
      * The job list service.
@@ -26,15 +27,22 @@ class JobActionController extends Controller
     private JobListService $jobList;
 
     /**
+     * The store.
+     */
+    private HorizonHubStore $store;
+
+    /**
      * The constructor.
      *
-     * @param HorizonClientService $horizonApi The Horizon API proxy service.
+     * @param HorizonClientApi $horizonApi The Horizon API client.
      * @param JobListService $jobList The job list service.
+     * @param HorizonHubStore $store The store.
      */
-    public function __construct(HorizonClientService $horizonApi, JobListService $jobList)
+    public function __construct(HorizonClientApi $horizonApi, JobListService $jobList, HorizonHubStore $store)
     {
         $this->horizonApi = $horizonApi;
         $this->jobList = $jobList;
+        $this->store = $store;
     }
 
     /**
@@ -65,19 +73,18 @@ class JobActionController extends Controller
 
         $tags = $request->query('service_tag', []);
 
-        $servicesQuery = Service::enabled();
+        $services = $this->store->enabledServices();
 
         if (\count($serviceIds) > 0) {
-            $servicesQuery->whereIn('id', $serviceIds);
+            $services = $services->filter(static fn (Service $service): bool => \in_array((int) $service->id, $serviceIds, true))->values();
         }
 
         if (\count($tags) > 0) {
-            $servicesQuery->matchingTags($tags);
+            $tagIds = $this->store->matchingTagServiceIds($tags);
+            $services = $services->filter(static fn (Service $service): bool => \in_array((int) $service->id, $tagIds, true))->values();
         }
 
         /** @var Collection<int, Service> $services */
-        $services = $servicesQuery->get();
-
         if ($services->count() === 0) {
             if ($selection === 'all') {
                 return \response()->json([
@@ -142,9 +149,9 @@ class JobActionController extends Controller
         $uuid = $validated['uuid'];
         $serviceId = $validated['service_id'];
 
-        $service = Service::find($serviceId);
+        $service = $this->store->findService((int) $serviceId);
 
-        if (! $service) {
+        if ($service === null) {
             return \response()->json(['message' => 'Service not found'], 404);
         }
 
@@ -171,15 +178,15 @@ class JobActionController extends Controller
         $succeeded = 0;
         $failed = 0;
 
-        $servicesById = Service::whereIn('id', \array_values(\array_unique(\array_column($jobs, 'service_id'))))
-            ->get()
+        $servicesById = $this->store
+            ->servicesByIds(\array_values(\array_unique(\array_column($jobs, 'service_id'))))
             ->keyBy('id');
 
         foreach ($jobs as $item) {
             $id = (string) $item['id'];
             $service = $servicesById->get((int) $item['service_id']);
 
-            if (! $service) {
+            if ($service === null) {
                 $results[] = ['id' => $id, 'success' => false, 'message' => 'Service not found'];
                 $failed++;
 

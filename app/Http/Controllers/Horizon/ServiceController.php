@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers\Horizon;
 
+use App\Contracts\HorizonHubStore;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Horizon\UpsertServiceRequest;
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\Contracts\HorizonClientApi;
 use App\Services\Services\ServiceFilterService;
 use App\Support\FlashStatus;
 use Illuminate\Contracts\View\View;
@@ -18,21 +19,21 @@ class ServiceController extends Controller
     /**
      * Show the form to register a new service.
      */
-    public function create(): View
+    public function create(HorizonHubStore $store): View
     {
         return \view('horizon.services.form', [
             'service' => new Service,
             'header' => 'Register service',
-            'existingTags' => Service::get(['tags'])->pluck('tags')->flatten()->unique()->sort()->values()->all(),
+            'existingTags' => $store->allServiceTags(),
         ]);
     }
 
     /**
      * Delete a service.
      */
-    public function destroy(Service $service): RedirectResponse
+    public function destroy(Service $service, HorizonHubStore $store): RedirectResponse
     {
-        $service->delete();
+        $store->deleteService($service);
 
         return redirect()
             ->route('horizon.services.index')
@@ -42,12 +43,12 @@ class ServiceController extends Controller
     /**
      * Edit an existing service.
      */
-    public function edit(Service $service): View
+    public function edit(Service $service, HorizonHubStore $store): View
     {
         return \view('horizon.services.form', [
             'service' => $service,
             'header' => 'Edit service',
-            'existingTags' => Service::get(['tags'])->pluck('tags')->flatten()->unique()->sort()->values()->all(),
+            'existingTags' => $store->allServiceTags(),
         ]);
     }
 
@@ -96,21 +97,22 @@ class ServiceController extends Controller
 
     /**
      * Store a new service.
+     * @param UpsertServiceRequest $request
+     * @param HorizonHubStore $store
+     * @return RedirectResponse
      */
-    public function store(UpsertServiceRequest $request): RedirectResponse
+    public function store(UpsertServiceRequest $request, HorizonHubStore $store): RedirectResponse
     {
         $validated = $request->validated();
 
-        $service = Service::create([
+        $store->createService([
             'name' => $validated['name'],
             'base_url' => \rtrim($validated['base_url'], '/'),
             'public_url' => ! empty($validated['public_url']) ? \rtrim($validated['public_url'], '/') : null,
             'status' => 'offline',
             'enabled' => true,
             'tags' => $validated['tags'] ?? [],
-        ]);
-
-        $this->private__storeHeaders($service, $validated['headers'] ?? []);
+        ], $validated['headers'] ?? []);
 
         return redirect()
             ->route('horizon.services.index')
@@ -119,23 +121,24 @@ class ServiceController extends Controller
 
     /**
      * Test connectivity with the Horizon HTTP API for the given service.
+     * @param Service $service
+     * @param HorizonClientApi $horizonApi
+     * @param HorizonHubStore $store
+     * @return RedirectResponse
      */
-    public function testConnection(Service $service, HorizonClientService $horizonApi): RedirectResponse
+    public function testConnection(Service $service, HorizonClientApi $horizonApi, HorizonHubStore $store): RedirectResponse
     {
         $result = $horizonApi->ping($service);
 
         if ($result['success']) {
-            $service->update([
-                'status' => 'online',
-                'last_seen_at' => now(),
-            ]);
+            $store->updateServiceConnectionState($service, 'online', now());
 
             return redirect()
                 ->back()
                 ->with('status', FlashStatus::success('Service Horizon API is reachable.'));
         }
 
-        $service->update(['status' => 'offline']);
+        $store->updateServiceConnectionState($service, 'offline');
 
         $message = $result['message'] ?? 'Connection test failed.';
 
@@ -147,10 +150,9 @@ class ServiceController extends Controller
     /**
      * Toggle whether a service is enabled.
      */
-    public function toggleEnabled(Service $service): JsonResponse
+    public function toggleEnabled(Service $service, HorizonHubStore $store): JsonResponse
     {
-        $service->enabled = ! $service->enabled;
-        $service->save();
+        $store->toggleServiceEnabled($service);
 
         return \response()->json([
             'service_id' => $service->id,
@@ -161,49 +163,21 @@ class ServiceController extends Controller
     /**
      * Update an existing service.
      */
-    public function update(UpsertServiceRequest $request, Service $service, HorizonClientService $horizonApi): RedirectResponse
+    public function update(UpsertServiceRequest $request, Service $service, HorizonClientApi $horizonApi, HorizonHubStore $store): RedirectResponse
     {
         $validated = $request->validated();
 
-        $service->update([
+        $store->updateService($service, [
             'name' => $validated['name'],
             'base_url' => \rtrim($validated['base_url'], '/'),
             'public_url' => ! empty($validated['public_url']) ? \rtrim($validated['public_url'], '/') : null,
             'tags' => $validated['tags'] ?? [],
-        ]);
-
-        $service->headers()->delete();
-        $this->private__storeHeaders($service, $validated['headers'] ?? []);
+        ], $validated['headers'] ?? []);
 
         $horizonApi->resetFailureCooldown($service);
 
         return redirect()
             ->route('horizon.services.index')
             ->with('status', FlashStatus::success('Service updated.'));
-    }
-
-    /**
-     * Store the headers for a service.
-     */
-    private function private__storeHeaders(Service $service, array $headers): void
-    {
-        foreach ($headers as $header) {
-            if (! \is_array($header)) {
-                continue;
-            }
-
-            $name = \trim((string) ($header['name'] ?? ''));
-
-            if (blank($name)) {
-                continue;
-            }
-
-            $value = isset($header['value']) ? \trim((string) $header['value']) : '';
-
-            $service->headers()->create([
-                'name' => $name,
-                'value' => blank($value) ? null : $value,
-            ]);
-        }
     }
 }

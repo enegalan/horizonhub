@@ -2,6 +2,7 @@
 
 namespace App\Services\Alerts\Engine;
 
+use App\Contracts\HorizonHubStore;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
@@ -22,15 +23,21 @@ class AlertEngine
     private AlertRuleStrategyRegistry $ruleStrategyRegistry;
 
     /**
+     * The horizon hub store.
+     */
+    private HorizonHubStore $store;
+
+    /**
      * The constructor.
      *
      * @param AlertBatchStore $batchStore The batch store.
      * @param AlertRuleStrategyRegistry $ruleStrategyRegistry The rule strategy registry.
      */
-    public function __construct(AlertBatchStore $batchStore, AlertRuleStrategyRegistry $ruleStrategyRegistry)
+    public function __construct(AlertBatchStore $batchStore, AlertRuleStrategyRegistry $ruleStrategyRegistry, HorizonHubStore $store)
     {
         $this->batchStore = $batchStore;
         $this->ruleStrategyRegistry = $ruleStrategyRegistry;
+        $this->store = $store;
     }
 
     /**
@@ -70,7 +77,7 @@ class AlertEngine
                 app($notifierClass)->sendBatched($alert, $events, $config);
             } catch (\Throwable $e) {
                 Log::channel('app')->error('alert notification failed', ['alert_id' => $alert->id, 'provider_id' => $provider->id, 'error' => $e->getMessage()]);
-                $log->update(['status' => 'failed', 'failure_message' => $e->getMessage()]);
+                $this->store->updateAlertLog($log, ['status' => 'failed', 'failure_message' => $e->getMessage()]);
             }
         }
     }
@@ -114,7 +121,7 @@ class AlertEngine
         }
 
         try {
-            $serviceIds = $alert->resolvedServiceIds();
+            $serviceIds = $this->store->resolveEnabledServiceIds($alert->service_ids);
 
             if ($serviceIds === []) {
                 $errorMessage = 'No enabled services to evaluate alert (enable at least one service).';
@@ -177,11 +184,11 @@ class AlertEngine
         $this->flushPendingAlerts();
 
         /** @var Collection<int, Alert> $alerts */
-        $alerts = Alert::enabled()->get();
+        $alerts = $this->store->enabledAlerts();
 
         foreach ($alerts as $alert) {
             try {
-                $serviceIds = $alert->resolvedServiceIds();
+                $serviceIds = $this->store->resolveEnabledServiceIds($alert->service_ids);
 
                 if ($serviceIds === []) {
                     Log::channel('app')->warning('no enabled services to evaluate alert', ['alert_id' => $alert->id]);
@@ -208,7 +215,7 @@ class AlertEngine
     public function flushPendingAlerts(): void
     {
         /** @var Collection<int, Alert> $alerts */
-        $alerts = Alert::enabled()->get();
+        $alerts = $this->store->enabledAlerts();
 
         foreach ($alerts as $alert) {
             try {
@@ -238,7 +245,7 @@ class AlertEngine
         }
         $jobUuids = \array_values(\array_filter(\array_column($events, 'job_uuid')));
 
-        $newLog = AlertLog::create([
+        $newLog = $this->store->createAlertLog([
             'alert_id' => $alert->id,
             'service_id' => (int) $log->service_id,
             'trigger_count' => \count($events),
@@ -350,7 +357,7 @@ class AlertEngine
         $serviceId = (int) $first['service_id'];
         $jobUuids = \array_values(\array_filter(\array_column($events, 'job_uuid')));
 
-        $log = AlertLog::create([
+        $log = $this->store->createAlertLog([
             'alert_id' => $alert->id,
             'service_id' => $serviceId,
             'trigger_count' => \count($events),
