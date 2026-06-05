@@ -145,6 +145,8 @@ class Alert extends Model
 
     /**
      * Get the notification providers of the alert.
+     *
+     * @return BelongsToMany<NotificationProvider, $this>
      */
     public function notificationProviders(): BelongsToMany
     {

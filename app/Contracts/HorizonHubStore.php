@@ -82,7 +82,7 @@ interface HorizonHubStore
      * Create a new service.
      *
      * @param array<string, mixed> $attributes
-     * @param list<string, string> $headers
+     * @param list<array{name?: string|null, value?: string|null}> $headers
      */
     public function createService(array $attributes, array $headers): Service;
 
@@ -224,7 +224,7 @@ interface HorizonHubStore
     /**
      * Paginate the alert logs for the given alert.
      *
-     * @param array{status?: string, service_id?: int|string, per_page?: int} $filters
+     * @param array{status?: string, service_id?: int|string, per_page?: int, page?: int} $filters
      */
     public function paginateAlertLogsForAlert(Alert $alert, array $filters): LengthAwarePaginator;
 
@@ -323,7 +323,7 @@ interface HorizonHubStore
      * Update an existing service.
      *
      * @param array<string, mixed> $attributes
-     * @param list<string, string> $headers
+     * @param list<array{name?: string|null, value?: string|null}> $headers
      */
     public function updateService(Service $service, array $attributes, array $headers): void;
 

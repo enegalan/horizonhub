@@ -142,11 +142,10 @@ abstract class AbstractMetricsCalculator
      *
      * @param array<string, mixed> $serviceScope The service scope. Empty = all enabled services; non-empty = restrict by id.
      * @param bool $orderByName The order by name.
-     * @param array<int, string> $selectColumns The select columns.
      *
      * @return Collection<int, Service>
      */
-    protected function private__getServicesForMetrics(array $serviceScope = [], bool $orderByName = false, array $selectColumns = []): Collection
+    protected function private__getServicesForMetrics(array $serviceScope = [], bool $orderByName = false): Collection
     {
         $services = $this->store->enabledServices();
 
@@ -165,10 +164,6 @@ abstract class AbstractMetricsCalculator
 
         if ($orderByName) {
             $services = $services->sortBy('name')->values();
-        }
-
-        if (! empty($selectColumns)) {
-            return new Collection($services->map(static fn (Service $service): array => $service->only($selectColumns))->all());
         }
 
         return new Collection($services->all());

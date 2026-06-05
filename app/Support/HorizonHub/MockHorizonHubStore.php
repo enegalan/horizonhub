@@ -65,7 +65,6 @@ class MockHorizonHubStore implements HorizonHubStoreContract
         return $this->alertLogs
             ->filter(static function (AlertLog $log) use ($alertId, $since): bool {
                 return (int) $log->alert_id === $alertId
-                    && $log->sent_at !== null
                     && $log->sent_at->gte($since);
             })
             ->values();
@@ -308,7 +307,7 @@ class MockHorizonHubStore implements HorizonHubStoreContract
     {
         $logs = $this->alertLogs
             ->filter(static fn (AlertLog $log): bool => (int) $log->alert_id === (int) $alert->id)
-            ->sortByDesc(static fn (AlertLog $log) => $log->sent_at?->timestamp ?? 0)
+            ->sortByDesc(static fn (AlertLog $log) => $log->sent_at->timestamp)
             ->values();
 
         if (! empty($filters['service_id'])) {
@@ -355,7 +354,7 @@ class MockHorizonHubStore implements HorizonHubStoreContract
 
     public function recentAlertLogs(int $limit, ?array $serviceFilterIds = null): Collection
     {
-        $logs = $this->alertLogs->sortByDesc(static fn (AlertLog $log) => $log->sent_at?->timestamp ?? 0)->values();
+        $logs = $this->alertLogs->sortByDesc(static fn (AlertLog $log) => $log->sent_at->timestamp)->values();
 
         if ($serviceFilterIds !== null && $serviceFilterIds !== []) {
             $ids = \array_map('intval', $serviceFilterIds);
@@ -486,7 +485,7 @@ class MockHorizonHubStore implements HorizonHubStoreContract
         $logs = [];
 
         foreach ($rows as $row) {
-            $log = AlertLog::make($row);
+            $log = new AlertLog($row);
             $log->id = (int) $row['id'];
             $log->exists = true;
             $service = $this->services->get((int) $row['service_id']);
@@ -518,7 +517,7 @@ class MockHorizonHubStore implements HorizonHubStoreContract
         foreach ($rows as $row) {
             $providerIds = $row['provider_ids'] ?? [];
             unset($row['provider_ids']);
-            $alert = Alert::make($row);
+            $alert = new Alert($row);
             $alert->id = (int) $row['id'];
             $alert->exists = true;
             $linked = [];
@@ -548,7 +547,7 @@ class MockHorizonHubStore implements HorizonHubStoreContract
         $providers = [];
 
         foreach ($rows as $row) {
-            $provider = NotificationProvider::make($row);
+            $provider = new NotificationProvider($row);
             $provider->id = (int) $row['id'];
             $provider->exists = true;
             $providers[(int) $row['id']] = $provider;
@@ -580,7 +579,7 @@ class MockHorizonHubStore implements HorizonHubStoreContract
         $services = [];
 
         foreach ($rows as $row) {
-            $service = Service::make($row);
+            $service = new Service($row);
             $service->id = (int) $row['id'];
             $service->exists = true;
             $service->setRelation(

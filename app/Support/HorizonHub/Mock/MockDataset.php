@@ -35,13 +35,7 @@ final class MockDataset
     }
 
     /**
-     * @return array{
-     *     service_count: int,
-     *     provider_count: int,
-     *     alert_count: int,
-     *     alert_log_count: int,
-     *     jobs_per_status: int
-     * }
+     * Build a deterministic demo job UUID for a service/index pair.
      */
     public static function jobUuid(int $serviceId, int $index): string
     {
@@ -58,21 +52,33 @@ final class MockDataset
         );
     }
 
+    /**
+     * Get the volumes for the mock dataset.
+     *
+     * @return array{
+     *     service_count: int,
+     *     provider_count: int,
+     *     alert_count: int,
+     *     alert_log_count: int,
+     *     jobs_per_status: int
+     * }
+     */
     public static function volumes(): array
     {
+        $configured = config('horizonhub.mock_volumes');
         $pageCap = (int) config('horizonhub.max_horizon_pages', 8)
             * (int) config('horizonhub.horizon_api_job_list_page_size', 25);
 
         $jobsPerStatus = \min(
-            \max(5, (int) env('MOCK_JOBS_PER_STATUS', env('DEMO_JOBS_PER_STATUS', 15))),
+            \max(5, (int) ($configured['jobs_per_status'] ?? 15)),
             \max(5, $pageCap),
         );
 
         return [
-            'service_count' => \max(3, (int) env('MOCK_SERVICE_COUNT', env('DEMO_SERVICE_COUNT', 96))),
-            'provider_count' => \max(3, (int) env('MOCK_PROVIDER_COUNT', env('DEMO_PROVIDER_COUNT', 30))),
-            'alert_count' => \max(2, (int) env('MOCK_ALERT_COUNT', env('DEMO_ALERT_COUNT', 64))),
-            'alert_log_count' => \max(5, (int) env('MOCK_ALERT_LOG_COUNT', env('DEMO_ALERT_LOG_COUNT', 1200))),
+            'service_count' => \max(3, (int) ($configured['service_count'] ?? 96)),
+            'provider_count' => \max(3, (int) ($configured['provider_count'] ?? 30)),
+            'alert_count' => \max(2, (int) ($configured['alert_count'] ?? 64)),
+            'alert_log_count' => \max(5, (int) ($configured['alert_log_count'] ?? 1200)),
             'jobs_per_status' => $jobsPerStatus,
         ];
     }

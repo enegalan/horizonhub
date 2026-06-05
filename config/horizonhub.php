@@ -14,6 +14,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Mock mode dataset volumes
+    |--------------------------------------------------------------------------
+    |
+    | Sizes for the in-memory demo catalog when API_ENVIRONMENT=mock.
+    | MOCK_* env vars take precedence over DEMO_* fallbacks.
+    |
+    */
+    'mock_volumes' => [
+        'service_count' => (int) env('MOCK_SERVICE_COUNT', env('DEMO_SERVICE_COUNT', 96)),
+        'provider_count' => (int) env('MOCK_PROVIDER_COUNT', env('DEMO_PROVIDER_COUNT', 30)),
+        'alert_count' => (int) env('MOCK_ALERT_COUNT', env('DEMO_ALERT_COUNT', 64)),
+        'alert_log_count' => (int) env('MOCK_ALERT_LOG_COUNT', env('DEMO_ALERT_LOG_COUNT', 1200)),
+        'jobs_per_status' => (int) env('MOCK_JOBS_PER_STATUS', env('DEMO_JOBS_PER_STATUS', 15)),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Horizon HTTP API Configuration
     |--------------------------------------------------------------------------
     |

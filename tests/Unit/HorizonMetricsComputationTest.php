@@ -25,7 +25,7 @@ class HorizonMetricsComputationTest extends TestCase
         {
             public function public__services(array $scope): Collection
             {
-                return $this->private__getServicesForMetrics($scope, true, ['id', 'name', 'base_url']);
+                return $this->private__getServicesForMetrics($scope, true);
             }
         };
 
