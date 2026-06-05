@@ -282,7 +282,7 @@ class MockHorizonHubStore implements HorizonHubStoreContract
         return $service;
     }
 
-    public function markServicesStaleOffline(int $standByMinutes, int $deadMinutes): void {}
+    public function markServicesStaleOffline(): void {}
 
     public function matchingTagServiceIds(array $tags): array
     {

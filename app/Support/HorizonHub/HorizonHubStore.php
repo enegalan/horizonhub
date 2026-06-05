@@ -221,16 +221,19 @@ class HorizonHubStore implements HorizonHubStoreContract
         return Service::findOrFail($value);
     }
 
-    public function markServicesStaleOffline(int $standByMinutes, int $deadMinutes): void
+    public function markServicesStaleOffline(): void
     {
-        $standByThreshold = now()->subMinutes($standByMinutes);
+        $staleMinutes = (int) config('horizonhub.stale_service_minutes');
+        $deadMinutes = (int) config('horizonhub.dead_service_minutes');
+
+        $staleByThreshold = now()->subMinutes($staleMinutes);
         $deadThreshold = now()->subMinutes($deadMinutes);
 
         Service::enabled()
             ->where('status', 'online')
-            ->where(function (Builder $query) use ($standByThreshold): void {
+            ->where(function (Builder $query) use ($staleByThreshold): void {
                 $query->whereNull('last_seen_at')
-                    ->orWhere('last_seen_at', '<', $standByThreshold);
+                    ->orWhere('last_seen_at', '<', $staleByThreshold);
             })
             ->update(['status' => 'stand_by']);
 

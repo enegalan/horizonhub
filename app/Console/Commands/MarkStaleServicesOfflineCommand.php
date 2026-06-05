@@ -13,10 +13,7 @@ class MarkStaleServicesOfflineCommand extends Command
 
     public function handle(HorizonHubStore $store): int
     {
-        $staleMinutes = (int) config('horizonhub.stale_service_minutes');
-        $deadMinutes = (int) config('horizonhub.dead_service_minutes');
-
-        $store->markServicesStaleOffline($staleMinutes, $deadMinutes);
+        $store->markServicesStaleOffline();
 
         $this->info("Stale service check completed (thresholds: {$staleMinutes} / {$deadMinutes} min).");
 

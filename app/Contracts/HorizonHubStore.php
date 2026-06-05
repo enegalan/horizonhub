@@ -210,7 +210,7 @@ interface HorizonHubStore
     /**
      * Mark services as stale offline.
      */
-    public function markServicesStaleOffline(int $standByMinutes, int $deadMinutes): void;
+    public function markServicesStaleOffline(): void;
 
     /**
      * Get the service IDs matching the given tags.
