@@ -141,7 +141,6 @@
                                             :selected="[]"
                                             placeholder="All tags"
                                             empty-message="No tags defined"
-                                            searchable
                                             @change="retryFilters.service_tags = $event.detail.values"
                                         >
                                             @foreach($allTags ?? [] as $tag)

@@ -1,8 +1,9 @@
-@props(['options' => [], 'placeholder' => '', 'selected' => null, 'emptyMessage' => 'No results'])
+@props(['placeholder' => '', 'emptyMessage' => 'No results', 'searchable' => true])
 
 @php
     $wrapperClass = $attributes->get('class', '');
-    $selectAttrs = $attributes->except('class');
+    $selectAttrs = $attributes->except(['class', 'searchable']);
+    $searchable = (bool) $searchable;
 @endphp
 <div class="relative {{ $wrapperClass }}"
     x-data="{
@@ -10,6 +11,8 @@
         anchor: { top: 0, left: 0, width: 0 },
         _repositionHandler: null,
         selectedValue: '',
+        searchable: {{ $searchable ? 'true' : 'false' }},
+        filterQuery: '',
         get hiddenSelect() { return this.$refs.hidden; },
         get options() {
             if (!this.hiddenSelect) return [];
@@ -20,6 +23,14 @@
         get dataOptions() {
             return this.options.filter(o => o.value !== '');
         },
+        get filteredOptions() {
+            if (!this.searchable) return this.options;
+            var q = (this.filterQuery || '').trim().toLowerCase();
+            if (q === '') return this.options;
+            return this.options.filter(function (o) {
+                return o.label.toLowerCase().indexOf(q) !== -1;
+            });
+        },
         get selectedLabel() {
             if (this.dataOptions.length === 0) return this.emptyMessage;
             var opt = this.options.find(o => o.value === this.selectedValue);
@@ -29,11 +40,15 @@
         emptyMessage: {{ json_encode($emptyMessage) }},
         openMenu() {
             window.dispatchEvent(new CustomEvent('horizonhub-select-open'));
+            this.filterQuery = '';
             this.open = true;
             var self = this;
             this.$nextTick(function () {
                 self.updateAnchor();
                 self.bindReposition();
+                if (self.searchable && self.$refs.searchInput) {
+                    self.$refs.searchInput.focus();
+                }
             });
         },
         closeMenu() {
@@ -92,9 +107,6 @@
             this.hiddenSelect.dispatchEvent(new Event('change', { bubbles: true }));
             this.closeMenu();
         },
-        syncFromDom() {
-            if (this.hiddenSelect) this.selectedValue = this.hiddenSelect.value;
-        }
     }"
     x-init="
         const sync = () => { const el = $refs.hidden; if (el) selectedValue = el.value };
@@ -106,12 +118,6 @@
     >
     <select x-ref="hidden"
         {{ $selectAttrs->merge(['class' => 'sr-only']) }}>
-        @if($placeholder !== '')
-            <option value="" @selected(empty($selected))>{{ $placeholder }}</option>
-        @endif
-        @foreach($options as $value => $label)
-            <option value="{{ $value }}" @selected($selected !== null && (string) $value === (string) $selected)>{{ $label }}</option>
-        @endforeach
         {{ $slot }}
     </select>
 
@@ -135,16 +141,32 @@
             x-transition:leave="transition ease-in duration-75"
             x-transition:leave-start="opacity-100 scale-100"
             x-transition:leave-end="opacity-0 scale-95"
-            x-bind:style="{ top: anchor.top + 'px', left: anchor.left + 'px', minWidth: Math.max(anchor.width, 128) + 'px' }"
-            class="fixed z-[70] max-h-60 overflow-auto rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"
+            x-bind:style="{ top: anchor.top + 'px', left: anchor.left + 'px', minWidth: Math.max(anchor.width, 192) + 'px' }"
+            class="fixed z-[70] flex max-h-[min(18rem,50vh)] flex-col overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md"
             role="listbox">
+        <div x-show="searchable && dataOptions.length > 0" class="shrink-0 border-b border-border p-2" @click.stop>
+            <input
+                type="text"
+                x-ref="searchInput"
+                x-model="filterQuery"
+                placeholder="Search..."
+                class="flex h-8 w-full rounded-md border border-input bg-background px-2 text-sm shadow-sm"
+                autocomplete="off"
+            />
+        </div>
+        <div class="min-h-0 flex-1 overflow-y-auto p-1">
         <div
             x-show="dataOptions.length === 0"
             class="px-2 py-1.5 text-sm text-muted-foreground select-none"
             x-text="emptyMessage"
             role="presentation"
         ></div>
-        <template x-for="opt in options" :key="opt.value">
+        <div
+            x-show="searchable && dataOptions.length > 0 && filteredOptions.length === 0"
+            class="px-2 py-1.5 text-sm text-muted-foreground select-none"
+            role="presentation"
+        >No matches</div>
+        <template x-for="opt in (searchable ? filteredOptions : options)" :key="opt.value">
             <button type="button"
                 x-show="dataOptions.length > 0"
                 @click="choose(opt)"
@@ -157,6 +179,7 @@
                 </span>
             </button>
         </template>
+        </div>
         </div>
     </template>
 </div>

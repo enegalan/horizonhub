@@ -6,7 +6,7 @@
     'emptyMessage' => 'No results',
     'labelledBy' => null,
     'ariaLabel' => null,
-    'searchable' => false,
+    'searchable' => true,
 ])
 
 @php
@@ -206,7 +206,7 @@
         >
         <div x-show="searchable && options.length > 0" class="shrink-0 border-b border-border p-2" @click.stop>
             <input
-                type="search"
+                type="text"
                 x-ref="searchInput"
                 x-model="filterQuery"
                 placeholder="Search..."
