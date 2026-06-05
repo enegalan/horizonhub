@@ -146,7 +146,7 @@
             role="listbox">
         <div x-show="searchable && dataOptions.length > 0" class="shrink-0 border-b border-border p-2" @click.stop>
             <input
-                type="search"
+                type="text"
                 x-ref="searchInput"
                 x-model="filterQuery"
                 placeholder="Search..."
