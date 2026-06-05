@@ -25,7 +25,6 @@
             :selected="$selectedTags"
             placeholder="All tags"
             empty-message="No tags defined"
-            searchable
         >
             @foreach($allTags as $tag)
                 <option value="{{ $tag }}">{{ $tag }}</option>

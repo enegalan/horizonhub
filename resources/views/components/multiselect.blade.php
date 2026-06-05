@@ -6,7 +6,7 @@
     'emptyMessage' => 'No results',
     'labelledBy' => null,
     'ariaLabel' => null,
-    'searchable' => false,
+    'searchable' => true,
 ])
 
 @php
