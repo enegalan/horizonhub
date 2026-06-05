@@ -1,5 +1,4 @@
 import Lightpickr from 'lightpickr';
-import 'lightpickr/lightpickr.css';
 
 /**
  * Register Alpine directive for datepicker.

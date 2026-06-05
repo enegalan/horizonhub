@@ -1,3 +1,5 @@
+@import 'lightpickr/lightpickr.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -512,6 +514,62 @@ turbo-frame#form-drawer {
 
 .turbo-progress-bar {
     background-color: hsl(var(--primary));
+}
+
+.lp.lp--light,
+.lp.lp--dark {
+    --lp-bg: hsl(var(--popover));
+    --lp-color: hsl(var(--popover-foreground));
+    --lp-accent: hsl(var(--primary));
+    --lp-accent-contrast: hsl(var(--primary-foreground));
+    --lp-accent-hover: hsl(var(--primary) / 0.9);
+    --lp-muted: hsl(var(--muted-foreground));
+    --lp-border: hsl(var(--border));
+    --lp-border-radius: var(--radius);
+    --lp-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --lp-nav-button-bg-hover: hsl(var(--accent));
+    --lp-nav-button-bg-active: hsl(var(--accent) / 0.85);
+    --lp-title-button-bg-hover: hsl(var(--accent));
+    --lp-title-button-bg-active: hsl(var(--accent) / 0.85);
+    --lp-cell-bg-hover: hsl(var(--accent));
+    --lp-cell-bg-active: hsl(var(--accent) / 0.85);
+    --lp-cell-bg-active-selected: hsl(var(--primary) / 0.85);
+    --lp-cell-today-bg: hsl(var(--primary) / 0.1);
+    --lp-cell-today-color: hsl(var(--primary));
+    --lp-cell-today-border: 1px solid hsl(var(--primary) / 0.25);
+    --lp-cell-selected-bg: hsl(var(--primary));
+    --lp-cell-selected-color: hsl(var(--primary-foreground));
+    --lp-cell-selected-border: 1px solid hsl(var(--primary));
+    --lp-cell-range-bg: hsl(var(--primary) / 0.12);
+    --lp-cell-range-preview-bg: hsl(var(--primary) / 0.14);
+    --lp-cell-range-preview-bg-hover: hsl(var(--primary) / 0.22);
+    --lp-cell-focused-outline: 2px solid hsl(var(--ring) / 0.45);
+    --lp-time-slider-track-bg: hsl(var(--border));
+    --lp-time-slider-track-bg-active: hsl(var(--primary) / 0.22);
+    --lp-time-slider-thumb-border: 2px solid hsl(var(--popover));
+    --lp-time-slider-thumb-shadow-hover: 0 0 0 3px hsl(var(--primary) / 0.28), 0 2px 6px rgb(0 0 0 / 0.15);
+    --lp-time-slider-focus-ring: 0 0 0 2px hsl(var(--popover)), 0 0 0 4px hsl(var(--ring) / 0.45);
+}
+
+.dark .lp.lp--dark {
+    --lp-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.25), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+    --lp-time-slider-thumb-shadow: 0 1px 5px rgb(0 0 0 / 0.5);
+    --lp-time-slider-thumb-shadow-hover: 0 0 0 3px hsl(var(--primary) / 0.36), 0 2px 8px rgb(0 0 0 / 0.38);
+}
+
+.lp-mobile-backdrop {
+    background: rgb(0 0 0 / 0.4);
+}
+
+.lp .lp-time-layout:has(.lp-time-display-hours:hover) .lp-time-slider--hours::-webkit-slider-runnable-track,
+.lp .lp-time-layout:has(.lp-time-slider--hours:hover) .lp-time-slider--hours::-webkit-slider-runnable-track,
+.lp .lp-time-layout:has(.lp-time-display-minutes:hover) .lp-time-slider--minutes::-webkit-slider-runnable-track,
+.lp .lp-time-layout:has(.lp-time-slider--minutes:hover) .lp-time-slider--minutes::-webkit-slider-runnable-track,
+.lp .lp-time-layout:has(.lp-time-display-hours:hover) .lp-time-slider--hours::-moz-range-track,
+.lp .lp-time-layout:has(.lp-time-slider--hours:hover) .lp-time-slider--hours::-moz-range-track,
+.lp .lp-time-layout:has(.lp-time-display-minutes:hover) .lp-time-slider--minutes::-moz-range-track,
+.lp .lp-time-layout:has(.lp-time-slider--minutes:hover) .lp-time-slider--minutes::-moz-range-track {
+    box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.12);
 }
 
 html[data-turbo-visit-direction="forward"]::view-transition-old(sidebar):only-child {
