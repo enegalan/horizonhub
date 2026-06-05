@@ -20,7 +20,7 @@ trait BuildsProviderStreams
         $providersQuery = NotificationProvider::orderBy('type')->orderBy('name');
 
         if ($search !== '') {
-            $providersQuery->where('name', 'like', '%' . $search . '%');
+            $providersQuery->where('name', 'like', "%$search%");
         }
 
         $providers = $providersQuery->get();

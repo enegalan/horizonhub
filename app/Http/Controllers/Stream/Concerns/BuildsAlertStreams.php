@@ -24,7 +24,7 @@ trait BuildsAlertStreams
             ->orderByDesc('created_at');
 
         if ($search !== '') {
-            $alertsQuery->where('name', 'like', '%' . $search . '%');
+            $alertsQuery->where('name', 'like', "%$search%");
         }
 
         $alerts = $alertsQuery->get();
