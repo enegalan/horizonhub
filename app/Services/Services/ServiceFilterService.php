@@ -24,6 +24,25 @@ final class ServiceFilterService
     }
 
     /**
+     * Parse `service_id` from the request and restrict to existing services.
+     *
+     * @return list<int>
+     */
+    public function existingServiceIdsFromRequest(Request $request): array
+    {
+        $raw = $request->input('service_id');
+
+        if (blank($raw)) {
+            return [];
+        }
+
+        $values = \is_array($raw) ? $raw : [$raw];
+        $serviceIds = \array_values(\array_unique($values));
+
+        return $this->store->existingServiceIds($serviceIds);
+    }
+
+    /**
      * @return list<int>
      */
     public function resolveFromQuery(string $query): array
@@ -70,24 +89,5 @@ final class ServiceFilterService
             'selectedServiceIds' => $this->existingServiceIdsFromRequest($request),
             'selectedTags' => $request->query('service_tag', []),
         ];
-    }
-
-    /**
-     * Parse `service_id` from the request and restrict to existing services.
-     *
-     * @return list<int>
-     */
-    public function existingServiceIdsFromRequest(Request $request): array
-    {
-        $raw = $request->input('service_id');
-
-        if (blank($raw)) {
-            return [];
-        }
-
-        $values = \is_array($raw) ? $raw : [$raw];
-        $serviceIds = \array_values(\array_unique($values));
-
-        return $this->store->existingServiceIds($serviceIds);
     }
 }

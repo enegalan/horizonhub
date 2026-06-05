@@ -29,10 +29,10 @@ final class HorizonOffline implements AlertRuleContract
     /**
      * The constructor.
      *
-     * @param HorizonClientApi $horizonApi
      * @param HorizonHubStore $store The horizon hub store.
      */
-    public function __construct(HorizonClientApi $horizonApi, HorizonHubStore $store) {
+    public function __construct(HorizonClientApi $horizonApi, HorizonHubStore $store)
+    {
         $this->horizonApi = $horizonApi;
         $this->store = $store;
     }

@@ -22,7 +22,8 @@ class ProviderController extends Controller
      *
      * @param HorizonHubStore $store The store.
      */
-    public function __construct(HorizonHubStore $store) {
+    public function __construct(HorizonHubStore $store)
+    {
         $this->store = $store;
     }
 

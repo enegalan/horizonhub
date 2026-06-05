@@ -11,21 +11,22 @@ use App\Support\Horizon\JobRuntimeHelper;
 final class AvgExecutionTime implements AlertRuleContract
 {
     /**
-     * The evaluation support.
-     */
-    private AlertRuleEvaluation $support;
-
-    /**
      * The horizon hub store.
      */
     private HorizonHubStore $store;
+
+    /**
+     * The evaluation support.
+     */
+    private AlertRuleEvaluation $support;
 
     /**
      * The constructor.
      *
      * @param AlertRuleEvaluation $support The evaluation support.
      */
-    public function __construct(AlertRuleEvaluation $support, HorizonHubStore $store) {
+    public function __construct(AlertRuleEvaluation $support, HorizonHubStore $store)
+    {
         $this->support = $support;
         $this->store = $store;
     }

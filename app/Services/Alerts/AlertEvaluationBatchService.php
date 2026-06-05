@@ -21,7 +21,8 @@ class AlertEvaluationBatchService
      *
      * @param HorizonHubStore $store The horizon hub store.
      */
-    public function __construct(HorizonHubStore $store) {
+    public function __construct(HorizonHubStore $store)
+    {
         $this->store = $store;
     }
 

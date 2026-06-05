@@ -97,9 +97,6 @@ class ServiceController extends Controller
 
     /**
      * Store a new service.
-     * @param UpsertServiceRequest $request
-     * @param HorizonHubStore $store
-     * @return RedirectResponse
      */
     public function store(UpsertServiceRequest $request, HorizonHubStore $store): RedirectResponse
     {
@@ -121,10 +118,6 @@ class ServiceController extends Controller
 
     /**
      * Test connectivity with the Horizon HTTP API for the given service.
-     * @param Service $service
-     * @param HorizonClientApi $horizonApi
-     * @param HorizonHubStore $store
-     * @return RedirectResponse
      */
     public function testConnection(Service $service, HorizonClientApi $horizonApi, HorizonHubStore $store): RedirectResponse
     {

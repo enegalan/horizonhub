@@ -26,7 +26,8 @@ final class JobServiceResolver
      * @param HorizonClientApi $horizonApi The horizon API client.
      * @param HorizonHubStore $store The horizon hub store.
      */
-    public function __construct(HorizonClientApi $horizonApi, HorizonHubStore $store) {
+    public function __construct(HorizonClientApi $horizonApi, HorizonHubStore $store)
+    {
         $this->horizonApi = $horizonApi;
         $this->store = $store;
     }

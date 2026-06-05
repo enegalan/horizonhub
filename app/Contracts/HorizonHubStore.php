@@ -61,8 +61,6 @@ interface HorizonHubStore
      *
      * @param array<string, mixed> $attributes
      * @param list<int> $providerIds
-     *
-     * @return Alert
      */
     public function createAlert(array $attributes, array $providerIds): Alert;
 
@@ -70,8 +68,6 @@ interface HorizonHubStore
      * Create a new alert log.
      *
      * @param array<string, mixed> $attributes
-     *
-     * @return AlertLog
      */
     public function createAlertLog(array $attributes): AlertLog;
 
@@ -79,8 +75,6 @@ interface HorizonHubStore
      * Create a new notification provider.
      *
      * @param array<string, mixed> $attributes
-     *
-     * @return NotificationProvider
      */
     public function createNotificationProvider(array $attributes): NotificationProvider;
 
@@ -89,29 +83,21 @@ interface HorizonHubStore
      *
      * @param array<string, mixed> $attributes
      * @param list<string, string> $headers
-     *
-     * @return Service
      */
     public function createService(array $attributes, array $headers): Service;
 
     /**
      * Delete an alert.
-     *
-     * @param Alert $alert
      */
     public function deleteAlert(Alert $alert): void;
 
     /**
      * Delete a notification provider.
-     *
-     * @param NotificationProvider $provider
      */
     public function deleteNotificationProvider(NotificationProvider $provider): void;
 
     /**
      * Delete a service.
-     *
-     * @param Service $service
      */
     public function deleteService(Service $service): void;
 
@@ -131,8 +117,6 @@ interface HorizonHubStore
 
     /**
      * Check if any enabled alerts exist.
-     *
-     * @return bool
      */
     public function enabledAlertsExist(): bool;
 
@@ -175,100 +159,56 @@ interface HorizonHubStore
 
     /**
      * Find an alert by ID.
-     *
-     * @param int $id
-     *
-     * @return Alert|null
      */
     public function findAlert(int $id): ?Alert;
 
     /**
      * Find an alert log by ID.
-     *
-     * @param int $id
-     *
-     * @return AlertLog|null
      */
     public function findAlertLog(int $id): ?AlertLog;
 
     /**
      * Find an alert log for an alert by ID.
-     *
-     * @param int $alertId
-     * @param int|string $logId
-     *
-     * @return AlertLog|null
      */
     public function findAlertLogForAlert(int $alertId, int|string $logId): ?AlertLog;
 
     /**
      * Find an alert log by ID or fail.
-     *
-     * @param int|string $value
-     *
-     * @return AlertLog
      */
     public function findAlertLogOrFail(int|string $value): AlertLog;
 
     /**
      * Find an alert by ID or fail.
-     *
-     * @param int|string $value
-     *
-     * @return Alert
      */
     public function findAlertOrFail(int|string $value): Alert;
 
     /**
      * Find an enabled service by ID.
-     *
-     * @param int $id
-     *
-     * @return Service|null
      */
     public function findEnabledService(int $id): ?Service;
 
     /**
      * Find a notification provider by ID.
-     *
-     * @param int $id
-     *
-     * @return NotificationProvider|null
      */
     public function findNotificationProvider(int $id): ?NotificationProvider;
 
     /**
      * Find a notification provider by ID or fail.
-     *
-     * @param int|string $value
-     *
-     * @return NotificationProvider
      */
     public function findNotificationProviderOrFail(int|string $value): NotificationProvider;
 
     /**
      * Find a service by ID.
-     *
-     * @param int $id
-     *
-     * @return Service|null
      */
     public function findService(int $id): ?Service;
 
     /**
      * Find a service by ID or fail.
-     *
-     * @param int|string $value
-     *
-     * @return Service
      */
     public function findServiceOrFail(int|string $value): Service;
 
     /**
      * Mark services as stale offline.
-     *
-     * @param int $standByMinutes
-     * @param int $deadMinutes
      */
     public function markServicesStaleOffline(int $standByMinutes, int $deadMinutes): void;
 
@@ -349,22 +289,17 @@ interface HorizonHubStore
 
     /**
      * Toggle the enabled state of an alert.
-     *
-     * @param Alert $alert
      */
     public function toggleAlertEnabled(Alert $alert): void;
 
     /**
      * Toggle the enabled state of a service.
-     *
-     * @param Service $service
      */
     public function toggleServiceEnabled(Service $service): void;
 
     /**
      * Update an existing alert.
      *
-     * @param Alert $alert
      * @param array<string, mixed> $attributes
      * @param list<int> $providerIds
      */
@@ -373,7 +308,6 @@ interface HorizonHubStore
     /**
      * Update an existing alert log.
      *
-     * @param AlertLog $log
      * @param array<string, mixed> $attributes
      */
     public function updateAlertLog(AlertLog $log, array $attributes): void;
@@ -381,7 +315,6 @@ interface HorizonHubStore
     /**
      * Update an existing notification provider.
      *
-     * @param NotificationProvider $provider
      * @param array<string, mixed> $attributes
      */
     public function updateNotificationProvider(NotificationProvider $provider, array $attributes): void;
@@ -389,7 +322,6 @@ interface HorizonHubStore
     /**
      * Update an existing service.
      *
-     * @param Service $service
      * @param array<string, mixed> $attributes
      * @param list<string, string> $headers
      */
@@ -397,10 +329,6 @@ interface HorizonHubStore
 
     /**
      * Update the connection state of a service.
-     *
-     * @param Service $service
-     * @param string $status
-     * @param Carbon|null $lastSeenAt
      */
     public function updateServiceConnectionState(Service $service, string $status, ?Carbon $lastSeenAt = null): void;
 }

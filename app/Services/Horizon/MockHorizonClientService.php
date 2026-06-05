@@ -156,29 +156,73 @@ class MockHorizonClientService implements HorizonClientApi
     }
 
     /**
-     * Get a success response.
+     * Find a job detail by UUID.
      *
-     * @param Service $service The service.
-     * @param string $key The key.
+     * @param int $serviceId The service ID.
+     * @param string $jobUuid The job UUID.
      *
-     * @return array{success: bool, data?: mixed, message?: string, status?: int}
+     * @return array<string, mixed>|null
      */
-    private function private__success(Service $service, string $key): array
+    private function private__findJobDetail(int $serviceId, string $jobUuid): ?array
     {
-        $serviceId = (int) $service->id;
-        $data = $this->fixtures[$serviceId][$key] ?? null;
+        $fixture = $this->fixtures[$serviceId] ?? [];
+        $detailJobs = $fixture['jobs'] ?? [];
 
-        if ($data === null) {
-            return [
-                'success' => false,
-                'message' => 'No demo Horizon fixture for this service.',
-                'status' => 404,
-            ];
+        if (isset($detailJobs[$jobUuid]) && \is_array($detailJobs[$jobUuid])) {
+            return $detailJobs[$jobUuid];
         }
 
+        foreach (['pending_jobs' => 'pending', 'completed_jobs' => 'completed', 'failed_jobs' => 'failed'] as $listKey => $status) {
+            $jobs = $fixture[$listKey]['jobs'] ?? [];
+
+            if (! \is_array($jobs)) {
+                continue;
+            }
+
+            foreach ($jobs as $job) {
+                if (! \is_array($job) || (string) ($job['id'] ?? '') !== $jobUuid) {
+                    continue;
+                }
+
+                return $this->private__jobDetailFromListRow($job, $status, $serviceId);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get a job detail from a list row.
+     *
+     * @param array<string, mixed> $job The job.
+     * @param string $status The status.
+     * @param int $serviceId The service ID.
+     * @param array<string, mixed> $job
+     *
+     * @return array<string, mixed>
+     */
+    private function private__jobDetailFromListRow(array $job, string $status, int $serviceId): array
+    {
+        $reservedAt = isset($job['reserved_at']) && \is_numeric($job['reserved_at']) ? (int) $job['reserved_at'] : null;
+
         return [
-            'success' => true,
-            'data' => $data,
+            'id' => (string) ($job['id'] ?? ''),
+            'name' => (string) ($job['name'] ?? ''),
+            'queue' => (string) ($job['queue'] ?? 'default'),
+            'status' => $status,
+            'connection' => 'redis',
+            'attempts' => 1,
+            'payload' => [
+                'pushedAt' => $reservedAt ?? now()->getTimestamp(),
+                'attempts' => 1,
+            ],
+            'reserved_at' => $reservedAt,
+            'completed_at' => isset($job['completed_at']) && \is_numeric($job['completed_at']) ? (int) $job['completed_at'] : null,
+            'failed_at' => isset($job['failed_at']) && \is_numeric($job['failed_at']) ? (int) $job['failed_at'] : null,
+            'exception' => $status === 'failed'
+                ? "RuntimeException: Mock failure on service {$serviceId}\n  at mock fixture:42"
+                : null,
+            'tags' => ['demo'],
         ];
     }
 
@@ -254,74 +298,29 @@ class MockHorizonClientService implements HorizonClientApi
     }
 
     /**
-     * Find a job detail by UUID.
+     * Get a success response.
      *
-     * @param int $serviceId The service ID.
-     * @param string $jobUuid The job UUID.
+     * @param Service $service The service.
+     * @param string $key The key.
      *
-     * @return array<string, mixed>|null
+     * @return array{success: bool, data?: mixed, message?: string, status?: int}
      */
-    private function private__findJobDetail(int $serviceId, string $jobUuid): ?array
+    private function private__success(Service $service, string $key): array
     {
-        $fixture = $this->fixtures[$serviceId] ?? [];
-        $detailJobs = $fixture['jobs'] ?? [];
+        $serviceId = (int) $service->id;
+        $data = $this->fixtures[$serviceId][$key] ?? null;
 
-        if (isset($detailJobs[$jobUuid]) && \is_array($detailJobs[$jobUuid])) {
-            return $detailJobs[$jobUuid];
+        if ($data === null) {
+            return [
+                'success' => false,
+                'message' => 'No demo Horizon fixture for this service.',
+                'status' => 404,
+            ];
         }
-
-        foreach (['pending_jobs' => 'pending', 'completed_jobs' => 'completed', 'failed_jobs' => 'failed'] as $listKey => $status) {
-            $jobs = $fixture[$listKey]['jobs'] ?? [];
-
-            if (! \is_array($jobs)) {
-                continue;
-            }
-
-            foreach ($jobs as $job) {
-                if (! \is_array($job) || (string) ($job['id'] ?? '') !== $jobUuid) {
-                    continue;
-                }
-
-                return $this->private__jobDetailFromListRow($job, $status, $serviceId);
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Get a job detail from a list row.
-     *
-     * @param array<string, mixed> $job The job.
-     * @param string $status The status.
-     * @param int $serviceId The service ID.
-     *
-     * @param array<string, mixed> $job
-     *
-     * @return array<string, mixed>
-     */
-    private function private__jobDetailFromListRow(array $job, string $status, int $serviceId): array
-    {
-        $reservedAt = isset($job['reserved_at']) && \is_numeric($job['reserved_at']) ? (int) $job['reserved_at'] : null;
 
         return [
-            'id' => (string) ($job['id'] ?? ''),
-            'name' => (string) ($job['name'] ?? ''),
-            'queue' => (string) ($job['queue'] ?? 'default'),
-            'status' => $status,
-            'connection' => 'redis',
-            'attempts' => 1,
-            'payload' => [
-                'pushedAt' => $reservedAt ?? now()->getTimestamp(),
-                'attempts' => 1,
-            ],
-            'reserved_at' => $reservedAt,
-            'completed_at' => isset($job['completed_at']) && \is_numeric($job['completed_at']) ? (int) $job['completed_at'] : null,
-            'failed_at' => isset($job['failed_at']) && \is_numeric($job['failed_at']) ? (int) $job['failed_at'] : null,
-            'exception' => $status === 'failed'
-                ? "RuntimeException: Mock failure on service {$serviceId}\n  at mock fixture:42"
-                : null,
-            'tags' => ['demo'],
+            'success' => true,
+            'data' => $data,
         ];
     }
 }

@@ -10,12 +10,14 @@ class ServiceRequest extends FormRequest
 {
     /** @var HorizonHubStore */
     private $store;
+
     /**
      * The constructor.
      *
      * @param HorizonHubStore $store The horizon hub store.
      */
-    public function __construct(HorizonHubStore $store) {
+    public function __construct(HorizonHubStore $store)
+    {
         parent::__construct();
         $this->store = $store;
     }

@@ -18,6 +18,15 @@ class MockHorizonHubStoreTest extends TestCase
         $this->assertContains('billing-api', $data['labelsByAlertId'][1] ?? []);
     }
 
+    public function test_demo_catalog_has_large_varied_dataset_by_default(): void
+    {
+        $store = new MockHorizonHubStore;
+
+        $this->assertGreaterThanOrEqual(90, $store->enabledServices()->count());
+        $this->assertGreaterThanOrEqual(58, $store->enabledAlerts()->count());
+        $this->assertGreaterThanOrEqual(1000, $store->alertLogTotalCount());
+    }
+
     public function test_enabled_services_include_demo_catalog_names(): void
     {
         $store = new MockHorizonHubStore;
@@ -42,14 +51,5 @@ class MockHorizonHubStoreTest extends TestCase
         $store = new MockHorizonHubStore;
 
         $this->assertSame([1, 2, 3], $store->resolveEnabledServiceIds([1, 2, 3]));
-    }
-
-    public function test_demo_catalog_has_large_varied_dataset_by_default(): void
-    {
-        $store = new MockHorizonHubStore;
-
-        $this->assertGreaterThanOrEqual(90, $store->enabledServices()->count());
-        $this->assertGreaterThanOrEqual(58, $store->enabledAlerts()->count());
-        $this->assertGreaterThanOrEqual(1000, $store->alertLogTotalCount());
     }
 }
