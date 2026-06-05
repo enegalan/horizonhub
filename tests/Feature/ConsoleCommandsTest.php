@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\HorizonHubStore as HorizonHubStoreContract;
 use App\Models\Service;
 use App\Services\Alerts\Engine\AlertEngine;
+use App\Support\HorizonHub\HorizonHubStore;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -22,6 +24,8 @@ class ConsoleCommandsTest extends TestCase
 
     public function test_mark_stale_services_offline_command_updates_status_by_thresholds(): void
     {
+        $this->app->instance(HorizonHubStoreContract::class, new HorizonHubStore);
+
         config()->set('horizonhub.stale_service_minutes', 30);
         config()->set('horizonhub.dead_service_minutes', 60);
 

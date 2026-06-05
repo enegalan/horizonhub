@@ -13,10 +13,6 @@ class MarkStaleServicesOfflineCommand extends Command
 
     public function handle(HorizonHubStore $store): int
     {
-        if (config('horizonhub.mock')) {
-            return self::SUCCESS;
-        }
-
         $staleMinutes = (int) config('horizonhub.stale_service_minutes');
         $deadMinutes = (int) config('horizonhub.dead_service_minutes');
 
