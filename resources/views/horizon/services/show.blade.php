@@ -3,7 +3,7 @@
 @section('content')
     @php
         $workloadQueues ??= collect();
-        $filters ??= ['search' => ''];
+        $search ??= '';
     @endphp
     <div
         id="horizon-service-dashboard"
@@ -164,7 +164,7 @@
                         <x-text-input
                             type="text"
                             name="search"
-                            value="{{ $filters['search'] ?? '' }}"
+                            value="{{ $search ?? '' }}"
                             placeholder="Queue, job or UUID"
                             class="w-52"
                         />

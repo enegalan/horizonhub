@@ -68,8 +68,6 @@ class ServiceController extends Controller
      */
     public function show(Request $request, Service $service): View
     {
-        $search = (string) $request->query('search', '');
-
         return \view('horizon.services.show', [
             'service' => $service,
             'header' => $service->name,
@@ -87,9 +85,7 @@ class ServiceController extends Controller
             'jobsProcessing' => [],
             'jobsProcessed' => [],
             'jobsFailed' => [],
-            'filters' => [
-                'search' => $search,
-            ],
+            'search' => \trim((string) $request->query('search', '')),
             'defer' => true,
         ]);
     }

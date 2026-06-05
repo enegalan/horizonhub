@@ -125,7 +125,9 @@ class AlertControllerTest extends TestCase
             'enabled' => true,
         ]);
 
-        $this->get(route('horizon.alerts.index'))->assertOk();
+        $this->get(route('horizon.alerts.index'))
+            ->assertOk()
+            ->assertSee('id="alerts-index-search"', false);
         $this->get(route('horizon.alerts.create'), [
             'Turbo-Frame' => FormDrawer::FRAME_ID,
         ])->assertOk();

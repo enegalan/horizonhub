@@ -70,7 +70,7 @@ class ServiceShowViewDataTest extends TestCase
         $this->assertSame('running', $data['horizonStatus']);
         $this->assertSame(3, $data['totalProcesses']);
         $this->assertSame(5.0, $data['maxWaitTimeSeconds']);
-        $this->assertSame('job-x', $data['filters']['search']);
+        $this->assertSame('job-x', $data['search']);
         $this->assertCount(1, $data['supervisors']);
         $this->assertCount(1, $data['workloadQueues']);
     }

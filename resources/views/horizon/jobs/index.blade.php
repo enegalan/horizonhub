@@ -35,7 +35,7 @@
                                     id="jobs-index-search"
                                     type="text"
                                     name="search"
-                                    value="{{ $filters['search'] ?? '' }}"
+                                    value="{{ $search ?? '' }}"
                                     placeholder="Queue, job or UUID"
                                     class="w-full min-w-0 sm:w-56"
                                 />

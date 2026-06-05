@@ -8,6 +8,7 @@ use App\Models\NotificationProvider;
 use App\Support\FlashStatus;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 class ProviderController extends Controller
 {
@@ -48,11 +49,12 @@ class ProviderController extends Controller
     /**
      * List notification providers.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
         return \view('horizon.providers.index', [
             'providers' => collect(),
             'defer' => true,
+            'search' => \trim((string) $request->query('search', '')),
             'header' => 'Providers',
         ]);
     }
