@@ -20,9 +20,7 @@ class JobController extends Controller
             'jobsProcessed' => [],
             'jobsFailed' => [],
             'services' => Service::enabled()->orderBy('name')->get(),
-            'filters' => [
-                'search' => (string) $request->query('search', ''),
-            ],
+            'search' => \trim((string) $request->query('search', '')),
             'defer' => true,
             'header' => 'Jobs',
         ], $serviceFilter->viewData($request)));

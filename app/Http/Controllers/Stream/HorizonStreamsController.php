@@ -83,9 +83,11 @@ class HorizonStreamsController extends StreamController
         $this->serviceFilter = $serviceFilter;
     }
 
-    public function alerts(): StreamedResponse
+    public function alerts(Request $request): StreamedResponse
     {
-        return $this->runStream(fn (): string => $this->buildAlerts());
+        $query = $request->getQueryString() ?? '';
+
+        return $this->runStream(fn (): string => $this->buildAlerts($query));
     }
 
     public function alertShow(Alert $alert): StreamedResponse
@@ -119,9 +121,11 @@ class HorizonStreamsController extends StreamController
         return $this->runStream(fn (): string => $this->buildMetrics($query));
     }
 
-    public function providerList(): StreamedResponse
+    public function providerList(Request $request): StreamedResponse
     {
-        return $this->runStream(fn (): string => $this->buildProviders());
+        $query = $request->getQueryString() ?? '';
+
+        return $this->runStream(fn (): string => $this->buildProviders($query));
     }
 
     public function queues(Request $request): StreamedResponse

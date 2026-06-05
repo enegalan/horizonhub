@@ -64,6 +64,30 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('action="replace"', $result);
     }
 
+    public function test_build_alerts_streams_filters_by_search(): void
+    {
+        Alert::create([
+            'name' => 'ops-failures',
+            'rule_type' => FailureCount::type(),
+            'enabled' => true,
+        ]);
+        Alert::create([
+            'name' => 'billing-queue',
+            'rule_type' => FailureCount::type(),
+            'enabled' => true,
+        ]);
+
+        $controller = $this->app->make(HorizonStreamsController::class);
+        $reflection = new \ReflectionMethod($controller, 'buildAlerts');
+        $reflection->setAccessible(true);
+
+        $result = $reflection->invoke($controller, 'search=ops');
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('ops-failures', $result);
+        $this->assertStringNotContainsString('billing-queue', $result);
+    }
+
     public function test_build_alerts_streams_returns_tbody_update(): void
     {
         $includedService = Service::create([
@@ -420,6 +444,30 @@ class TurboStreamSseTest extends TestCase
         $this->assertMatchesRegularExpression('/Slack.*?<span>2<\/span>/s', $result);
         $this->assertMatchesRegularExpression('/Email.*?<span>2<\/span>/s', $result);
         $this->assertMatchesRegularExpression('/Discord.*?<span>0<\/span>/s', $result);
+    }
+
+    public function test_build_providers_streams_filters_by_search(): void
+    {
+        NotificationProvider::create([
+            'name' => 'ops-slack',
+            'type' => SlackNotifierService::type(),
+            'config' => ['webhook_url' => 'https://hooks.slack.test/services/T/B'],
+        ]);
+        NotificationProvider::create([
+            'name' => 'billing-mail',
+            'type' => EmailNotifierService::type(),
+            'config' => ['to' => ['ops@example.test']],
+        ]);
+
+        $controller = $this->app->make(HorizonStreamsController::class);
+        $reflection = new \ReflectionMethod($controller, 'buildProviders');
+        $reflection->setAccessible(true);
+
+        $result = $reflection->invoke($controller, 'search=ops');
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('ops-slack', $result);
+        $this->assertStringNotContainsString('billing-mail', $result);
     }
 
     public function test_build_providers_streams_returns_tbody_morph_update(): void

@@ -20,6 +20,7 @@ class ProviderControllerTest extends TestCase
         $response->assertOk();
         $response->assertViewHas('defer', true);
         $response->assertSee('id="turbo-tbody-horizon-provider-list"', false);
+        $response->assertSee('id="providers-index-search"', false);
     }
 
     public function test_store_creates_discord_provider_with_webhook_config(): void

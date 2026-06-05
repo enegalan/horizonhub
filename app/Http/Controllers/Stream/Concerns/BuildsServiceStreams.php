@@ -106,7 +106,7 @@ trait BuildsServiceStreams
      *     jobsProcessing: LengthAwarePaginator,
      *     jobsProcessed: LengthAwarePaginator,
      *     jobsFailed: LengthAwarePaginator,
-     *     filters: array{search: string}
+     *     search: string
      * }
      */
     private function private__buildServiceShowData(Service $service, Request $request, HorizonClientService $horizonApi): array
@@ -125,6 +125,7 @@ trait BuildsServiceStreams
             'supervisorGroups' => collect(),
             'supervisors' => collect(),
             'workloadQueues' => collect(),
+            'search' => $search,
         ];
 
         if ($service->enabled) {
@@ -238,10 +239,6 @@ trait BuildsServiceStreams
                 'page_failed',
             );
         }
-
-        $data['filters'] = [
-            'search' => $search,
-        ];
 
         return $data;
     }

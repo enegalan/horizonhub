@@ -18,6 +18,25 @@
                 </x-slot:actions>
             </x-page-hero>
 
+            <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
+                <form method="GET" action="{{ route('horizon.providers.index') }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="_top">
+                    <div class="min-w-0 flex-1 space-y-2">
+                        <x-input-label for="providers-index-search">Search</x-input-label>
+                        <x-text-input
+                            id="providers-index-search"
+                            type="text"
+                            name="search"
+                            value="{{ $search ?? '' }}"
+                            placeholder="Provider name"
+                            class="w-full min-w-0 sm:max-w-xs"
+                        />
+                    </div>
+                    <x-button type="submit" class="h-9 shrink-0 text-sm">
+                        Search
+                    </x-button>
+                </form>
+            </div>
+
             <div class="grid gap-3 border-b border-border px-5 py-4 sm:grid-cols-4 sm:px-6">
                 <div
                     id="turbo-horizon-provider-stats"

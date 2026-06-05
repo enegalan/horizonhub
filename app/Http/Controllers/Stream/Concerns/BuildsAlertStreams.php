@@ -11,13 +11,23 @@ trait BuildsAlertStreams
 {
     /**
      * Build the alerts index streams.
+     *
+     * @param string $query The query.
      */
-    protected function buildAlerts(): string
+    protected function buildAlerts(string $query = ''): string
     {
-        $alerts = Alert::withCount('alertLogs')
+        \parse_str($query, $params);
+        $search = \trim((string) ($params['search'] ?? ''));
+
+        $alertsQuery = Alert::withCount('alertLogs')
             ->withMax('alertLogs', 'sent_at')
-            ->orderByDesc('created_at')
-            ->get();
+            ->orderByDesc('created_at');
+
+        if ($search !== '') {
+            $alertsQuery->where('name', 'like', '%' . $search . '%');
+        }
+
+        $alerts = $alertsQuery->get();
 
         $serviceNamesById = Service::pluck('name', 'id')->all();
         $labelsByAlertId = [];

@@ -98,12 +98,13 @@ class AlertController extends Controller
     /**
      * Display the list of alerts.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
         return \view('horizon.alerts.index', [
             'alerts' => collect(),
             'defer' => true,
             'evaluateAllAlertsVisible' => Alert::enabled()->exists(),
+            'search' => \trim((string) $request->query('search', '')),
             'header' => 'Alerts',
         ]);
     }

@@ -9,12 +9,22 @@ trait BuildsProviderStreams
 {
     /**
      * Build the providers streams.
+     *
+     * @param string $query The query.
      */
-    protected function buildProviders(): string
+    protected function buildProviders(string $query = ''): string
     {
-        $providers = NotificationProvider::orderBy('type')
-            ->orderBy('name')
-            ->get();
+        \parse_str($query, $params);
+        $search = \trim((string) ($params['search'] ?? ''));
+
+        $providersQuery = NotificationProvider::orderBy('type')
+            ->orderBy('name');
+
+        if ($search !== '') {
+            $providersQuery->where('name', 'like', '%' . $search . '%');
+        }
+
+        $providers = $providersQuery->get();
 
         $countsByProviderTypes = AlertLog::selectRaw('notification_providers.type, COUNT(*) as aggregate')
             ->join('alerts', 'alerts.id', '=', 'alert_logs.alert_id')
