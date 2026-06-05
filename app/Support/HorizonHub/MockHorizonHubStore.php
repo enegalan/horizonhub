@@ -30,7 +30,7 @@ class MockHorizonHubStore implements HorizonHubStoreContract
 
     public function __construct()
     {
-        $catalog = config('demo.catalog', []);
+        $catalog = config('demo.catalog');
         $this->providers = $this->private__hydrateProviders($catalog['notification_providers'] ?? []);
         $this->services = $this->private__hydrateServices($catalog['services'] ?? [], $catalog['service_headers'] ?? []);
         $this->alerts = $this->private__hydrateAlerts($catalog['alerts'] ?? []);

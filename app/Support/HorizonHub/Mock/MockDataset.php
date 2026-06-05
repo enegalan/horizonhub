@@ -66,8 +66,8 @@ final class MockDataset
     public static function volumes(): array
     {
         $configured = config('horizonhub.mock_volumes');
-        $pageCap = (int) config('horizonhub.max_horizon_pages', 8)
-            * (int) config('horizonhub.horizon_api_job_list_page_size', 25);
+        $pageCap = (int) config('horizonhub.max_horizon_pages')
+            * (int) config('horizonhub.horizon_api_job_list_page_size');
 
         $jobsPerStatus = \min(
             \max(5, (int) ($configured['jobs_per_status'] ?? 15)),

@@ -13,7 +13,7 @@
                         @class([
                             'w-full py-1 px-3 leading-10 border-b whitespace-pre-wrap break-words border-red-500/20'
                         ])
-                        x-show="showAllExceptionLines || {{ $lineIndex < config('horizonhub.failed_job_exception_preview_lines', 10) ? 'true' : 'false' }}"
+                        x-show="showAllExceptionLines || {{ $lineIndex < config('horizonhub.failed_job_exception_preview_lines') ? 'true' : 'false' }}"
                         @if($lineIndex >= config('horizonhub.failed_job_exception_preview_lines')) x-cloak @endif
                     >{{ $line }}</code>
                 @endforeach
