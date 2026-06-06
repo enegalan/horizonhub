@@ -12,7 +12,7 @@
                 description="Live health and workload across your connected Horizon services. Filter by tag or service to focus on a subset."
             />
 
-            <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
+            <div class="bg-muted/15 px-5 py-4 sm:px-6">
                 <form method="GET" action="{{ route('horizon.index') }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="_top" data-service-tag-filter="1" data-service-tag-filter-manual="1">
                     <x-service-tag-filter
                         :all-tags="$allTags ?? []"

@@ -120,9 +120,9 @@
     select {
         @apply py-2 pr-8 appearance-none cursor-pointer;
     }
-    input:focus,
-    input:active,
-    input:target,
+    input:focus:not([type="range"]),
+    input:active:not([type="range"]),
+    input:target:not([type="range"]),
     select:focus,
     select:active,
     select:target,
@@ -531,7 +531,7 @@ turbo-frame#form-drawer {
     --lp-nav-button-bg-active: hsl(var(--accent) / 0.85);
     --lp-title-button-bg-hover: hsl(var(--accent));
     --lp-title-button-bg-active: hsl(var(--accent) / 0.85);
-    --lp-cell-bg-hover: hsl(var(--accent));
+    --lp-cell-bg-hover: hsl(var(--accent) / 0.65);
     --lp-cell-bg-active: hsl(var(--accent) / 0.85);
     --lp-cell-bg-active-selected: hsl(var(--primary) / 0.85);
     --lp-cell-today-bg: hsl(var(--primary) / 0.1);
