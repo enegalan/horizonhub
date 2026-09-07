@@ -78,22 +78,6 @@ abstract class AbstractMetricsCalculator
     }
 
     /**
-     * Fetch failed jobs with failed_at >= $sinceTimestamp by paginating the Horizon API.
-     *
-     * Each request uses Horizon query `limit` = horizonhub.horizon_api_job_list_page_size.
-     * The number of HTTP pages per service is capped by horizonhub.max_horizon_pages.
-     *
-     * @param Service $service The service.
-     * @param int $sinceTimestamp The since timestamp.
-     *
-     * @return list<array<string, mixed>>
-     */
-    protected function private__fetchFailedJobsInWindow(Service $service, int $sinceTimestamp): array
-    {
-        return $this->jobsWindowFetcher->fetchFailedJobsSince($service, $sinceTimestamp);
-    }
-
-    /**
      * Get services that can provide Horizon metrics.
      *
      * @param array<string, mixed> $serviceScope The service scope. Empty = all enabled services; non-empty = restrict by id.

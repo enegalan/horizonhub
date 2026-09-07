@@ -32,7 +32,7 @@ final class QueueFailureCountersCalculator extends AbstractMetricsCalculator
             $completedJobs = $this->jobsWindowFetcher->fetchCompletedJobsSince($service, $sinceTimestamp);
             $this->private__aggregateQueueCountsFromJobsPayload($completedJobs, $sinceTimestamp, 'completed_at', $normalizedProcessed);
 
-            $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp);
+            $failedJobs = $this->jobsWindowFetcher->fetchFailedJobsSince($service, $sinceTimestamp);
             $this->private__aggregateQueueCountsFromJobsPayload($failedJobs, $sinceTimestamp, 'failed_at', $normalizedFailed);
         }
 

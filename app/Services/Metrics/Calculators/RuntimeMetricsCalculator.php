@@ -56,7 +56,7 @@ final class RuntimeMetricsCalculator extends AbstractMetricsCalculator
                 ];
             }
 
-            $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp);
+            $failedJobs = $this->jobsWindowFetcher->fetchFailedJobsSince($service, $sinceTimestamp);
 
             foreach ($failedJobs as $job) {
                 $queuedAt = $job['reserved_at'] ?? null;

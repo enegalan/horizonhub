@@ -37,7 +37,7 @@ final class FailureMetricsCalculator extends AbstractMetricsCalculator
             $completedJobs = $this->jobsWindowFetcher->fetchCompletedJobsSince($service, $sinceTimestamp);
             $processed += \count($completedJobs);
 
-            $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp);
+            $failedJobs = $this->jobsWindowFetcher->fetchFailedJobsSince($service, $sinceTimestamp);
             $failed += \count($failedJobs);
         }
 
@@ -88,7 +88,7 @@ final class FailureMetricsCalculator extends AbstractMetricsCalculator
 
             $this->private__incrementHourlyBuckets($buckets, $completedJobs, 'completed_at', 'processed', $sinceTimestamp, $bucketFormat);
 
-            $failedJobs = $this->private__fetchFailedJobsInWindow($service, $sinceTimestamp);
+            $failedJobs = $this->jobsWindowFetcher->fetchFailedJobsSince($service, $sinceTimestamp);
             $this->private__incrementHourlyBuckets($buckets, $failedJobs, 'failed_at', 'failed', $sinceTimestamp, $bucketFormat);
         }
 
