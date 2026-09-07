@@ -4,6 +4,7 @@ namespace App\Services\Horizon\Concerns;
 
 use App\Models\Service;
 use App\Services\Horizon\Contracts\HorizonClientCache as HorizonClientCacheContract;
+use App\Support\Http\HttpRetryBackoff;
 use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Support\Facades\Cache;
 
@@ -97,7 +98,20 @@ class HorizonClientCache implements HorizonClientCacheContract
      */
     public function requestPathFillLock(Service $service, string $path): Lock
     {
-        $lockSeconds = (int) config('horizonhub.api_timeout');
+        $timeout = (int) config('horizonhub.api_timeout');
+        $retryTimes = max(1, (int) config('horizonhub.horizon_http_retry.times'));
+
+        $baseSeconds = max($timeout, $timeout * $retryTimes);
+
+        $backoffMs = 0;
+
+        for ($attempt = 1; $attempt < $retryTimes; $attempt++) {
+            $backoffMs += HttpRetryBackoff::delayMsForAttempt($attempt);
+        }
+
+        // Small margin so the lock outlives cleanup after the last attempt.
+        $backoffSeconds = (int) \ceil($backoffMs / 1000);
+        $lockSeconds = $baseSeconds + $backoffSeconds + 1;
 
         return Cache::lock("{$this->requestPathCacheKey($service, $path)}:fill", $lockSeconds);
     }

@@ -8,7 +8,8 @@ use App\Services\Horizon\HorizonClientService;
 use App\Services\Notifiers\Contracts\AlertNotifier;
 use App\Services\Notifiers\Contracts\AlertNotifierMetadata;
 use App\Support\Alerts\AlertRuleCatalog;
-use App\Support\Horizon\JobRuntimeHelper;
+use App\Support\Horizon\ClientResponse;
+use App\Support\Jobs\JobRuntimeHelper;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -199,10 +200,9 @@ abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMeta
             if (blank($jobUuid)) {
                 continue;
             }
-            $response = $this->horizonApi->getJob($service, $jobUuid);
-            $data = $response['data'] ?? null;
+            $data = ClientResponse::data($this->horizonApi->getJob($service, $jobUuid));
 
-            if (! $response['success'] || ! \is_array($data)) {
+            if ($data === null) {
                 continue;
             }
             $failedAt = JobRuntimeHelper::parseJobTimestamp($data['failed_at'] ?? null);

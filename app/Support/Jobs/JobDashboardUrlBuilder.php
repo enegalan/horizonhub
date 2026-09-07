@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support\Horizon;
+namespace App\Support\Jobs;
 
 use App\Models\Service;
 

@@ -5,7 +5,7 @@ namespace App\Support\Alerts;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Jobs\JobsWindowFetcher;
-use App\Support\Horizon\JobRuntimeHelper;
+use App\Support\Jobs\JobRuntimeHelper;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
@@ -66,36 +66,16 @@ final class AlertRuleEvaluation
     }
 
     /**
-     * Check if the job matches the queue patterns.
-     *
-     * @param array<string, mixed> $job
-     */
-    public function jobMatchesQueuePatterns(Alert $alert, array $job): bool
-    {
-        $patterns = $this->resolveQueuePatterns($alert);
-
-        if (empty($patterns)) {
-            return true;
-        }
-        $queue = (string) ($job['queue'] ?? '');
-
-        foreach ($patterns as $pattern) {
-            if ($queue === (string) $pattern) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * Check if the job row matches the alert queue and job patterns.
      *
-     * @param array<string, mixed> $job
+     * @param Alert $alert The alert.
+     * @param array<string, mixed> $job The job.
+     *
+     * @return bool Whether the job row matches the alert queue and job patterns.
      */
     public function jobRowMatches(Alert $alert, array $job): bool
     {
-        return $this->jobMatchesQueuePatterns($alert, $job)
+        return $this->private__jobMatchesQueuePatterns($alert, $job)
             && $this->private__jobMatchesJobPatterns($alert, $job);
     }
 
@@ -208,7 +188,21 @@ final class AlertRuleEvaluation
         if (empty($patterns)) {
             return true;
         }
-        $haystack = $this->private__jobPayloadHaystack($job);
+        $haystack = '';
+        $payload = $job['payload'] ?? [];
+
+        if (! \is_array($payload)) {
+            $payload = [];
+        }
+
+        $displayName = $payload['displayName'] ?? null;
+        $rawJob = $payload['job'] ?? null;
+
+        if (! empty($displayName)) {
+            $haystack = $displayName;
+        } elseif (! empty($rawJob)) {
+            $haystack = $rawJob;
+        }
 
         foreach ($patterns as $pattern) {
             if ($pattern !== '' && \str_contains($haystack, $pattern)) {
@@ -220,20 +214,28 @@ final class AlertRuleEvaluation
     }
 
     /**
-     * Get the job payload haystack.
+     * Check if the job matches the queue patterns.
      *
+     * @param Alert $alert The alert.
      * @param array<string, mixed> $job The job.
+     *
+     * @return bool Whether the job matches the queue patterns.
      */
-    private function private__jobPayloadHaystack(array $job): string
+    private function private__jobMatchesQueuePatterns(Alert $alert, array $job): bool
     {
-        $payload = $job['payload'] ?? [];
+        $patterns = $this->resolveQueuePatterns($alert);
 
-        if (! \is_array($payload)) {
-            $payload = [];
+        if (empty($patterns)) {
+            return true;
         }
-        $displayName = $payload['displayName'] ?? null;
-        $rawJob = $payload['job'] ?? null;
+        $queue = (string) ($job['queue'] ?? '');
 
-        return (string) ($displayName ?? $rawJob ?? '');
+        foreach ($patterns as $pattern) {
+            if ($queue === (string) $pattern) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

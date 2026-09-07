@@ -6,9 +6,9 @@ use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
 use App\Services\Services\ServiceFilterService;
 use App\Support\DatetimeBoundaryParser;
-use App\Support\Horizon\HorizonJobPaginator;
-use App\Support\Horizon\JobCommandDataExtractor;
-use App\Support\Horizon\JobRuntimeHelper;
+use App\Support\Jobs\JobCommandDataExtractor;
+use App\Support\Jobs\JobRuntimeHelper;
+use App\Support\Jobs\JobsPaginator;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -246,7 +246,7 @@ class JobListService
         $dateToCarbon = DatetimeBoundaryParser::parseUpper($dateToStr);
 
         foreach ($services as $service) {
-            $rawJobs = $this->private__fetchAllJobsForService(
+            $rawJobs = JobsPaginator::fetchAllPages(
                 fn (array $query): array => $this->horizonApi->getFailedJobs($service, $query),
             );
 
@@ -344,10 +344,18 @@ class JobListService
 
         foreach ($services as $service) {
             $fetcher = $this->private__apiFetcherForStatus($service, $status);
-            $rawJobs = $this->private__fetchAllJobsForService($fetcher);
+            $rawJobs = JobsPaginator::fetchAllPages($fetcher);
 
             foreach ($rawJobs as $job) {
-                $row = $this->private__mapRawJobToListRow(\is_array($job) ? $job : [], $service, $status);
+                if (! \is_array($job)) {
+                    continue;
+                }
+
+                $row = $this->private__mapRawJobToListRow($job, $service, $status);
+
+                if ($row === null) {
+                    continue;
+                }
 
                 if (! $this->private__matchesSearch($row, $search)) {
                     continue;
@@ -356,19 +364,23 @@ class JobListService
             }
         }
 
-        return $this->private__sortJobRows($merged, $status)->values();
-    }
+        return $merged->sort(function (object $a, object $b) use ($status): int {
+            $timeA = $this->private__sortTimeForStatus($a, $status);
+            $timeB = $this->private__sortTimeForStatus($b, $status);
 
-    /**
-     * Fetch all jobs for a single service.
-     *
-     * @param callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>} $fetcher The fetcher.
-     *
-     * @return list<mixed>
-     */
-    private function private__fetchAllJobsForService(callable $fetcher): array
-    {
-        return HorizonJobPaginator::fetchAllPages($fetcher);
+            if ($timeA === $timeB) {
+                $sidA = $a->service->id ?? 0;
+                $sidB = $b->service->id ?? 0;
+
+                if ($sidA !== $sidB) {
+                    return $sidA <=> $sidB;
+                }
+
+                return \strcmp((string) $a->uuid, (string) $b->uuid);
+            }
+
+            return $timeA < $timeB ? 1 : -1;
+        })->values();
     }
 
     /**
@@ -497,35 +509,6 @@ class JobListService
         $haystack = $row->queue . ' ' . $row->name . ' ' . $row->uuid;
 
         return \stripos($haystack, $search) !== false;
-    }
-
-    /**
-     * Sort job rows by time for a given status.
-     *
-     * @param Collection<int, object> $rows
-     * @param 'processing'|'processed'|'failed' $status
-     *
-     * @return Collection<int, object>
-     */
-    private function private__sortJobRows(Collection $rows, string $status): Collection
-    {
-        return $rows->sort(function (object $a, object $b) use ($status): int {
-            $timeA = $this->private__sortTimeForStatus($a, $status);
-            $timeB = $this->private__sortTimeForStatus($b, $status);
-
-            if ($timeA === $timeB) {
-                $sidA = $a->service->id ?? 0;
-                $sidB = $b->service->id ?? 0;
-
-                if ($sidA !== $sidB) {
-                    return $sidA <=> $sidB;
-                }
-
-                return \strcmp((string) $a->uuid, (string) $b->uuid);
-            }
-
-            return $timeA < $timeB ? 1 : -1;
-        });
     }
 
     /**

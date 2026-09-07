@@ -36,8 +36,6 @@ class AlertRulesTest extends TestCase
 
         $this->assertSame(['emails', 'default'], $support->resolveQueuePatterns($alert));
         $this->assertSame(['App\\Jobs\\Sync'], $support->resolveJobPatterns($alert));
-        $this->assertTrue($support->jobMatchesQueuePatterns($alert, ['queue' => 'emails']));
-        $this->assertFalse($support->jobMatchesQueuePatterns($alert, ['queue' => 'other']));
 
         $jobs = collect([
             ['id' => 'j1', 'failed_at' => now()->subMinute()->toIso8601String(), 'queue' => 'default', 'payload' => ['displayName' => 'App\\Jobs\\Sync']],

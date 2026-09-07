@@ -4,8 +4,9 @@ namespace App\Http\Controllers\Stream\Concerns;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
-use App\Support\Horizon\HorizonMastersReader;
-use App\Support\Horizon\HorizonStatsReader;
+use App\Support\Horizon\ClientResponse;
+use App\Support\Horizon\MasterReader;
+use App\Support\Horizon\StatsReader;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -133,25 +134,24 @@ trait BuildsServiceStreams
             $data['jobsPastHour'] = $this->metrics->getJobsPastHour($service);
             $data['failedPastSevenDays'] = $this->metrics->getFailedPastSevenDays($service);
 
-            $statsData = HorizonStatsReader::dataFromResponse(
+            $stats = StatsReader::summary(ClientResponse::data(
                 $horizonApi->getStats($service),
-            );
+            ));
 
-            $data['horizonStatus'] = HorizonStatsReader::status($statsData);
-            $data['totalProcesses'] = HorizonStatsReader::processes($statsData);
-            $data['maxWaitTimeSeconds'] = HorizonStatsReader::maxWaitTimeSeconds($statsData);
-            $data['queueWithMaxRuntime'] = HorizonStatsReader::queueWithMaxRuntime($statsData);
-            $data['queueWithMaxThroughput'] = HorizonStatsReader::queueWithMaxThroughput($statsData);
+            $data['horizonStatus'] = $stats['status'];
+            $data['totalProcesses'] = $stats['processes'];
+            $data['maxWaitTimeSeconds'] = $stats['maxWaitTimeSeconds'];
+            $data['queueWithMaxRuntime'] = $stats['queueWithMaxRuntime'];
+            $data['queueWithMaxThroughput'] = $stats['queueWithMaxThroughput'];
 
             $supervisorGroups = collect();
             $supervisors = collect();
 
-            $mastersResponse = $horizonApi->getMasters($service);
-            $mastersData = $mastersResponse['data'] ?? null;
+            $mastersData = ClientResponse::data($horizonApi->getMasters($service));
 
-            if ($mastersResponse['success'] && \is_array($mastersData)) {
+            if ($mastersData !== null) {
                 foreach (
-                    HorizonMastersReader::supervisorsFromMastersPayload($mastersData) as $supervisor
+                    MasterReader::supervisorsFromMastersPayload($mastersData) as $supervisor
                 ) {
                     $supervisorObj = (object) [
                         'name' => $supervisor['name'],

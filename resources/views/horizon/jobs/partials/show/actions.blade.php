@@ -11,7 +11,7 @@
     </x-button>
 @endif
 @php
-    $horizonJobUrl = \App\Support\Horizon\JobDashboardUrlBuilder::build(
+    $horizonJobUrl = \App\Support\Jobs\JobDashboardUrlBuilder::build(
         $job->service,
         $job->uuid,
         $job->status

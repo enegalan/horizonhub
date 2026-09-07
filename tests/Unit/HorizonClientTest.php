@@ -125,6 +125,37 @@ class HorizonClientTest extends TestCase
         $this->assertSame(1, $calls);
     }
 
+    public function test_get_does_not_retry_connection_exceptions(): void
+    {
+        $calls = 0;
+        Http::fake(function () use (&$calls) {
+            $calls++;
+
+            throw new ConnectionException('upstream timeout');
+        });
+
+        \config()->set('horizonhub.horizon_http_retry', [
+            'times' => 3,
+            'sleep_ms' => 0,
+            'retry_on_status' => [429, 502, 503, 504],
+        ]);
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.stats', '/stats');
+        \config()->set('horizonhub.horizon_http_failure_cooldown_seconds', 0);
+
+        $service = Service::create([
+            'name' => 'svc-no-conn-retry',
+            'base_url' => 'https://service-no-conn-retry.test',
+            'status' => 'online',
+        ]);
+
+        $result = (new HorizonClientService)->getStats($service);
+
+        $this->assertFalse($result['success']);
+        $this->assertSame(502, $result['status'] ?? null);
+        $this->assertSame(1, $calls);
+    }
+
     public function test_get_failed_jobs_calls_horizon_api_jobs_failed_path(): void
     {
         Http::fake([
@@ -242,6 +273,37 @@ class HorizonClientTest extends TestCase
         $this->assertTrue($second['success']);
         $this->assertSame(2, (int) ($second['data']['failedJobs'] ?? 0));
         $this->assertSame(2, $calls);
+    }
+
+    public function test_get_returns_503_when_path_fill_lock_cannot_be_acquired(): void
+    {
+        Http::fake([
+            'https://service-fill-lock.test/horizon/api/stats' => Http::response(['jobsPerMinute' => 1], 200),
+        ]);
+
+        \config()->set('horizonhub.api_timeout', 1);
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.ping', '/stats');
+
+        $service = Service::create([
+            'name' => 'svc-fill-lock',
+            'base_url' => 'https://service-fill-lock.test',
+            'status' => 'online',
+        ]);
+
+        $lock = Cache::lock('horizonhub:horizon-api-hot-reload-path:' . $service->id . ':/stats:fill', 30);
+        $this->assertTrue($lock->get());
+
+        try {
+            $result = (new HorizonClientService)->getStats($service);
+
+            $this->assertFalse($result['success']);
+            $this->assertSame(503, $result['status'] ?? null);
+            $this->assertSame('Horizon API request coalescing timed out.', $result['message'] ?? null);
+            Http::assertNothingSent();
+        } finally {
+            $lock->release();
+        }
     }
 
     public function test_get_reuses_successful_response_within_hot_reload_interval(): void

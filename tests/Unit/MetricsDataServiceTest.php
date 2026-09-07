@@ -12,7 +12,7 @@ use App\Services\Metrics\Calculators\QueueFailureCountersCalculator;
 use App\Services\Metrics\Calculators\RuntimeMetricsCalculator;
 use App\Services\Metrics\Calculators\WorkloadMetricsCalculator;
 use App\Services\Metrics\MetricsDataService;
-use App\Support\Horizon\QueueNameNormalizer;
+use App\Support\Queues\QueueNameNormalizer;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

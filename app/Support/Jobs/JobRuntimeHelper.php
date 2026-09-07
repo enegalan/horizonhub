@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support\Horizon;
+namespace App\Support\Jobs;
 
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -8,7 +8,7 @@ use Carbon\CarbonInterface;
 final class JobRuntimeHelper
 {
     /**
-     * Human-readable runtime in seconds (e.g. "0.08 s", "1.23 s").
+     * Human-readable duration in seconds (e.g. "0.08 s", "1.23 s").
      *
      * @param float|null $seconds The seconds.
      */

@@ -40,7 +40,7 @@
             @if(! empty($row['wait']))
                 @php($waitSeconds = (float) $row['wait'])
                 <span data-wait-seconds="{{ $waitSeconds }}">
-                    {{ number_format($waitSeconds, 2, '.', '') }} s
+                    {{ \App\Support\Jobs\JobRuntimeHelper::getFormattedRuntime($waitSeconds) }}
                 </span>
             @else
                 –

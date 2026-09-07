@@ -5,8 +5,8 @@ namespace App\Services\Metrics\Calculators;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
 use App\Services\Jobs\JobsWindowFetcher;
-use App\Support\Horizon\JobRuntimeHelper;
-use App\Support\Horizon\QueueNameNormalizer;
+use App\Support\Jobs\JobRuntimeHelper;
+use App\Support\Queues\QueueNameNormalizer;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -75,42 +75,6 @@ abstract class AbstractMetricsCalculator
 
             $queueCounts[$queue]++;
         }
-    }
-
-    /**
-     * Extract a normalized queue list from supervisor options.
-     *
-     * @param array<string, mixed> $options
-     *
-     * @return array<int, string>
-     */
-    protected function private__extractQueuesFromSupervisorOptions(array $options): array
-    {
-        $queues = $options['queue'] ?? null;
-
-        if (! \is_array($queues)) {
-            if (empty($queues)) {
-                return [];
-            }
-
-            $queue = QueueNameNormalizer::normalize((string) $queues);
-
-            return ! empty($queue) ? [$queue] : [];
-        }
-
-        $normalizedQueues = [];
-
-        foreach ($queues as $queue) {
-            $normalizedQueue = QueueNameNormalizer::normalize((string) $queue);
-
-            if (empty($normalizedQueue)) {
-                continue;
-            }
-
-            $normalizedQueues[$normalizedQueue] = true;
-        }
-
-        return \array_keys($normalizedQueues);
     }
 
     /**

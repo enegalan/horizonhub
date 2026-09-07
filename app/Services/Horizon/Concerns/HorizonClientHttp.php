@@ -4,9 +4,11 @@ namespace App\Services\Horizon\Concerns;
 
 use App\Models\Service;
 use App\Services\Horizon\Contracts\HorizonClientCache as HorizonClientCacheContract;
-use App\Services\Horizon\Contracts\HorizonHttpClient as HorizonHttpClientContract;
+use App\Services\Horizon\Contracts\HorizonClientHttp as HorizonClientHttpContract;
+use App\Support\Http\HttpRetryBackoff;
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
@@ -14,7 +16,7 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class HorizonHttpClient implements HorizonHttpClientContract
+class HorizonClientHttp implements HorizonClientHttpContract
 {
     /**
      * The cache instance.
@@ -51,7 +53,8 @@ class HorizonHttpClient implements HorizonHttpClientContract
         bool $bypassFailureCooldown = false,
         bool $allowWhenDisabled = false,
     ): array {
-        if (! $service->enabled && ! $allowWhenDisabled) {
+        // Check if the service is enabled.
+        if (! $allowWhenDisabled && ! $service->enabled) {
             return [
                 'success' => false,
                 'message' => 'Service is disabled.',
@@ -59,6 +62,7 @@ class HorizonHttpClient implements HorizonHttpClientContract
             ];
         }
 
+        // Check if the service is in cooldown.
         if (! $bypassFailureCooldown && $this->cache->hasFailureCooldown($service)) {
             return [
                 'success' => false,
@@ -74,70 +78,80 @@ class HorizonHttpClient implements HorizonHttpClientContract
         $httpMethod = \strtolower($method);
 
         $shouldCache = $httpMethod === 'get' && ! $withDashboardSession && ! $allowWhenDisabled;
-
-        if ($shouldCache) {
-            $cached = $this->cache->getRequestPathCache($service, $path);
-
-            if (empty($cached)) {
-                $lock = $this->cache->requestPathFillLock($service, $path);
-
-                try {
-                    $lock->block((int) config('horizonhub.api_timeout'));
-                    $cached = $this->cache->getRequestPathCache($service, $path);
-                } finally {
-                    $lock->release();
-                }
-            }
-
-            if ($cached !== null) {
-                if (config('app.debug')) {
-                    Log::channel('app')->debug('Horizon API call (cache hit)', [
-                        'service_id' => $service->id ?? null,
-                        'service_name' => $service->name ?? null,
-                        'url' => $url,
-                        'http_method' => $httpMethod,
-                        'with_dashboard_session' => $withDashboardSession,
-                        'allow_when_disabled' => $allowWhenDisabled,
-                    ]);
-                }
-
-                return $cached;
-            }
-        }
-
-        if (config('app.debug')) {
-            Log::channel('app')->debug('Horizon API call', [
-                'service_id' => $service->id ?? null,
-                'service_name' => $service->name ?? null,
-                'url' => $url,
-                'http_method' => $httpMethod,
-                'with_dashboard_session' => $withDashboardSession,
-                'allow_when_disabled' => $allowWhenDisabled,
-            ]);
-        }
-
-        $attempt = function () use ($service, $url, $httpMethod, $withDashboardSession): ?Response {
-            $request = $this->private__newHorizonPendingRequest($httpMethod, $service);
-
-            if ($withDashboardSession) {
-                $bootstrap = $this->private__bootstrapDashboardSession($service);
-
-                if (empty($bootstrap)) {
-                    return null;
-                }
-                $request = $request
-                    ->withOptions(['cookies' => $bootstrap['cookies']])
-                    ->withHeaders(['X-CSRF-TOKEN' => $bootstrap['csrf_token']]);
-            }
-
-            return match ($httpMethod) {
-                'get' => $request->get($url),
-                'delete' => $request->delete($url),
-                default => $request->post($url),
-            };
-        };
+        $lock = null;
 
         try {
+            // Check if request was previously cached so we can avoid new HTTP request.
+            if ($shouldCache) {
+                $cached = $this->cache->getRequestPathCache($service, $path);
+
+                if (empty($cached)) {
+                    $lock = $this->cache->requestPathFillLock($service, $path);
+
+                    try {
+                        $lock->block((int) config('horizonhub.api_timeout'));
+                    } catch (LockTimeoutException) {
+                        $lock = null;
+
+                        return [
+                            'success' => false,
+                            'message' => 'Horizon API request coalescing timed out.',
+                            'status' => 503,
+                        ];
+                    }
+
+                    $cached = $this->cache->getRequestPathCache($service, $path);
+                }
+
+                if ($cached !== null) {
+                    if (config('app.debug')) {
+                        Log::channel('app')->debug('Horizon API call (cache hit)', [
+                            'service_id' => $service->id ?? null,
+                            'service_name' => $service->name ?? null,
+                            'url' => $url,
+                            'http_method' => $httpMethod,
+                            'with_dashboard_session' => $withDashboardSession,
+                            'allow_when_disabled' => $allowWhenDisabled,
+                        ]);
+                    }
+
+                    return $cached;
+                }
+            }
+
+            if (config('app.debug')) {
+                Log::channel('app')->debug('Horizon API call', [
+                    'service_id' => $service->id ?? null,
+                    'service_name' => $service->name ?? null,
+                    'url' => $url,
+                    'http_method' => $httpMethod,
+                    'with_dashboard_session' => $withDashboardSession,
+                    'allow_when_disabled' => $allowWhenDisabled,
+                ]);
+            }
+
+            // Attempt to make the HTTP request.
+            $attempt = function () use ($service, $url, $httpMethod, $withDashboardSession): ?Response {
+                $request = $this->private__newHorizonPendingRequest($httpMethod, $service);
+
+                if ($withDashboardSession) {
+                    $bootstrap = $this->private__bootstrapDashboardSession($service);
+
+                    if (empty($bootstrap)) {
+                        return null;
+                    }
+                    $request = $request
+                        ->withOptions(['cookies' => $bootstrap['cookies']])
+                        ->withHeaders(['X-CSRF-TOKEN' => $bootstrap['csrf_token']]);
+                }
+
+                return match ($httpMethod) {
+                    'get' => $request->get($url),
+                    'delete' => $request->delete($url),
+                    default => $request->post($url),
+                };
+            };
+
             $response = $attempt();
 
             if ($response === null) {
@@ -148,6 +162,7 @@ class HorizonHttpClient implements HorizonHttpClientContract
                 ];
             }
 
+            // If the response is a 419 (page expired), retry the request.
             if ($withDashboardSession && $response->status() === 419) {
                 $retryResponse = $attempt();
 
@@ -156,6 +171,7 @@ class HorizonHttpClient implements HorizonHttpClientContract
                 }
             }
 
+            // Process the HTTP response.
             $result = $this->private__processHttpResponse(
                 $response,
                 $service,
@@ -164,16 +180,20 @@ class HorizonHttpClient implements HorizonHttpClientContract
                 $withDashboardSession ? ' (with dashboard session)' : '',
             );
 
+            // Handle successful response.
             if ($result['success'] === true) {
+                // Forget failure cooldown.
                 $this->cache->forgetFailureCooldown($service);
 
                 if ($shouldCache) {
+                    // Cache the response.
                     $this->cache->putRequestPathCache($service, $path, $result);
                 }
 
                 return $result;
             }
 
+            // If the response is not authorized, put the service in cooldown.
             if (! \in_array($result['status'], config('horizonhub.horizon_http_auth_statuses'), true)) {
                 $this->cache->putFailureCooldown($service);
             }
@@ -186,6 +206,8 @@ class HorizonHttpClient implements HorizonHttpClientContract
                 'error' => $e->getMessage(),
                 'exception' => $e::class,
             ]);
+
+            // Put the service in cooldown.
             $this->cache->putFailureCooldown($service);
 
             $statusCode = $e->getCode();
@@ -204,6 +226,8 @@ class HorizonHttpClient implements HorizonHttpClientContract
                 'message' => $e->getMessage(),
                 'status' => $statusCode,
             ];
+        } finally {
+            $lock?->release();
         }
     }
 
@@ -265,32 +289,6 @@ class HorizonHttpClient implements HorizonHttpClientContract
     }
 
     /**
-     * Build the error message from the response.
-     *
-     * @param Response $response The response.
-     *
-     * @return string The error message.
-     */
-    private function private__buildErrorMessageFromResponse(Response $response): string
-    {
-        $rawBody = $response->body();
-        $decoded = \json_decode($rawBody, true);
-
-        if (\is_array($decoded) && isset($decoded['message']) && (string) $decoded['message'] !== '') {
-            return (string) $decoded['message'];
-        }
-
-        $trimmedBody = \trim((string) $rawBody);
-        $isHtml = $trimmedBody !== \strip_tags($trimmedBody);
-
-        if (! $isHtml && $trimmedBody !== '') {
-            return \mb_substr($trimmedBody, 0, 200);
-        }
-
-        return "Horizon API returned an HTTP error ({$response->status()}).";
-    }
-
-    /**
      * Create a new Horizon pending request.
      *
      * @param string $httpMethod The HTTP method.
@@ -300,9 +298,7 @@ class HorizonHttpClient implements HorizonHttpClientContract
      */
     private function private__newHorizonPendingRequest(string $httpMethod, ?Service $service = null): PendingRequest
     {
-        $httpMethod = \strtoupper($httpMethod);
-        $timeoutSeconds = (int) config('horizonhub.api_timeout');
-        $request = Http::timeout($timeoutSeconds);
+        $request = Http::timeout((int) config('horizonhub.api_timeout'));
 
         $connectTimeout = config('horizonhub.horizon_http_connect_timeout');
 
@@ -311,25 +307,29 @@ class HorizonHttpClient implements HorizonHttpClientContract
         }
 
         $retryConfig = config('horizonhub.horizon_http_retry');
-        $retryTimes = (int) $retryConfig['times'];
-        $sleepBaseMs = (int) $retryConfig['sleep_ms'];
+        $retryTimes = (int) max(1, $retryConfig['times']);
         $retryOnStatus = $retryConfig['retry_on_status'];
 
-        if ($retryConfig && $httpMethod === 'GET' && $retryTimes > 1) {
+        if ($httpMethod === 'get' && $retryTimes > 1) {
             $request = $request->retry(
                 $retryTimes,
-                function (int $attempt, \Throwable $e) use ($sleepBaseMs): int {
-                    return $sleepBaseMs * (2 ** \max(0, $attempt - 1));
+                // Calculate the sleep time between retries using exponential backoff.
+                function (int $attempt, \Throwable $e): int {
+                    return HttpRetryBackoff::delayMsForAttempt($attempt);
                 },
+                // Retry the request if it fails.
                 function (\Throwable $exception, PendingRequest $pending, ?string $method = 'GET') use ($retryOnStatus): bool {
+                    // Only retry GET requests.
                     if ($method !== null && \strtoupper($method) !== 'GET') {
                         return false;
                     }
 
+                    // Do not retry connection/timeouts.
                     if ($exception instanceof ConnectionException) {
-                        return true;
+                        return false;
                     }
 
+                    // Retry the request if it fails.
                     if ($exception instanceof RequestException && $exception->response !== null) {
                         return \in_array($exception->response->status(), $retryOnStatus, true);
                     }
@@ -340,6 +340,7 @@ class HorizonHttpClient implements HorizonHttpClientContract
             );
         }
 
+        // Add the service headers to the request.
         if ($service !== null) {
             $headers = [];
 
@@ -381,17 +382,32 @@ class HorizonHttpClient implements HorizonHttpClientContract
                 : ['success' => true, 'data' => $data];
         }
 
-        $message = $this->private__buildErrorMessageFromResponse($response);
-        Log::channel('app')->warning('Horizon API call failed ' . $logContext, [
+        // Build the error message from response.
+        $errorMessage = "Horizon API returned an HTTP error ({$response->status()}).";
+        $rawBody = $response->body();
+        $decoded = \json_decode($rawBody, true);
+
+        if (\is_array($decoded) && isset($decoded['message']) && (string) $decoded['message'] !== '') {
+            $errorMessage = (string) $decoded['message'];
+        } else {
+            $trimmedBody = \trim((string) $rawBody);
+            $isHtml = $trimmedBody !== \strip_tags($trimmedBody);
+
+            if (! $isHtml && $trimmedBody !== '') {
+                $errorMessage = \mb_substr($trimmedBody, 0, 200);
+            }
+        }
+
+        Log::channel('app')->warning("Horizon API call failed $logContext", [
             'service_id' => $service->id,
             'url' => $url,
             'status' => $response->status(),
-            'message' => $message,
+            'message' => $errorMessage,
         ]);
 
         return [
             'success' => false,
-            'message' => $message,
+            'message' => $errorMessage,
             'status' => $response->status(),
         ];
     }

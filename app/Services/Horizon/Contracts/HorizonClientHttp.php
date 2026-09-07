@@ -4,7 +4,7 @@ namespace App\Services\Horizon\Contracts;
 
 use App\Models\Service;
 
-interface HorizonHttpClient
+interface HorizonClientHttp
 {
     /**
      * Call the Horizon HTTP API for a service.

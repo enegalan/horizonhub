@@ -3,8 +3,9 @@
 namespace App\Services\Metrics\Calculators;
 
 use App\Models\Service;
-use App\Support\Horizon\HorizonMastersReader;
-use App\Support\Horizon\QueueNameNormalizer;
+use App\Support\Horizon\ClientResponse;
+use App\Support\Horizon\MasterReader;
+use App\Support\Queues\QueueNameNormalizer;
 
 final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
 {
@@ -41,14 +42,13 @@ final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
                 $jobsByQueue[$wr['queue']] = ($jobsByQueue[$wr['queue']] ?? 0) + $wr['jobs'];
             }
 
-            $mastersResponse = $this->horizonApi->getMasters($service);
-            $mastersData = $mastersResponse['data'] ?? null;
+            $mastersData = ClientResponse::data($this->horizonApi->getMasters($service));
 
-            if (! $mastersResponse['success'] || ! \is_array($mastersData)) {
+            if ($mastersData === null) {
                 continue;
             }
 
-            foreach (HorizonMastersReader::supervisorsFromMastersPayload($mastersData) as $supervisor) {
+            foreach (MasterReader::supervisorsFromMastersPayload($mastersData) as $supervisor) {
                 $jobs = $this->private__sumJobsByQueueNames($supervisor['queueNames'], $jobsByQueue);
 
                 $result[] = [
@@ -118,12 +118,13 @@ final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
     public function getWorkloadForService(Service $service): array
     {
         $response = $this->horizonApi->getWorkload($service);
-        $payload = $response['data'] ?? null;
+        $payload = ClientResponse::data($response);
 
-        if (! $response['success'] || empty($payload)) {
+        if (empty($payload)) {
             return [];
         }
 
+        // TO-DEPURATE: data or workload?
         $data = $payload['data'] ?? $payload['workload'] ?? null;
 
         if (empty($data) || ! \is_array($data)) {
@@ -153,6 +154,7 @@ final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
                 continue;
             }
 
+            // TO-DEPURATE: length, size, pending, jobs?
             $jobs = $row['length'] ?? $row['size'] ?? $row['pending'] ?? $row['jobs'] ?? 0;
 
             $processes = null;

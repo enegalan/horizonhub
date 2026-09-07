@@ -3,7 +3,8 @@
 namespace App\Services\Metrics\Calculators;
 
 use App\Models\Service;
-use App\Support\Horizon\HorizonStatsReader;
+use App\Support\Horizon\ClientResponse;
+use App\Support\Horizon\StatsReader;
 use Illuminate\Support\Collection;
 
 final class JobsThroughputMetricsCalculator extends AbstractMetricsCalculator
@@ -47,14 +48,14 @@ final class JobsThroughputMetricsCalculator extends AbstractMetricsCalculator
 
         /** @var Service $service */
         foreach ($services as $service) {
-            $data = HorizonStatsReader::dataFromResponse($this->horizonApi->getStats($service));
+            $data = ClientResponse::data($this->horizonApi->getStats($service));
 
             if ($data === null || ! isset($data['recentJobs'])) {
                 continue;
             }
 
             $names[] = (string) $service->name;
-            $values[] = HorizonStatsReader::recentJobs($data);
+            $values[] = StatsReader::recentJobs($data);
         }
 
         return ['services' => $names, 'jobsPastHour' => $values];
@@ -68,9 +69,9 @@ final class JobsThroughputMetricsCalculator extends AbstractMetricsCalculator
     public function getJobsPastMinute(?Service $service = null): int
     {
         if ($service !== null) {
-            $data = HorizonStatsReader::dataFromResponse($this->horizonApi->getStats($service));
+            $data = ClientResponse::data($this->horizonApi->getStats($service));
 
-            return $data !== null ? HorizonStatsReader::jobsPastMinute($data) : 0;
+            return StatsReader::jobsPastMinute($data);
         }
 
         /** @var Collection<int, Service> $services */
@@ -83,11 +84,8 @@ final class JobsThroughputMetricsCalculator extends AbstractMetricsCalculator
         $total = 0;
 
         foreach ($services as $svc) {
-            $data = HorizonStatsReader::dataFromResponse($this->horizonApi->getStats($svc));
-
-            if ($data !== null) {
-                $total += HorizonStatsReader::jobsPastMinute($data);
-            }
+            $data = ClientResponse::data($this->horizonApi->getStats($svc));
+            $total += StatsReader::jobsPastMinute($data);
         }
 
         return $total;
@@ -99,15 +97,15 @@ final class JobsThroughputMetricsCalculator extends AbstractMetricsCalculator
     private function private__sumStatsField(?Service $service, string $field): int
     {
         if ($service !== null) {
-            $data = HorizonStatsReader::dataFromResponse($this->horizonApi->getStats($service));
+            $data = ClientResponse::data($this->horizonApi->getStats($service));
 
             if ($data === null || ! isset($data[$field])) {
                 return 0;
             }
 
             return $field === 'failedJobs'
-                ? HorizonStatsReader::failedJobs($data)
-                : HorizonStatsReader::recentJobs($data);
+                ? StatsReader::failedJobs($data)
+                : StatsReader::recentJobs($data);
         }
 
         /** @var Collection<int, Service> $services */
@@ -120,15 +118,15 @@ final class JobsThroughputMetricsCalculator extends AbstractMetricsCalculator
         $total = 0;
 
         foreach ($services as $svc) {
-            $data = HorizonStatsReader::dataFromResponse($this->horizonApi->getStats($svc));
+            $data = ClientResponse::data($this->horizonApi->getStats($svc));
 
             if ($data === null || ! isset($data[$field])) {
                 continue;
             }
 
             $total += $field === 'failedJobs'
-                ? HorizonStatsReader::failedJobs($data)
-                : HorizonStatsReader::recentJobs($data);
+                ? StatsReader::failedJobs($data)
+                : StatsReader::recentJobs($data);
         }
 
         return $total;

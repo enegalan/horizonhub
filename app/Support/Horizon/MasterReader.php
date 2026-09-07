@@ -2,47 +2,10 @@
 
 namespace App\Support\Horizon;
 
-use Carbon\CarbonInterface;
+use App\Support\Queues\QueueNameNormalizer;
 
-final class HorizonMastersReader
+final class MasterReader
 {
-    /**
-     * Return whether any supervisor heartbeat is older than the given cutoff.
-     *
-     * Uses `last_heartbeat_at` when present, otherwise falls back to `lastSeen`.
-     *
-     * @param list<mixed>|array<int, mixed> $mastersData
-     */
-    public static function hasStaleSupervisorHeartbeat(array $mastersData, CarbonInterface $staleBefore): bool
-    {
-        foreach ($mastersData as $master) {
-            if (! \is_array($master)) {
-                continue;
-            }
-
-            $supervisorsData = $master['supervisors'] ?? null;
-
-            if (! \is_array($supervisorsData)) {
-                continue;
-            }
-
-            foreach ($supervisorsData as $supervisor) {
-                if (! \is_array($supervisor)) {
-                    continue;
-                }
-
-                $lastSeenRaw = $supervisor['last_heartbeat_at'] ?? ($supervisor['lastSeen'] ?? null);
-                $lastSeen = JobRuntimeHelper::parseJobTimestamp($lastSeenRaw);
-
-                if ($lastSeen !== null && $lastSeen->lt($staleBefore)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
     /**
      * Extract the supervisors from the masters payload.
      *
@@ -130,45 +93,11 @@ final class HorizonMastersReader
                     'processes' => $processes,
                     'balancing' => $balancing,
                     'apiStatus' => isset($supervisor['status']) ? (string) $supervisor['status'] : '',
-                    'queueNames' => self::private__normalizeQueueNamesFromOptions($options),
+                    'queueNames' => QueueNameNormalizer::normalizeListFromOptions($options),
                 ];
             }
         }
 
         return $supervisors;
-    }
-
-    /**
-     * Normalize the queue names from the options.
-     *
-     * @param array<string, mixed> $options
-     *
-     * @return list<string>
-     */
-    private static function private__normalizeQueueNamesFromOptions(array $options): array
-    {
-        $queues = $options['queue'] ?? null;
-
-        if (! \is_array($queues)) {
-            if (empty($queues)) {
-                return [];
-            }
-
-            $queue = QueueNameNormalizer::normalize((string) $queues);
-
-            return ! empty($queue) ? [$queue] : [];
-        }
-
-        $normalizedQueues = [];
-
-        foreach ($queues as $queue) {
-            $normalizedQueue = QueueNameNormalizer::normalize((string) $queue);
-
-            if (! empty($normalizedQueue)) {
-                $normalizedQueues[$normalizedQueue] = $normalizedQueue;
-            }
-        }
-
-        return \array_values($normalizedQueues);
     }
 }
