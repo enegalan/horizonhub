@@ -4,8 +4,8 @@ namespace App\Services\Metrics\Calculators;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
-use App\Services\Jobs\JobsWindowFetcher;
-use App\Support\Jobs\JobRuntimeHelper;
+use App\Services\Jobs\JobRuntimeHelperService;
+use App\Services\Jobs\JobsWindowFetcherService;
 use App\Support\Queues\QueueNameNormalizer;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
@@ -27,15 +27,15 @@ abstract class AbstractMetricsCalculator
     /**
      * The jobs window fetcher.
      */
-    protected JobsWindowFetcher $jobsWindowFetcher;
+    protected JobsWindowFetcherService $jobsWindowFetcher;
 
     /**
      * The constructor.
      *
      * @param HorizonClientService $horizonApi The horizon API client.
-     * @param JobsWindowFetcher $jobsWindowFetcher The jobs window fetcher.
+     * @param JobsWindowFetcherService $jobsWindowFetcher The jobs window fetcher.
      */
-    public function __construct(HorizonClientService $horizonApi, JobsWindowFetcher $jobsWindowFetcher)
+    public function __construct(HorizonClientService $horizonApi, JobsWindowFetcherService $jobsWindowFetcher)
     {
         $this->horizonApi = $horizonApi;
         $this->jobsWindowFetcher = $jobsWindowFetcher;
@@ -130,7 +130,7 @@ abstract class AbstractMetricsCalculator
     protected function private__incrementHourlyBuckets(array &$buckets, array $jobs, string $timestampField, string $counterKey, int $sinceTimestamp, string $bucketFormat): void
     {
         foreach ($jobs as $job) {
-            $at = JobRuntimeHelper::parseJobTimestamp($job[$timestampField] ?? null);
+            $at = JobRuntimeHelperService::parseJobTimestamp($job[$timestampField] ?? null);
 
             if ($at === null) {
                 continue;

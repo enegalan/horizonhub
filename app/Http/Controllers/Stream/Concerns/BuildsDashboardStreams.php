@@ -14,7 +14,7 @@ trait BuildsDashboardStreams
      */
     protected function buildDashboard(string $query): string
     {
-        $serviceFilterIds = $this->serviceFilter->resolveFromQuery($query);
+        $serviceFilterIds = $this->serviceFilter->resolveServiceIdsFromQuery($query);
         $metrics = $this->metrics->buildMetricsDashboardData($serviceFilterIds);
 
         $servicesQuery = Service::orderBy('name');
@@ -24,7 +24,10 @@ trait BuildsDashboardStreams
         }
 
         $services = $servicesQuery->get();
-        $this->serviceStats->attachHorizonStats($services, $this->horizonApi);
+
+        foreach ($services as $service) {
+            $service->withHorizonStats($this->horizonApi);
+        }
 
         $onlineCount = 0;
         $anyOffline = false;

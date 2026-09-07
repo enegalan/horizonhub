@@ -14,7 +14,6 @@ use App\Services\Metrics\MetricsDataService;
 use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Notifiers\SlackNotifierService;
 use App\Services\Services\ServiceFilterService;
-use App\Services\Services\ServiceStatsAttachmentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -204,8 +203,11 @@ class TurboStreamSseTest extends TestCase
                 ]);
         });
 
-        $this->mock(ServiceStatsAttachmentService::class, function ($mock): void {
-            $mock->shouldReceive('attachHorizonStats')->once();
+        $this->mock(HorizonClientService::class, function ($mock): void {
+            $mock->shouldReceive('getStats')->andReturn([
+                'success' => true,
+                'data' => ['failedJobs' => 0, 'recentJobs' => 0, 'status' => 'running'],
+            ]);
         });
 
         $controller = $this->app->make(HorizonStreamsController::class);
@@ -249,10 +251,6 @@ class TurboStreamSseTest extends TestCase
                 ->andReturn([
                     'workloadRows' => [],
                 ]);
-        });
-
-        $this->mock(ServiceStatsAttachmentService::class, function ($mock): void {
-            $mock->shouldReceive('attachHorizonStats')->once();
         });
 
         $controller = $this->app->make(HorizonStreamsController::class);
@@ -538,8 +536,11 @@ class TurboStreamSseTest extends TestCase
         Service::create(['name' => 'offline-svc', 'base_url' => 'https://offline.test', 'status' => 'offline']);
         Service::create(['name' => 'standby-svc', 'base_url' => 'https://standby.test', 'status' => 'stand_by']);
 
-        $this->mock(ServiceStatsAttachmentService::class, function ($mock): void {
-            $mock->shouldReceive('attachHorizonStats')->once();
+        $this->mock(HorizonClientService::class, function ($mock): void {
+            $mock->shouldReceive('getStats')->andReturn([
+                'success' => true,
+                'data' => ['failedJobs' => 0, 'recentJobs' => 0, 'status' => 'running'],
+            ]);
         });
 
         $controller = $this->app->make(HorizonStreamsController::class);
@@ -563,6 +564,13 @@ class TurboStreamSseTest extends TestCase
             'status' => 'online',
         ]);
 
+        $this->mock(HorizonClientService::class, function ($mock): void {
+            $mock->shouldReceive('getStats')->andReturn([
+                'success' => true,
+                'data' => ['failedJobs' => 0, 'recentJobs' => 0, 'status' => 'running'],
+            ]);
+        });
+
         $controller = $this->app->make(HorizonStreamsController::class);
 
         $reflection = new \ReflectionMethod($controller, 'buildServices');
@@ -582,18 +590,18 @@ class TurboStreamSseTest extends TestCase
         $controller = $this->app->make(HorizonStreamsController::class);
         $filter = $this->app->make(ServiceFilterService::class);
 
-        $this->assertSame([], $filter->resolveFromQuery(''));
-        $this->assertSame([], $filter->resolveFromQuery('service_id=abc'));
+        $this->assertSame([], $filter->resolveServiceIdsFromQuery(''));
+        $this->assertSame([], $filter->resolveServiceIdsFromQuery('service_id=abc'));
 
         $service = Service::create([
             'name' => 'parse-svc',
             'base_url' => 'https://parse.test',
             'status' => 'online',
         ]);
-        $this->assertSame([$service->id], $filter->resolveFromQuery('service_id[]=' . $service->id));
+        $this->assertSame([$service->id], $filter->resolveServiceIdsFromQuery('service_id[]=' . $service->id));
 
         $service->update(['tags' => ['production']]);
-        $this->assertSame([$service->id], $filter->resolveFromQuery('service_tag[]=production'));
+        $this->assertSame([$service->id], $filter->resolveServiceIdsFromQuery('service_tag[]=production'));
 
         $tag = new \ReflectionMethod(StreamController::class, 'private__turboStreamTag');
         $tag->setAccessible(true);

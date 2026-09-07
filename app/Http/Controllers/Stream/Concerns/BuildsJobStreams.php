@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Stream\Concerns;
 
 use App\Models\Service;
-use App\Support\Jobs\JobCommandDataExtractor;
-use App\Support\Jobs\JobRuntimeHelper;
+use App\Services\Jobs\JobCommandDataExtractorService;
+use App\Services\Jobs\JobRuntimeHelperService;
 use Illuminate\Http\Request;
 
 trait BuildsJobStreams
@@ -135,24 +135,24 @@ trait BuildsJobStreams
         if (isset($jobData['context']) && (\is_array($jobData['context']) || \is_string($jobData['context']))) {
             $context = $jobData['context'];
         }
-        $commandData = JobCommandDataExtractor::extract($payload);
+        $commandData = JobCommandDataExtractorService::extract($payload);
 
         $rawStatus = (string) ($jobData['status'] ?? 'failed');
         $status = $rawStatus === 'completed' ? 'processed' : $rawStatus;
 
-        $queuedAt = JobRuntimeHelper::parseJobTimestamp($payload['pushedAt'] ?? null);
-        $reservedAt = JobRuntimeHelper::parseJobTimestamp($jobData['reserved_at'] ?? null);
-        $processedAt = JobRuntimeHelper::parseJobTimestamp($jobData['completed_at'] ?? null);
-        $failedAt = JobRuntimeHelper::parseJobTimestamp($jobData['failed_at'] ?? null);
-        JobRuntimeHelper::normalizeStatusDates($status, $processedAt, $failedAt);
+        $queuedAt = JobRuntimeHelperService::parseJobTimestamp($payload['pushedAt'] ?? null);
+        $reservedAt = JobRuntimeHelperService::parseJobTimestamp($jobData['reserved_at'] ?? null);
+        $processedAt = JobRuntimeHelperService::parseJobTimestamp($jobData['completed_at'] ?? null);
+        $failedAt = JobRuntimeHelperService::parseJobTimestamp($jobData['failed_at'] ?? null);
+        JobRuntimeHelperService::normalizeStatusDates($status, $processedAt, $failedAt);
 
-        $availableAt = isset($commandData['delay']) && isset($commandData['delay']['date']) ? JobRuntimeHelper::parseJobTimestamp($commandData['delay']['date']) : null;
+        $availableAt = isset($commandData['delay']) && isset($commandData['delay']['date']) ? JobRuntimeHelperService::parseJobTimestamp($commandData['delay']['date']) : null;
         $runtimeSeconds = isset($jobData['runtime']) && \is_numeric($jobData['runtime'])
             ? (float) $jobData['runtime']
             : null;
 
-        $runtime = JobRuntimeHelper::getFormattedRuntime(
-            JobRuntimeHelper::getRuntimeSeconds($runtimeSeconds, $reservedAt, $processedAt, $failedAt),
+        $runtime = JobRuntimeHelperService::getFormattedRuntime(
+            JobRuntimeHelperService::getRuntimeSeconds($runtimeSeconds, $reservedAt, $processedAt, $failedAt),
         );
 
         return (object) [

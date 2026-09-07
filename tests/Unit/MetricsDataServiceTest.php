@@ -4,7 +4,7 @@ namespace Tests\Unit;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
-use App\Services\Jobs\JobsWindowFetcher;
+use App\Services\Jobs\JobsWindowFetcherService;
 use App\Services\Metrics\Calculators\FailureMetricsCalculator;
 use App\Services\Metrics\Calculators\JobsThroughputMetricsCalculator;
 use App\Services\Metrics\Calculators\JobsVolumeLast24hCalculator;
@@ -543,7 +543,7 @@ class MetricsDataServiceTest extends TestCase
 
     private function private__makeMetricsDataService(HorizonClientService $api): MetricsDataService
     {
-        $fetcher = new JobsWindowFetcher($api);
+        $fetcher = new JobsWindowFetcherService($api);
 
         return new MetricsDataService(
             new FailureMetricsCalculator($api, $fetcher),

@@ -5,11 +5,11 @@ namespace App\Services\Notifiers;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
+use App\Services\Jobs\JobRuntimeHelperService;
 use App\Services\Notifiers\Contracts\AlertNotifier;
 use App\Services\Notifiers\Contracts\AlertNotifierMetadata;
 use App\Support\Alerts\AlertRuleCatalog;
 use App\Support\Horizon\ClientResponse;
-use App\Support\Jobs\JobRuntimeHelper;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -205,7 +205,7 @@ abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMeta
             if ($data === null) {
                 continue;
             }
-            $failedAt = JobRuntimeHelper::parseJobTimestamp($data['failed_at'] ?? null);
+            $failedAt = JobRuntimeHelperService::parseJobTimestamp($data['failed_at'] ?? null);
             $job = (object) [
                 'payload' => isset($data['payload']) ? $data['payload'] : [],
                 'name' => isset($data['name']) ? $data['name'] : null,

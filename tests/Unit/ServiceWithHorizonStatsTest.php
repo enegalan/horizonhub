@@ -4,12 +4,11 @@ namespace Tests\Unit;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
-use App\Services\Services\ServiceStatsAttachmentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
-class ServiceStatsAttachmentServiceTest extends TestCase
+class ServiceWithHorizonStatsTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -23,7 +22,7 @@ class ServiceStatsAttachmentServiceTest extends TestCase
             'data' => ['failedJobs' => 4, 'recentJobs' => 9, 'status' => 'active'],
         ]);
 
-        (new ServiceStatsAttachmentService)->attachHorizonStats([$service], $api);
+        $service->withHorizonStats($api);
 
         $this->assertSame(4, $service->horizon_failed_jobs_count);
         $this->assertSame(9, $service->horizon_jobs_count);
@@ -42,7 +41,7 @@ class ServiceStatsAttachmentServiceTest extends TestCase
         $api = $this->createMock(HorizonClientService::class);
         $api->expects($this->never())->method('getStats');
 
-        (new ServiceStatsAttachmentService)->attachHorizonStats([$disabled], $api);
+        $disabled->withHorizonStats($api);
 
         $this->assertSame(0, $disabled->horizon_failed_jobs_count);
         $this->assertSame(0, $disabled->horizon_jobs_count);

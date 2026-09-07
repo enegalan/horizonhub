@@ -4,13 +4,9 @@
     @php
         $isEdit = $alert->exists;
         $action = $isEdit ? route('horizon.alerts.update', $alert) : route('horizon.alerts.store');
-        $selectedProviderIds ??= [];
-        $selectedServiceIds ??= [];
 
         $jobPatternsForForm = \array_values(\array_map('strval',$alert->getJobPatterns()));
         $queuePatternsForForm = \array_values(\array_map('strval',$alert->getQueuePatterns()));
-
-        $formRuleMetadata ??= \App\Support\Alerts\AlertRuleCatalog::formRuleMetadata();
 
         $sectionHasValue = static fn (array $rows): bool => \array_any(
             $rows,

@@ -20,7 +20,7 @@ trait BuildsServiceStreams
      */
     protected function buildServices(string $query): string
     {
-        $serviceIds = $this->serviceFilter->resolveFromQuery($query);
+        $serviceIds = $this->serviceFilter->resolveServiceIdsFromQuery($query);
         $servicesQuery = Service::orderBy('name');
 
         if (! empty($serviceIds)) {
@@ -28,7 +28,10 @@ trait BuildsServiceStreams
         }
 
         $services = $servicesQuery->get();
-        $this->serviceStats->attachHorizonStats($services, $this->horizonApi);
+
+        foreach ($services as $service) {
+            $service->withHorizonStats($this->horizonApi);
+        }
 
         $enabledServices = $services->where('enabled', true);
 

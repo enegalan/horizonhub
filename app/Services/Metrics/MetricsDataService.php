@@ -3,7 +3,7 @@
 namespace App\Services\Metrics;
 
 use App\Models\Service;
-use App\Services\Jobs\JobsWindowFetcher;
+use App\Services\Jobs\JobsWindowFetcherService;
 use App\Services\Metrics\Calculators\AbstractMetricsCalculator;
 use App\Services\Metrics\Calculators\FailureMetricsCalculator;
 use App\Services\Metrics\Calculators\JobsThroughputMetricsCalculator;
@@ -34,7 +34,7 @@ class MetricsDataService
     /**
      * The jobs window fetcher.
      */
-    private JobsWindowFetcher $jobsWindowFetcher;
+    private JobsWindowFetcherService $jobsWindowFetcher;
 
     /**
      * The queue failure counters calculator.
@@ -60,7 +60,7 @@ class MetricsDataService
      * @param QueueFailureCountersCalculator $queueFailureCounters The queue failure counters calculator.
      * @param RuntimeMetricsCalculator $runtimeMetrics The runtime metrics calculator.
      * @param WorkloadMetricsCalculator $workloadMetrics The workload metrics calculator.
-     * @param JobsWindowFetcher $jobsWindowFetcher The jobs window fetcher.
+     * @param JobsWindowFetcherService $jobsWindowFetcher The jobs window fetcher.
      */
     public function __construct(
         FailureMetricsCalculator $failureMetrics,
@@ -69,7 +69,7 @@ class MetricsDataService
         QueueFailureCountersCalculator $queueFailureCounters,
         RuntimeMetricsCalculator $runtimeMetrics,
         WorkloadMetricsCalculator $workloadMetrics,
-        JobsWindowFetcher $jobsWindowFetcher,
+        JobsWindowFetcherService $jobsWindowFetcher,
     ) {
         $this->failureMetrics = $failureMetrics;
         $this->jobsThroughputMetrics = $jobsThroughputMetrics;

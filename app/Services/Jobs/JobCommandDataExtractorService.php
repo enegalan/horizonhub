@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Support\Jobs;
+namespace App\Services\Jobs;
 
-final class JobCommandDataExtractor
+final class JobCommandDataExtractorService
 {
     /**
      * Extract command data from job payload.

@@ -6,8 +6,8 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Services\Horizon\HorizonClientService;
+use App\Services\Jobs\JobRuntimeHelperService;
 use App\Support\Horizon\ClientResponse;
-use App\Support\Jobs\JobRuntimeHelper;
 
 final class SupervisorOffline implements AlertRuleContract
 {
@@ -72,7 +72,7 @@ final class SupervisorOffline implements AlertRuleContract
 
                 // TO-DEPURATE: last_heartbeat_at or lastSeen?
                 $lastSeenRaw = $supervisor['last_heartbeat_at'] ?? ($supervisor['lastSeen'] ?? null);
-                $lastSeen = JobRuntimeHelper::parseJobTimestamp($lastSeenRaw);
+                $lastSeen = JobRuntimeHelperService::parseJobTimestamp($lastSeenRaw);
 
                 if ($lastSeen !== null && $lastSeen->lt($staleAt)) {
                     $staleFound = true;

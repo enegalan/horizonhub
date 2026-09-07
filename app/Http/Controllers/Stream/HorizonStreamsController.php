@@ -15,10 +15,9 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
 use App\Services\Jobs\JobListService;
-use App\Services\Jobs\JobServiceResolver;
+use App\Services\Jobs\JobServiceResolverService;
 use App\Services\Metrics\MetricsDataService;
 use App\Services\Services\ServiceFilterService;
-use App\Services\Services\ServiceStatsAttachmentService;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -46,7 +45,7 @@ class HorizonStreamsController extends StreamController
     /**
      * The job service resolver.
      */
-    private JobServiceResolver $jobServiceResolver;
+    private JobServiceResolverService $jobServiceResolver;
 
     /**
      * The metrics data service.
@@ -59,27 +58,20 @@ class HorizonStreamsController extends StreamController
     private ServiceFilterService $serviceFilter;
 
     /**
-     * The service stats attachment service.
-     */
-    private ServiceStatsAttachmentService $serviceStats;
-
-    /**
      * The constructor.
      *
      * @param MetricsDataService $metrics The metrics data service.
      * @param HorizonClientService $horizonApi The horizon API client.
      * @param JobListService $jobList The job list service.
-     * @param JobServiceResolver $jobServiceResolver The job service resolver.
-     * @param ServiceStatsAttachmentService $serviceStats The service stats attachment service.
+     * @param JobServiceResolverService $jobServiceResolver The job service resolver.
      * @param ServiceFilterService $serviceFilter The service filter service.
      */
-    public function __construct(MetricsDataService $metrics, HorizonClientService $horizonApi, JobListService $jobList, JobServiceResolver $jobServiceResolver, ServiceStatsAttachmentService $serviceStats, ServiceFilterService $serviceFilter)
+    public function __construct(MetricsDataService $metrics, HorizonClientService $horizonApi, JobListService $jobList, JobServiceResolverService $jobServiceResolver, ServiceFilterService $serviceFilter)
     {
         $this->metrics = $metrics;
         $this->horizonApi = $horizonApi;
         $this->jobList = $jobList;
         $this->jobServiceResolver = $jobServiceResolver;
-        $this->serviceStats = $serviceStats;
         $this->serviceFilter = $serviceFilter;
     }
 

@@ -11,7 +11,7 @@ final class ServiceTagNormalizer
      *
      * @return list<string>
      */
-    public static function normalizeList(array $tags): array
+    public static function normalize(array $tags): array
     {
         $normalized = [];
 

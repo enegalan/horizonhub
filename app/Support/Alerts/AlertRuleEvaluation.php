@@ -4,8 +4,8 @@ namespace App\Support\Alerts;
 
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Jobs\JobsWindowFetcher;
-use App\Support\Jobs\JobRuntimeHelper;
+use App\Services\Jobs\JobRuntimeHelperService;
+use App\Services\Jobs\JobsWindowFetcherService;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
@@ -15,14 +15,14 @@ final class AlertRuleEvaluation
     /**
      * The jobs window fetcher.
      */
-    private JobsWindowFetcher $jobsWindowFetcher;
+    private JobsWindowFetcherService $jobsWindowFetcher;
 
     /**
      * The constructor.
      *
-     * @param JobsWindowFetcher $jobsWindowFetcher The jobs window fetcher.
+     * @param JobsWindowFetcherService $jobsWindowFetcher The jobs window fetcher.
      */
-    public function __construct(JobsWindowFetcher $jobsWindowFetcher)
+    public function __construct(JobsWindowFetcherService $jobsWindowFetcher)
     {
         $this->jobsWindowFetcher = $jobsWindowFetcher;
     }
@@ -59,7 +59,7 @@ final class AlertRuleEvaluation
             if (! \is_array($job)) {
                 return false;
             }
-            $failedAt = JobRuntimeHelper::parseJobTimestamp($job['failed_at'] ?? null);
+            $failedAt = JobRuntimeHelperService::parseJobTimestamp($job['failed_at'] ?? null);
 
             return $failedAt !== null && $failedAt->gte($cutoff);
         });
@@ -128,7 +128,7 @@ final class AlertRuleEvaluation
      */
     public function parseCompletedAt(array $job): ?CarbonInterface
     {
-        return JobRuntimeHelper::parseJobTimestamp($job['completed_at'] ?? $job['processed_at'] ?? null);
+        return JobRuntimeHelperService::parseJobTimestamp($job['completed_at'] ?? $job['processed_at'] ?? null);
     }
 
     /**

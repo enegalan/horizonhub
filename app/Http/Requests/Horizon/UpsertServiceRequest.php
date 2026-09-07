@@ -106,7 +106,7 @@ class UpsertServiceRequest extends FormRequest
         }
 
         $this->merge([
-            'tags' => ServiceTagNormalizer::normalizeList($tags),
+            'tags' => ServiceTagNormalizer::normalize($tags),
         ]);
     }
 }

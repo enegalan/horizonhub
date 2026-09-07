@@ -6,9 +6,6 @@ use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
 use App\Services\Services\ServiceFilterService;
 use App\Support\DatetimeBoundaryParser;
-use App\Support\Jobs\JobCommandDataExtractor;
-use App\Support\Jobs\JobRuntimeHelper;
-use App\Support\Jobs\JobsPaginator;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -244,7 +241,7 @@ class JobListService
         $dateToCarbon = DatetimeBoundaryParser::parseUpper($dateToStr);
 
         foreach ($services as $service) {
-            $rawJobs = JobsPaginator::fetchAllPages(
+            $rawJobs = JobsPaginatorService::fetchAllPages(
                 fn (array $query): array => $this->horizonApi->getFailedJobs($service, $query),
             );
 
@@ -342,7 +339,7 @@ class JobListService
 
         foreach ($services as $service) {
             $fetcher = $this->private__apiFetcherForStatus($service, $status);
-            $rawJobs = JobsPaginator::fetchAllPages($fetcher);
+            $rawJobs = JobsPaginatorService::fetchAllPages($fetcher);
 
             foreach ($rawJobs as $job) {
                 if (! \is_array($job)) {
@@ -454,20 +451,20 @@ class JobListService
         $completedAt = $job['completed_at'] ?? null;
         $failedAtRaw = $job['failed_at'] ?? null;
 
-        $queuedAt = JobRuntimeHelper::parseJobTimestamp($pushedAt);
-        $reservedAt = JobRuntimeHelper::parseJobTimestamp($reservedAtRaw);
-        $processedAt = JobRuntimeHelper::parseJobTimestamp($completedAt);
-        $failedAt = JobRuntimeHelper::parseJobTimestamp($failedAtRaw);
-        JobRuntimeHelper::normalizeStatusDates($status, $processedAt, $failedAt);
+        $queuedAt = JobRuntimeHelperService::parseJobTimestamp($pushedAt);
+        $reservedAt = JobRuntimeHelperService::parseJobTimestamp($reservedAtRaw);
+        $processedAt = JobRuntimeHelperService::parseJobTimestamp($completedAt);
+        $failedAt = JobRuntimeHelperService::parseJobTimestamp($failedAtRaw);
+        JobRuntimeHelperService::normalizeStatusDates($status, $processedAt, $failedAt);
 
-        $commandData = JobCommandDataExtractor::extract($payload);
+        $commandData = JobCommandDataExtractorService::extract($payload);
 
-        $availableAt = isset($commandData['delay']['date']) ? JobRuntimeHelper::parseJobTimestamp($commandData['delay']['date']) : null;
+        $availableAt = isset($commandData['delay']['date']) ? JobRuntimeHelperService::parseJobTimestamp($commandData['delay']['date']) : null;
         $attemptsRaw = $payload['attempts'] ?? null;
         $attempts = is_numeric($attemptsRaw) && $attemptsRaw >= 1 ? (int) $attemptsRaw : null;
 
-        $runtime = JobRuntimeHelper::getFormattedRuntime(
-            JobRuntimeHelper::getRuntimeSeconds(
+        $runtime = JobRuntimeHelperService::getFormattedRuntime(
+            JobRuntimeHelperService::getRuntimeSeconds(
                 isset($job['runtime']) && \is_numeric($job['runtime']) ? (float) $job['runtime'] : null,
                 $reservedAt,
                 $processedAt,

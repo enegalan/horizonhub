@@ -4,12 +4,12 @@ namespace Tests\Unit;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
-use App\Services\Jobs\JobServiceResolver;
+use App\Services\Jobs\JobServiceResolverService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
-class JobServiceResolverTest extends TestCase
+class JobServiceResolverServiceTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -39,7 +39,7 @@ class JobServiceResolverTest extends TestCase
                 ];
             });
 
-        $resolver = new JobServiceResolver($api);
+        $resolver = new JobServiceResolverService($api);
         $resolved = $resolver->resolve('job-uuid-1');
 
         $this->assertTrue($resolved['service']->is($second));
@@ -51,7 +51,7 @@ class JobServiceResolverTest extends TestCase
         $api = $this->createMock(HorizonClientService::class);
         $api->expects($this->never())->method('getJob');
 
-        $resolver = new JobServiceResolver($api);
+        $resolver = new JobServiceResolverService($api);
 
         $this->assertNull($resolver->resolve(''));
     }
@@ -63,7 +63,7 @@ class JobServiceResolverTest extends TestCase
         $api = $this->createMock(HorizonClientService::class);
         $api->method('getJob')->willReturn(['success' => false]);
 
-        $resolver = new JobServiceResolver($api);
+        $resolver = new JobServiceResolverService($api);
 
         $this->assertNull($resolver->resolve('missing-job'));
     }
@@ -80,7 +80,7 @@ class JobServiceResolverTest extends TestCase
             ->method('getJob')
             ->willReturn(['success' => true, 'data' => ['id' => 'job-uuid-1']]);
 
-        $resolver = new JobServiceResolver($api);
+        $resolver = new JobServiceResolverService($api);
 
         $this->assertTrue($resolver->resolve('job-uuid-1')['service']->is($second));
     }

@@ -4,7 +4,7 @@ namespace Tests\Unit;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
-use App\Services\Jobs\JobsWindowFetcher;
+use App\Services\Jobs\JobsWindowFetcherService;
 use App\Services\Metrics\Calculators\FailureMetricsCalculator;
 use App\Services\Metrics\Calculators\QueueFailureCountersCalculator;
 use Carbon\Carbon;
@@ -36,7 +36,7 @@ class FailureMetricsCalculatorTest extends TestCase
             ]],
         ]);
 
-        $calc = new FailureMetricsCalculator($api, new JobsWindowFetcher($api));
+        $calc = new FailureMetricsCalculator($api, new JobsWindowFetcherService($api));
         $result = $calc->getFailureRate24h(['service_id' => $service->id]);
 
         $this->assertSame(2, $result['processed']);
@@ -66,7 +66,7 @@ class FailureMetricsCalculatorTest extends TestCase
             ]],
         ]);
 
-        $calc = new QueueFailureCountersCalculator($api, new JobsWindowFetcher($api));
+        $calc = new QueueFailureCountersCalculator($api, new JobsWindowFetcherService($api));
         $result = $calc->getProcessedFailedByQueue(['service_id' => $service->id]);
 
         $this->assertSame(['default', 'mail'], $result['queues']);

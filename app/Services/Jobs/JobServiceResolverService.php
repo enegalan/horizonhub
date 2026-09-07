@@ -7,7 +7,7 @@ use App\Services\Horizon\HorizonClientService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
-final class JobServiceResolver
+final class JobServiceResolverService
 {
     /**
      * The Horizon API client.

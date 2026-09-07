@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Services\Horizon\HorizonClientService;
+use App\Support\Horizon\ClientResponse;
+use App\Support\Horizon\StatsReader;
 use Database\Factories\ServiceFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -129,6 +132,26 @@ class Service extends Model
                 $inner->orWhereJsonContains('tags', $tag);
             }
         });
+    }
+
+    /**
+     * Attach Horizon stats to the service.
+     */
+    public function withHorizonStats(HorizonClientService $horizonApi): void
+    {
+        if (! $this->enabled) {
+            $this->horizon_failed_jobs_count = 0;
+            $this->horizon_jobs_count = 0;
+            $this->horizon_status = null;
+
+            return;
+        }
+
+        $stats = StatsReader::summary(ClientResponse::data($horizonApi->getStats($this)));
+
+        $this->horizon_failed_jobs_count = $stats['failedJobs'];
+        $this->horizon_jobs_count = $stats['recentJobs'];
+        $this->horizon_status = $stats['status'];
     }
 
     /**

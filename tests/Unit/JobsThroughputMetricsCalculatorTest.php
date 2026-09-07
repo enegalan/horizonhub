@@ -4,7 +4,7 @@ namespace Tests\Unit;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
-use App\Services\Jobs\JobsWindowFetcher;
+use App\Services\Jobs\JobsWindowFetcherService;
 use App\Services\Metrics\Calculators\JobsThroughputMetricsCalculator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -27,7 +27,7 @@ class JobsThroughputMetricsCalculatorTest extends TestCase
             return ['success' => true, 'data' => ['failedJobs' => 1, 'recentJobs' => 10, 'periods' => ['recentJobs' => 20]]];
         });
 
-        $calc = new JobsThroughputMetricsCalculator($api, new JobsWindowFetcher($api));
+        $calc = new JobsThroughputMetricsCalculator($api, new JobsWindowFetcherService($api));
 
         $this->assertSame(2, $calc->getFailedPastSevenDays($s1));
         $this->assertSame(3, $calc->getJobsPastMinute($s1));

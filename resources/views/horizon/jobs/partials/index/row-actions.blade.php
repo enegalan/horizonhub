@@ -1,5 +1,5 @@
 @php
-    $horizonJobUrl = \App\Support\Jobs\JobDashboardUrlBuilder::build(
+    $horizonJobUrl = \App\Services\Jobs\JobDashboardUrlBuilderService::build(
         $pageService ?? ($job->service ?? null),
         $job->uuid,
         $job->status

@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Support\Jobs;
+namespace App\Services\Jobs;
 
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 
-final class JobRuntimeHelper
+final class JobRuntimeHelperService
 {
     /**
      * Human-readable duration in seconds (e.g. "0.08 s", "1.23 s").
