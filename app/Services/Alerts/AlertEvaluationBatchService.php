@@ -4,7 +4,7 @@ namespace App\Services\Alerts;
 
 use App\Jobs\EvaluateAlertJob;
 use App\Models\Alert;
-use App\Support\Alerts\AlertEvaluationBatchCache;
+use App\Services\Alerts\Engine\AlertBatchStore;
 use Illuminate\Bus\Batch;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Str;
@@ -20,18 +20,18 @@ class AlertEvaluationBatchService
      */
     public function getEvaluationStatus(string $evaluationId): array
     {
-        $cache = new AlertEvaluationBatchCache($evaluationId);
+        $store = new AlertBatchStore;
 
         return [
             'evaluation_id' => $evaluationId,
-            'status' => $cache->getStatus(),
-            'total_alerts' => $cache->getTotalAlerts(),
-            'evaluated_count' => $cache->getEvaluatedCount(),
-            'triggered_count' => $cache->getTriggeredCount(),
-            'delivered_count' => $cache->getDeliveredCount(),
-            'error_count' => $cache->getErrorCount(),
-            'first_error_message' => $cache->getFirstErrorMessage(),
-            'error_message' => $cache->getErrorMessage(),
+            'status' => $store->getStatus($evaluationId),
+            'total_alerts' => $store->getTotalAlerts($evaluationId),
+            'evaluated_count' => $store->getEvaluatedCount($evaluationId),
+            'triggered_count' => $store->getTriggeredCount($evaluationId),
+            'delivered_count' => $store->getDeliveredCount($evaluationId),
+            'error_count' => $store->getErrorCount($evaluationId),
+            'first_error_message' => $store->getFirstErrorMessage($evaluationId),
+            'error_message' => $store->getErrorMessage($evaluationId),
         ];
     }
 
@@ -48,11 +48,11 @@ class AlertEvaluationBatchService
 
         $total = \count($alertIds);
         $evaluationId = (string) Str::uuid();
-        $cache = new AlertEvaluationBatchCache($evaluationId);
+        $store = new AlertBatchStore;
 
-        $cache->putStatus($total > 0 ? 'running' : 'completed');
-        $cache->putTotalAlerts($total);
-        $cache->initializeCounters();
+        $store->putStatus($evaluationId, $total > 0 ? 'running' : 'completed');
+        $store->putTotalAlerts($evaluationId, $total);
+        $store->initializeCounters($evaluationId);
 
         if ($total === 0) {
             return [
@@ -62,7 +62,7 @@ class AlertEvaluationBatchService
             ];
         }
 
-        $cache->forgetBatchErrors();
+        $store->forgetBatchErrors($evaluationId);
 
         $jobs = [];
 
@@ -73,11 +73,11 @@ class AlertEvaluationBatchService
         Bus::batch($jobs)
             ->name('HorizonHub: Evaluate all alerts')
             ->onConnection('deferred')
-            ->then(function (Batch $batch) use ($cache): void {
-                $cache->markCompleted();
+            ->then(function (Batch $batch) use ($store, $evaluationId): void {
+                $store->markCompleted($evaluationId);
             })
-            ->catch(function (Batch $batch, \Throwable $e) use ($cache): void {
-                $cache->markBatchFailed($e->getMessage());
+            ->catch(function (Batch $batch, \Throwable $e) use ($store, $evaluationId): void {
+                $store->markBatchFailed($evaluationId, $e->getMessage());
             })
             ->dispatch();
 

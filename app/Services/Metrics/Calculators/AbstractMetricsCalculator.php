@@ -92,6 +92,7 @@ abstract class AbstractMetricsCalculator
 
         if (! empty($serviceScope)) {
             $ids = [];
+
             foreach ($serviceScope as $serviceId) {
                 if (! \is_numeric($serviceId) || \intval($serviceId) <= 0) {
                     continue;

@@ -56,8 +56,6 @@ class JobListService
         $serviceFilterIds = $this->serviceFilter->resolveServiceIds($request);
         $search = (string) $request->query('search', '');
 
-        $perPage = (int) config('horizonhub.jobs_per_page');
-
         $servicesQuery = Service::enabled();
 
         if (! empty($serviceFilterIds)) {
@@ -77,7 +75,7 @@ class JobListService
             $pageProcessing,
             $pageProcessed,
             $pageFailed,
-            $perPage,
+            (int) config('horizonhub.jobs_per_page'),
             $request->url(),
             $request->query(),
         );

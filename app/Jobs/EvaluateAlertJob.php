@@ -3,8 +3,8 @@
 namespace App\Jobs;
 
 use App\Models\Alert;
+use App\Services\Alerts\Engine\AlertBatchStore;
 use App\Services\Alerts\Engine\AlertEngine;
-use App\Support\Alerts\AlertEvaluationBatchCache;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -48,18 +48,18 @@ class EvaluateAlertJob implements ShouldQueue
      */
     public function handle(AlertEngine $engine): void
     {
-        $cache = new AlertEvaluationBatchCache($this->evaluationId);
+        $store = new AlertBatchStore;
 
         try {
             $alert = Alert::find($this->alertId);
 
             if (! $alert) {
-                $cache->recordEvaluationError('Alert not found');
+                $store->recordEvaluationError($this->evaluationId, 'Alert not found');
 
                 return;
             }
 
-            $cache->recordEvaluationResult($engine->evaluateAlert($alert));
+            $store->recordEvaluationResult($this->evaluationId, $engine->evaluateAlert($alert));
         } catch (\Throwable $e) {
             Log::channel('hub')->error('alert evaluation job failed', [
                 'alert_id' => $this->alertId,
@@ -67,7 +67,7 @@ class EvaluateAlertJob implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
 
-            $cache->recordEvaluationError($e->getMessage());
+            $store->recordEvaluationError($this->evaluationId, $e->getMessage());
         }
     }
 }
