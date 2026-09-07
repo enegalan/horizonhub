@@ -88,8 +88,10 @@ return [
     |
     | Retries apply only to safe GET requests (API reads and dashboard bootstrap).
     | POST/DELETE (e.g. job retry) are not retried here; session flow still handles 419.
+    | Connection/timeouts (ConnectionException) are never retried.
     |
-    | times: total attempts (1 = no retry). sleep_ms: base backoff in milliseconds (exponential).
+    | times: total attempts (1 = no retry).
+    | sleep_ms: base backoff in milliseconds (exponential).
     | retry_on_status: HTTP status codes to retry after a response is received.
     |
     */

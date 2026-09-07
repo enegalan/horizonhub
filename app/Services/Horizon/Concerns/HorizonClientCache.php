@@ -97,7 +97,9 @@ class HorizonClientCache implements HorizonClientCacheContract
      */
     public function requestPathFillLock(Service $service, string $path): Lock
     {
-        $lockSeconds = (int) config('horizonhub.api_timeout');
+        $timeout = (int) config('horizonhub.api_timeout');
+        $retryTimes = (int) config('horizonhub.horizon_http_retry.times');
+        $lockSeconds = max($timeout, $timeout * $retryTimes);
 
         return Cache::lock("{$this->requestPathCacheKey($service, $path)}:fill", $lockSeconds);
     }
