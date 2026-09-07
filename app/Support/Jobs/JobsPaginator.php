@@ -1,8 +1,10 @@
 <?php
 
-namespace App\Support\Horizon;
+namespace App\Support\Jobs;
 
-final class HorizonJobPaginator
+use App\Support\Horizon\ClientResponse;
+
+final class JobsPaginator
 {
     /**
      * Paginate Horizon job list responses until no more pages.
@@ -19,16 +21,10 @@ final class HorizonJobPaginator
         $startingAt = -1;
 
         for ($pageIdx = 0; $pageIdx < $maxPages; $pageIdx++) {
-            $response = $pageFetcher([
+            $batch = ClientResponse::data($pageFetcher([
                 'starting_at' => $startingAt,
                 'limit' => $jobsPerRequest,
-            ]);
-
-            if (! $response['success']) {
-                break;
-            }
-
-            $batch = self::private__jobsFromResponse($response);
+            ]), 'jobs');
 
             if ($batch === null || empty($batch)) {
                 break;
@@ -65,16 +61,10 @@ final class HorizonJobPaginator
         $maxPages = (int) config('horizonhub.max_horizon_pages');
 
         while ($page < $maxPages) {
-            $response = $pageFetcher([
+            $batch = ClientResponse::data($pageFetcher([
                 'starting_at' => $startingAt,
                 'limit' => $jobsPerRequest,
-            ]);
-
-            if (! $response['success']) {
-                break;
-            }
-
-            $batch = self::private__jobsFromResponse($response);
+            ]), 'jobs');
 
             if ($batch === null || empty($batch)) {
                 break;
@@ -111,20 +101,6 @@ final class HorizonJobPaginator
         }
 
         return $jobs;
-    }
-
-    /**
-     * Extract the jobs from the response.
-     *
-     * @param array<string, mixed> $response
-     *
-     * @return list<mixed>|null
-     */
-    private static function private__jobsFromResponse(array $response): ?array
-    {
-        $jobs = $response['data']['jobs'] ?? null;
-
-        return \is_array($jobs) ? $jobs : null;
     }
 
     /**

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support\Horizon;
+namespace App\Support\Queues;
 
 final class QueueNameNormalizer
 {
@@ -36,7 +36,7 @@ final class QueueNameNormalizer
             return $queue;
         }
 
-        foreach (self::connectionNamesFromConfig() as $connectionName) {
+        foreach (self::private__connectionNamesFromConfig() as $connectionName) {
             foreach (self::CONNECTION_QUEUE_SEPARATORS as $separator) {
                 $fullPrefix = "$connectionName$separator";
 
@@ -58,11 +58,47 @@ final class QueueNameNormalizer
     }
 
     /**
+     * Normalize and dedupe queue names from Horizon supervisor options (`queue` string or list).
+     *
+     * @param array<string, mixed> $options
+     *
+     * @return list<string>
+     */
+    public static function normalizeListFromOptions(array $options): array
+    {
+        $queues = $options['queue'] ?? null;
+
+        if (! \is_array($queues)) {
+            if (empty($queues)) {
+                return [];
+            }
+
+            $queue = self::normalize((string) $queues);
+
+            return ! empty($queue) ? [$queue] : [];
+        }
+
+        $normalizedQueues = [];
+
+        foreach ($queues as $queue) {
+            $normalizedQueue = self::normalize((string) $queue);
+
+            if (empty($normalizedQueue)) {
+                continue;
+            }
+
+            $normalizedQueues[$normalizedQueue] = true;
+        }
+
+        return \array_keys($normalizedQueues);
+    }
+
+    /**
      * Get the connection names from the config.
      *
      * @return list<string>
      */
-    private static function connectionNamesFromConfig(): array
+    private static function private__connectionNamesFromConfig(): array
     {
         $fromConfig = \array_keys(config('queue.connections'));
         $names = [];

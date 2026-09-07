@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support\Horizon;
+namespace App\Support\Jobs;
 
 final class JobCommandDataExtractor
 {
@@ -29,7 +29,7 @@ final class JobCommandDataExtractor
             return null;
         }
 
-        $normalized = self::normalize($unserialized);
+        $normalized = self::private__normalize($unserialized);
 
         if (! \is_array($normalized)) {
             return null;
@@ -39,34 +39,11 @@ final class JobCommandDataExtractor
     }
 
     /**
-     * Convert private/protected serialized property names to plain keys.
-     *
-     * @param string|int $key The key.
-     */
-    private static function cleanPropertyKey(string|int $key): string|int
-    {
-        if (! \is_string($key) || $key === '') {
-            return $key;
-        }
-
-        if (\str_contains($key, "\0")) {
-            $parts = \explode("\0", $key);
-            $candidate = \end($parts);
-
-            if ($candidate !== '') {
-                return $candidate;
-            }
-        }
-
-        return $key;
-    }
-
-    /**
      * Normalize unserialized data to scalar/array values.
      *
      * @param mixed $value The value.
      */
-    private static function normalize(mixed $value): mixed
+    private static function private__normalize(mixed $value): mixed
     {
         if (\is_null($value) || \is_scalar($value)) {
             return $value;
@@ -76,7 +53,7 @@ final class JobCommandDataExtractor
             $normalized = [];
 
             foreach ($value as $key => $item) {
-                $normalized[$key] = self::normalize($item);
+                $normalized[$key] = self::private__normalize($item);
             }
 
             return $normalized;
@@ -87,12 +64,21 @@ final class JobCommandDataExtractor
             $normalized = [];
 
             foreach ($casted as $key => $item) {
-                $cleanKey = self::cleanPropertyKey($key);
+                $cleanKey = $key;
+
+                if (\is_string($key) && ! blank($key) && \str_contains($key, "\0")) {
+                    $parts = \explode("\0", $key);
+                    $candidate = \end($parts);
+
+                    if (! blank($candidate)) {
+                        $cleanKey = $candidate;
+                    }
+                }
 
                 if ($cleanKey === '__PHP_Incomplete_Class_Name') {
                     continue;
                 }
-                $normalized[$cleanKey] = self::normalize($item);
+                $normalized[$cleanKey] = self::private__normalize($item);
             }
 
             return $normalized;

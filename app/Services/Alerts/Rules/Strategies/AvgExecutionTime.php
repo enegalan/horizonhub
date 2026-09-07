@@ -6,7 +6,7 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Support\Alerts\AlertRuleEvaluation;
-use App\Support\Horizon\JobRuntimeHelper;
+use App\Support\Jobs\JobRuntimeHelper;
 
 final class AvgExecutionTime implements AlertRuleContract
 {

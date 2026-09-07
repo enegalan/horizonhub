@@ -28,8 +28,7 @@ final class AlertDeliveryLogPresenter
             $initialJobKey = (string) $initialUuid;
             $initialJobTotals[$initialJobKey] = ($initialJobTotals[$initialJobKey] ?? 0) + 1;
         }
-        $initialUniqueJobTypesCount = \count($initialJobTotals);
-        $initialEffectiveJobTypesCount = \min($initialUniqueJobTypesCount, $initialTriggerCount);
+        $initialEffectiveJobTypesCount = \min(\count($initialJobTotals), $initialTriggerCount);
         $maxDistinctJobs = (int) config('horizonhub.alerts.delivery_log_max_distinct_jobs', $initialEffectiveJobTypesCount);
         $initialJobItems = [];
 

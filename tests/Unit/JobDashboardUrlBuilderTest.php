@@ -3,7 +3,7 @@
 namespace Tests\Unit;
 
 use App\Models\Service;
-use App\Support\Horizon\JobDashboardUrlBuilder;
+use App\Support\Jobs\JobDashboardUrlBuilder;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 

@@ -2,26 +2,9 @@
 
 namespace App\Support\Horizon;
 
-final class HorizonStatsReader
+// TODO: Simplify checks, it's certain that data is an array and not null.
+final class StatsReader
 {
-    /**
-     * Extract the data from the response.
-     *
-     * @param array{success?: bool, data?: array<string, mixed>} $response The response.
-     *
-     * @return array<string, mixed>|null
-     */
-    public static function dataFromResponse(array $response): ?array
-    {
-        if (! ($response['success'] ?? false)) {
-            return null;
-        }
-
-        $data = $response['data'] ?? null;
-
-        return \is_array($data) ? $data : null;
-    }
-
     /**
      * @param array<string, mixed>|null $data
      */
@@ -139,5 +122,35 @@ final class HorizonStatsReader
         }
 
         return (string) $data['status'];
+    }
+
+    /**
+     * Typed stats snapshot. Callers may use only the keys they need.
+     *
+     * @param array<string, mixed>|null $data
+     *
+     * @return array{
+     *     failedJobs: int,
+     *     jobsPastMinute: int,
+     *     maxWaitTimeSeconds: float|null,
+     *     processes: int|null,
+     *     queueWithMaxRuntime: string|null,
+     *     queueWithMaxThroughput: string|null,
+     *     recentJobs: int,
+     *     status: string|null
+     * }
+     */
+    public static function summary(?array $data): array
+    {
+        return [
+            'failedJobs' => self::failedJobs($data),
+            'jobsPastMinute' => self::jobsPastMinute($data),
+            'maxWaitTimeSeconds' => self::maxWaitTimeSeconds($data),
+            'processes' => self::processes($data),
+            'queueWithMaxRuntime' => self::queueWithMaxRuntime($data),
+            'queueWithMaxThroughput' => self::queueWithMaxThroughput($data),
+            'recentJobs' => self::recentJobs($data),
+            'status' => self::status($data),
+        ];
     }
 }

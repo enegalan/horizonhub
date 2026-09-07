@@ -6,7 +6,8 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Services\Horizon\HorizonClientService;
-use App\Support\Horizon\HorizonStatsReader;
+use App\Support\Horizon\ClientResponse;
+use App\Support\Horizon\StatsReader;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
@@ -52,8 +53,7 @@ final class HorizonOffline implements AlertRuleContract
             return ['triggered' => false, 'job_uuids' => []];
         }
 
-        $data = HorizonStatsReader::dataFromResponse($this->horizonApi->getStats($service));
-        $status = HorizonStatsReader::status($data);
+        $status = StatsReader::summary(ClientResponse::data($this->horizonApi->getStats($service)))['status'];
         $isOnline = $status !== null
             && (\strtolower($status) === 'active' || \strtolower($status) === 'running');
 

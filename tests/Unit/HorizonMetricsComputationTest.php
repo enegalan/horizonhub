@@ -6,6 +6,7 @@ use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
 use App\Services\Jobs\JobsWindowFetcher;
 use App\Services\Metrics\Calculators\AbstractMetricsCalculator;
+use App\Support\Queues\QueueNameNormalizer;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -56,16 +57,12 @@ class HorizonMetricsComputationTest extends TestCase
             {
                 return $this->private__sumJobsByQueueNames($queues, $jobsByQueue);
             }
-
-            public function public__extractQueues(array $options): array
-            {
-                return $this->private__extractQueuesFromSupervisorOptions($options);
-            }
         };
 
         $this->assertSame(5, $probe->public__sumQueues(['a', 'b'], ['a' => 2, 'b' => 3]));
-        $this->assertSame(['default'], $probe->public__extractQueues(['queue' => 'redis.default']));
-        $this->assertSame([], $probe->public__extractQueues(['queue' => null]));
+        $this->assertSame(['default'], QueueNameNormalizer::normalizeListFromOptions(['queue' => 'redis.default']));
+        $this->assertSame([], QueueNameNormalizer::normalizeListFromOptions(['queue' => null]));
+        $this->assertSame(['alpha', 'beta'], QueueNameNormalizer::normalizeListFromOptions(['queue' => ['redis.alpha', 'redis.beta', '']]));
         $this->assertCount(2, $probe->public__initHourly(Carbon::parse('2026-01-01 00:00:00'), Carbon::parse('2026-01-01 01:00:00')));
     }
 }

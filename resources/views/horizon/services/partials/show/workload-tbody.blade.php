@@ -11,7 +11,7 @@
         </td>
         <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="wait">
             @if($row->wait !== null)
-                <span data-wait-seconds="{{ $row->wait }}">{{ number_format($row->wait, 2) }} s</span>
+                <span data-wait-seconds="{{ $row->wait }}">{{ \App\Support\Jobs\JobRuntimeHelper::getFormattedRuntime((float) $row->wait) }}</span>
             @else
                 –
             @endif

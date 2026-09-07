@@ -11,7 +11,7 @@ class HorizonClientApi implements HorizonClientApiContract
     /**
      * The HTTP client.
      */
-    private HorizonHttpClient $http;
+    private HorizonClientHttp $http;
 
     /**
      * The constructor.
@@ -20,7 +20,7 @@ class HorizonClientApi implements HorizonClientApiContract
      */
     public function __construct(HorizonClientCacheContract $cache)
     {
-        $this->http = new HorizonHttpClient($cache);
+        $this->http = new HorizonClientHttp($cache);
     }
 
     /**

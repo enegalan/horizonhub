@@ -4,7 +4,8 @@ namespace App\Services\Horizon\Concerns;
 
 use App\Models\Service;
 use App\Services\Horizon\Contracts\HorizonClientCache as HorizonClientCacheContract;
-use App\Services\Horizon\Contracts\HorizonHttpClient as HorizonHttpClientContract;
+use App\Services\Horizon\Contracts\HorizonClientHttp as HorizonClientHttpContract;
+use App\Support\Http\HttpRetryBackoff;
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Contracts\Cache\LockTimeoutException;
@@ -15,7 +16,7 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class HorizonHttpClient implements HorizonHttpClientContract
+class HorizonClientHttp implements HorizonClientHttpContract
 {
     /**
      * The cache instance.
@@ -306,16 +307,15 @@ class HorizonHttpClient implements HorizonHttpClientContract
         }
 
         $retryConfig = config('horizonhub.horizon_http_retry');
-        $retryTimes = (int) $retryConfig['times'];
-        $sleepBaseMs = (int) $retryConfig['sleep_ms'];
+        $retryTimes = (int) max(1, $retryConfig['times']);
         $retryOnStatus = $retryConfig['retry_on_status'];
 
         if ($httpMethod === 'get' && $retryTimes > 1) {
             $request = $request->retry(
                 $retryTimes,
                 // Calculate the sleep time between retries using exponential backoff.
-                function (int $attempt, \Throwable $e) use ($sleepBaseMs): int {
-                    return $sleepBaseMs * (2 ** \max(0, $attempt - 1));
+                function (int $attempt, \Throwable $e): int {
+                    return HttpRetryBackoff::delayMsForAttempt($attempt);
                 },
                 // Retry the request if it fails.
                 function (\Throwable $exception, PendingRequest $pending, ?string $method = 'GET') use ($retryOnStatus): bool {

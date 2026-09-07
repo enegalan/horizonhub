@@ -6,7 +6,8 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Services\Horizon\HorizonClientService;
-use App\Support\Horizon\HorizonMastersReader;
+use App\Support\Horizon\ClientResponse;
+use App\Support\Jobs\JobRuntimeHelper;
 
 final class SupervisorOffline implements AlertRuleContract
 {
@@ -44,15 +45,41 @@ final class SupervisorOffline implements AlertRuleContract
             return ['triggered' => false, 'job_uuids' => []];
         }
 
-        $response = $this->horizonApi->getMasters($service);
-        $data = $response['data'] ?? null;
+        $mastersData = ClientResponse::data($this->horizonApi->getMasters($service));
 
-        if (! $response['success'] || ! \is_array($data)) {
+        if ($mastersData === null) {
             return ['triggered' => false, 'job_uuids' => []];
         }
 
         $staleAt = \now()->subMinutes($alert->getThresholdMinutes());
-        $staleFound = HorizonMastersReader::hasStaleSupervisorHeartbeat($data, $staleAt);
+        $staleFound = false;
+
+        foreach ($mastersData as $master) {
+            if (! \is_array($master)) {
+                continue;
+            }
+
+            $supervisorsData = $master['supervisors'] ?? null;
+
+            if (! \is_array($supervisorsData)) {
+                continue;
+            }
+
+            foreach ($supervisorsData as $supervisor) {
+                if (! \is_array($supervisor)) {
+                    continue;
+                }
+
+                // TO-DEPURATE: last_heartbeat_at or lastSeen?
+                $lastSeenRaw = $supervisor['last_heartbeat_at'] ?? ($supervisor['lastSeen'] ?? null);
+                $lastSeen = JobRuntimeHelper::parseJobTimestamp($lastSeenRaw);
+
+                if ($lastSeen !== null && $lastSeen->lt($staleAt)) {
+                    $staleFound = true;
+                    break;
+                }
+            }
+        }
 
         return [
             'triggered' => $staleFound,

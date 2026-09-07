@@ -11,7 +11,7 @@ use App\Services\Metrics\Calculators\JobsVolumeLast24hCalculator;
 use App\Services\Metrics\Calculators\QueueFailureCountersCalculator;
 use App\Services\Metrics\Calculators\RuntimeMetricsCalculator;
 use App\Services\Metrics\Calculators\WorkloadMetricsCalculator;
-use App\Support\Horizon\QueueNameNormalizer;
+use App\Support\Queues\QueueNameNormalizer;
 use Illuminate\Support\Collection;
 
 class MetricsDataService

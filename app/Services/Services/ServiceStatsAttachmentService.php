@@ -4,7 +4,8 @@ namespace App\Services\Services;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
-use App\Support\Horizon\HorizonStatsReader;
+use App\Support\Horizon\ClientResponse;
+use App\Support\Horizon\StatsReader;
 
 class ServiceStatsAttachmentService
 {
@@ -25,11 +26,11 @@ class ServiceStatsAttachmentService
                 continue;
             }
 
-            $data = HorizonStatsReader::dataFromResponse($horizonApi->getStats($service));
+            $stats = StatsReader::summary(ClientResponse::data($horizonApi->getStats($service)));
 
-            $service->horizon_failed_jobs_count = HorizonStatsReader::failedJobs($data);
-            $service->horizon_jobs_count = HorizonStatsReader::recentJobs($data);
-            $service->horizon_status = HorizonStatsReader::status($data);
+            $service->horizon_failed_jobs_count = $stats['failedJobs'];
+            $service->horizon_jobs_count = $stats['recentJobs'];
+            $service->horizon_status = $stats['status'];
         }
     }
 }

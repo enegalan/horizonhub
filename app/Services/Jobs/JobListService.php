@@ -6,9 +6,9 @@ use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
 use App\Services\Services\ServiceFilterService;
 use App\Support\DatetimeBoundaryParser;
-use App\Support\Horizon\HorizonJobPaginator;
-use App\Support\Horizon\JobCommandDataExtractor;
-use App\Support\Horizon\JobRuntimeHelper;
+use App\Support\Jobs\JobCommandDataExtractor;
+use App\Support\Jobs\JobRuntimeHelper;
+use App\Support\Jobs\JobsPaginator;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -246,7 +246,7 @@ class JobListService
         $dateToCarbon = DatetimeBoundaryParser::parseUpper($dateToStr);
 
         foreach ($services as $service) {
-            $rawJobs = $this->private__fetchAllJobsForService(
+            $rawJobs = JobsPaginator::fetchAllPages(
                 fn (array $query): array => $this->horizonApi->getFailedJobs($service, $query),
             );
 
@@ -344,10 +344,10 @@ class JobListService
 
         foreach ($services as $service) {
             $fetcher = $this->private__apiFetcherForStatus($service, $status);
-            $rawJobs = $this->private__fetchAllJobsForService($fetcher);
+            $rawJobs = JobsPaginator::fetchAllPages($fetcher);
 
             foreach ($rawJobs as $job) {
-                $row = $this->private__mapRawJobToListRow(\is_array($job) ? $job : [], $service, $status);
+                $row = $this->private__mapRawJobToListRow($job, $service, $status);
 
                 if (! $this->private__matchesSearch($row, $search)) {
                     continue;
@@ -357,18 +357,6 @@ class JobListService
         }
 
         return $this->private__sortJobRows($merged, $status)->values();
-    }
-
-    /**
-     * Fetch all jobs for a single service.
-     *
-     * @param callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>} $fetcher The fetcher.
-     *
-     * @return list<mixed>
-     */
-    private function private__fetchAllJobsForService(callable $fetcher): array
-    {
-        return HorizonJobPaginator::fetchAllPages($fetcher);
     }
 
     /**
@@ -429,6 +417,10 @@ class JobListService
      */
     private function private__mapRawJobToListRow(array $job, Service $service, string $status): ?object
     {
+        if (! \is_array($job)) {
+            return null;
+        }
+
         $uuid = (string) ($job['id'] ?? '');
 
         if ($uuid === '') {
@@ -492,6 +484,10 @@ class JobListService
     {
         if ($search === '') {
             return true;
+        }
+
+        if (! $row) {
+            return false;
         }
 
         $haystack = $row->queue . ' ' . $row->name . ' ' . $row->uuid;

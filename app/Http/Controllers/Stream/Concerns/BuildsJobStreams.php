@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Stream\Concerns;
 
 use App\Models\Service;
-use App\Support\Horizon\JobCommandDataExtractor;
-use App\Support\Horizon\JobRuntimeHelper;
+use App\Support\Jobs\JobCommandDataExtractor;
+use App\Support\Jobs\JobRuntimeHelper;
 use Illuminate\Http\Request;
 
 trait BuildsJobStreams
