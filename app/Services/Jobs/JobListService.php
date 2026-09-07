@@ -347,7 +347,15 @@ class JobListService
             $rawJobs = JobsPaginator::fetchAllPages($fetcher);
 
             foreach ($rawJobs as $job) {
+                if (! \is_array($job)) {
+                    continue;
+                }
+
                 $row = $this->private__mapRawJobToListRow($job, $service, $status);
+
+                if ($row === null) {
+                    continue;
+                }
 
                 if (! $this->private__matchesSearch($row, $search)) {
                     continue;
@@ -356,7 +364,23 @@ class JobListService
             }
         }
 
-        return $this->private__sortJobRows($merged, $status)->values();
+        return $merged->sort(function (object $a, object $b) use ($status): int {
+            $timeA = $this->private__sortTimeForStatus($a, $status);
+            $timeB = $this->private__sortTimeForStatus($b, $status);
+
+            if ($timeA === $timeB) {
+                $sidA = $a->service->id ?? 0;
+                $sidB = $b->service->id ?? 0;
+
+                if ($sidA !== $sidB) {
+                    return $sidA <=> $sidB;
+                }
+
+                return \strcmp((string) $a->uuid, (string) $b->uuid);
+            }
+
+            return $timeA < $timeB ? 1 : -1;
+        })->values();
     }
 
     /**
@@ -417,10 +441,6 @@ class JobListService
      */
     private function private__mapRawJobToListRow(array $job, Service $service, string $status): ?object
     {
-        if (! \is_array($job)) {
-            return null;
-        }
-
         $uuid = (string) ($job['id'] ?? '');
 
         if ($uuid === '') {
@@ -486,42 +506,9 @@ class JobListService
             return true;
         }
 
-        if (! $row) {
-            return false;
-        }
-
         $haystack = $row->queue . ' ' . $row->name . ' ' . $row->uuid;
 
         return \stripos($haystack, $search) !== false;
-    }
-
-    /**
-     * Sort job rows by time for a given status.
-     *
-     * @param Collection<int, object> $rows
-     * @param 'processing'|'processed'|'failed' $status
-     *
-     * @return Collection<int, object>
-     */
-    private function private__sortJobRows(Collection $rows, string $status): Collection
-    {
-        return $rows->sort(function (object $a, object $b) use ($status): int {
-            $timeA = $this->private__sortTimeForStatus($a, $status);
-            $timeB = $this->private__sortTimeForStatus($b, $status);
-
-            if ($timeA === $timeB) {
-                $sidA = $a->service->id ?? 0;
-                $sidB = $b->service->id ?? 0;
-
-                if ($sidA !== $sidB) {
-                    return $sidA <=> $sidB;
-                }
-
-                return \strcmp((string) $a->uuid, (string) $b->uuid);
-            }
-
-            return $timeA < $timeB ? 1 : -1;
-        });
     }
 
     /**
