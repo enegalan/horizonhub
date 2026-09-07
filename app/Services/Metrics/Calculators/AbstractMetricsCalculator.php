@@ -91,10 +91,13 @@ abstract class AbstractMetricsCalculator
         $servicesQuery = Service::enabled();
 
         if (! empty($serviceScope)) {
-            $ids = \array_values(\array_unique(\array_filter(
-                \array_map(static fn ($v): int => (int) $v, $serviceScope),
-                static fn (int $id): bool => $id > 0,
-            )));
+            $ids = [];
+            foreach ($serviceScope as $serviceId) {
+                if (! \is_numeric($serviceId) || \intval($serviceId) <= 0) {
+                    continue;
+                }
+                $ids[] = $serviceId;
+            }
 
             if (empty($ids)) {
                 return new Collection;
