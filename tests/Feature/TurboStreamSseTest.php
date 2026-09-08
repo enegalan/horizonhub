@@ -25,7 +25,7 @@ class TurboStreamSseTest extends TestCase
     /**
      * Provides routes for testing SSE content type.
      *
-     * @return list<array{0: string, 1: callable(self): string}>
+     * @return array<string, array{0: string, 1: callable(): string}>
      */
     public static function sseContentTypeRouteProvider(): array
     {
@@ -622,7 +622,7 @@ class TurboStreamSseTest extends TestCase
     }
 
     /**
-     * @param list<mixed> $args
+     * @param mixed ...$args
      */
     private function private__invokeStreamBuilder(string $method, mixed ...$args): mixed
     {

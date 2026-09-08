@@ -44,7 +44,7 @@ abstract class AbstractMetricsCalculator
      * Fill hourly buckets with completed and failed job counts for the given services.
      *
      * @param array<string, array<string, mixed>> $buckets
-     * @param \Illuminate\Support\Collection<int, Service>|Collection<int, Service> $services
+     * @param Collection<int, Service> $services
      */
     protected function private__accumulateCompletedFailedHourlyBuckets(
         array &$buckets,
