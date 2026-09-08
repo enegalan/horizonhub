@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Jobs\EvaluateAlertJob;
 use App\Models\Alert;
+use App\Services\Alerts\Engine\AlertBatchStore;
 use App\Services\Alerts\Engine\AlertEngine;
 use App\Services\Alerts\Rules\Strategies\FailureCount;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,6 +23,9 @@ class EvaluateAlertJobTest extends TestCase
             'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
+        $store = new AlertBatchStore;
+        $store->putStatus('eval-c', 'running');
+        $store->initializeCounters('eval-c');
         $engine = $this->createMock(AlertEngine::class);
         $engine->method('evaluateAlert')->willThrowException(new \RuntimeException('engine-fail'));
 
@@ -35,6 +39,9 @@ class EvaluateAlertJobTest extends TestCase
     public function test_job_records_not_found_as_error_counters(): void
     {
         Cache::flush();
+        $store = new AlertBatchStore;
+        $store->putStatus('eval-a', 'running');
+        $store->initializeCounters('eval-a');
         $job = new EvaluateAlertJob(99999, 'eval-a');
         $engine = $this->createMock(AlertEngine::class);
         $job->handle($engine);
@@ -52,6 +59,9 @@ class EvaluateAlertJobTest extends TestCase
             'rule_type' => FailureCount::type(),
             'enabled' => true,
         ]);
+        $store = new AlertBatchStore;
+        $store->putStatus('eval-b', 'running');
+        $store->initializeCounters('eval-b');
 
         $engine = $this->createMock(AlertEngine::class);
         $engine->method('evaluateAlert')->willReturn([

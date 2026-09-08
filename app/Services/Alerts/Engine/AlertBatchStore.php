@@ -153,7 +153,13 @@ class AlertBatchStore
      */
     public function getStatus(string $evaluationId): string
     {
-        return (string) (Cache::get($this->private__evaluationKey($evaluationId, 'status')) ?? 'running');
+        $status = Cache::get($this->private__evaluationKey($evaluationId, 'status'));
+
+        if (! \is_string($status) || $status === '') {
+            return 'expired';
+        }
+
+        return $status;
     }
 
     /**
@@ -219,7 +225,7 @@ class AlertBatchStore
      */
     public function putStatus(string $evaluationId, string $status): void
     {
-        $this->private__putEvaluation($evaluationId, 'status', $status);
+        $this->private__putEvaluation($evaluationId, 'status', $status, true);
     }
 
     /**
@@ -241,8 +247,12 @@ class AlertBatchStore
      */
     public function recordEvaluationError(string $evaluationId, string $errorMessage): void
     {
-        Cache::increment($this->private__evaluationKey($evaluationId, 'evaluated_count'), 1);
-        Cache::increment($this->private__evaluationKey($evaluationId, 'error_count'), 1);
+        if (! $this->private__evaluationExists($evaluationId)) {
+            return;
+        }
+
+        $this->private__incrementEvaluation($evaluationId, 'evaluated_count');
+        $this->private__incrementEvaluation($evaluationId, 'error_count');
         Cache::add($this->private__evaluationKey($evaluationId, 'first_error_message'), $errorMessage, self::EVALUATION_TTL_SECONDS);
     }
 
@@ -254,18 +264,22 @@ class AlertBatchStore
      */
     public function recordEvaluationResult(string $evaluationId, array $result): void
     {
-        Cache::increment($this->private__evaluationKey($evaluationId, 'evaluated_count'), 1);
+        if (! $this->private__evaluationExists($evaluationId)) {
+            return;
+        }
+
+        $this->private__incrementEvaluation($evaluationId, 'evaluated_count');
 
         if (! empty($result['triggered'])) {
-            Cache::increment($this->private__evaluationKey($evaluationId, 'triggered_count'), 1);
+            $this->private__incrementEvaluation($evaluationId, 'triggered_count');
         }
 
         if (! empty($result['delivered'])) {
-            Cache::increment($this->private__evaluationKey($evaluationId, 'delivered_count'), 1);
+            $this->private__incrementEvaluation($evaluationId, 'delivered_count');
         }
 
         if (! empty($result['error_message'])) {
-            Cache::increment($this->private__evaluationKey($evaluationId, 'error_count'), 1);
+            $this->private__incrementEvaluation($evaluationId, 'error_count');
             Cache::add($this->private__evaluationKey($evaluationId, 'first_error_message'), $result['error_message'], self::EVALUATION_TTL_SECONDS);
         }
     }
@@ -318,6 +332,16 @@ class AlertBatchStore
     }
 
     /**
+     * Determine if the evaluation status key still exists.
+     *
+     * @param string $evaluationId The evaluation ID.
+     */
+    private function private__evaluationExists(string $evaluationId): bool
+    {
+        return Cache::has($this->private__evaluationKey($evaluationId, 'status'));
+    }
+
+    /**
      * Get the evaluation cache key.
      *
      * @param string $evaluationId The evaluation ID.
@@ -329,14 +353,33 @@ class AlertBatchStore
     }
 
     /**
+     * Increment an evaluation counter while preserving the evaluation TTL.
+     *
+     * @param string $evaluationId The evaluation ID.
+     * @param string $suffix The suffix.
+     * @param int $by The increment amount.
+     */
+    private function private__incrementEvaluation(string $evaluationId, string $suffix, int $by = 1): void
+    {
+        $key = $this->private__evaluationKey($evaluationId, $suffix);
+        $value = (int) (Cache::get($key) ?? 0) + $by;
+        Cache::put($key, $value, self::EVALUATION_TTL_SECONDS);
+    }
+
+    /**
      * Put the evaluation value.
      *
      * @param string $evaluationId The evaluation ID.
      * @param string $suffix The suffix.
      * @param mixed $value The value.
+     * @param bool $create Whether to create a new evaluation when the status key is absent.
      */
-    private function private__putEvaluation(string $evaluationId, string $suffix, mixed $value): void
+    private function private__putEvaluation(string $evaluationId, string $suffix, mixed $value, bool $create = false): void
     {
+        if (! $create && ! $this->private__evaluationExists($evaluationId)) {
+            return;
+        }
+
         Cache::put($this->private__evaluationKey($evaluationId, $suffix), $value, self::EVALUATION_TTL_SECONDS);
     }
 }
