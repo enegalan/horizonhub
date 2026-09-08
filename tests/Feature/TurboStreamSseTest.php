@@ -24,7 +24,7 @@ class TurboStreamSseTest extends TestCase
 
     /**
      * Provides routes for testing SSE content type.
-     * 
+     *
      * @return list<array{0: string, 1: callable(self): string}>
      */
     public static function sseContentTypeRouteProvider(): array
