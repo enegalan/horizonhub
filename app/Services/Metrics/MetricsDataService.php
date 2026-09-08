@@ -8,11 +8,12 @@ use App\Services\Metrics\Calculators\AbstractMetricsCalculator;
 use App\Services\Metrics\Calculators\FailureMetricsCalculator;
 use App\Services\Metrics\Calculators\JobsThroughputMetricsCalculator;
 use App\Services\Metrics\Calculators\JobsVolumeLast24hCalculator;
-use App\Services\Metrics\Calculators\QueueFailureCountersCalculator;
 use App\Services\Metrics\Calculators\RuntimeMetricsCalculator;
 use App\Services\Metrics\Calculators\WorkloadMetricsCalculator;
 use App\Support\Queues\QueueNameNormalizer;
 use Illuminate\Support\Collection;
+
+// TODO: Sure it is refactorizable.
 
 class MetricsDataService
 {
@@ -37,11 +38,6 @@ class MetricsDataService
     private JobsWindowFetcherService $jobsWindowFetcher;
 
     /**
-     * The queue failure counters calculator.
-     */
-    private QueueFailureCountersCalculator $queueFailureCounters;
-
-    /**
      * The runtime metrics calculator.
      */
     private RuntimeMetricsCalculator $runtimeMetrics;
@@ -57,7 +53,6 @@ class MetricsDataService
      * @param FailureMetricsCalculator $failureMetrics The failure metrics calculator.
      * @param JobsThroughputMetricsCalculator $jobsThroughputMetrics The jobs throughput metrics calculator.
      * @param JobsVolumeLast24hCalculator $jobsVolumeLast24h The jobs volume (last 24h) calculator.
-     * @param QueueFailureCountersCalculator $queueFailureCounters The queue failure counters calculator.
      * @param RuntimeMetricsCalculator $runtimeMetrics The runtime metrics calculator.
      * @param WorkloadMetricsCalculator $workloadMetrics The workload metrics calculator.
      * @param JobsWindowFetcherService $jobsWindowFetcher The jobs window fetcher.
@@ -66,7 +61,6 @@ class MetricsDataService
         FailureMetricsCalculator $failureMetrics,
         JobsThroughputMetricsCalculator $jobsThroughputMetrics,
         JobsVolumeLast24hCalculator $jobsVolumeLast24h,
-        QueueFailureCountersCalculator $queueFailureCounters,
         RuntimeMetricsCalculator $runtimeMetrics,
         WorkloadMetricsCalculator $workloadMetrics,
         JobsWindowFetcherService $jobsWindowFetcher,
@@ -74,7 +68,6 @@ class MetricsDataService
         $this->failureMetrics = $failureMetrics;
         $this->jobsThroughputMetrics = $jobsThroughputMetrics;
         $this->jobsVolumeLast24h = $jobsVolumeLast24h;
-        $this->queueFailureCounters = $queueFailureCounters;
         $this->runtimeMetrics = $runtimeMetrics;
         $this->workloadMetrics = $workloadMetrics;
         $this->jobsWindowFetcher = $jobsWindowFetcher;
@@ -99,9 +92,6 @@ class MetricsDataService
      *     workloadSummary: string,
      *     supervisorsSummary: string,
      *     waitByQueue: mixed,
-     *     hasRuntimeChart: bool,
-     *     hasFailureRateChart: bool,
-     *     hasJobsVolumeChart: bool,
      *     hasServiceChart: bool
      * }
      */
@@ -161,9 +151,6 @@ class MetricsDataService
                 'workloadSummary' => $workloadSummary,
                 'supervisorsSummary' => $supervisorsSummary,
                 'waitByQueue' => $waitByQueue,
-                'hasRuntimeChart' => true,
-                'hasFailureRateChart' => true,
-                'hasJobsVolumeChart' => true,
                 'hasServiceChart' => ! empty($waitByQueue['queues']),
             ];
         });
@@ -190,14 +177,9 @@ class MetricsDataService
             ));
         }
 
-        $serviceIds = \array_values(\array_unique(\array_map(
-            static fn (array $row): int => (int) $row['service_id'],
-            $workloadRows,
-        )));
-
-        $servicesById = empty($serviceIds)
-            ? \collect()
-            : Service::whereIn('id', $serviceIds)->get()->keyBy('id');
+        $servicesById = empty($serviceFilterIds)
+            ? Service::query()->get()->keyBy('id')
+            : Service::whereIn('id', $serviceFilterIds)->get()->keyBy('id');
 
         $queues = \collect($workloadRows)
             ->map(function (array $row) use ($servicesById) {
@@ -228,11 +210,13 @@ class MetricsDataService
     /**
      * Get the failure rate from 00:00 of the previous day until now.
      *
+     * @param list<int> $serviceIds The service IDs.
+     *
      * @return array{rate: float, processed: int, failed: int}
      */
-    public function getFailureRate24h(array $serviceScope = []): array
+    public function getFailureRate24h(array $serviceIds = []): array
     {
-        return $this->failureMetrics->getFailureRate24h($serviceScope);
+        return $this->failureMetrics->getFailureRate24h($serviceIds);
     }
 
     /**
@@ -240,19 +224,21 @@ class MetricsDataService
      *
      * @return array{xAxis: list<string>, rate: list<float|null>}
      */
-    public function getFailureRateOverTime(array $serviceScope = []): array
+    public function getFailureRateOverTime(array $serviceIds = []): array
     {
-        return $this->failureMetrics->getFailureRateOverTime($serviceScope);
+        return $this->failureMetrics->getFailureRateOverTime($serviceIds);
     }
 
     /**
      * Get per-job runtimes over the rolling last 24 hours (completed and failed).
      *
+     * @param list<int> $serviceIds The service IDs.
+     *
      * @return array{points: list<array{endAtMs: int, seconds: float, name: string, service: string, status: string}>}
      */
-    public function getJobRuntimesLast24h(array $serviceScope = []): array
+    public function getJobRuntimesLast24h(array $serviceIds = []): array
     {
-        return $this->runtimeMetrics->getJobRuntimesLast24h($serviceScope);
+        return $this->runtimeMetrics->getJobRuntimesLast24h($serviceIds);
     }
 
     /**
@@ -261,16 +247,6 @@ class MetricsDataService
     public function getJobsPastHour(?Service $service = null): int
     {
         return $this->jobsThroughputMetrics->getJobsPastHour($service);
-    }
-
-    /**
-     * Get the number of jobs processed in the past hour by service.
-     *
-     * @return array{services: list<string>, jobsPastHour: list<int>}
-     */
-    public function getJobsPastHourByService(): array
-    {
-        return $this->jobsThroughputMetrics->getJobsPastHourByService();
     }
 
     /**
@@ -284,21 +260,13 @@ class MetricsDataService
     /**
      * Get hourly completed and failed job counts over the rolling last 24 hours.
      *
+     * @param list<int> $serviceIds The service IDs.
+     *
      * @return array{xAxis: list<string>, completed: list<int>, failed: list<int>}
      */
-    public function getJobsVolumeLast24h(array $serviceScope = []): array
+    public function getJobsVolumeLast24h(array $serviceIds = []): array
     {
-        return $this->jobsVolumeLast24h->getJobsVolumeLast24h($serviceScope);
-    }
-
-    /**
-     * Get the processed and failed jobs by queue.
-     *
-     * @return array{queues: list<string>, processed: list<int>, failed: list<int>}
-     */
-    public function getProcessedFailedByQueue(array $serviceScope = []): array
-    {
-        return $this->queueFailureCounters->getProcessedFailedByQueue($serviceScope);
+        return $this->jobsVolumeLast24h->getJobsVolumeLast24h($serviceIds);
     }
 
     /**
@@ -306,9 +274,9 @@ class MetricsDataService
      *
      * @return array<int, array{service_id: int, service: string, name: string, status: string, jobs: int, processes: int|null}>
      */
-    public function getSupervisorsData(array $serviceScope = []): array
+    public function getSupervisorsData(array $serviceIds = []): array
     {
-        return $this->workloadMetrics->getSupervisorsData($serviceScope);
+        return $this->workloadMetrics->getSupervisorsData($serviceIds);
     }
 
     /**
@@ -321,31 +289,12 @@ class MetricsDataService
     public function getThroughputTotalsForServiceIds(array $serviceIds): array
     {
         if (empty($serviceIds)) {
-            return [
-                'jobsPastMinute' => $this->getJobsPastMinute(null),
-                'jobsPastHour' => $this->getJobsPastHour(null),
-                'failedPastSevenDays' => $this->getFailedPastSevenDays(null),
-            ];
+            return $this->jobsThroughputMetrics->getThroughputTotals(null);
         }
-
-        $minute = 0;
-        $hour = 0;
-        $failed = 0;
 
         $services = Service::whereIn('id', $serviceIds)->orderBy('name')->get();
 
-        /** @var Service $service */
-        foreach ($services as $service) {
-            $minute += $this->getJobsPastMinute($service);
-            $hour += $this->getJobsPastHour($service);
-            $failed += $this->getFailedPastSevenDays($service);
-        }
-
-        return [
-            'jobsPastMinute' => $minute,
-            'jobsPastHour' => $hour,
-            'failedPastSevenDays' => $failed,
-        ];
+        return $this->jobsThroughputMetrics->getThroughputTotals($services);
     }
 
     /**
@@ -394,11 +343,13 @@ class MetricsDataService
     /**
      * Get the workload data for a single service.
      *
+     * @param list<int> $serviceIds The service IDs.
+     *
      * @return array<int, array{service_id: int, service: string, queue: string, jobs: int, processes: int|null, wait: float|null}>
      */
-    public function getWorkloadData(array $serviceScope = []): array
+    public function getWorkloadData(array $serviceIds = []): array
     {
-        return $this->workloadMetrics->getWorkloadData($serviceScope);
+        return $this->workloadMetrics->getWorkloadData($serviceIds);
     }
 
     /**

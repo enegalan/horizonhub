@@ -1,9 +1,4 @@
 @php
-    $horizonJobUrl = \App\Services\Jobs\JobDashboardUrlBuilderService::build(
-        $pageService ?? ($job->service ?? null),
-        $job->uuid,
-        $job->status
-    );
     $showRetry ??= false;
 @endphp
 <div class="flex items-center gap-1">
@@ -39,16 +34,8 @@
     >
         <x-icons.eye class="size-4" />
     </x-button>
-    @if($horizonJobUrl)
-        <x-button
-            type="button"
-            variant="ghost"
-            class="h-8 min-h-8 px-2 rounded-md"
-            aria-label="Open in Horizon dashboard"
-            title="Open in Horizon dashboard"
-            onclick="try { window.open('{{ $horizonJobUrl }}', '_blank'); } catch (e) {}"
-        >
-            <x-icons.window class="size-4" />
-        </x-button>
-    @endif
+    @include('horizon.partials.open-in-horizon-button', [
+        'job' => $job,
+        'service' => $pageService ?? ($job->service ?? null),
+    ])
 </div>

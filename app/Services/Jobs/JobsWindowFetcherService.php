@@ -4,6 +4,8 @@ namespace App\Services\Jobs;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
+use App\Support\Jobs\JobRuntime;
+use App\Support\Jobs\JobsPaginator;
 
 final class JobsWindowFetcherService
 {
@@ -40,7 +42,7 @@ final class JobsWindowFetcherService
             return $this->memo[$memoKey];
         }
 
-        $jobs = JobsPaginatorService::fetchSinceTimestamp(
+        $jobs = JobsPaginator::fetchSinceTimestamp(
             $sinceTimestamp,
             function (array $query) use ($service): array {
                 return $this->horizonApi->getCompletedJobs($service, $query);
@@ -68,7 +70,7 @@ final class JobsWindowFetcherService
             return $this->memo[$memoKey];
         }
 
-        $jobs = JobsPaginatorService::fetchSinceTimestamp(
+        $jobs = JobsPaginator::fetchSinceTimestamp(
             $sinceTimestamp,
             function (array $query) use ($service): array {
                 return $this->horizonApi->getFailedJobs($service, $query);
@@ -111,7 +113,7 @@ final class JobsWindowFetcherService
      */
     private static function private__extractTimestamp(mixed $value): ?int
     {
-        $parsed = JobRuntimeHelperService::parseJobTimestamp($value);
+        $parsed = JobRuntime::parseJobTimestamp($value);
 
         return $parsed?->getTimestamp();
     }

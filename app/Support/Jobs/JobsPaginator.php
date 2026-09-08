@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Services\Jobs;
+namespace App\Support\Jobs;
 
 use App\Support\Horizon\ClientResponse;
 
-final class JobsPaginatorService
+final class JobsPaginator
 {
     /**
      * Paginate Horizon job list responses until no more pages.

@@ -3,18 +3,17 @@
 namespace App\Services\Metrics\Calculators;
 
 use App\Models\Service;
-use Carbon\Carbon;
 
 final class JobsVolumeLast24hCalculator extends AbstractMetricsCalculator
 {
     /**
      * Hourly completed and failed job counts over the rolling last 24 hours.
      *
-     * @param array<string, mixed> $serviceScope The service scope.
+     * @param list<int> $serviceIds The service IDs.
      *
      * @return array{xAxis: list<string>, completed: list<int>, failed: list<int>}
      */
-    public function getJobsVolumeLast24h(array $serviceScope = []): array
+    public function getJobsVolumeLast24h(array $serviceIds = []): array
     {
         $now = \now();
         $sinceBucketStart = $now->copy()->subHours(24)->startOfHour();
@@ -32,34 +31,31 @@ final class JobsVolumeLast24hCalculator extends AbstractMetricsCalculator
             },
         );
 
-        $services = $this->private__getServicesForMetrics($serviceScope);
+        $services = Service::getServices($serviceIds);
 
         if ($services->isEmpty()) {
             return ['xAxis' => [], 'completed' => [], 'failed' => []];
         }
 
-        /** @var Service $service */
-        foreach ($services as $service) {
-            $completedJobs = $this->jobsWindowFetcher->fetchCompletedJobsSince($service, $sinceTimestamp);
+        $this->private__accumulateCompletedFailedHourlyBuckets(
+            $buckets,
+            $services,
+            $sinceTimestamp,
+            $bucketFormat,
+            'completed',
+            'failed',
+        );
 
-            $this->private__incrementHourlyBuckets($buckets, $completedJobs, 'completed_at', 'completed', $sinceTimestamp, $bucketFormat);
-
-            $failedJobs = $this->jobsWindowFetcher->fetchFailedJobsSince($service, $sinceTimestamp);
-            $this->private__incrementHourlyBuckets($buckets, $failedJobs, 'failed_at', 'failed', $sinceTimestamp, $bucketFormat);
-        }
-
-        $xAxis = [];
         $completedSeries = [];
         $failedSeries = [];
 
-        foreach ($buckets as $k => $v) {
-            $xAxis[] = Carbon::parse($k)->format('d/m H:i');
+        foreach ($buckets as $v) {
             $completedSeries[] = $v['completed'];
             $failedSeries[] = $v['failed'];
         }
 
         return [
-            'xAxis' => $xAxis,
+            'xAxis' => $this->private__hourlyAxisLabels($buckets),
             'completed' => $completedSeries,
             'failed' => $failedSeries,
         ];

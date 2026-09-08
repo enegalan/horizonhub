@@ -15,11 +15,44 @@ use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Notifiers\SlackNotifierService;
 use App\Services\Services\ServiceFilterService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class TurboStreamSseTest extends TestCase
 {
     use RefreshDatabase;
+
+    /**
+     * Provides routes for testing SSE content type.
+     * 
+     * @return list<array{0: string, 1: callable(self): string}>
+     */
+    public static function sseContentTypeRouteProvider(): array
+    {
+        return [
+            'alerts.show' => ['alerts.show', static function (): string {
+                $alert = Alert::create([
+                    'name' => 'stream-alert-detail-sse',
+                    'rule_type' => FailureCount::type(),
+                    'threshold' => ['count' => 1, 'minutes' => 5],
+                    'enabled' => true,
+                ]);
+
+                return route('horizon.streams.alerts.show', ['alert' => $alert->id]);
+            }],
+            'dashboard' => ['dashboard', static fn (): string => route('horizon.streams.dashboard')],
+            'metrics' => ['metrics', static fn (): string => route('horizon.streams.metrics')],
+            'service-show' => ['service-show', static function (): string {
+                $service = Service::create([
+                    'name' => 'test-svc',
+                    'base_url' => 'https://test-svc.test',
+                    'status' => 'online',
+                ]);
+
+                return route('horizon.streams.service-show', ['service' => $service->id]);
+            }],
+        ];
+    }
 
     public function test_build_alert_show_streams_returns_chart_targets(): void
     {
@@ -50,12 +83,7 @@ class TurboStreamSseTest extends TestCase
             'sent_at' => now()->subHours(2),
         ]);
 
-        $controller = $this->app->make(HorizonStreamsController::class);
-
-        $reflection = new \ReflectionMethod($controller, 'buildAlertShow');
-        $reflection->setAccessible(true);
-
-        $result = $reflection->invoke($controller, $alert);
+        $result = $this->private__invokeStreamBuilder('buildAlertShow', $alert);
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="alert-detail-stats" method="morph"', $result);
@@ -76,11 +104,7 @@ class TurboStreamSseTest extends TestCase
             'enabled' => true,
         ]);
 
-        $controller = $this->app->make(HorizonStreamsController::class);
-        $reflection = new \ReflectionMethod($controller, 'buildAlerts');
-        $reflection->setAccessible(true);
-
-        $result = $reflection->invoke($controller, 'search=ops');
+        $result = $this->private__invokeStreamBuilder('buildAlerts', 'search=ops');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('ops-failures', $result);
@@ -110,12 +134,7 @@ class TurboStreamSseTest extends TestCase
             'service_ids' => [],
         ]);
 
-        $controller = $this->app->make(HorizonStreamsController::class);
-
-        $reflection = new \ReflectionMethod($controller, 'buildAlerts');
-        $reflection->setAccessible(true);
-
-        $result = $reflection->invoke($controller, '');
+        $result = $this->private__invokeStreamBuilder('buildAlerts', '');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="turbo-horizon-alert-stats" method="morph"', $result);
@@ -158,11 +177,7 @@ class TurboStreamSseTest extends TestCase
             'sent_at' => now()->subHours(2),
         ]);
 
-        $controller = $this->app->make(HorizonStreamsController::class);
-        $reflection = new \ReflectionMethod($controller, 'private__buildChart');
-        $reflection->setAccessible(true);
-
-        $chart = $reflection->invoke($controller, $alert, 1);
+        $chart = $this->private__invokeStreamBuilder('private__buildChart', $alert, 1);
 
         $this->assertArrayHasKey('xAxis', $chart);
         $this->assertCount(24, $chart['xAxis']);
@@ -210,11 +225,7 @@ class TurboStreamSseTest extends TestCase
             ]);
         });
 
-        $controller = $this->app->make(HorizonStreamsController::class);
-        $reflection = new \ReflectionMethod($controller, 'buildDashboard');
-        $reflection->setAccessible(true);
-
-        $result = $reflection->invoke($controller, '');
+        $result = $this->private__invokeStreamBuilder('buildDashboard', '');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="dashboard-value-jobs-minute"', $result);
@@ -228,12 +239,7 @@ class TurboStreamSseTest extends TestCase
 
     public function test_build_dashboard_streams_returns_expected_targets(): void
     {
-        $controller = $this->app->make(HorizonStreamsController::class);
-
-        $reflection = new \ReflectionMethod($controller, 'buildDashboard');
-        $reflection->setAccessible(true);
-
-        $result = $reflection->invoke($controller, '');
+        $result = $this->private__invokeStreamBuilder('buildDashboard', '');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="dashboard-value-jobs-minute"', $result);
@@ -253,11 +259,7 @@ class TurboStreamSseTest extends TestCase
                 ]);
         });
 
-        $controller = $this->app->make(HorizonStreamsController::class);
-        $reflection = new \ReflectionMethod($controller, 'buildDashboard');
-        $reflection->setAccessible(true);
-
-        $result = $reflection->invoke($controller, '');
+        $result = $this->private__invokeStreamBuilder('buildDashboard', '');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('bg-slate-400', $result);
@@ -290,12 +292,7 @@ class TurboStreamSseTest extends TestCase
                 ]);
         });
 
-        $controller = $this->app->make(HorizonStreamsController::class);
-
-        $reflection = new \ReflectionMethod($controller, 'buildJobShow');
-        $reflection->setAccessible(true);
-
-        $result = $reflection->invoke($controller, $jobUuid);
+        $result = $this->private__invokeStreamBuilder('buildJobShow', $jobUuid);
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="horizon-job-detail-meta"', $result);
@@ -306,11 +303,7 @@ class TurboStreamSseTest extends TestCase
 
     public function test_build_job_show_streams_returns_null_for_missing_service_or_api_failure(): void
     {
-        $controller = $this->app->make(HorizonStreamsController::class);
-        $reflection = new \ReflectionMethod($controller, 'buildJobShow');
-        $reflection->setAccessible(true);
-
-        $this->assertNull($reflection->invoke($controller, 'uuid-x'));
+        $this->assertNull($this->private__invokeStreamBuilder('buildJobShow', 'uuid-x'));
 
         Service::create([
             'name' => 'stream-job-null',
@@ -320,21 +313,12 @@ class TurboStreamSseTest extends TestCase
         $this->mock(HorizonClientService::class, function ($mock): void {
             $mock->shouldReceive('getJob')->andReturn(['success' => false]);
         });
-        $controller = $this->app->make(HorizonStreamsController::class);
-        $reflection = new \ReflectionMethod($controller, 'buildJobShow');
-        $reflection->setAccessible(true);
-
-        $this->assertNull($reflection->invoke($controller, 'uuid-y'));
+        $this->assertNull($this->private__invokeStreamBuilder('buildJobShow', 'uuid-y'));
     }
 
     public function test_build_jobs_index_streams_returns_per_section_tbody_updates(): void
     {
-        $controller = $this->app->make(HorizonStreamsController::class);
-
-        $reflection = new \ReflectionMethod($controller, 'buildJobsIndex');
-        $reflection->setAccessible(true);
-
-        $result = $reflection->invoke($controller, '');
+        $result = $this->private__invokeStreamBuilder('buildJobsIndex', '');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="turbo-tbody-horizon-job-list-processing" method="morph"', $result);
@@ -346,11 +330,7 @@ class TurboStreamSseTest extends TestCase
 
     public function test_build_jobs_index_streams_with_query_preserves_section_updates(): void
     {
-        $controller = $this->app->make(HorizonStreamsController::class);
-        $reflection = new \ReflectionMethod($controller, 'buildJobsIndex');
-        $reflection->setAccessible(true);
-
-        $result = $reflection->invoke($controller, 'search=abc');
+        $result = $this->private__invokeStreamBuilder('buildJobsIndex', 'search=abc');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="turbo-tbody-horizon-job-list-failed"', $result);
@@ -359,12 +339,7 @@ class TurboStreamSseTest extends TestCase
 
     public function test_build_metrics_streams_returns_granular_targets(): void
     {
-        $controller = $this->app->make(HorizonStreamsController::class);
-
-        $reflection = new \ReflectionMethod($controller, 'buildMetrics');
-        $reflection->setAccessible(true);
-
-        $result = $reflection->invoke($controller, '');
+        $result = $this->private__invokeStreamBuilder('buildMetrics', '');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="metrics-value-jobs-minute"', $result);
@@ -430,12 +405,7 @@ class TurboStreamSseTest extends TestCase
             ]);
         }
 
-        $controller = $this->app->make(HorizonStreamsController::class);
-
-        $reflection = new \ReflectionMethod($controller, 'buildProviders');
-        $reflection->setAccessible(true);
-
-        $result = $reflection->invoke($controller, '');
+        $result = $this->private__invokeStreamBuilder('buildProviders', '');
 
         $this->assertNotNull($result);
         $this->assertMatchesRegularExpression('/Total.*?<span>3<\/span>/s', $result);
@@ -457,11 +427,7 @@ class TurboStreamSseTest extends TestCase
             'config' => ['to' => ['ops@example.test']],
         ]);
 
-        $controller = $this->app->make(HorizonStreamsController::class);
-        $reflection = new \ReflectionMethod($controller, 'buildProviders');
-        $reflection->setAccessible(true);
-
-        $result = $reflection->invoke($controller, 'search=ops');
+        $result = $this->private__invokeStreamBuilder('buildProviders', 'search=ops');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('ops-slack', $result);
@@ -476,12 +442,7 @@ class TurboStreamSseTest extends TestCase
             'config' => ['to' => ['ops@example.test']],
         ]);
 
-        $controller = $this->app->make(HorizonStreamsController::class);
-
-        $reflection = new \ReflectionMethod($controller, 'buildProviders');
-        $reflection->setAccessible(true);
-
-        $result = $reflection->invoke($controller, '');
+        $result = $this->private__invokeStreamBuilder('buildProviders', '');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="turbo-horizon-provider-stats" method="morph"', $result);
@@ -498,12 +459,7 @@ class TurboStreamSseTest extends TestCase
             'status' => 'online',
         ]);
 
-        $controller = $this->app->make(HorizonStreamsController::class);
-
-        $reflection = new \ReflectionMethod($controller, 'buildQueues');
-        $reflection->setAccessible(true);
-
-        $result = $reflection->invoke($controller, '');
+        $result = $this->private__invokeStreamBuilder('buildQueues', '');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="turbo-horizon-queue-stats" method="morph"', $result);
@@ -519,10 +475,7 @@ class TurboStreamSseTest extends TestCase
             'status' => 'online',
         ]);
 
-        $controller = $this->app->make(HorizonStreamsController::class);
-        $reflection = new \ReflectionMethod($controller, 'buildServiceShow');
-        $reflection->setAccessible(true);
-        $result = $reflection->invoke($controller, $service, '');
+        $result = $this->private__invokeStreamBuilder('buildServiceShow', $service, '');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="service-show-stats-row-1"', $result);
@@ -543,12 +496,7 @@ class TurboStreamSseTest extends TestCase
             ]);
         });
 
-        $controller = $this->app->make(HorizonStreamsController::class);
-
-        $reflection = new \ReflectionMethod($controller, 'buildServices');
-        $reflection->setAccessible(true);
-
-        $result = $reflection->invoke($controller, '');
+        $result = $this->private__invokeStreamBuilder('buildServices', '');
 
         $this->assertNotNull($result);
         $this->assertMatchesRegularExpression('/Total.*?<span>3<\/span>/s', $result);
@@ -571,12 +519,7 @@ class TurboStreamSseTest extends TestCase
             ]);
         });
 
-        $controller = $this->app->make(HorizonStreamsController::class);
-
-        $reflection = new \ReflectionMethod($controller, 'buildServices');
-        $reflection->setAccessible(true);
-
-        $result = $reflection->invoke($controller, '');
+        $result = $this->private__invokeStreamBuilder('buildServices', '');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="turbo-horizon-service-stats" method="morph"', $result);
@@ -640,30 +583,17 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('id="turbo-tbody-horizon-service-list"', $html);
     }
 
-    public function test_streams_alert_show_returns_sse_content_type(): void
+    #[DataProvider('sseContentTypeRouteProvider')]
+    public function test_stream_routes_return_sse_content_type(string $label, callable $urlFactory): void
     {
-        $alert = Alert::create([
-            'name' => 'stream-alert-detail-sse',
-            'rule_type' => FailureCount::type(),
-            'threshold' => ['count' => 1, 'minutes' => 5],
-            'enabled' => true,
-        ]);
+        $response = $this->get($urlFactory());
 
-        $response = $this->get(route('horizon.streams.alerts.show', ['alert' => $alert->id]));
-
-        $this->assertStringStartsWith('text/event-stream', $response->headers->get('Content-Type'));
-    }
-
-    public function test_streams_dashboard_returns_sse_content_type(): void
-    {
-        $response = $this->get(route('horizon.streams.dashboard'));
-
-        $this->assertStringStartsWith('text/event-stream', $response->headers->get('Content-Type'));
+        $this->assertStringStartsWith('text/event-stream', $response->headers->get('Content-Type'), $label);
     }
 
     public function test_streams_job_show_returns_sse_content_type_when_resolvable(): void
     {
-        $service = Service::create([
+        Service::create([
             'name' => 'stream-job-svc-2',
             'base_url' => 'https://horizon-api-stream-job-2.test',
             'status' => 'online',
@@ -691,23 +621,15 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringStartsWith('text/event-stream', $response->headers->get('Content-Type'));
     }
 
-    public function test_streams_metrics_returns_sse_content_type(): void
+    /**
+     * @param list<mixed> $args
+     */
+    private function private__invokeStreamBuilder(string $method, mixed ...$args): mixed
     {
-        $response = $this->get(route('horizon.streams.metrics'));
+        $controller = $this->app->make(HorizonStreamsController::class);
+        $reflection = new \ReflectionMethod($controller, $method);
+        $reflection->setAccessible(true);
 
-        $this->assertStringStartsWith('text/event-stream', $response->headers->get('Content-Type'));
-    }
-
-    public function test_streams_service_show_returns_sse_content_type(): void
-    {
-        $service = Service::create([
-            'name' => 'test-svc',
-            'base_url' => 'https://test-svc.test',
-            'status' => 'online',
-        ]);
-
-        $response = $this->get(route('horizon.streams.service-show', ['service' => $service->id]));
-
-        $this->assertStringStartsWith('text/event-stream', $response->headers->get('Content-Type'));
+        return $reflection->invoke($controller, ...$args);
     }
 }

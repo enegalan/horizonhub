@@ -3,11 +3,11 @@
 namespace Tests\Unit;
 
 use App\Models\Service;
-use App\Services\Jobs\JobDashboardUrlBuilderService;
+use App\Support\Jobs\JobDashboardUrlBuilder;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-class JobDashboardUrlBuilderServiceTest extends TestCase
+class JobDashboardUrlBuilderTest extends TestCase
 {
     #[Test]
     public function it_builds_a_completed_job_dashboard_url(): void
@@ -18,7 +18,7 @@ class JobDashboardUrlBuilderServiceTest extends TestCase
             'public_url' => null,
         ]);
 
-        $url = JobDashboardUrlBuilderService::build($service, 'abc-123', 'processed');
+        $url = JobDashboardUrlBuilder::build($service, 'abc-123', 'processed');
 
         $this->assertSame('http://example.test/horizon/jobs/completed/abc-123', $url);
     }
@@ -32,8 +32,8 @@ class JobDashboardUrlBuilderServiceTest extends TestCase
             'public_url' => null,
         ]);
 
-        $pending = JobDashboardUrlBuilderService::build($service, 'abc 123', 'pending');
-        $unknown = JobDashboardUrlBuilderService::build($service, 'abc 123', 'unknown');
+        $pending = JobDashboardUrlBuilder::build($service, 'abc 123', 'pending');
+        $unknown = JobDashboardUrlBuilder::build($service, 'abc 123', 'unknown');
 
         $this->assertSame('http://example.test/horizon/jobs/pending/abc+123', $pending);
         $this->assertSame('http://example.test/horizon/jobs/pending/abc+123', $unknown);
@@ -48,8 +48,8 @@ class JobDashboardUrlBuilderServiceTest extends TestCase
             'public_url' => null,
         ]);
 
-        $this->assertNull(JobDashboardUrlBuilderService::build(null, 'abc-123', 'processed'));
-        $this->assertNull(JobDashboardUrlBuilderService::build($service, '', 'processed'));
+        $this->assertNull(JobDashboardUrlBuilder::build(null, 'abc-123', 'processed'));
+        $this->assertNull(JobDashboardUrlBuilder::build($service, '', 'processed'));
     }
 
     #[Test]
@@ -61,7 +61,7 @@ class JobDashboardUrlBuilderServiceTest extends TestCase
             'public_url' => 'http://public.test',
         ]);
 
-        $url = JobDashboardUrlBuilderService::build($service, 'abc-123', 'failed');
+        $url = JobDashboardUrlBuilder::build($service, 'abc-123', 'failed');
 
         $this->assertSame('http://public.test/horizon/failed/abc-123', $url);
     }

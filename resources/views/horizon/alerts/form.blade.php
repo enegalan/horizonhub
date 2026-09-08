@@ -179,114 +179,34 @@
                         @error('rule_type') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
                     <template x-if="ruleMeta.queuePatternRuleTypes.includes(ruleType)">
-                        <div class="overflow-hidden rounded-lg border border-border">
-                            <button
-                                type="button"
-                                class="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-muted/50"
-                                @click="queueOptionalSectionOpen = !queueOptionalSectionOpen"
-                                :aria-expanded="queueOptionalSectionOpen"
-                            >
-                                <span>Queue (optional)</span>
-                                <x-icons.chevron-down
-                                    class="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200"
-                                    x-bind:class="{ 'rotate-180': queueOptionalSectionOpen }"
-                                />
-                            </button>
-                            <div
-                                x-show="queueOptionalSectionOpen"
-                                x-transition
-                                class="space-y-2 border-t border-border px-3 py-3"
-                            >
-                                <p class="text-xs text-muted-foreground">Exact queue names. Use one row for a single queue, or add rows for several (OR). Leave empty to include all queues.</p>
-                                <div class="space-y-2">
-                                    <template x-for="(row, index) in queuePatterns" :key="'qp-' + row.id">
-                                        <div class="flex gap-2 items-center">
-                                            <input
-                                                type="text"
-                                                name="queue_patterns[]"
-                                                x-model="row.value"
-                                                placeholder="default"
-                                                class="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm font-mono text-foreground shadow-sm"
-                                            />
-                                            <x-button
-                                                type="button"
-                                                variant="ghost"
-                                                class="h-9 shrink-0 text-xs"
-                                                @click="removeQueuePattern(index)"
-                                                x-show="queuePatterns.length > 1"
-                                            >
-                                                Remove
-                                            </x-button>
-                                        </div>
-                                    </template>
-                                    <x-button
-                                        type="button"
-                                        variant="secondary"
-                                        class="h-9 text-sm"
-                                        @click="addQueuePattern()"
-                                    >
-                                        Add queue
-                                    </x-button>
-                                </div>
-                                @error('queue_patterns') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
-                                @error('queue_patterns.*') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
+                        @include('horizon.alerts.partials.form.pattern-list', [
+                            'sectionTitle' => 'Queue (optional)',
+                            'sectionOpenVar' => 'queueOptionalSectionOpen',
+                            'hint' => 'Exact queue names. Use one row for a single queue, or add rows for several (OR). Leave empty to include all queues.',
+                            'rowsVar' => 'queuePatterns',
+                            'rowKeyPrefix' => 'qp',
+                            'inputName' => 'queue_patterns[]',
+                            'placeholder' => 'default',
+                            'removeMethod' => 'removeQueuePattern',
+                            'addMethod' => 'addQueuePattern',
+                            'addLabel' => 'Add queue',
+                            'errorKey' => 'queue_patterns',
+                        ])
                     </template>
                     <template x-if="ruleMeta.jobPatternRuleTypes.includes(ruleType)">
-                        <div class="overflow-hidden rounded-lg border border-border">
-                            <button
-                                type="button"
-                                class="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-muted/50"
-                                @click="jobOptionalSectionOpen = !jobOptionalSectionOpen"
-                                :aria-expanded="jobOptionalSectionOpen"
-                            >
-                                <span>Job (optional)</span>
-                                <x-icons.chevron-down
-                                    class="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200"
-                                    x-bind:class="{ 'rotate-180': jobOptionalSectionOpen }"
-                                />
-                            </button>
-                            <div
-                                x-show="jobOptionalSectionOpen"
-                                x-transition
-                                class="space-y-2 border-t border-border px-3 py-3"
-                            >
-                                <p class="text-xs text-muted-foreground">Substring match on Horizon job class / display name. Multiple patterns match any (OR). Leave all rows empty to include every job type where the rule allows.</p>
-                                <div class="space-y-2">
-                                    <template x-for="(row, index) in jobPatterns" :key="'jp-' + row.id">
-                                        <div class="flex gap-2 items-center">
-                                            <input
-                                                type="text"
-                                                name="job_patterns[]"
-                                                x-model="row.value"
-                                                placeholder="App\Jobs\SendEmail"
-                                                class="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm font-mono text-foreground shadow-sm"
-                                            />
-                                            <x-button
-                                                type="button"
-                                                variant="ghost"
-                                                class="h-9 shrink-0 text-xs"
-                                                @click="removeJobPattern(index)"
-                                                x-show="jobPatterns.length > 1"
-                                            >
-                                                Remove
-                                            </x-button>
-                                        </div>
-                                    </template>
-                                    <x-button
-                                        type="button"
-                                        variant="secondary"
-                                        class="h-9 text-sm"
-                                        @click="addJobPattern()"
-                                    >
-                                        Add pattern
-                                    </x-button>
-                                </div>
-                                @error('job_patterns') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
-                                @error('job_patterns.*') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
+                        @include('horizon.alerts.partials.form.pattern-list', [
+                            'sectionTitle' => 'Job (optional)',
+                            'sectionOpenVar' => 'jobOptionalSectionOpen',
+                            'hint' => 'Substring match on Horizon job class / display name. Multiple patterns match any (OR). Leave all rows empty to include every job type where the rule allows.',
+                            'rowsVar' => 'jobPatterns',
+                            'rowKeyPrefix' => 'jp',
+                            'inputName' => 'job_patterns[]',
+                            'placeholder' => 'App\Jobs\SendEmail',
+                            'removeMethod' => 'removeJobPattern',
+                            'addMethod' => 'addJobPattern',
+                            'addLabel' => 'Add pattern',
+                            'errorKey' => 'job_patterns',
+                        ])
                     </template>
 
                     <template x-if="ruleMeta.thresholdRuleTypes.includes(ruleType)">

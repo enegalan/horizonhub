@@ -8,7 +8,6 @@ use App\Services\Jobs\JobsWindowFetcherService;
 use App\Services\Metrics\Calculators\FailureMetricsCalculator;
 use App\Services\Metrics\Calculators\JobsThroughputMetricsCalculator;
 use App\Services\Metrics\Calculators\JobsVolumeLast24hCalculator;
-use App\Services\Metrics\Calculators\QueueFailureCountersCalculator;
 use App\Services\Metrics\Calculators\RuntimeMetricsCalculator;
 use App\Services\Metrics\Calculators\WorkloadMetricsCalculator;
 use App\Services\Metrics\MetricsDataService;
@@ -94,7 +93,7 @@ class MetricsDataServiceTest extends TestCase
         ]);
 
         $metrics = $this->private__makeMetricsDataService($api);
-        $result = $metrics->getFailureRate24h([(int) $service->id]);
+        $result = $metrics->getFailureRate24h([$service->id]);
 
         $this->assertSame(51, $result['processed']);
         $this->assertSame(0, $result['failed']);
@@ -154,7 +153,7 @@ class MetricsDataServiceTest extends TestCase
         ]);
 
         $metrics = $this->private__makeMetricsDataService($api);
-        $result = $metrics->getFailureRateOverTime([(int) $service->id]);
+        $result = $metrics->getFailureRateOverTime([$service->id]);
 
         $endHour = $now->copy()->startOfHour();
         $expectedBucketCount = \min(
@@ -228,7 +227,7 @@ class MetricsDataServiceTest extends TestCase
         ]);
 
         $metrics = $this->private__makeMetricsDataService($api);
-        $result = $metrics->getJobRuntimesLast24h([(int) $service->id]);
+        $result = $metrics->getJobRuntimesLast24h([$service->id]);
 
         $this->assertCount(3, $result['points']);
 
@@ -283,7 +282,7 @@ class MetricsDataServiceTest extends TestCase
         ]);
 
         $metrics = $this->private__makeMetricsDataService($api);
-        $result = $metrics->getJobsVolumeLast24h([(int) $service->id]);
+        $result = $metrics->getJobsVolumeLast24h([$service->id]);
 
         $this->assertCount(25, $result['xAxis']);
         $this->assertCount(25, $result['completed']);
@@ -346,7 +345,7 @@ class MetricsDataServiceTest extends TestCase
         ]);
 
         $metrics = $this->private__makeMetricsDataService($api);
-        $rows = $metrics->getSupervisorsData([(int) $service->id]);
+        $rows = $metrics->getSupervisorsData([$service->id]);
 
         $this->assertCount(2, $rows);
 
@@ -365,42 +364,22 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_throughput_totals_for_service_ids_handles_all_and_scoped_modes(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getCompletedJobs')->willReturn(['success' => true, 'data' => ['jobs' => []]]);
-        $api->method('getFailedJobs')->willReturn(['success' => true, 'data' => ['jobs' => []]]);
-
         $serviceA = Service::create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
         $serviceB = Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
-        $metrics = $this->getMockBuilder(MetricsDataService::class)
-            ->disableOriginalConstructor()
-            ->onlyMethods(['getJobsPastMinute', 'getJobsPastHour', 'getFailedPastSevenDays'])
-            ->getMock();
-
-        $metrics->method('getJobsPastMinute')->willReturnCallback(function ($service = null): int {
-            if ($service === null) {
-                return 10;
+        $api = $this->createMock(HorizonClientService::class);
+        $api->expects($this->exactly(4))->method('getStats')->willReturnCallback(function (Service $service) use ($serviceA) {
+            if ($service->id === $serviceA->id) {
+                return ['success' => true, 'data' => ['failedJobs' => 5, 'recentJobs' => 3, 'jobsPerMinute' => 1]];
             }
 
-            return $service->name === 'svc-a' ? 1 : 2;
+            return ['success' => true, 'data' => ['failedJobs' => 6, 'recentJobs' => 4, 'jobsPerMinute' => 2]];
         });
-        $metrics->method('getJobsPastHour')->willReturnCallback(function ($service = null): int {
-            if ($service === null) {
-                return 20;
-            }
 
-            return $service->name === 'svc-a' ? 3 : 4;
-        });
-        $metrics->method('getFailedPastSevenDays')->willReturnCallback(function ($service = null): int {
-            if ($service === null) {
-                return 30;
-            }
-
-            return $service->name === 'svc-a' ? 5 : 6;
-        });
+        $metrics = $this->private__makeMetricsDataService($api);
 
         $all = $metrics->getThroughputTotalsForServiceIds([]);
-        $this->assertSame(['jobsPastMinute' => 10, 'jobsPastHour' => 20, 'failedPastSevenDays' => 30], $all);
+        $this->assertSame(['jobsPastMinute' => 3, 'jobsPastHour' => 7, 'failedPastSevenDays' => 11], $all);
 
         $scoped = $metrics->getThroughputTotalsForServiceIds([$serviceA->id, $serviceB->id]);
         $this->assertSame(['jobsPastMinute' => 3, 'jobsPastHour' => 7, 'failedPastSevenDays' => 11], $scoped);
@@ -549,7 +528,6 @@ class MetricsDataServiceTest extends TestCase
             new FailureMetricsCalculator($api, $fetcher),
             new JobsThroughputMetricsCalculator($api, $fetcher),
             new JobsVolumeLast24hCalculator($api, $fetcher),
-            new QueueFailureCountersCalculator($api, $fetcher),
             new RuntimeMetricsCalculator($api, $fetcher),
             new WorkloadMetricsCalculator($api, $fetcher),
             $fetcher,

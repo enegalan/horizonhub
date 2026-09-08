@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Services\Jobs;
+namespace App\Support\Jobs;
 
 use App\Models\Service;
 
-final class JobDashboardUrlBuilderService
+final class JobDashboardUrlBuilder
 {
     /**
      * Build the Horizon dashboard URL for a job.

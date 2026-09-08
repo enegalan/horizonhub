@@ -1,33 +1,8 @@
-@forelse($workloadQueues as $row)
-    <tr class="transition-colors hover:bg-muted/30" data-stream-row-id="wl-{{ rawurlencode((string) $row->queue) }}">
-        <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground break-all" data-column-id="queue">
-            {{ $row->queue }}
-        </td>
-        <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="jobs">
-            {{ number_format($row->jobs) }}
-        </td>
-        <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="processes">
-            {{ $row->processes !== null ? number_format($row->processes) : '–' }}
-        </td>
-        <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="wait">
-            @if($row->wait !== null)
-                <span data-wait-seconds="{{ $row->wait }}">{{ \App\Services\Jobs\JobRuntimeHelperService::getFormattedRuntime((float) $row->wait) }}</span>
-            @else
-                –
-            @endif
-        </td>
-    </tr>
-@empty
-    <tr>
-        <td colspan="4" data-column-id="queue">
-            <x-empty-state
-                title="No queues for this service yet"
-                description="Queues will appear here once jobs are dispatched to this service."
-            >
-                <x-slot name="icon">
-                    <x-icons.queue-list class="empty-state-icon" />
-                </x-slot>
-            </x-empty-state>
-        </td>
-    </tr>
-@endforelse
+@include('horizon.partials.workload-rows-tbody', [
+    'workloadRows' => $workloadQueues ?? [],
+    'includeServiceColumn' => false,
+    'emptyId' => 'service-show-workload-empty',
+    'rowIdPrefix' => 'wl',
+    'emptyTitle' => 'No queues for this service yet',
+    'emptyDescription' => 'Queues will appear here once jobs are dispatched to this service.',
+])

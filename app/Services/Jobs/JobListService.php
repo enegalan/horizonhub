@@ -6,6 +6,8 @@ use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
 use App\Services\Services\ServiceFilterService;
 use App\Support\DatetimeBoundaryParser;
+use App\Support\Jobs\JobRuntime;
+use App\Support\Jobs\JobsPaginator;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -241,7 +243,7 @@ class JobListService
         $dateToCarbon = DatetimeBoundaryParser::parseUpper($dateToStr);
 
         foreach ($services as $service) {
-            $rawJobs = JobsPaginatorService::fetchAllPages(
+            $rawJobs = JobsPaginator::fetchAllPages(
                 fn (array $query): array => $this->horizonApi->getFailedJobs($service, $query),
             );
 
@@ -266,16 +268,7 @@ class JobListService
                     continue;
                 }
 
-                $failedAtRaw = $job['failed_at'] ?? null;
-                $failedAtCarbon = null;
-
-                if (\is_string($failedAtRaw) && $failedAtRaw !== '') {
-                    try {
-                        $failedAtCarbon = new Carbon($failedAtRaw);
-                    } catch (\Throwable) {
-                        $failedAtCarbon = null;
-                    }
-                }
+                $failedAtCarbon = JobRuntime::parseJobTimestamp($job['failed_at'] ?? null);
 
                 if ($dateFromCarbon !== null && $failedAtCarbon !== null && $failedAtCarbon->lt($dateFromCarbon)) {
                     continue;
@@ -339,7 +332,7 @@ class JobListService
 
         foreach ($services as $service) {
             $fetcher = $this->private__apiFetcherForStatus($service, $status);
-            $rawJobs = JobsPaginatorService::fetchAllPages($fetcher);
+            $rawJobs = JobsPaginator::fetchAllPages($fetcher);
 
             foreach ($rawJobs as $job) {
                 if (! \is_array($job)) {
@@ -445,32 +438,10 @@ class JobListService
         $queue = (string) ($job['queue'] ?? '');
         $name = (string) ($job['name'] ?? '');
         $payload = isset($job['payload']) && \is_array($job['payload']) ? $job['payload'] : [];
+        $timing = JobRuntime::resolveJobTimingFields($job, $payload, $status);
 
-        $pushedAt = $payload['pushedAt'] ?? null;
-        $reservedAtRaw = $payload['reserved_at'] ?? null;
-        $completedAt = $job['completed_at'] ?? null;
-        $failedAtRaw = $job['failed_at'] ?? null;
-
-        $queuedAt = JobRuntimeHelperService::parseJobTimestamp($pushedAt);
-        $reservedAt = JobRuntimeHelperService::parseJobTimestamp($reservedAtRaw);
-        $processedAt = JobRuntimeHelperService::parseJobTimestamp($completedAt);
-        $failedAt = JobRuntimeHelperService::parseJobTimestamp($failedAtRaw);
-        JobRuntimeHelperService::normalizeStatusDates($status, $processedAt, $failedAt);
-
-        $commandData = JobCommandDataExtractorService::extract($payload);
-
-        $availableAt = isset($commandData['delay']['date']) ? JobRuntimeHelperService::parseJobTimestamp($commandData['delay']['date']) : null;
         $attemptsRaw = $payload['attempts'] ?? null;
         $attempts = is_numeric($attemptsRaw) && $attemptsRaw >= 1 ? (int) $attemptsRaw : null;
-
-        $runtime = JobRuntimeHelperService::getFormattedRuntime(
-            JobRuntimeHelperService::getRuntimeSeconds(
-                isset($job['runtime']) && \is_numeric($job['runtime']) ? (float) $job['runtime'] : null,
-                $reservedAt,
-                $processedAt,
-                $failedAt,
-            ),
-        );
 
         return (object) [
             'id' => $uuid,
@@ -480,11 +451,11 @@ class JobListService
             'name' => $name,
             'status' => $status,
             'attempts' => $attempts,
-            'queued_at' => $queuedAt,
-            'processed_at' => $processedAt,
-            'failed_at' => $failedAt,
-            'runtime' => $runtime,
-            'available_at' => $availableAt,
+            'queued_at' => $timing['queued_at'],
+            'processed_at' => $timing['processed_at'],
+            'failed_at' => $timing['failed_at'],
+            'runtime' => $timing['runtime'],
+            'available_at' => $timing['available_at'],
             'service' => $service,
         ];
     }

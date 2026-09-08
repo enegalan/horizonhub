@@ -4,6 +4,7 @@ namespace App\Services\Services;
 
 use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
+use App\Support\Services\ServiceTagNormalizer;
 use Illuminate\Http\Request;
 
 final class ServiceFilterService
@@ -11,7 +12,7 @@ final class ServiceFilterService
     /**
      * Resolve filtered service ids.
      *
-     * Empty list means no filter (all services). A list containing only
+     * Empty list means no filter (all services).
      *
      * @return list<int>
      */
@@ -22,6 +23,12 @@ final class ServiceFilterService
         $tags = $request->query('service_tag', []);
 
         if (empty($tags) || ! \is_array($tags)) {
+            return $serviceIds;
+        }
+
+        $tags = ServiceTagNormalizer::normalize($tags);
+
+        if (empty($tags)) {
             return $serviceIds;
         }
 
@@ -45,10 +52,23 @@ final class ServiceFilterService
      */
     public function resolveServiceIdsFromQuery(string $query): array
     {
-
         \parse_str($query, $params);
 
         return $this->resolveServiceIds(Request::create('/', 'GET', $params));
+    }
+
+    /**
+     * Trimmed search term from a query string.
+     *
+     * @param string $query The query string.
+     *
+     * @return string The trimmed search term.
+     */
+    public function searchFromQuery(string $query): string
+    {
+        \parse_str($query, $params);
+
+        return \trim((string) ($params['search'] ?? ''));
     }
 
     /**
@@ -61,7 +81,9 @@ final class ServiceFilterService
         return [
             'allTags' => Service::enabled()->get(['tags'])->pluck('tags')->flatten()->unique()->sort()->values()->all(),
             'selectedServiceIds' => ServiceRequest::existingIdsFromRequest($request),
-            'selectedTags' => $request->query('service_tag', []),
+            'selectedTags' => ServiceTagNormalizer::normalize(
+                \is_array($request->query('service_tag', [])) ? $request->query('service_tag', []) : [],
+            ),
         ];
     }
 }

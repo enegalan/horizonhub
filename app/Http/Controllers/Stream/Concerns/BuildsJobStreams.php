@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Stream\Concerns;
 
 use App\Models\Service;
-use App\Services\Jobs\JobCommandDataExtractorService;
-use App\Services\Jobs\JobRuntimeHelperService;
+use App\Support\Jobs\JobCommandDataExtractor;
+use App\Support\Jobs\JobRuntime;
 use Illuminate\Http\Request;
 
 trait BuildsJobStreams
@@ -135,25 +135,11 @@ trait BuildsJobStreams
         if (isset($jobData['context']) && (\is_array($jobData['context']) || \is_string($jobData['context']))) {
             $context = $jobData['context'];
         }
-        $commandData = JobCommandDataExtractorService::extract($payload);
+        $commandData = JobCommandDataExtractor::extract($payload);
 
         $rawStatus = (string) ($jobData['status'] ?? 'failed');
         $status = $rawStatus === 'completed' ? 'processed' : $rawStatus;
-
-        $queuedAt = JobRuntimeHelperService::parseJobTimestamp($payload['pushedAt'] ?? null);
-        $reservedAt = JobRuntimeHelperService::parseJobTimestamp($jobData['reserved_at'] ?? null);
-        $processedAt = JobRuntimeHelperService::parseJobTimestamp($jobData['completed_at'] ?? null);
-        $failedAt = JobRuntimeHelperService::parseJobTimestamp($jobData['failed_at'] ?? null);
-        JobRuntimeHelperService::normalizeStatusDates($status, $processedAt, $failedAt);
-
-        $availableAt = isset($commandData['delay']) && isset($commandData['delay']['date']) ? JobRuntimeHelperService::parseJobTimestamp($commandData['delay']['date']) : null;
-        $runtimeSeconds = isset($jobData['runtime']) && \is_numeric($jobData['runtime'])
-            ? (float) $jobData['runtime']
-            : null;
-
-        $runtime = JobRuntimeHelperService::getFormattedRuntime(
-            JobRuntimeHelperService::getRuntimeSeconds($runtimeSeconds, $reservedAt, $processedAt, $failedAt),
-        );
+        $timing = JobRuntime::resolveJobTimingFields($jobData, $payload, $status);
 
         return (object) [
             'uuid' => $jobData['id'],
@@ -165,11 +151,11 @@ trait BuildsJobStreams
             'retries' => $retries,
             'tags' => $tags,
             'retried_by' => $retriedBy,
-            'queued_at' => $queuedAt,
-            'processed_at' => $processedAt,
-            'failed_at' => $failedAt,
-            'runtime' => $runtime,
-            'available_at' => $availableAt,
+            'queued_at' => $timing['queued_at'],
+            'processed_at' => $timing['processed_at'],
+            'failed_at' => $timing['failed_at'],
+            'runtime' => $timing['runtime'],
+            'available_at' => $timing['available_at'],
             'exception' => $exception,
             'context' => $context,
             'command_data' => $commandData,

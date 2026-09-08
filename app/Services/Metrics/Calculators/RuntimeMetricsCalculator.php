@@ -3,22 +3,23 @@
 namespace App\Services\Metrics\Calculators;
 
 use App\Models\Service;
+use App\Support\Jobs\JobRuntime;
 
 final class RuntimeMetricsCalculator extends AbstractMetricsCalculator
 {
     /**
      * Per-job runtimes over the rolling last 24 hours (completed and failed), for scatter charts.
      *
-     * @param array<string, mixed> $serviceScope The service scope.
+     * @param list<int> $serviceIds The service IDs.
      *
      * @return array{points: list<array{endAtMs: int, seconds: float, name: string, service: string, status: string}>}
      */
-    public function getJobRuntimesLast24h(array $serviceScope = []): array
+    public function getJobRuntimesLast24h(array $serviceIds = []): array
     {
         $now = \now();
         $sinceTimestamp = $now->copy()->subHours(24)->getTimestamp();
 
-        $services = $this->private__getServicesForMetrics($serviceScope);
+        $services = Service::getServices($serviceIds);
 
         if ($services->isEmpty()) {
             return ['points' => []];
@@ -30,57 +31,23 @@ final class RuntimeMetricsCalculator extends AbstractMetricsCalculator
         foreach ($services as $service) {
             $serviceName = (string) $service->name;
 
-            $completedJobs = $this->jobsWindowFetcher->fetchCompletedJobsSince($service, $sinceTimestamp);
+            $this->private__appendRuntimePoints(
+                $points,
+                $this->jobsWindowFetcher->fetchCompletedJobsSince($service, $sinceTimestamp),
+                $serviceName,
+                $sinceTimestamp,
+                'completed_at',
+                'completed',
+            );
 
-            foreach ($completedJobs as $job) {
-                $queuedAt = $job['reserved_at'] ?? null;
-                $completedAt = $job['completed_at'] ?? null;
-
-                if (! \is_numeric($queuedAt) || ! \is_numeric($completedAt)) {
-                    continue;
-                }
-
-                $start = (int) $queuedAt;
-                $end = (int) $completedAt;
-
-                if ($end < $sinceTimestamp || $end <= $start) {
-                    continue;
-                }
-
-                $points[] = [
-                    'endAtMs' => $end * 1000,
-                    'seconds' => \round((float) ($end - $start), 2),
-                    'name' => (string) ($job['name'] ?? ''),
-                    'service' => $serviceName,
-                    'status' => 'completed',
-                ];
-            }
-
-            $failedJobs = $this->jobsWindowFetcher->fetchFailedJobsSince($service, $sinceTimestamp);
-
-            foreach ($failedJobs as $job) {
-                $queuedAt = $job['reserved_at'] ?? null;
-                $failedAt = $job['failed_at'] ?? null;
-
-                if (! \is_numeric($queuedAt) || ! \is_numeric($failedAt)) {
-                    continue;
-                }
-
-                $start = (int) $queuedAt;
-                $end = (int) $failedAt;
-
-                if ($end < $sinceTimestamp || $end <= $start) {
-                    continue;
-                }
-
-                $points[] = [
-                    'endAtMs' => $end * 1000,
-                    'seconds' => \round((float) ($end - $start), 2),
-                    'name' => (string) ($job['name'] ?? ''),
-                    'service' => $serviceName,
-                    'status' => 'failed',
-                ];
-            }
+            $this->private__appendRuntimePoints(
+                $points,
+                $this->jobsWindowFetcher->fetchFailedJobsSince($service, $sinceTimestamp),
+                $serviceName,
+                $sinceTimestamp,
+                'failed_at',
+                'failed',
+            );
         }
 
         \usort($points, static function (array $a, array $b): int {
@@ -88,5 +55,48 @@ final class RuntimeMetricsCalculator extends AbstractMetricsCalculator
         });
 
         return ['points' => $points];
+    }
+
+    /**
+     * Append runtime points to the points array.
+     *
+     * @param list<array{endAtMs: int, seconds: float, name: string, service: string, status: string}> $points
+     * @param list<array<string, mixed>> $jobs
+     * @param string $serviceName The service name.
+     * @param int $sinceTimestamp The since timestamp.
+     * @param string $endField The end field.
+     * @param string $status The status.
+     */
+    private function private__appendRuntimePoints(
+        array &$points,
+        array $jobs,
+        string $serviceName,
+        int $sinceTimestamp,
+        string $endField,
+        string $status,
+    ): void {
+        foreach ($jobs as $job) {
+            $reservedAt = JobRuntime::parseJobTimestamp($job['reserved_at'] ?? null);
+            $endedAt = JobRuntime::parseJobTimestamp($job[$endField] ?? null);
+            $seconds = JobRuntime::getRuntimeSeconds(null, $reservedAt, $endedAt, null);
+
+            if ($reservedAt === null || $endedAt === null || $seconds === null) {
+                continue;
+            }
+
+            $end = $endedAt->getTimestamp();
+
+            if ($end < $sinceTimestamp) {
+                continue;
+            }
+
+            $points[] = [
+                'endAtMs' => $end * 1000,
+                'seconds' => \round($seconds, 2),
+                'name' => (string) ($job['name'] ?? ''),
+                'service' => $serviceName,
+                'status' => $status,
+            ];
+        }
     }
 }

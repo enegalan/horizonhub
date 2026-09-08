@@ -22,9 +22,9 @@ class HorizonMetricsComputationTest extends TestCase
         $fetcher = new JobsWindowFetcherService($api);
         $probe = new class($api, $fetcher) extends AbstractMetricsCalculator
         {
-            public function public__services(array $scope): Collection
+            public function public__services(array $serviceIds): Collection
             {
-                return $this->private__getServicesForMetrics($scope, true, ['id', 'name', 'base_url']);
+                return Service::getServices($serviceIds, true, false, ['id', 'name', 'base_url']);
             }
         };
 

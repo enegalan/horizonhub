@@ -16,8 +16,7 @@ trait BuildsAlertStreams
      */
     protected function buildAlerts(string $query = ''): string
     {
-        \parse_str($query, $params);
-        $search = \trim((string) ($params['search'] ?? ''));
+        $search = $this->serviceFilter->searchFromQuery($query);
 
         $alertsQuery = Alert::withCount('alertLogs')
             ->withMax('alertLogs', 'sent_at')

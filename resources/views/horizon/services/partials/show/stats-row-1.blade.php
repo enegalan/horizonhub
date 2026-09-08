@@ -1,6 +1,11 @@
-<x-stat-card label="Jobs past minute" tone="emerald" :value="number_format($jobsPastMinute)" />
-<x-stat-card label="Jobs past hour" tone="sky" :value="number_format($jobsPastHour)" />
-<x-stat-card label="Failed (past 7 days)" tone="rose" :value="number_format($failedPastSevenDays)" />
+@include('horizon.partials.kpi-throughput-triad', [
+    'idPrefix' => 'service-show',
+    'defer' => false,
+    'jobsPastMinute' => number_format($jobsPastMinute),
+    'jobsPastHour' => number_format($jobsPastHour),
+    'failedPastSevenDays' => number_format($failedPastSevenDays),
+    'failedLabel' => 'Failed (past 7 days)',
+])
 @php
     $hs = \strtolower((string) $horizonStatus);
     if ($hs === 'active' || $hs === 'running') {

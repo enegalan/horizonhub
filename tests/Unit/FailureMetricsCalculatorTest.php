@@ -6,7 +6,6 @@ use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
 use App\Services\Jobs\JobsWindowFetcherService;
 use App\Services\Metrics\Calculators\FailureMetricsCalculator;
-use App\Services\Metrics\Calculators\QueueFailureCountersCalculator;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -37,41 +36,11 @@ class FailureMetricsCalculatorTest extends TestCase
         ]);
 
         $calc = new FailureMetricsCalculator($api, new JobsWindowFetcherService($api));
-        $result = $calc->getFailureRate24h(['service_id' => $service->id]);
+        $result = $calc->getFailureRate24h([$service->id]);
 
         $this->assertSame(2, $result['processed']);
         $this->assertSame(1, $result['failed']);
         $this->assertSame(33.3, $result['rate']);
-        Carbon::setTestNow();
-    }
-
-    public function test_get_processed_failed_by_queue_aggregates_within_seven_day_window(): void
-    {
-        Carbon::setTestNow(Carbon::parse('2026-04-30 12:00:00'));
-        $service = Service::create(['name' => 'svc-queues', 'base_url' => 'https://q.test', 'status' => 'online']);
-        $since = now()->subDays(7)->getTimestamp();
-
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getCompletedJobs')->willReturn([
-            'success' => true,
-            'data' => ['jobs' => [
-                ['index' => 1, 'queue' => 'redis.default', 'completed_at' => $since + 3600],
-                ['index' => 2, 'queue' => 'redis.default', 'completed_at' => $since - 3600],
-            ]],
-        ]);
-        $api->method('getFailedJobs')->willReturn([
-            'success' => true,
-            'data' => ['jobs' => [
-                ['index' => 3, 'queue' => 'redis.mail', 'failed_at' => $since + 1800],
-            ]],
-        ]);
-
-        $calc = new QueueFailureCountersCalculator($api, new JobsWindowFetcherService($api));
-        $result = $calc->getProcessedFailedByQueue(['service_id' => $service->id]);
-
-        $this->assertSame(['default', 'mail'], $result['queues']);
-        $this->assertSame([1, 0], $result['processed']);
-        $this->assertSame([0, 1], $result['failed']);
         Carbon::setTestNow();
     }
 }

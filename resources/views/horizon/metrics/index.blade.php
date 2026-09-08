@@ -28,27 +28,14 @@
         </div>
 
         <x-kpi-grid class="mb-6">
-            <x-stat-card label="Jobs past minute" tone="emerald" value-id="metrics-value-jobs-minute">
-                @if(!empty($defer))
-                    <x-skeleton.text class="h-8 w-16" />
-                @else
-                    {{ $jobsPastMinute ?? '—' }}
-                @endif
-            </x-stat-card>
-            <x-stat-card label="Jobs past hour" tone="sky" value-id="metrics-value-jobs-hour">
-                @if(!empty($defer))
-                    <x-skeleton.text class="h-8 w-16" />
-                @else
-                    {{ $jobsPastHour ?? '—' }}
-                @endif
-            </x-stat-card>
-            <x-stat-card label="Failed jobs (past 7 days)" tone="rose" value-id="metrics-value-failed-seven">
-                @if(!empty($defer))
-                    <x-skeleton.text class="h-8 w-16" />
-                @else
-                    {{ $failedPastSevenDays ?? '—' }}
-                @endif
-            </x-stat-card>
+            @include('horizon.partials.kpi-throughput-triad', [
+                'idPrefix' => 'metrics',
+                'defer' => $defer ?? false,
+                'jobsPastMinute' => $jobsPastMinute ?? '—',
+                'jobsPastHour' => $jobsPastHour ?? '—',
+                'failedPastSevenDays' => $failedPastSevenDays ?? '—',
+                'failedLabel' => 'Failed jobs (past 7 days)',
+            ])
             <x-stat-card label="Failure rate (last 24h)" tone="amber" value-id="metrics-value-failure-rate">
                 @if(!empty($defer))
                     <x-skeleton.text class="h-8 w-24" />

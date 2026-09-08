@@ -7,6 +7,7 @@ use App\Support\Horizon\ClientResponse;
 use App\Support\Horizon\StatsReader;
 use Database\Factories\ServiceFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -60,6 +61,52 @@ class Service extends Model
         'last_seen_at',
         'tags',
     ];
+
+    /**
+     * Get services by IDs.
+     *
+     * @param list<int|string> $serviceIds The service IDs.
+     * @param bool $enabledOnly Whether to only return enabled services.
+     * @param bool $orderByName Whether to order by name.
+     * @param list<string> $selectColumns The columns to select.
+     *
+     * @return Collection<int, Service>
+     */
+    public static function getServices(
+        array $serviceIds = [],
+        bool $enabledOnly = true,
+        bool $orderByName = false,
+        array $selectColumns = [],
+    ): Collection {
+        $servicesQuery = $enabledOnly ? static::enabled() : static::query();
+
+        if (! empty($serviceIds)) {
+            $ids = [];
+
+            foreach ($serviceIds as $serviceId) {
+                if (! \is_numeric($serviceId) || \intval($serviceId) <= 0) {
+                    continue;
+                }
+                $ids[] = (int) $serviceId;
+            }
+
+            if (empty($ids)) {
+                return new Collection;
+            }
+
+            $servicesQuery->whereIn('id', $ids);
+        }
+
+        if ($orderByName) {
+            $servicesQuery->orderBy('name');
+        }
+
+        if (! empty($selectColumns)) {
+            return $servicesQuery->get($selectColumns);
+        }
+
+        return $servicesQuery->get();
+    }
 
     /**
      * Get the base URL of the service.

@@ -14,8 +14,7 @@ trait BuildsProviderStreams
      */
     protected function buildProviders(string $query = ''): string
     {
-        \parse_str($query, $params);
-        $search = \trim((string) ($params['search'] ?? ''));
+        $search = $this->serviceFilter->searchFromQuery($query);
 
         $providersQuery = NotificationProvider::orderBy('type')->orderBy('name');
 

@@ -3,23 +3,22 @@
 namespace App\Services\Metrics\Calculators;
 
 use App\Models\Service;
-use Carbon\Carbon;
 
 final class FailureMetricsCalculator extends AbstractMetricsCalculator
 {
     /**
      * Get the failure rate from 00:00 of the previous day until now.
      *
-     * @param array<string, mixed> $serviceScope The service scope.
+     * @param list<int> $serviceIds The service IDs.
      *
      * @return array{rate: float, processed: int, failed: int}
      */
-    public function getFailureRate24h(array $serviceScope = []): array
+    public function getFailureRate24h(array $serviceIds = []): array
     {
         $since = \now()->subDay()->startOfDay();
         $sinceTimestamp = $since->getTimestamp();
 
-        $services = $this->private__getServicesForMetrics($serviceScope);
+        $services = Service::getServices($serviceIds);
 
         if ($services->isEmpty()) {
             return [
@@ -54,11 +53,11 @@ final class FailureMetricsCalculator extends AbstractMetricsCalculator
     /**
      * Get the failure rate over time from 00:00 of the previous day until now.
      *
-     * @param array<string, mixed> $serviceScope The service scope.
+     * @param list<int> $serviceIds The service IDs.
      *
      * @return array{xAxis: list<string>, rate: list<float|null>}
      */
-    public function getFailureRateOverTime(array $serviceScope = []): array
+    public function getFailureRateOverTime(array $serviceIds = []): array
     {
         $now = \now();
         $since = $now->copy()->subDay()->startOfDay();
@@ -76,27 +75,25 @@ final class FailureMetricsCalculator extends AbstractMetricsCalculator
             },
         );
 
-        $services = $this->private__getServicesForMetrics($serviceScope);
+        $services = Service::getServices($serviceIds);
 
         if ($services->isEmpty()) {
             return ['xAxis' => [], 'rate' => []];
         }
 
-        /** @var Service $service */
-        foreach ($services as $service) {
-            $completedJobs = $this->jobsWindowFetcher->fetchCompletedJobsSince($service, $sinceTimestamp);
+        $this->private__accumulateCompletedFailedHourlyBuckets(
+            $buckets,
+            $services,
+            $sinceTimestamp,
+            $bucketFormat,
+            'processed',
+            'failed',
+        );
 
-            $this->private__incrementHourlyBuckets($buckets, $completedJobs, 'completed_at', 'processed', $sinceTimestamp, $bucketFormat);
-
-            $failedJobs = $this->jobsWindowFetcher->fetchFailedJobsSince($service, $sinceTimestamp);
-            $this->private__incrementHourlyBuckets($buckets, $failedJobs, 'failed_at', 'failed', $sinceTimestamp, $bucketFormat);
-        }
-
-        $xAxis = [];
+        $xAxis = $this->private__hourlyAxisLabels($buckets);
         $series = [];
 
-        foreach ($buckets as $k => $v) {
-            $xAxis[] = Carbon::parse($k)->format('d/m H:i');
+        foreach ($buckets as $v) {
             $total = $v['processed'] + $v['failed'];
 
             if ($total > 0) {

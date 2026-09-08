@@ -160,7 +160,7 @@ class AlertRulesTest extends TestCase
                 'jobs' => [
                     [
                         'completed_at' => now()->subMinute()->toIso8601String(),
-                        'pushedAt' => now()->subMinute()->subSeconds(30)->toIso8601String(),
+                        'reserved_at' => now()->subMinute()->subSeconds(30)->toIso8601String(),
                         'queue' => 'default',
                         'payload' => ['displayName' => 'X'],
                     ],

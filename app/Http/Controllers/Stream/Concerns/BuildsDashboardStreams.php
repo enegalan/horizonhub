@@ -16,14 +16,7 @@ trait BuildsDashboardStreams
     {
         $serviceFilterIds = $this->serviceFilter->resolveServiceIdsFromQuery($query);
         $metrics = $this->metrics->buildMetricsDashboardData($serviceFilterIds);
-
-        $servicesQuery = Service::orderBy('name');
-
-        if (! empty($serviceFilterIds)) {
-            $servicesQuery->whereIn('id', $serviceFilterIds);
-        }
-
-        $services = $servicesQuery->get();
+        $services = Service::getServices($serviceFilterIds, false, true);
 
         foreach ($services as $service) {
             $service->withHorizonStats($this->horizonApi);

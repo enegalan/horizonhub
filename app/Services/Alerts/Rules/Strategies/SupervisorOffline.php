@@ -6,8 +6,9 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Services\Horizon\HorizonClientService;
-use App\Services\Jobs\JobRuntimeHelperService;
 use App\Support\Horizon\ClientResponse;
+use App\Support\Horizon\MasterReader;
+use App\Support\Jobs\JobRuntime;
 
 final class SupervisorOffline implements AlertRuleContract
 {
@@ -52,38 +53,21 @@ final class SupervisorOffline implements AlertRuleContract
         }
 
         $staleAt = \now()->subMinutes($alert->getThresholdMinutes());
-        $staleFound = false;
 
-        foreach ($mastersData as $master) {
-            if (! \is_array($master)) {
-                continue;
-            }
+        foreach (MasterReader::eachSupervisor($mastersData) as $supervisor) {
+            // TO-DEPURATE: last_heartbeat_at or lastSeen?
+            $lastSeen = JobRuntime::parseJobTimestamp(
+                $supervisor['last_heartbeat_at'] ?? ($supervisor['lastSeen'] ?? null),
+            );
 
-            $supervisorsData = $master['supervisors'] ?? null;
-
-            if (! \is_array($supervisorsData)) {
-                continue;
-            }
-
-            foreach ($supervisorsData as $supervisor) {
-                if (! \is_array($supervisor)) {
-                    continue;
-                }
-
-                // TO-DEPURATE: last_heartbeat_at or lastSeen?
-                $lastSeenRaw = $supervisor['last_heartbeat_at'] ?? ($supervisor['lastSeen'] ?? null);
-                $lastSeen = JobRuntimeHelperService::parseJobTimestamp($lastSeenRaw);
-
-                if ($lastSeen !== null && $lastSeen->lt($staleAt)) {
-                    $staleFound = true;
-                    break;
-                }
+            if ($lastSeen !== null && $lastSeen->lt($staleAt)) {
+                return [
+                    'triggered' => true,
+                    'job_uuids' => [],
+                ];
             }
         }
 
-        return [
-            'triggered' => $staleFound,
-            'job_uuids' => [],
-        ];
+        return ['triggered' => false, 'job_uuids' => []];
     }
 }
