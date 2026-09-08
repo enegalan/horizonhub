@@ -233,9 +233,15 @@ final class AlertRuleEvaluation
         $normalizedQueue = QueueNameNormalizer::normalize($queue) ?? $queue;
 
         foreach ($patterns as $pattern) {
-            $normalizedPattern = QueueNameNormalizer::normalize((string) $pattern) ?? (string) $pattern;
+            $patternString = (string) $pattern;
 
-            if ($normalizedQueue === $normalizedPattern || $queue === (string) $pattern) {
+            if ($queue === $patternString) {
+                return true;
+            }
+
+            $normalizedPattern = QueueNameNormalizer::normalize($patternString) ?? $patternString;
+
+            if ($patternString === $normalizedPattern && $normalizedQueue === $normalizedPattern) {
                 return true;
             }
         }

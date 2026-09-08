@@ -243,7 +243,7 @@ class AlertBatchStore
     {
         Cache::increment($this->private__evaluationKey($evaluationId, 'evaluated_count'), 1);
         Cache::increment($this->private__evaluationKey($evaluationId, 'error_count'), 1);
-        $this->private__putFirstErrorMessageIfAbsent($evaluationId, $errorMessage);
+        Cache::add($this->private__evaluationKey($evaluationId, 'first_error_message'), $errorMessage, self::EVALUATION_TTL_SECONDS);
     }
 
     /**
@@ -266,7 +266,7 @@ class AlertBatchStore
 
         if (! empty($result['error_message'])) {
             Cache::increment($this->private__evaluationKey($evaluationId, 'error_count'), 1);
-            $this->private__putFirstErrorMessageIfAbsent($evaluationId, (string) $result['error_message']);
+            Cache::add($this->private__evaluationKey($evaluationId, 'first_error_message'), $result['error_message'], self::EVALUATION_TTL_SECONDS);
         }
     }
 
@@ -338,22 +338,5 @@ class AlertBatchStore
     private function private__putEvaluation(string $evaluationId, string $suffix, mixed $value): void
     {
         Cache::put($this->private__evaluationKey($evaluationId, $suffix), $value, self::EVALUATION_TTL_SECONDS);
-    }
-
-    /**
-     * Put the first error message if absent.
-     *
-     * @param string $evaluationId The evaluation ID.
-     * @param string $message The error message.
-     */
-    private function private__putFirstErrorMessageIfAbsent(string $evaluationId, string $message): void
-    {
-        $key = $this->private__evaluationKey($evaluationId, 'first_error_message');
-
-        if (Cache::get($key) !== null) {
-            return;
-        }
-
-        $this->private__putEvaluation($evaluationId, 'first_error_message', $message);
     }
 }

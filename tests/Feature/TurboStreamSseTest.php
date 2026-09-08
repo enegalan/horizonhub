@@ -621,9 +621,6 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringStartsWith('text/event-stream', $response->headers->get('Content-Type'));
     }
 
-    /**
-     * @param mixed ...$args
-     */
     private function private__invokeStreamBuilder(string $method, mixed ...$args): mixed
     {
         $controller = $this->app->make(HorizonStreamsController::class);

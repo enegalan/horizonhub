@@ -72,8 +72,9 @@ abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMeta
      */
     protected function buildNotification(Alert $alert, array $events): array
     {
-        $service = ! empty($events)
-            ? Service::find((int) ($events[0]['service_id']))
+        $firstEvent = ! empty($events) ? ($events[\array_key_first($events)] ?? null) : null;
+        $service = $firstEvent !== null
+            ? Service::find((int) $firstEvent['service_id'])
             : null;
         $enrichedEvents = $this->enrichEvents($events, $service);
 

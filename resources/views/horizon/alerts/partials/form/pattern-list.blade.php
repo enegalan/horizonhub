@@ -64,6 +64,8 @@
             </x-button>
         </div>
         @error($errorKey) <span class="text-xs text-destructive">{{ $message }}</span> @enderror
-        @error($errorKey.'.*') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+        @foreach (\Illuminate\Support\Arr::flatten($errors->get("$errorKey.*")) as $message)
+            <span class="text-xs text-destructive">{{ $message }}</span>
+        @endforeach
     </div>
 </div>

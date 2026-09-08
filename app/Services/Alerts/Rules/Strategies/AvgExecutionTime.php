@@ -54,9 +54,11 @@ final class AvgExecutionTime implements AlertRuleContract
         $durations = $this->support
             ->matchingCompletedJobsInWindow($alert, $service, $cutoff)
             ->map(function (array $job) {
+                $payload = \is_array($job['payload'] ?? null) ? $job['payload'] : [];
+
                 return JobRuntime::getRuntimeSeconds(
                     null,
-                    JobRuntime::parseJobTimestamp($job['reserved_at'] ?? null),
+                    JobRuntime::parseJobTimestamp($payload['pushedAt'] ?? $job['pushedAt'] ?? null),
                     $this->support->parseCompletedAt($job),
                     null,
                 );

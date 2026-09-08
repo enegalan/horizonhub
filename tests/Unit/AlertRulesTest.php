@@ -162,7 +162,10 @@ class AlertRulesTest extends TestCase
                         'completed_at' => now()->subMinute()->toIso8601String(),
                         'reserved_at' => now()->subMinute()->subSeconds(30)->toIso8601String(),
                         'queue' => 'default',
-                        'payload' => ['displayName' => 'X'],
+                        'payload' => [
+                            'displayName' => 'X',
+                            'pushedAt' => now()->subMinute()->subSeconds(45)->toIso8601String(),
+                        ],
                     ],
                 ],
             ],
@@ -205,6 +208,36 @@ class AlertRulesTest extends TestCase
 
         $null = new NullRule;
         $this->assertFalse($null->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
+    }
+
+    public function test_queue_patterns_match_raw_then_unprefixed_normalized_only(): void
+    {
+        $api = $this->createMock(HorizonClientService::class);
+        $support = new AlertRuleEvaluation(new JobsWindowFetcherService($api));
+
+        $unprefixed = new Alert([
+            'threshold' => ['queue_patterns' => ['default']],
+        ]);
+        $this->assertTrue($support->jobRowMatches($unprefixed, [
+            'queue' => 'redis.default',
+            'payload' => [],
+        ]));
+        $this->assertTrue($support->jobRowMatches($unprefixed, [
+            'queue' => 'default',
+            'payload' => [],
+        ]));
+
+        $prefixed = new Alert([
+            'threshold' => ['queue_patterns' => ['redis.default']],
+        ]);
+        $this->assertTrue($support->jobRowMatches($prefixed, [
+            'queue' => 'redis.default',
+            'payload' => [],
+        ]));
+        $this->assertFalse($support->jobRowMatches($prefixed, [
+            'queue' => 'sqs.default',
+            'payload' => [],
+        ]));
     }
 
     public function test_registry_resolves_known_and_unknown_rules(): void

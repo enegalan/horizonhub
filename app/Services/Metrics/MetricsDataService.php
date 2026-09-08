@@ -177,9 +177,7 @@ class MetricsDataService
             ));
         }
 
-        $servicesById = empty($serviceFilterIds)
-            ? Service::query()->get()->keyBy('id')
-            : Service::whereIn('id', $serviceFilterIds)->get()->keyBy('id');
+        $servicesById = Service::getServices($serviceFilterIds, false)->keyBy('id');
 
         $queues = \collect($workloadRows)
             ->map(function (array $row) use ($servicesById) {
@@ -292,7 +290,7 @@ class MetricsDataService
             return $this->jobsThroughputMetrics->getThroughputTotals(null);
         }
 
-        $services = Service::whereIn('id', $serviceIds)->orderBy('name')->get();
+        $services = Service::getServices($serviceIds, true, true);
 
         return $this->jobsThroughputMetrics->getThroughputTotals($services);
     }
