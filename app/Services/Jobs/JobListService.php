@@ -6,8 +6,7 @@ use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
 use App\Services\Services\ServiceFilterService;
 use App\Support\DatetimeBoundaryParser;
-use App\Support\Jobs\JobCommandDataExtractor;
-use App\Support\Jobs\JobRuntimeHelper;
+use App\Support\Jobs\JobRuntime;
 use App\Support\Jobs\JobsPaginator;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -56,8 +55,6 @@ class JobListService
         $serviceFilterIds = $this->serviceFilter->resolveServiceIds($request);
         $search = (string) $request->query('search', '');
 
-        $perPage = (int) config('horizonhub.jobs_per_page');
-
         $servicesQuery = Service::enabled();
 
         if (! empty($serviceFilterIds)) {
@@ -77,7 +74,7 @@ class JobListService
             $pageProcessing,
             $pageProcessed,
             $pageFailed,
-            $perPage,
+            (int) config('horizonhub.jobs_per_page'),
             $request->url(),
             $request->query(),
         );
@@ -271,16 +268,7 @@ class JobListService
                     continue;
                 }
 
-                $failedAtRaw = $job['failed_at'] ?? null;
-                $failedAtCarbon = null;
-
-                if (\is_string($failedAtRaw) && $failedAtRaw !== '') {
-                    try {
-                        $failedAtCarbon = new Carbon($failedAtRaw);
-                    } catch (\Throwable) {
-                        $failedAtCarbon = null;
-                    }
-                }
+                $failedAtCarbon = JobRuntime::parseJobTimestamp($job['failed_at'] ?? null);
 
                 if ($dateFromCarbon !== null && $failedAtCarbon !== null && $failedAtCarbon->lt($dateFromCarbon)) {
                     continue;
@@ -450,32 +438,10 @@ class JobListService
         $queue = (string) ($job['queue'] ?? '');
         $name = (string) ($job['name'] ?? '');
         $payload = isset($job['payload']) && \is_array($job['payload']) ? $job['payload'] : [];
+        $timing = JobRuntime::resolveJobTimingFields($job, $payload, $status);
 
-        $pushedAt = $payload['pushedAt'] ?? null;
-        $reservedAtRaw = $payload['reserved_at'] ?? null;
-        $completedAt = $job['completed_at'] ?? null;
-        $failedAtRaw = $job['failed_at'] ?? null;
-
-        $queuedAt = JobRuntimeHelper::parseJobTimestamp($pushedAt);
-        $reservedAt = JobRuntimeHelper::parseJobTimestamp($reservedAtRaw);
-        $processedAt = JobRuntimeHelper::parseJobTimestamp($completedAt);
-        $failedAt = JobRuntimeHelper::parseJobTimestamp($failedAtRaw);
-        JobRuntimeHelper::normalizeStatusDates($status, $processedAt, $failedAt);
-
-        $commandData = JobCommandDataExtractor::extract($payload);
-
-        $availableAt = isset($commandData['delay']['date']) ? JobRuntimeHelper::parseJobTimestamp($commandData['delay']['date']) : null;
         $attemptsRaw = $payload['attempts'] ?? null;
         $attempts = is_numeric($attemptsRaw) && $attemptsRaw >= 1 ? (int) $attemptsRaw : null;
-
-        $runtime = JobRuntimeHelper::getFormattedRuntime(
-            JobRuntimeHelper::getRuntimeSeconds(
-                isset($job['runtime']) && \is_numeric($job['runtime']) ? (float) $job['runtime'] : null,
-                $reservedAt,
-                $processedAt,
-                $failedAt,
-            ),
-        );
 
         return (object) [
             'id' => $uuid,
@@ -485,11 +451,11 @@ class JobListService
             'name' => $name,
             'status' => $status,
             'attempts' => $attempts,
-            'queued_at' => $queuedAt,
-            'processed_at' => $processedAt,
-            'failed_at' => $failedAt,
-            'runtime' => $runtime,
-            'available_at' => $availableAt,
+            'queued_at' => $timing['queued_at'],
+            'processed_at' => $timing['processed_at'],
+            'failed_at' => $timing['failed_at'],
+            'runtime' => $timing['runtime'],
+            'available_at' => $timing['available_at'],
             'service' => $service,
         ];
     }

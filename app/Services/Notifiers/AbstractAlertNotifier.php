@@ -9,7 +9,7 @@ use App\Services\Notifiers\Contracts\AlertNotifier;
 use App\Services\Notifiers\Contracts\AlertNotifierMetadata;
 use App\Support\Alerts\AlertRuleCatalog;
 use App\Support\Horizon\ClientResponse;
-use App\Support\Jobs\JobRuntimeHelper;
+use App\Support\Jobs\JobRuntime;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -72,11 +72,13 @@ abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMeta
      */
     protected function buildNotification(Alert $alert, array $events): array
     {
-        $service = Service::find((int) ($events[0]['service_id']));
+        $firstEvent = ! empty($events) ? ($events[\array_key_first($events)] ?? null) : null;
+        $service = $firstEvent !== null
+            ? Service::find((int) $firstEvent['service_id'])
+            : null;
+        $enrichedEvents = $this->enrichEvents($events, $service);
 
-        $enrichedEvents = $this->enrichEvents($events);
-
-        $serviceId = (int) $enrichedEvents[0]['service_id'];
+        $serviceId = (int) ($enrichedEvents[0]['service_id'] ?? 0);
         $serviceName = (string) $serviceId;
 
         if ($service !== null) {
@@ -153,13 +155,12 @@ abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMeta
      *
      * @return array<int, array{service_id: int, job_uuid: string|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}>
      */
-    protected function enrichEvents(array $events): array
+    protected function enrichEvents(array $events, ?Service $service = null): array
     {
         $enriched = [];
         $jobUuids = \array_values(\array_filter(\array_column($events, 'job_uuid')));
-        $service = null;
 
-        if (! empty($events)) {
+        if ($service === null && ! empty($events)) {
             $serviceId = (int) ($events[0]['service_id'] ?? 0);
             $service = Service::find($serviceId);
         }
@@ -205,7 +206,7 @@ abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMeta
             if ($data === null) {
                 continue;
             }
-            $failedAt = JobRuntimeHelper::parseJobTimestamp($data['failed_at'] ?? null);
+            $failedAt = JobRuntime::parseJobTimestamp($data['failed_at'] ?? null);
             $job = (object) [
                 'payload' => isset($data['payload']) ? $data['payload'] : [],
                 'name' => isset($data['name']) ? $data['name'] : null,

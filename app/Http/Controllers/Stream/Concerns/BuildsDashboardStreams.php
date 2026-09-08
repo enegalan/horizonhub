@@ -14,17 +14,13 @@ trait BuildsDashboardStreams
      */
     protected function buildDashboard(string $query): string
     {
-        $serviceFilterIds = $this->serviceFilter->resolveFromQuery($query);
+        $serviceFilterIds = $this->serviceFilter->resolveServiceIdsFromQuery($query);
         $metrics = $this->metrics->buildMetricsDashboardData($serviceFilterIds);
+        $services = Service::getServices($serviceFilterIds, false, true);
 
-        $servicesQuery = Service::orderBy('name');
-
-        if (! empty($serviceFilterIds)) {
-            $servicesQuery->whereIn('id', $serviceFilterIds);
+        foreach ($services as $service) {
+            $service->withHorizonStats($this->horizonApi);
         }
-
-        $services = $servicesQuery->get();
-        $this->serviceStats->attachHorizonStats($services, $this->horizonApi);
 
         $onlineCount = 0;
         $anyOffline = false;

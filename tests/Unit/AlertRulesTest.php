@@ -13,7 +13,7 @@ use App\Services\Alerts\Rules\Strategies\QueueBlocked;
 use App\Services\Alerts\Rules\Strategies\SupervisorOffline;
 use App\Services\Alerts\Rules\Strategies\WorkerOffline;
 use App\Services\Horizon\HorizonClientService;
-use App\Services\Jobs\JobsWindowFetcher;
+use App\Services\Jobs\JobsWindowFetcherService;
 use App\Support\Alerts\AlertRuleEvaluation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -26,7 +26,7 @@ class AlertRulesTest extends TestCase
     public function test_evaluation_support_resolves_patterns_and_filters_jobs(): void
     {
         $api = $this->createMock(HorizonClientService::class);
-        $support = new AlertRuleEvaluation(new JobsWindowFetcher($api));
+        $support = new AlertRuleEvaluation(new JobsWindowFetcherService($api));
         $alert = new Alert([
             'threshold' => [
                 'queue_patterns' => ['emails', 'default'],
@@ -73,7 +73,7 @@ class AlertRulesTest extends TestCase
                 ],
             ],
         ]);
-        $support = new AlertRuleEvaluation(new JobsWindowFetcher($api));
+        $support = new AlertRuleEvaluation(new JobsWindowFetcherService($api));
         $strategy = new FailureCount($support);
         $result = $strategy->evaluateWithTriggeringJobs($alert, $service->id);
 
@@ -160,9 +160,12 @@ class AlertRulesTest extends TestCase
                 'jobs' => [
                     [
                         'completed_at' => now()->subMinute()->toIso8601String(),
-                        'pushedAt' => now()->subMinute()->subSeconds(30)->toIso8601String(),
+                        'reserved_at' => now()->subMinute()->subSeconds(30)->toIso8601String(),
                         'queue' => 'default',
-                        'payload' => ['displayName' => 'X'],
+                        'payload' => [
+                            'displayName' => 'X',
+                            'pushedAt' => now()->subMinute()->subSeconds(45)->toIso8601String(),
+                        ],
                     ],
                 ],
             ],
@@ -177,7 +180,7 @@ class AlertRulesTest extends TestCase
         ]);
         $api->method('getStats')->willReturn(['success' => true, 'data' => ['status' => 'inactive']]);
 
-        $support = new AlertRuleEvaluation(new JobsWindowFetcher($api));
+        $support = new AlertRuleEvaluation(new JobsWindowFetcherService($api));
 
         $avg = new AvgExecutionTime($support);
         $this->assertTrue($avg->evaluateWithTriggeringJobs($avgAlert, $service->id)['triggered']);
@@ -205,6 +208,36 @@ class AlertRulesTest extends TestCase
 
         $null = new NullRule;
         $this->assertFalse($null->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
+    }
+
+    public function test_queue_patterns_match_raw_then_unprefixed_normalized_only(): void
+    {
+        $api = $this->createMock(HorizonClientService::class);
+        $support = new AlertRuleEvaluation(new JobsWindowFetcherService($api));
+
+        $unprefixed = new Alert([
+            'threshold' => ['queue_patterns' => ['default']],
+        ]);
+        $this->assertTrue($support->jobRowMatches($unprefixed, [
+            'queue' => 'redis.default',
+            'payload' => [],
+        ]));
+        $this->assertTrue($support->jobRowMatches($unprefixed, [
+            'queue' => 'default',
+            'payload' => [],
+        ]));
+
+        $prefixed = new Alert([
+            'threshold' => ['queue_patterns' => ['redis.default']],
+        ]);
+        $this->assertTrue($support->jobRowMatches($prefixed, [
+            'queue' => 'redis.default',
+            'payload' => [],
+        ]));
+        $this->assertFalse($support->jobRowMatches($prefixed, [
+            'queue' => 'sqs.default',
+            'payload' => [],
+        ]));
     }
 
     public function test_registry_resolves_known_and_unknown_rules(): void

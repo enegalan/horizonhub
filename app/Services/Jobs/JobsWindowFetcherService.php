@@ -4,10 +4,10 @@ namespace App\Services\Jobs;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
-use App\Support\Jobs\JobRuntimeHelper;
+use App\Support\Jobs\JobRuntime;
 use App\Support\Jobs\JobsPaginator;
 
-final class JobsWindowFetcher
+final class JobsWindowFetcherService
 {
     /**
      * The Horizon API client.
@@ -113,7 +113,7 @@ final class JobsWindowFetcher
      */
     private static function private__extractTimestamp(mixed $value): ?int
     {
-        $parsed = JobRuntimeHelper::parseJobTimestamp($value);
+        $parsed = JobRuntime::parseJobTimestamp($value);
 
         return $parsed?->getTimestamp();
     }

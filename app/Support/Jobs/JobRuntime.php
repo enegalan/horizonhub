@@ -5,7 +5,7 @@ namespace App\Support\Jobs;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 
-final class JobRuntimeHelper
+final class JobRuntime
 {
     /**
      * Human-readable duration in seconds (e.g. "0.08 s", "1.23 s").
@@ -108,24 +108,56 @@ final class JobRuntimeHelper
     }
 
     /**
+     * Resolve queued / reserved / end timestamps and formatted runtime from a Horizon job payload.
+     *
+     * @param array<string, mixed> $job
+     * @param array<string, mixed> $payload
+     *
+     * @return array{
+     *     queued_at: Carbon|null,
+     *     reserved_at: Carbon|null,
+     *     processed_at: Carbon|null,
+     *     failed_at: Carbon|null,
+     *     available_at: Carbon|null,
+     *     runtime: string|null
+     * }
+     */
+    public static function resolveJobTimingFields(array $job, array $payload, string $status): array
+    {
+        $queuedAt = self::parseJobTimestamp($payload['pushedAt'] ?? $job['pushedAt'] ?? null);
+        $reservedAt = self::parseJobTimestamp($job['reserved_at'] ?? $payload['reserved_at'] ?? null);
+        $processedAt = self::parseJobTimestamp($job['completed_at'] ?? null);
+        $failedAt = self::parseJobTimestamp($job['failed_at'] ?? null);
+        self::normalizeStatusDates($status, $processedAt, $failedAt);
+
+        $commandData = JobCommandDataExtractor::extract($payload);
+        $availableAt = isset($commandData['delay']['date'])
+            ? self::parseJobTimestamp($commandData['delay']['date'])
+            : null;
+
+        $runtimeSeconds = isset($job['runtime']) && \is_numeric($job['runtime'])
+            ? (float) $job['runtime']
+            : null;
+
+        return [
+            'queued_at' => $queuedAt,
+            'reserved_at' => $reservedAt,
+            'processed_at' => $processedAt,
+            'failed_at' => $failedAt,
+            'available_at' => $availableAt,
+            'runtime' => self::getFormattedRuntime(
+                self::getRuntimeSeconds($runtimeSeconds, $reservedAt, $processedAt, $failedAt),
+            ),
+        ];
+    }
+
+    /**
      * Normalize a value to a Carbon instance.
      *
      * @param Carbon|string|null $value The value.
      */
     private static function private__normalizeToCarbon(Carbon|string|null $value): ?Carbon
     {
-        if ($value instanceof Carbon) {
-            return $value;
-        }
-
-        if (blank($value)) {
-            return null;
-        }
-
-        try {
-            return Carbon::parse($value);
-        } catch (\Throwable $e) {
-            return null;
-        }
+        return self::parseJobTimestamp($value);
     }
 }

@@ -30,105 +30,69 @@ final class JobsThroughputMetricsCalculator extends AbstractMetricsCalculator
     }
 
     /**
-     * Get jobs past hour per service using Horizon HTTP API stats.
-     *
-     * @return array{services: list<string>, jobsPastHour: list<int>}
-     */
-    public function getJobsPastHourByService(): array
-    {
-        /** @var Collection<int, Service> $services */
-        $services = $this->private__getServicesForMetrics([], true, ['id', 'name', 'base_url']);
-
-        if ($services->isEmpty()) {
-            return ['services' => [], 'jobsPastHour' => []];
-        }
-
-        $names = [];
-        $values = [];
-
-        /** @var Service $service */
-        foreach ($services as $service) {
-            $data = ClientResponse::data($this->horizonApi->getStats($service));
-
-            if ($data === null || ! isset($data['recentJobs'])) {
-                continue;
-            }
-
-            $names[] = (string) $service->name;
-            $values[] = StatsReader::recentJobs($data);
-        }
-
-        return ['services' => $names, 'jobsPastHour' => $values];
-    }
-
-    /**
      * Get the number of jobs processed in the past minute.
      *
      * @param Service|null $service The service.
      */
     public function getJobsPastMinute(?Service $service = null): int
     {
-        if ($service !== null) {
-            $data = ClientResponse::data($this->horizonApi->getStats($service));
-
-            return StatsReader::jobsPastMinute($data);
-        }
-
-        /** @var Collection<int, Service> $services */
-        $services = $this->private__getServicesForMetrics();
-
-        if ($services->isEmpty()) {
-            return 0;
-        }
-
-        $total = 0;
-
-        foreach ($services as $svc) {
-            $data = ClientResponse::data($this->horizonApi->getStats($svc));
-            $total += StatsReader::jobsPastMinute($data);
-        }
-
-        return $total;
+        return $this->private__sumStatsField($service, 'jobsPastMinute');
     }
 
     /**
-     * @param 'failedJobs'|'recentJobs' $field
+     * Aggregate minute / hour / failed-7d from one getStats call per service.
+     *
+     * @param Collection<int, Service>|null $services Null = all enabled services for metrics.
+     *
+     * @return array{jobsPastMinute: int, jobsPastHour: int, failedPastSevenDays: int}
+     */
+    public function getThroughputTotals(?Collection $services = null): array
+    {
+        if ($services === null) {
+            $services = Service::getServices();
+        }
+
+        $minute = 0;
+        $hour = 0;
+        $failed = 0;
+
+        /** @var Service $service */
+        foreach ($services as $service) {
+            $data = ClientResponse::data($this->horizonApi->getStats($service));
+            $summary = StatsReader::summary($data);
+            $minute += $summary['jobsPastMinute'];
+            $hour += $summary['recentJobs'];
+            $failed += $summary['failedJobs'];
+        }
+
+        return [
+            'jobsPastMinute' => $minute,
+            'jobsPastHour' => $hour,
+            'failedPastSevenDays' => $failed,
+        ];
+    }
+
+    /**
+     * @param 'failedJobs'|'recentJobs'|'jobsPastMinute' $field
      */
     private function private__sumStatsField(?Service $service, string $field): int
     {
         if ($service !== null) {
             $data = ClientResponse::data($this->horizonApi->getStats($service));
 
-            if ($data === null || ! isset($data[$field])) {
-                return 0;
-            }
-
-            return $field === 'failedJobs'
-                ? StatsReader::failedJobs($data)
-                : StatsReader::recentJobs($data);
+            return match ($field) {
+                'failedJobs' => StatsReader::failedJobs($data),
+                'recentJobs' => StatsReader::recentJobs($data),
+                'jobsPastMinute' => StatsReader::jobsPastMinute($data),
+            };
         }
 
-        /** @var Collection<int, Service> $services */
-        $services = $this->private__getServicesForMetrics();
+        $totals = $this->getThroughputTotals(null);
 
-        if ($services->isEmpty()) {
-            return 0;
-        }
-
-        $total = 0;
-
-        foreach ($services as $svc) {
-            $data = ClientResponse::data($this->horizonApi->getStats($svc));
-
-            if ($data === null || ! isset($data[$field])) {
-                continue;
-            }
-
-            $total += $field === 'failedJobs'
-                ? StatsReader::failedJobs($data)
-                : StatsReader::recentJobs($data);
-        }
-
-        return $total;
+        return match ($field) {
+            'failedJobs' => $totals['failedPastSevenDays'],
+            'recentJobs' => $totals['jobsPastHour'],
+            'jobsPastMinute' => $totals['jobsPastMinute'],
+        };
     }
 }

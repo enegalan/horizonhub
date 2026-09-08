@@ -4,7 +4,7 @@ namespace Tests\Unit;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
-use App\Services\Jobs\JobsWindowFetcher;
+use App\Services\Jobs\JobsWindowFetcherService;
 use App\Services\Metrics\Calculators\AbstractMetricsCalculator;
 use App\Support\Queues\QueueNameNormalizer;
 use Carbon\Carbon;
@@ -19,12 +19,12 @@ class HorizonMetricsComputationTest extends TestCase
     public function test_get_services_for_metrics_and_workload_fallback_from_masters(): void
     {
         $api = $this->createMock(HorizonClientService::class);
-        $fetcher = new JobsWindowFetcher($api);
+        $fetcher = new JobsWindowFetcherService($api);
         $probe = new class($api, $fetcher) extends AbstractMetricsCalculator
         {
-            public function public__services(array $scope): Collection
+            public function public__services(array $serviceIds): Collection
             {
-                return $this->private__getServicesForMetrics($scope, true, ['id', 'name', 'base_url']);
+                return Service::getServices($serviceIds, true, false, ['id', 'name', 'base_url']);
             }
         };
 
@@ -45,7 +45,7 @@ class HorizonMetricsComputationTest extends TestCase
     public function test_metrics_computation_helpers_cover_edge_branches(): void
     {
         $api = $this->createMock(HorizonClientService::class);
-        $fetcher = new JobsWindowFetcher($api);
+        $fetcher = new JobsWindowFetcherService($api);
         $probe = new class($api, $fetcher) extends AbstractMetricsCalculator
         {
             public function public__initHourly(Carbon $since, Carbon $end): array

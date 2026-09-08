@@ -4,8 +4,9 @@ namespace App\Support\Alerts;
 
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Jobs\JobsWindowFetcher;
-use App\Support\Jobs\JobRuntimeHelper;
+use App\Services\Jobs\JobsWindowFetcherService;
+use App\Support\Jobs\JobRuntime;
+use App\Support\Queues\QueueNameNormalizer;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
@@ -15,14 +16,14 @@ final class AlertRuleEvaluation
     /**
      * The jobs window fetcher.
      */
-    private JobsWindowFetcher $jobsWindowFetcher;
+    private JobsWindowFetcherService $jobsWindowFetcher;
 
     /**
      * The constructor.
      *
-     * @param JobsWindowFetcher $jobsWindowFetcher The jobs window fetcher.
+     * @param JobsWindowFetcherService $jobsWindowFetcher The jobs window fetcher.
      */
-    public function __construct(JobsWindowFetcher $jobsWindowFetcher)
+    public function __construct(JobsWindowFetcherService $jobsWindowFetcher)
     {
         $this->jobsWindowFetcher = $jobsWindowFetcher;
     }
@@ -59,7 +60,7 @@ final class AlertRuleEvaluation
             if (! \is_array($job)) {
                 return false;
             }
-            $failedAt = JobRuntimeHelper::parseJobTimestamp($job['failed_at'] ?? null);
+            $failedAt = JobRuntime::parseJobTimestamp($job['failed_at'] ?? null);
 
             return $failedAt !== null && $failedAt->gte($cutoff);
         });
@@ -128,7 +129,7 @@ final class AlertRuleEvaluation
      */
     public function parseCompletedAt(array $job): ?CarbonInterface
     {
-        return JobRuntimeHelper::parseJobTimestamp($job['completed_at'] ?? $job['processed_at'] ?? null);
+        return JobRuntime::parseJobTimestamp($job['completed_at'] ?? $job['processed_at'] ?? null);
     }
 
     /**
@@ -229,9 +230,18 @@ final class AlertRuleEvaluation
             return true;
         }
         $queue = (string) ($job['queue'] ?? '');
+        $normalizedQueue = QueueNameNormalizer::normalize($queue) ?? $queue;
 
         foreach ($patterns as $pattern) {
-            if ($queue === (string) $pattern) {
+            $patternString = (string) $pattern;
+
+            if ($queue === $patternString) {
+                return true;
+            }
+
+            $normalizedPattern = QueueNameNormalizer::normalize($patternString) ?? $patternString;
+
+            if ($patternString === $normalizedPattern && $normalizedQueue === $normalizedPattern) {
                 return true;
             }
         }

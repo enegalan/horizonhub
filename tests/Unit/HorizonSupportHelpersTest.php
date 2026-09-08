@@ -3,7 +3,7 @@
 namespace Tests\Unit;
 
 use App\Support\Jobs\JobCommandDataExtractor;
-use App\Support\Jobs\JobRuntimeHelper;
+use App\Support\Jobs\JobRuntime;
 use Carbon\Carbon;
 use Tests\TestCase;
 
@@ -25,37 +25,37 @@ class HorizonSupportHelpersTest extends TestCase
 
     public function test_job_runtime_helper_covers_runtime_status_and_timestamp_paths(): void
     {
-        $this->assertNull(JobRuntimeHelper::getFormattedRuntime(null));
-        $this->assertSame('1.50 s', JobRuntimeHelper::getFormattedRuntime(1.5));
+        $this->assertNull(JobRuntime::getFormattedRuntime(null));
+        $this->assertSame('1.50 s', JobRuntime::getFormattedRuntime(1.5));
 
         $start = Carbon::parse('2026-01-01 10:00:00');
         $end = Carbon::parse('2026-01-01 10:00:03');
-        $this->assertSame(2.5, JobRuntimeHelper::getRuntimeSeconds(2.5, null, null, null));
-        $this->assertSame(3.0, JobRuntimeHelper::getRuntimeSeconds(null, $start, $end, null));
-        $this->assertNull(JobRuntimeHelper::getRuntimeSeconds(null, 'invalid', null, null));
+        $this->assertSame(2.5, JobRuntime::getRuntimeSeconds(2.5, null, null, null));
+        $this->assertSame(3.0, JobRuntime::getRuntimeSeconds(null, $start, $end, null));
+        $this->assertNull(JobRuntime::getRuntimeSeconds(null, 'invalid', null, null));
 
         $processedAt = '2026-01-01 10:00:01';
         $failedAt = '2026-01-01 10:00:02';
-        JobRuntimeHelper::normalizeStatusDates('processed', $processedAt, $failedAt);
+        JobRuntime::normalizeStatusDates('processed', $processedAt, $failedAt);
         $this->assertNull($failedAt);
 
         $processedAt = '2026-01-01 10:00:01';
         $failedAt = '2026-01-01 10:00:02';
-        JobRuntimeHelper::normalizeStatusDates('failed', $processedAt, $failedAt);
+        JobRuntime::normalizeStatusDates('failed', $processedAt, $failedAt);
         $this->assertNull($processedAt);
 
         $processedAt = '2026-01-01 10:00:01';
         $failedAt = '2026-01-01 10:00:02';
-        JobRuntimeHelper::normalizeStatusDates('processing', $processedAt, $failedAt);
+        JobRuntime::normalizeStatusDates('processing', $processedAt, $failedAt);
         $this->assertNull($processedAt);
         $this->assertNull($failedAt);
 
-        $this->assertInstanceOf(Carbon::class, JobRuntimeHelper::parseJobTimestamp(123));
-        $this->assertInstanceOf(Carbon::class, JobRuntimeHelper::parseJobTimestamp(1704067200));
-        $this->assertSame(1704067200, JobRuntimeHelper::parseJobTimestamp(1704067200)->getTimestamp());
-        $this->assertInstanceOf(Carbon::class, JobRuntimeHelper::parseJobTimestamp('2026-01-01 10:00:00'));
-        $this->assertInstanceOf(Carbon::class, JobRuntimeHelper::parseJobTimestamp(Carbon::parse('2026-01-01 10:00:00')));
-        $this->assertNull(JobRuntimeHelper::parseJobTimestamp(false));
-        $this->assertNull(JobRuntimeHelper::parseJobTimestamp('not-a-date'));
+        $this->assertInstanceOf(Carbon::class, JobRuntime::parseJobTimestamp(123));
+        $this->assertInstanceOf(Carbon::class, JobRuntime::parseJobTimestamp(1704067200));
+        $this->assertSame(1704067200, JobRuntime::parseJobTimestamp(1704067200)->getTimestamp());
+        $this->assertInstanceOf(Carbon::class, JobRuntime::parseJobTimestamp('2026-01-01 10:00:00'));
+        $this->assertInstanceOf(Carbon::class, JobRuntime::parseJobTimestamp(Carbon::parse('2026-01-01 10:00:00')));
+        $this->assertNull(JobRuntime::parseJobTimestamp(false));
+        $this->assertNull(JobRuntime::parseJobTimestamp('not-a-date'));
     }
 }

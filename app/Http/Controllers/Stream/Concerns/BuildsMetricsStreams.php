@@ -11,7 +11,7 @@ trait BuildsMetricsStreams
      */
     protected function buildMetrics(string $query): string
     {
-        $d = $this->metrics->buildMetricsDashboardData($this->serviceFilter->resolveFromQuery($query));
+        $d = $this->metrics->buildMetricsDashboardData($this->serviceFilter->resolveServiceIdsFromQuery($query));
 
         $failureRateHtml = \view('horizon.metrics.partials.index.failure-rate-value', [
             'failureRate24h' => $d['failureRate24h'],

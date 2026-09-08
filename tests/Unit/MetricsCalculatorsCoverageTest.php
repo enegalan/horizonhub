@@ -4,7 +4,7 @@ namespace Tests\Unit;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
-use App\Services\Jobs\JobsWindowFetcher;
+use App\Services\Jobs\JobsWindowFetcherService;
 use App\Services\Metrics\Calculators\JobsVolumeLast24hCalculator;
 use App\Services\Metrics\Calculators\RuntimeMetricsCalculator;
 use App\Services\Metrics\Calculators\WorkloadMetricsCalculator;
@@ -32,8 +32,8 @@ class MetricsCalculatorsCoverageTest extends TestCase
             'data' => ['jobs' => [['index' => 2, 'failed_at' => $since + 3600]]],
         ]);
 
-        $calc = new JobsVolumeLast24hCalculator($api, new JobsWindowFetcher($api));
-        $result = $calc->getJobsVolumeLast24h(['service_id' => $service->id]);
+        $calc = new JobsVolumeLast24hCalculator($api, new JobsWindowFetcherService($api));
+        $result = $calc->getJobsVolumeLast24h([$service->id]);
         $this->assertCount(25, $result['xAxis']);
         $this->assertSame(1, $result['completed'][1]);
         $this->assertSame(1, $result['failed'][1]);
@@ -66,8 +66,8 @@ class MetricsCalculatorsCoverageTest extends TestCase
             ]]],
         ]);
 
-        $calc = new RuntimeMetricsCalculator($api, new JobsWindowFetcher($api));
-        $result = $calc->getJobRuntimesLast24h(['service_id' => $service->id]);
+        $calc = new RuntimeMetricsCalculator($api, new JobsWindowFetcherService($api));
+        $result = $calc->getJobRuntimesLast24h([$service->id]);
         $this->assertCount(2, $result['points']);
         $this->assertSame('completed', $result['points'][0]['status']);
         $this->assertSame('failed', $result['points'][1]['status']);
@@ -106,7 +106,7 @@ class MetricsCalculatorsCoverageTest extends TestCase
             ]]];
         });
 
-        $calc = new WorkloadMetricsCalculator($api, new JobsWindowFetcher($api));
+        $calc = new WorkloadMetricsCalculator($api, new JobsWindowFetcherService($api));
         $workload = $calc->getWorkloadData([]);
         $this->assertNotEmpty($workload);
         $this->assertSame('default', $workload[0]['queue']);

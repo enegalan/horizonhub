@@ -6,7 +6,7 @@ use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Support\Alerts\AlertRuleEvaluation;
-use App\Support\Jobs\JobRuntimeHelper;
+use App\Support\Jobs\JobRuntime;
 
 final class AvgExecutionTime implements AlertRuleContract
 {
@@ -53,22 +53,15 @@ final class AvgExecutionTime implements AlertRuleContract
 
         $durations = $this->support
             ->matchingCompletedJobsInWindow($alert, $service, $cutoff)
-            ->map(function (array $job) use ($cutoff) {
-                $completed = $this->support->parseCompletedAt($job);
-                $queuedRaw = $job['pushedAt'] ?? null;
-                $queued = JobRuntimeHelper::parseJobTimestamp($queuedRaw);
+            ->map(function (array $job) {
+                $payload = \is_array($job['payload'] ?? null) ? $job['payload'] : [];
 
-                if ($completed === null || $queued === null) {
-                    return null;
-                }
-
-                if ($completed->lt($cutoff)) {
-                    return null;
-                }
-
-                $seconds = $queued->diffInSeconds($completed, false);
-
-                return $seconds >= 0 ? $seconds : null;
+                return JobRuntime::getRuntimeSeconds(
+                    null,
+                    JobRuntime::parseJobTimestamp($payload['pushedAt'] ?? $job['pushedAt'] ?? null),
+                    $this->support->parseCompletedAt($job),
+                    null,
+                );
             })->filter(static fn ($v) => $v !== null);
 
         if ($durations->isEmpty()) {

@@ -4,7 +4,7 @@ namespace Tests\Unit;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
-use App\Services\Jobs\JobsWindowFetcher;
+use App\Services\Jobs\JobsWindowFetcherService;
 use App\Services\Metrics\Calculators\JobsThroughputMetricsCalculator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -27,21 +27,19 @@ class JobsThroughputMetricsCalculatorTest extends TestCase
             return ['success' => true, 'data' => ['failedJobs' => 1, 'recentJobs' => 10, 'periods' => ['recentJobs' => 20]]];
         });
 
-        $calc = new JobsThroughputMetricsCalculator($api, new JobsWindowFetcher($api));
+        $calc = new JobsThroughputMetricsCalculator($api, new JobsWindowFetcherService($api));
 
         $this->assertSame(2, $calc->getFailedPastSevenDays($s1));
         $this->assertSame(3, $calc->getJobsPastMinute($s1));
         $this->assertSame(20, $calc->getJobsPastHour($s1));
 
-        $globalFailed = $calc->getFailedPastSevenDays(null);
-        $globalHour = $calc->getJobsPastHour(null);
-        $globalMinute = $calc->getJobsPastMinute(null);
-        $byService = $calc->getJobsPastHourByService();
+        $totals = $calc->getThroughputTotals(null);
 
-        $this->assertSame(3, $globalFailed);
-        $this->assertSame(30, $globalHour);
-        $this->assertSame(4, $globalMinute);
-        $this->assertCount(2, $byService['services']);
-        $this->assertCount(2, $byService['jobsPastHour']);
+        $this->assertSame(3, $totals['failedPastSevenDays']);
+        $this->assertSame(30, $totals['jobsPastHour']);
+        $this->assertSame(4, $totals['jobsPastMinute']);
+        $this->assertSame(3, $calc->getFailedPastSevenDays(null));
+        $this->assertSame(30, $calc->getJobsPastHour(null));
+        $this->assertSame(4, $calc->getJobsPastMinute(null));
     }
 }

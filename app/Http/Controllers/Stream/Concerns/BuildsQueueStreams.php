@@ -11,7 +11,7 @@ trait BuildsQueueStreams
      */
     protected function buildQueues(string $query): string
     {
-        $serviceFilterIds = $this->serviceFilter->resolveFromQuery($query);
+        $serviceFilterIds = $this->serviceFilter->resolveServiceIdsFromQuery($query);
         $queues = $this->metrics->buildQueuesCollectionForServiceFilter($serviceFilterIds);
 
         $statsHtml = \view('horizon.queues.partials.index.stats', [

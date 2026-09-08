@@ -1,1 +1,1 @@
-<x-skeleton.metric-columns :columns="4" />
+@include('horizon.services.partials.show.skeletons.stats-row-1')

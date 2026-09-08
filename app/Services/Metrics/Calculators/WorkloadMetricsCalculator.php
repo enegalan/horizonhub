@@ -12,7 +12,7 @@ final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
     /**
      * Get supervisors aggregated across services (optionally filtered by service).
      *
-     * @param array<string, mixed> $serviceScope The service scope.
+     * @param list<int> $serviceIds The service IDs.
      *
      * @return array<int, array{
      *     service_id: int,
@@ -23,9 +23,9 @@ final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
      *     processes: int|null
      * }>
      */
-    public function getSupervisorsData(array $serviceScope = []): array
+    public function getSupervisorsData(array $serviceIds = []): array
     {
-        $services = $this->private__getServicesForMetrics($serviceScope);
+        $services = Service::getServices($serviceIds);
 
         if ($services->isEmpty()) {
             return [];
@@ -68,7 +68,7 @@ final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
     /**
      * Get current workload aggregated across services (optionally filtered by service).
      *
-     * @param array<string, mixed> $serviceScope The service scope.
+     * @param list<int> $serviceIds The service IDs.
      *
      * @return array<int, array{
      *     service_id: int,
@@ -79,9 +79,9 @@ final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
      *     wait: float|null
      * }>
      */
-    public function getWorkloadData(array $serviceScope = []): array
+    public function getWorkloadData(array $serviceIds = []): array
     {
-        $services = $this->private__getServicesForMetrics($serviceScope, true);
+        $services = Service::getServices($serviceIds, true);
 
         if ($services->isEmpty()) {
             return [];

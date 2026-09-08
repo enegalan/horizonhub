@@ -7,25 +7,14 @@ use App\Support\Queues\QueueNameNormalizer;
 final class MasterReader
 {
     /**
-     * Extract the supervisors from the masters payload.
+     * Yield each supervisor array from a masters payload.
      *
      * @param list<mixed>|array<int, mixed> $mastersData The masters data.
      *
-     * @return list<array{
-     *     name: string,
-     *     groupName: string,
-     *     connection: string,
-     *     queues: string,
-     *     processes: int|null,
-     *     balancing: string,
-     *     apiStatus: string,
-     *     queueNames: list<string>
-     * }>
+     * @return \Generator<int, array<string, mixed>>
      */
-    public static function supervisorsFromMastersPayload(array $mastersData): array
+    public static function eachSupervisor(array $mastersData): \Generator
     {
-        $supervisors = [];
-
         foreach ($mastersData as $master) {
             if (! \is_array($master)) {
                 continue;
@@ -38,64 +27,89 @@ final class MasterReader
             }
 
             foreach ($supervisorsData as $supervisor) {
-                if (! \is_array($supervisor)) {
-                    continue;
+                if (\is_array($supervisor)) {
+                    yield $supervisor;
                 }
-
-                $name = isset($supervisor['name']) ? (string) $supervisor['name'] : '';
-
-                if (blank($name)) {
-                    continue;
-                }
-
-                $groupParts = \explode(':', $name, 2);
-                $groupName = $groupParts[0] !== '' ? $groupParts[0] : $name;
-                $options = isset($supervisor['options']) && \is_array($supervisor['options']) ? $supervisor['options'] : [];
-                $connection = '';
-
-                if (isset($options['connection']) && (string) $options['connection'] !== '') {
-                    $connection = (string) $options['connection'];
-                } elseif (isset($supervisor['connection']) && (string) $supervisor['connection'] !== '') {
-                    $connection = (string) $supervisor['connection'];
-                }
-
-                $queues = '';
-
-                if (isset($options['queue'])) {
-                    $queuesRaw = $options['queue'];
-                    $queues = \is_array($queuesRaw) ? \implode(', ', \array_map('strval', $queuesRaw)) : (string) $queuesRaw;
-                }
-
-                $processes = null;
-
-                if (isset($supervisor['processes']) && \is_array($supervisor['processes'])) {
-                    $sum = 0;
-
-                    foreach ($supervisor['processes'] as $value) {
-                        if (\is_numeric($value)) {
-                            $sum += (int) $value;
-                        }
-                    }
-                    $processes = $sum;
-                }
-
-                $balancing = '';
-
-                if (isset($options['balance']) && (string) $options['balance'] !== '') {
-                    $balancing = (string) $options['balance'];
-                }
-
-                $supervisors[] = [
-                    'name' => $name,
-                    'groupName' => $groupName,
-                    'connection' => $connection,
-                    'queues' => $queues,
-                    'processes' => $processes,
-                    'balancing' => $balancing,
-                    'apiStatus' => isset($supervisor['status']) ? (string) $supervisor['status'] : '',
-                    'queueNames' => QueueNameNormalizer::normalizeListFromOptions($options),
-                ];
             }
+        }
+    }
+
+    /**
+     * Extract the supervisors from the masters payload.
+     *
+     * @param list<mixed>|array<int, mixed> $mastersData The masters data.
+     *
+     * @return list<array{
+     *     name: string,
+     *     groupName: string,
+     *     connection: string,
+     *     queues: string,
+     *     processes: int|null,
+     *     balancing: string,
+     *     apiStatus: string,
+     *     queueNames: list<string>,
+     *     lastHeartbeatAt: mixed
+     * }>
+     */
+    public static function supervisorsFromMastersPayload(array $mastersData): array
+    {
+        $supervisors = [];
+
+        foreach (self::eachSupervisor($mastersData) as $supervisor) {
+            $name = isset($supervisor['name']) ? (string) $supervisor['name'] : '';
+
+            if (blank($name)) {
+                continue;
+            }
+
+            $groupParts = \explode(':', $name, 2);
+            $groupName = $groupParts[0] !== '' ? $groupParts[0] : $name;
+            $options = isset($supervisor['options']) && \is_array($supervisor['options']) ? $supervisor['options'] : [];
+            $connection = '';
+
+            if (isset($options['connection']) && (string) $options['connection'] !== '') {
+                $connection = (string) $options['connection'];
+            } elseif (isset($supervisor['connection']) && (string) $supervisor['connection'] !== '') {
+                $connection = (string) $supervisor['connection'];
+            }
+
+            $queues = '';
+
+            if (isset($options['queue'])) {
+                $queuesRaw = $options['queue'];
+                $queues = \is_array($queuesRaw) ? \implode(', ', \array_map('strval', $queuesRaw)) : (string) $queuesRaw;
+            }
+
+            $processes = null;
+
+            if (isset($supervisor['processes']) && \is_array($supervisor['processes'])) {
+                $sum = 0;
+
+                foreach ($supervisor['processes'] as $value) {
+                    if (\is_numeric($value)) {
+                        $sum += (int) $value;
+                    }
+                }
+                $processes = $sum;
+            }
+
+            $balancing = '';
+
+            if (isset($options['balance']) && (string) $options['balance'] !== '') {
+                $balancing = (string) $options['balance'];
+            }
+
+            $supervisors[] = [
+                'name' => $name,
+                'groupName' => $groupName,
+                'connection' => $connection,
+                'queues' => $queues,
+                'processes' => $processes,
+                'balancing' => $balancing,
+                'apiStatus' => isset($supervisor['status']) ? (string) $supervisor['status'] : '',
+                'queueNames' => QueueNameNormalizer::normalizeListFromOptions($options),
+                'lastHeartbeatAt' => $supervisor['last_heartbeat_at'] ?? ($supervisor['lastSeen'] ?? null),
+            ];
         }
 
         return $supervisors;

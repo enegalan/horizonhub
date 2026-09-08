@@ -11,7 +11,7 @@ class ServiceTagNormalizerTest extends TestCase
     #[Test]
     public function normalize_list_dedupes_and_sorts(): void
     {
-        $tags = ServiceTagNormalizer::normalizeList(['Staging', 'production', 'staging', '  ']);
+        $tags = ServiceTagNormalizer::normalize(['Staging', 'production', 'staging', '  ']);
 
         $this->assertSame(['production', 'staging'], $tags);
     }

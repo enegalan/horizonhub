@@ -4,9 +4,8 @@ namespace App\Services\Metrics\Calculators;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientService;
-use App\Services\Jobs\JobsWindowFetcher;
-use App\Support\Jobs\JobRuntimeHelper;
-use App\Support\Queues\QueueNameNormalizer;
+use App\Services\Jobs\JobsWindowFetcherService;
+use App\Support\Jobs\JobRuntime;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -17,7 +16,7 @@ abstract class AbstractMetricsCalculator
      *
      * @var int
      */
-    public const TOP_N_QUEUES = 12;
+    public const TOP_N_QUEUES = 12; // TODO: make this configurable.
 
     /**
      * The Horizon API proxy service.
@@ -27,106 +26,71 @@ abstract class AbstractMetricsCalculator
     /**
      * The jobs window fetcher.
      */
-    protected JobsWindowFetcher $jobsWindowFetcher;
+    protected JobsWindowFetcherService $jobsWindowFetcher;
 
     /**
      * The constructor.
      *
      * @param HorizonClientService $horizonApi The horizon API client.
-     * @param JobsWindowFetcher $jobsWindowFetcher The jobs window fetcher.
+     * @param JobsWindowFetcherService $jobsWindowFetcher The jobs window fetcher.
      */
-    public function __construct(HorizonClientService $horizonApi, JobsWindowFetcher $jobsWindowFetcher)
+    public function __construct(HorizonClientService $horizonApi, JobsWindowFetcherService $jobsWindowFetcher)
     {
         $this->horizonApi = $horizonApi;
         $this->jobsWindowFetcher = $jobsWindowFetcher;
     }
 
     /**
-     * Aggregate queue counters from Horizon jobs payload.
+     * Fill hourly buckets with completed and failed job counts for the given services.
      *
-     * @param mixed $jobsPayload The jobs payload.
-     * @param int $sinceTimestamp The since timestamp.
-     * @param string $timestampField The timestamp field.
-     * @param array<string, int> $queueCounts The queue counts.
+     * @param array<string, array<string, mixed>> $buckets
+     * @param Collection<int, Service> $services
      */
-    protected function private__aggregateQueueCountsFromJobsPayload(mixed $jobsPayload, int $sinceTimestamp, string $timestampField, array &$queueCounts): void
-    {
-        foreach ($jobsPayload as $job) {
-            if (! \is_array($job)) {
-                continue;
-            }
-
-            $tsRaw = $job[$timestampField] ?? null;
-
-            if (! \is_numeric($tsRaw) || (int) $tsRaw < $sinceTimestamp) {
-                continue;
-            }
-
-            $queueRaw = isset($job['queue']) ? (string) $job['queue'] : '';
-            $queue = QueueNameNormalizer::normalize($queueRaw);
-
-            if ($queue === null) {
-                $queue = $queueRaw;
-            }
-
-            if (! isset($queueCounts[$queue])) {
-                $queueCounts[$queue] = 0;
-            }
-
-            $queueCounts[$queue]++;
+    protected function private__accumulateCompletedFailedHourlyBuckets(
+        array &$buckets,
+        Collection $services,
+        int $sinceTimestamp,
+        string $bucketFormat,
+        string $completedKey,
+        string $failedKey,
+    ): void {
+        /** @var Service $service */
+        foreach ($services as $service) {
+            $this->private__incrementHourlyBuckets(
+                $buckets,
+                $this->jobsWindowFetcher->fetchCompletedJobsSince($service, $sinceTimestamp),
+                'completed_at',
+                $completedKey,
+                $sinceTimestamp,
+                $bucketFormat,
+            );
+            $this->private__incrementHourlyBuckets(
+                $buckets,
+                $this->jobsWindowFetcher->fetchFailedJobsSince($service, $sinceTimestamp),
+                'failed_at',
+                $failedKey,
+                $sinceTimestamp,
+                $bucketFormat,
+            );
         }
     }
 
     /**
-     * Fetch failed jobs with failed_at >= $sinceTimestamp by paginating the Horizon API.
+     * Format hourly bucket keys as chart axis labels.
      *
-     * Each request uses Horizon query `limit` = horizonhub.horizon_api_job_list_page_size.
-     * The number of HTTP pages per service is capped by horizonhub.max_horizon_pages.
+     * @param array<string, mixed> $buckets
      *
-     * @param Service $service The service.
-     * @param int $sinceTimestamp The since timestamp.
-     *
-     * @return list<array<string, mixed>>
+     * @return list<string>
      */
-    protected function private__fetchFailedJobsInWindow(Service $service, int $sinceTimestamp): array
+    protected function private__hourlyAxisLabels(array $buckets): array
     {
-        return $this->jobsWindowFetcher->fetchFailedJobsSince($service, $sinceTimestamp);
-    }
+        $xAxis = [];
 
-    /**
-     * Get services that can provide Horizon metrics.
-     *
-     * @param array<string, mixed> $serviceScope The service scope. Empty = all enabled services; non-empty = restrict by id.
-     * @param bool $orderByName The order by name.
-     * @param array<int, string> $selectColumns The select columns.
-     *
-     * @return Collection<int, Service>
-     */
-    protected function private__getServicesForMetrics(array $serviceScope = [], bool $orderByName = false, array $selectColumns = []): Collection
-    {
-        $servicesQuery = Service::enabled();
-
-        if (! empty($serviceScope)) {
-            $ids = \array_values(\array_unique(\array_filter(
-                \array_map(static fn ($v): int => (int) $v, $serviceScope),
-                static fn (int $id): bool => $id > 0,
-            )));
-
-            if (empty($ids)) {
-                return new Collection;
-            }
-            $servicesQuery->whereIn('id', $ids);
+        foreach (\array_keys($buckets) as $k) {
+            $xAxis[] = Carbon::parse($k)->format('d/m H:i');
         }
 
-        if ($orderByName) {
-            $servicesQuery->orderBy('name');
-        }
-
-        if (! empty($selectColumns)) {
-            return $servicesQuery->get($selectColumns);
-        }
-
-        return $servicesQuery->get();
+        return $xAxis;
     }
 
     /**
@@ -142,7 +106,7 @@ abstract class AbstractMetricsCalculator
     protected function private__incrementHourlyBuckets(array &$buckets, array $jobs, string $timestampField, string $counterKey, int $sinceTimestamp, string $bucketFormat): void
     {
         foreach ($jobs as $job) {
-            $at = JobRuntimeHelper::parseJobTimestamp($job[$timestampField] ?? null);
+            $at = JobRuntime::parseJobTimestamp($job[$timestampField] ?? null);
 
             if ($at === null) {
                 continue;

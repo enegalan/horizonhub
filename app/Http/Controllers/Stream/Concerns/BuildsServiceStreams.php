@@ -20,15 +20,15 @@ trait BuildsServiceStreams
      */
     protected function buildServices(string $query): string
     {
-        $serviceIds = $this->serviceFilter->resolveFromQuery($query);
-        $servicesQuery = Service::orderBy('name');
+        $services = Service::getServices(
+            $this->serviceFilter->resolveServiceIdsFromQuery($query),
+            false,
+            true,
+        );
 
-        if (! empty($serviceIds)) {
-            $servicesQuery->whereIn('id', $serviceIds);
+        foreach ($services as $service) {
+            $service->withHorizonStats($this->horizonApi);
         }
-
-        $services = $servicesQuery->get();
-        $this->serviceStats->attachHorizonStats($services, $this->horizonApi);
 
         $enabledServices = $services->where('enabled', true);
 

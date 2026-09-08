@@ -416,6 +416,12 @@ export function horizonAlertsList() {
 
                     self.private__setEvaluateAllLabel(bulkBtnEl, 'Evaluating ' + evaluatedCount + '/' + totalAlerts);
 
+                    if (data.status === 'expired') {
+                        stop();
+                        window.toast.error('Bulk evaluation expired. Start a new evaluation.');
+                        return;
+                    }
+
                     if (data.status === 'completed' || evaluatedCount >= totalAlerts) {
                         stop();
                         var triggeredCount = typeof data.triggered_count === 'number' ? data.triggered_count : 0;

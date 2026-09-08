@@ -14,6 +14,46 @@ class AbstractAlertNotifierTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_build_notification_reads_first_pending_event_from_sparse_array(): void
+    {
+        $service = Service::create(['name' => 'svc-sparse', 'base_url' => 'https://svc.test', 'status' => 'online']);
+        $alert = Alert::create(['name' => 'a', 'rule_type' => FailureCount::type(), 'enabled' => true]);
+
+        $api = $this->createMock(HorizonClientService::class);
+        $notifier = new class($api) extends AbstractAlertNotifier
+        {
+            public static function meta(): array
+            {
+                return ['label' => 'Test', 'icon' => 'test', 'description' => 'Test', 'color' => 'gray'];
+            }
+
+            public static function normalizedConfig(array $validated): array
+            {
+                return [];
+            }
+
+            public static function type(): string
+            {
+                return 'test';
+            }
+
+            public function sendBatched(Alert $alert, array $events, array $config): void {}
+        };
+
+        $events = [
+            2 => [
+                'service_id' => $service->id,
+                'job_uuid' => null,
+                'triggered_at' => now()->toIso8601String(),
+            ],
+        ];
+
+        $notification = (new \ReflectionMethod($notifier, 'buildNotification'))->invoke($notifier, $alert, $events);
+
+        $this->assertSame('svc-sparse', $notification['serviceName']);
+        $this->assertSame(1, $notification['totalEventCount']);
+    }
+
     public function test_enrich_events_includes_all_batch_events(): void
     {
         $service = Service::create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);

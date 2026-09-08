@@ -31,27 +31,14 @@
         </div>
 
         <x-kpi-grid gradient>
-            <x-stat-card label="Jobs past minute" tone="emerald" value-id="dashboard-value-jobs-minute">
-                @if(!empty($defer))
-                    <x-skeleton.text class="h-8 w-16" />
-                @else
-                    {{ $jobsPastMinute ?? '—' }}
-                @endif
-            </x-stat-card>
-            <x-stat-card label="Jobs past hour" tone="sky" value-id="dashboard-value-jobs-hour">
-                @if(!empty($defer))
-                    <x-skeleton.text class="h-8 w-16" />
-                @else
-                    {{ $jobsPastHour ?? '—' }}
-                @endif
-            </x-stat-card>
-            <x-stat-card label="Failed jobs (7 days)" tone="rose" value-id="dashboard-value-failed-seven">
-                @if(!empty($defer))
-                    <x-skeleton.text class="h-8 w-16" />
-                @else
-                    {{ $failedPastSevenDays ?? '—' }}
-                @endif
-            </x-stat-card>
+            @include('horizon.partials.kpi-throughput-triad', [
+                'idPrefix' => 'dashboard',
+                'defer' => $defer ?? false,
+                'jobsPastMinute' => $jobsPastMinute ?? '—',
+                'jobsPastHour' => $jobsPastHour ?? '—',
+                'failedPastSevenDays' => $failedPastSevenDays ?? '—',
+                'failedLabel' => 'Failed jobs (7 days)',
+            ])
             <x-stat-card label="Services online" tone="violet" class="sm:col-span-2 lg:col-span-1">
                 <div id="dashboard-services-kpi-inner" class="flex min-h-[2.5rem] items-center gap-2">
                     @if(!empty($defer))
