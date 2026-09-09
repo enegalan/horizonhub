@@ -8,6 +8,11 @@ use Illuminate\Contracts\Cache\Lock;
 interface HorizonClientCache
 {
     /**
+     * Try to acquire a concurrency slot for a service.
+     */
+    public function acquireServiceRequestSlot(Service $service): bool;
+
+    /**
      * Forget the failure cooldown for a service.
      */
     public function forgetFailureCooldown(Service $service): void;
@@ -33,6 +38,11 @@ interface HorizonClientCache
      * @param array<string, mixed> $result
      */
     public function putRequestPathCache(Service $service, string $path, array $result): void;
+
+    /**
+     * Release a concurrency slot for a service.
+     */
+    public function releaseServiceRequestSlot(Service $service): void;
 
     /**
      * Get the request path cache key.

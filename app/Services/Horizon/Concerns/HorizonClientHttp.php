@@ -79,6 +79,7 @@ class HorizonClientHttp implements HorizonClientHttpContract
 
         $shouldCache = $httpMethod === 'get' && ! $withDashboardSession && ! $allowWhenDisabled;
         $lock = null;
+        $slotAcquired = false;
 
         try {
             // Check if request was previously cached so we can avoid new HTTP request.
@@ -116,6 +117,18 @@ class HorizonClientHttp implements HorizonClientHttpContract
                     }
 
                     return $cached;
+                }
+
+                // Reserve a concurrency slot so a slow upstream service is not
+                // overwhelmed by parallel polls coming from multiple streams.
+                $slotAcquired = $this->cache->acquireServiceRequestSlot($service);
+
+                if (! $slotAcquired) {
+                    return [
+                        'success' => false,
+                        'message' => 'Service concurrent request limit reached.',
+                        'status' => 503,
+                    ];
                 }
             }
 
@@ -227,6 +240,10 @@ class HorizonClientHttp implements HorizonClientHttpContract
                 'status' => $statusCode,
             ];
         } finally {
+            if ($slotAcquired) {
+                $this->cache->releaseServiceRequestSlot($service);
+            }
+
             $lock?->release();
         }
     }

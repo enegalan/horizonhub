@@ -126,6 +126,30 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Horizon HTTP concurrency limit per service
+    |--------------------------------------------------------------------------
+    |
+    | Maximum number of concurrent outbound HTTP requests allowed per upstream
+    | Horizon service. When the limit is reached, subsequent requests wait
+    | (bounded by `horizon_http_concurrent_request_wait_ms`) before being
+    | rejected with a 503. Set to 0 to disable the limit.
+    |
+    */
+    'horizon_http_max_concurrent_requests_per_service' => (int) env('HORIZON_HUB_HTTP_MAX_CONCURRENT_PER_SERVICE', 4),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Horizon HTTP concurrent request wait budget
+    |--------------------------------------------------------------------------
+    |
+    | Maximum time in milliseconds to wait for a concurrency slot to become
+    | available before rejecting the request with a 503.
+    |
+    */
+    'horizon_http_concurrent_request_wait_ms' => (int) env('HORIZON_HUB_HTTP_CONCURRENT_REQUEST_WAIT_MS', 2000),
+
+    /*
+    |--------------------------------------------------------------------------
     | Stale Service Minutes
     |--------------------------------------------------------------------------
     |

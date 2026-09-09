@@ -23,6 +23,28 @@ class HorizonClientTest extends TestCase
         parent::tearDown();
     }
 
+    public function test_concurrency_limit_disabled_when_max_concurrent_is_zero(): void
+    {
+        Http::fake([
+            '*' => Http::response(['ok' => true], 200),
+        ]);
+
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.ping', '/stats');
+        \config()->set('horizonhub.horizon_http_max_concurrent_requests_per_service', 0);
+
+        $service = Service::create([
+            'name' => 'svc-concurrency-disabled',
+            'base_url' => 'https://service-concurrency-disabled.test',
+            'status' => 'online',
+        ]);
+
+        $result = (new HorizonClientService)->getStats($service);
+
+        $this->assertTrue($result['success']);
+        Http::assertSentCount(1);
+    }
+
     public function test_dashboard_bootstrap_sends_service_headers(): void
     {
         Http::fake(function ($request) {
@@ -275,6 +297,31 @@ class HorizonClientTest extends TestCase
         $this->assertSame(2, $calls);
     }
 
+    public function test_get_releases_concurrency_slot_after_request(): void
+    {
+        Http::fake([
+            '*' => Http::response(['failedJobs' => 1], 200),
+        ]);
+
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.ping', '/stats');
+
+        $service = Service::create([
+            'name' => 'svc-slot-release',
+            'base_url' => 'https://service-slot-release.test',
+            'status' => 'online',
+        ]);
+
+        $proxy = new HorizonClientService;
+
+        $this->assertTrue($proxy->getStats($service)['success']);
+
+        $this->assertFalse(Cache::has('horizonhub:horizon-api-service-slot:' . $service->id));
+
+        $this->assertTrue($proxy->getStats($service)['success']);
+        Http::assertSentCount(1);
+    }
+
     public function test_get_returns_503_when_path_fill_lock_cannot_be_acquired(): void
     {
         Http::fake([
@@ -304,6 +351,35 @@ class HorizonClientTest extends TestCase
         } finally {
             $lock->release();
         }
+    }
+
+    public function test_get_returns_503_when_service_concurrency_limit_reached(): void
+    {
+        Http::fake([
+            '*' => Http::response(['ok' => true], 200),
+        ]);
+
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.ping', '/stats');
+        \config()->set('horizonhub.horizon_http_max_concurrent_requests_per_service', 1);
+        \config()->set('horizonhub.horizon_http_concurrent_request_wait_ms', 50);
+
+        $service = Service::create([
+            'name' => 'svc-concurrency-limit',
+            'base_url' => 'https://service-concurrency.test',
+            'status' => 'online',
+        ]);
+
+        // Simulate an in-flight request holding the only concurrency slot.
+        Cache::add('horizonhub:horizon-api-service-slot:' . $service->id, 0, \now()->addSeconds(30));
+        Cache::increment('horizonhub:horizon-api-service-slot:' . $service->id);
+
+        $result = (new HorizonClientService)->getStats($service);
+
+        $this->assertFalse($result['success']);
+        $this->assertSame(503, $result['status'] ?? null);
+        $this->assertSame('Service concurrent request limit reached.', $result['message'] ?? null);
+        Http::assertNothingSent();
     }
 
     public function test_get_reuses_successful_response_within_hot_reload_interval(): void
