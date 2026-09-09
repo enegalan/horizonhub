@@ -5,7 +5,8 @@ namespace App\Http\Controllers\Horizon;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Horizon\UpsertServiceRequest;
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\HorizonClientApiService;
+use App\Services\Horizon\HorizonClientCacheService;
 use App\Services\Services\ServiceFilterService;
 use App\Support\FlashStatus;
 use Illuminate\Contracts\View\View;
@@ -54,13 +55,13 @@ class ServiceController extends Controller
     /**
      * Display the list of services.
      */
-    public function index(Request $request, ServiceFilterService $serviceFilter): View
+    public function index(Request $request): View
     {
         return \view('horizon.services.index', \array_merge([
             'services' => collect(),
             'defer' => true,
             'header' => 'Services',
-        ], $serviceFilter->viewData($request)));
+        ], ServiceFilterService::viewData($request)));
     }
 
     /**
@@ -116,9 +117,9 @@ class ServiceController extends Controller
     /**
      * Test connectivity with the Horizon HTTP API for the given service.
      */
-    public function testConnection(Service $service, HorizonClientService $horizonApi): RedirectResponse
+    public function testConnection(Service $service): RedirectResponse
     {
-        $result = $horizonApi->ping($service);
+        $result = HorizonClientApiService::ping($service);
 
         if ($result['success']) {
             $service->update([
@@ -168,7 +169,7 @@ class ServiceController extends Controller
     /**
      * Update an existing service.
      */
-    public function update(UpsertServiceRequest $request, Service $service, HorizonClientService $horizonApi): RedirectResponse
+    public function update(UpsertServiceRequest $request, Service $service): RedirectResponse
     {
         $validated = $request->validated();
 
@@ -182,7 +183,7 @@ class ServiceController extends Controller
         $service->headers()->delete();
         $this->private__storeHeaders($service, $validated['headers'] ?? []);
 
-        $horizonApi->resetFailureCooldown($service);
+        HorizonClientCacheService::forgetFailureCooldown($service);
 
         return redirect()
             ->route('horizon.services.index')

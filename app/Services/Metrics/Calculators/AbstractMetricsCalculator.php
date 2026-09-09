@@ -3,7 +3,6 @@
 namespace App\Services\Metrics\Calculators;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
 use App\Services\Jobs\JobsWindowFetcherService;
 use App\Support\Jobs\JobRuntime;
 use Carbon\Carbon;
@@ -19,11 +18,6 @@ abstract class AbstractMetricsCalculator
     public const TOP_N_QUEUES = 12; // TODO: make this configurable.
 
     /**
-     * The Horizon API proxy service.
-     */
-    protected HorizonClientService $horizonApi;
-
-    /**
      * The jobs window fetcher.
      */
     protected JobsWindowFetcherService $jobsWindowFetcher;
@@ -31,12 +25,10 @@ abstract class AbstractMetricsCalculator
     /**
      * The constructor.
      *
-     * @param HorizonClientService $horizonApi The horizon API client.
      * @param JobsWindowFetcherService $jobsWindowFetcher The jobs window fetcher.
      */
-    public function __construct(HorizonClientService $horizonApi, JobsWindowFetcherService $jobsWindowFetcher)
+    public function __construct(JobsWindowFetcherService $jobsWindowFetcher)
     {
-        $this->horizonApi = $horizonApi;
         $this->jobsWindowFetcher = $jobsWindowFetcher;
     }
 

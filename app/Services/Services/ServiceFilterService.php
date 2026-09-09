@@ -16,7 +16,7 @@ final class ServiceFilterService
      *
      * @return list<int>
      */
-    public function resolveServiceIds(Request $request): array
+    public static function resolveServiceIds(Request $request): array
     {
         $serviceIds = ServiceRequest::existingIdsFromRequest($request);
 
@@ -50,11 +50,11 @@ final class ServiceFilterService
      *
      * @return list<int>
      */
-    public function resolveServiceIdsFromQuery(string $query): array
+    public static function resolveServiceIdsFromQuery(string $query): array
     {
         \parse_str($query, $params);
 
-        return $this->resolveServiceIds(Request::create('/', 'GET', $params));
+        return self::resolveServiceIds(Request::create('/', 'GET', $params));
     }
 
     /**
@@ -64,7 +64,7 @@ final class ServiceFilterService
      *
      * @return string The trimmed search term.
      */
-    public function searchFromQuery(string $query): string
+    public static function searchFromQuery(string $query): string
     {
         \parse_str($query, $params);
 
@@ -76,7 +76,7 @@ final class ServiceFilterService
      *
      * @return array{allTags: list<string>, selectedServiceIds: list<int>, selectedTags: list<string>}
      */
-    public function viewData(Request $request): array
+    public static function viewData(Request $request): array
     {
         return [
             'allTags' => Service::enabled()->get(['tags'])->pluck('tags')->flatten()->unique()->sort()->values()->all(),

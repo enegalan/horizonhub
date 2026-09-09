@@ -8,7 +8,6 @@ use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Strategies\FailureCount;
 use App\Services\Alerts\Rules\Strategies\HorizonOffline;
-use App\Services\Horizon\HorizonClientService;
 use App\Services\Notifiers\Contracts\AlertNotifierMetadata;
 use App\Services\Notifiers\DiscordNotifierService;
 use App\Services\Notifiers\EmailNotifierService;
@@ -24,19 +23,20 @@ class NotifiersTest extends TestCase
 
     public function test_discord_notifier_builds_failure_count_payload_with_enriched_event_details(): void
     {
-        Http::fake();
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getJob')->willReturn([
-            'success' => true,
-            'data' => [
-                'name' => 'App\\Jobs\\Demo',
-                'queue' => 'critical',
-                'failed_at' => now()->toIso8601String(),
-                'exception' => 'fatal',
-                'attempts' => 3,
-            ],
-        ]);
-        $notifier = new DiscordNotifierService($api);
+        Http::fake(function ($request) {
+            if ($request->method() === 'GET' && \str_contains($request->url(), '/horizon/api/jobs/')) {
+                return Http::response([
+                    'name' => 'App\\Jobs\\Demo',
+                    'queue' => 'critical',
+                    'failed_at' => now()->toIso8601String(),
+                    'exception' => 'fatal',
+                    'attempts' => 3,
+                ], 200);
+            }
+
+            return Http::response([], 200);
+        });
+        $notifier = new DiscordNotifierService;
         $alert = Alert::create([
             'name' => 'd',
             'rule_type' => FailureCount::type(),
@@ -67,8 +67,7 @@ class NotifiersTest extends TestCase
     public function test_discord_notifier_skips_without_webhook_and_posts_payload_when_present(): void
     {
         Http::fake();
-        $api = $this->createMock(HorizonClientService::class);
-        $notifier = new DiscordNotifierService($api);
+        $notifier = new DiscordNotifierService;
         $alert = Alert::create(['name' => 'd', 'rule_type' => HorizonOffline::type(), 'enabled' => true]);
         $service = Service::create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
         $events = [['service_id' => $service->id, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]];
@@ -102,8 +101,7 @@ class NotifiersTest extends TestCase
     public function test_email_notifier_skips_without_recipients_and_sends_with_recipients(): void
     {
         Mail::fake();
-        $api = $this->createMock(HorizonClientService::class);
-        $notifier = new EmailNotifierService($api);
+        $notifier = new EmailNotifierService;
         $alert = Alert::create(['name' => 'e', 'rule_type' => FailureCount::type(), 'enabled' => true]);
         $service = Service::create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
         $events = [['service_id' => $service->id, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]];
@@ -135,19 +133,20 @@ class NotifiersTest extends TestCase
 
     public function test_slack_notifier_builds_failure_count_payload_with_enriched_event_details(): void
     {
-        Http::fake();
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getJob')->willReturn([
-            'success' => true,
-            'data' => [
-                'name' => 'App\\Jobs\\Demo',
-                'queue' => 'critical',
-                'failed_at' => now()->toIso8601String(),
-                'exception' => 'fatal',
-                'attempts' => 3,
-            ],
-        ]);
-        $notifier = new SlackNotifierService($api);
+        Http::fake(function ($request) {
+            if ($request->method() === 'GET' && \str_contains($request->url(), '/horizon/api/jobs/')) {
+                return Http::response([
+                    'name' => 'App\\Jobs\\Demo',
+                    'queue' => 'critical',
+                    'failed_at' => now()->toIso8601String(),
+                    'exception' => 'fatal',
+                    'attempts' => 3,
+                ], 200);
+            }
+
+            return Http::response([], 200);
+        });
+        $notifier = new SlackNotifierService;
         $alert = Alert::create([
             'name' => 's',
             'rule_type' => FailureCount::type(),
@@ -178,8 +177,7 @@ class NotifiersTest extends TestCase
     public function test_slack_notifier_skips_without_webhook_and_posts_payload_when_present(): void
     {
         Http::fake();
-        $api = $this->createMock(HorizonClientService::class);
-        $notifier = new SlackNotifierService($api);
+        $notifier = new SlackNotifierService;
         $alert = Alert::create(['name' => 's', 'rule_type' => HorizonOffline::type(), 'enabled' => true]);
         $service = Service::create(['name' => 'svc', 'base_url' => 'https://a.test', 'status' => 'online']);
         $events = [['service_id' => $service->id, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]];

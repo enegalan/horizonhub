@@ -3,7 +3,6 @@
 namespace Tests\Unit;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
 use App\Services\Jobs\JobsWindowFetcherService;
 use App\Services\Metrics\Calculators\AbstractMetricsCalculator;
 use App\Support\Queues\QueueNameNormalizer;
@@ -18,9 +17,8 @@ class HorizonMetricsComputationTest extends TestCase
 
     public function test_get_services_for_metrics_and_workload_fallback_from_masters(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-        $fetcher = new JobsWindowFetcherService($api);
-        $probe = new class($api, $fetcher) extends AbstractMetricsCalculator
+        $fetcher = new JobsWindowFetcherService;
+        $probe = new class($fetcher) extends AbstractMetricsCalculator
         {
             public function public__services(array $serviceIds): Collection
             {
@@ -31,22 +29,12 @@ class HorizonMetricsComputationTest extends TestCase
         $service = Service::create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
         $this->assertCount(1, $probe->public__services([$service->id, 0, -1]));
         $this->assertCount(0, $probe->public__services([0, -1]));
-
-        $api->method('getMasters')->willReturn([
-            'success' => true,
-            'data' => [[
-                'supervisors' => [[
-                    'options' => ['queue' => ['redis.alpha', '']],
-                ]],
-            ]],
-        ]);
     }
 
     public function test_metrics_computation_helpers_cover_edge_branches(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-        $fetcher = new JobsWindowFetcherService($api);
-        $probe = new class($api, $fetcher) extends AbstractMetricsCalculator
+        $fetcher = new JobsWindowFetcherService;
+        $probe = new class($fetcher) extends AbstractMetricsCalculator
         {
             public function public__initHourly(Carbon $since, Carbon $end): array
             {

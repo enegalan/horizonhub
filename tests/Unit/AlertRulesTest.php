@@ -12,11 +12,11 @@ use App\Services\Alerts\Rules\Strategies\NullRule;
 use App\Services\Alerts\Rules\Strategies\QueueBlocked;
 use App\Services\Alerts\Rules\Strategies\SupervisorOffline;
 use App\Services\Alerts\Rules\Strategies\WorkerOffline;
-use App\Services\Horizon\HorizonClientService;
 use App\Services\Jobs\JobsWindowFetcherService;
 use App\Support\Alerts\AlertRuleEvaluation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class AlertRulesTest extends TestCase
@@ -25,8 +25,7 @@ class AlertRulesTest extends TestCase
 
     public function test_evaluation_support_resolves_patterns_and_filters_jobs(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-        $support = new AlertRuleEvaluation(new JobsWindowFetcherService($api));
+        $support = new AlertRuleEvaluation(new JobsWindowFetcherService);
         $alert = new Alert([
             'threshold' => [
                 'queue_patterns' => ['emails', 'default'],
@@ -63,17 +62,18 @@ class AlertRulesTest extends TestCase
             'enabled' => true,
         ]);
 
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getFailedJobs')->willReturn([
-            'success' => true,
-            'data' => [
-                'jobs' => [
+        Http::fake(function ($request) {
+            if (\str_contains($request->url(), '/horizon/api/jobs/failed')) {
+                return Http::response(['jobs' => [
                     ['id' => 'x1', 'failed_at' => now()->subMinute()->toIso8601String(), 'queue' => 'default', 'payload' => ['displayName' => 'A']],
                     ['id' => 'x2', 'failed_at' => now()->subMinute()->toIso8601String(), 'queue' => 'default', 'payload' => ['displayName' => 'B']],
-                ],
-            ],
-        ]);
-        $support = new AlertRuleEvaluation(new JobsWindowFetcherService($api));
+                ]], 200);
+            }
+
+            return Http::response('unexpected', 500);
+        });
+
+        $support = new AlertRuleEvaluation(new JobsWindowFetcherService);
         $strategy = new FailureCount($support);
         $result = $strategy->evaluateWithTriggeringJobs($alert, $service->id);
 
@@ -99,9 +99,10 @@ class AlertRulesTest extends TestCase
             'enabled' => true,
         ]);
 
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getStats')->willReturn(['success' => true, 'data' => ['status' => 'inactive']]);
-        $strategy = new HorizonOffline($api);
+        Http::fake([
+            'https://example.test/horizon/api/stats' => Http::response(['status' => 'inactive'], 200),
+        ]);
+        $strategy = new HorizonOffline;
 
         $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, $service->id)['triggered']);
 
@@ -153,11 +154,25 @@ class AlertRulesTest extends TestCase
             'enabled' => true,
         ]);
 
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getCompletedJobs')->willReturn([
-            'success' => true,
-            'data' => [
-                'jobs' => [
+        $statsCalls = 0;
+
+        Http::fake(function ($request) use (&$statsCalls) {
+            if ($request->url() === 'https://example.test/horizon/api/stats') {
+                $statsCalls++;
+
+                return Http::response(['status' => $statsCalls <= 2 ? 'inactive' : 'active'], 200);
+            }
+
+            if ($request->url() === 'https://example.test/horizon/api/masters') {
+                return Http::response([[
+                    'supervisors' => [
+                        ['last_heartbeat_at' => now()->subHour()->toIso8601String()],
+                    ],
+                ]], 200);
+            }
+
+            if (\str_contains($request->url(), '/horizon/api/jobs/completed')) {
+                return Http::response(['jobs' => [
                     [
                         'completed_at' => now()->subMinute()->toIso8601String(),
                         'reserved_at' => now()->subMinute()->subSeconds(30)->toIso8601String(),
@@ -167,20 +182,18 @@ class AlertRulesTest extends TestCase
                             'pushedAt' => now()->subMinute()->subSeconds(45)->toIso8601String(),
                         ],
                     ],
-                ],
-            ],
-        ]);
-        $api->method('getMasters')->willReturn([
-            'success' => true,
-            'data' => [[
-                'supervisors' => [
-                    ['last_heartbeat_at' => now()->subHour()->toIso8601String()],
-                ],
-            ]],
-        ]);
-        $api->method('getStats')->willReturn(['success' => true, 'data' => ['status' => 'inactive']]);
+                ]], 200);
+            }
 
-        $support = new AlertRuleEvaluation(new JobsWindowFetcherService($api));
+            return Http::response('unexpected', 500);
+        });
+
+        \config()->set('horizonhub.hot_reload_interval', 0);
+
+        $support = new AlertRuleEvaluation(new JobsWindowFetcherService);
+
+        $worker = new WorkerOffline;
+        $this->assertTrue($worker->evaluateWithTriggeringJobs($workerAlert, $service->id)['triggered']);
 
         $avg = new AvgExecutionTime($support);
         $this->assertTrue($avg->evaluateWithTriggeringJobs($avgAlert, $service->id)['triggered']);
@@ -188,21 +201,16 @@ class AlertRulesTest extends TestCase
         $queueBlocked = new QueueBlocked($support);
         $this->assertFalse($queueBlocked->evaluateWithTriggeringJobs($queueAlert, $service->id)['triggered']);
 
-        $worker = new WorkerOffline;
-        $this->assertTrue($worker->evaluateWithTriggeringJobs($workerAlert, $service->id)['triggered']);
-
-        $supervisor = new SupervisorOffline($api);
+        $supervisor = new SupervisorOffline;
         $this->assertTrue($supervisor->evaluateWithTriggeringJobs($supAlert, $service->id)['triggered']);
 
-        $offline = new HorizonOffline($api);
+        $offline = new HorizonOffline;
         $this->assertFalse($offline->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
 
         $this->travel(6)->minutes();
         $this->assertTrue($offline->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
 
-        $apiOnline = $this->createMock(HorizonClientService::class);
-        $apiOnline->method('getStats')->willReturn(['success' => true, 'data' => ['status' => 'active']]);
-        $onlineStrategy = new HorizonOffline($apiOnline);
+        $onlineStrategy = new HorizonOffline;
         $this->assertFalse($onlineStrategy->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
         $this->assertNull(Cache::get('horizon_offline_since:' . $service->id));
 
@@ -212,8 +220,7 @@ class AlertRulesTest extends TestCase
 
     public function test_queue_patterns_match_raw_then_unprefixed_normalized_only(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-        $support = new AlertRuleEvaluation(new JobsWindowFetcherService($api));
+        $support = new AlertRuleEvaluation(new JobsWindowFetcherService);
 
         $unprefixed = new Alert([
             'threshold' => ['queue_patterns' => ['default']],
@@ -242,8 +249,6 @@ class AlertRulesTest extends TestCase
 
     public function test_registry_resolves_known_and_unknown_rules(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-        $this->app->instance(HorizonClientService::class, $api);
         $registry = $this->app->make(AlertRuleStrategyRegistry::class);
 
         $this->assertInstanceOf(FailureCount::class, $registry->resolve(FailureCount::type()));

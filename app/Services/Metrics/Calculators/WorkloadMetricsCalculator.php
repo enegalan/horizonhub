@@ -3,6 +3,7 @@
 namespace App\Services\Metrics\Calculators;
 
 use App\Models\Service;
+use App\Services\Horizon\HorizonClientApiService;
 use App\Support\Horizon\ClientResponse;
 use App\Support\Horizon\MasterReader;
 use App\Support\Queues\QueueNameNormalizer;
@@ -42,7 +43,7 @@ final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
                 $jobsByQueue[$wr['queue']] = ($jobsByQueue[$wr['queue']] ?? 0) + $wr['jobs'];
             }
 
-            $mastersData = ClientResponse::data($this->horizonApi->getMasters($service));
+            $mastersData = ClientResponse::data(HorizonClientApiService::getMasters($service));
 
             if ($mastersData === null) {
                 continue;
@@ -117,7 +118,7 @@ final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
      */
     public function getWorkloadForService(Service $service): array
     {
-        $response = $this->horizonApi->getWorkload($service);
+        $response = HorizonClientApiService::getWorkload($service);
         $payload = ClientResponse::data($response);
 
         if (empty($payload)) {

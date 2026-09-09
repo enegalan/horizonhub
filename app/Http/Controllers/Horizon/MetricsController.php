@@ -13,13 +13,13 @@ class MetricsController extends Controller
     /**
      * Show the metrics dashboard.
      */
-    public function index(Request $request, ServiceFilterService $serviceFilter): View
+    public function index(Request $request): View
     {
         return \view('horizon.metrics.index', \array_merge([
             'services' => Service::enabled()->orderBy('name')->get(['id', 'name']),
             'header' => 'Metrics',
             'defer' => true,
             'metricsChartData' => [],
-        ], $serviceFilter->viewData($request)));
+        ], ServiceFilterService::viewData($request)));
     }
 }

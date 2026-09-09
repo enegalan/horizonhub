@@ -3,6 +3,7 @@
 namespace App\Services\Metrics\Calculators;
 
 use App\Models\Service;
+use App\Services\Horizon\HorizonClientApiService;
 use App\Support\Horizon\ClientResponse;
 use App\Support\Horizon\StatsReader;
 use Illuminate\Support\Collection;
@@ -58,7 +59,7 @@ final class JobsThroughputMetricsCalculator extends AbstractMetricsCalculator
 
         /** @var Service $service */
         foreach ($services as $service) {
-            $data = ClientResponse::data($this->horizonApi->getStats($service));
+            $data = ClientResponse::data(HorizonClientApiService::getStats($service));
             $summary = StatsReader::summary($data);
             $minute += $summary['jobsPastMinute'];
             $hour += $summary['recentJobs'];
@@ -78,7 +79,7 @@ final class JobsThroughputMetricsCalculator extends AbstractMetricsCalculator
     private function private__sumStatsField(?Service $service, string $field): int
     {
         if ($service !== null) {
-            $data = ClientResponse::data($this->horizonApi->getStats($service));
+            $data = ClientResponse::data(HorizonClientApiService::getStats($service));
 
             return match ($field) {
                 'failedJobs' => StatsReader::failedJobs($data),

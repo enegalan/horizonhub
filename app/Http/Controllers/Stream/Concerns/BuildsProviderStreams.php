@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Stream\Concerns;
 
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
+use App\Services\Services\ServiceFilterService;
 
 trait BuildsProviderStreams
 {
@@ -14,7 +15,7 @@ trait BuildsProviderStreams
      */
     protected function buildProviders(string $query = ''): string
     {
-        $search = $this->serviceFilter->searchFromQuery($query);
+        $search = ServiceFilterService::searchFromQuery($query);
 
         $providersQuery = NotificationProvider::orderBy('type')->orderBy('name');
 

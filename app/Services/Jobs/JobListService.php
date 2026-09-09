@@ -3,7 +3,7 @@
 namespace App\Services\Jobs;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\HorizonClientApiService;
 use App\Services\Services\ServiceFilterService;
 use App\Support\DatetimeBoundaryParser;
 use App\Support\Jobs\JobRuntime;
@@ -15,28 +15,6 @@ use Illuminate\Support\Collection;
 
 class JobListService
 {
-    /**
-     * The Horizon API client.
-     */
-    private HorizonClientService $horizonApi;
-
-    /**
-     * The service filter service.
-     */
-    private ServiceFilterService $serviceFilter;
-
-    /**
-     * The constructor.
-     *
-     * @param HorizonClientService $horizonApi The horizon API client.
-     * @param ServiceFilterService $serviceFilter The service filter service.
-     */
-    public function __construct(HorizonClientService $horizonApi, ServiceFilterService $serviceFilter)
-    {
-        $this->horizonApi = $horizonApi;
-        $this->serviceFilter = $serviceFilter;
-    }
-
     /**
      * Aggregated jobs index paginators from the current request query.
      *
@@ -50,9 +28,9 @@ class JobListService
      *     search: string
      * }
      */
-    public function buildAggregatedJobsIndexFromRequest(Request $request): array
+    public static function buildAggregatedJobsIndexFromRequest(Request $request): array
     {
-        $serviceFilterIds = $this->serviceFilter->resolveServiceIds($request);
+        $serviceFilterIds = ServiceFilterService::resolveServiceIds($request);
         $search = (string) $request->query('search', '');
 
         $servicesQuery = Service::enabled();
@@ -68,7 +46,7 @@ class JobListService
         $pageProcessed = \max(1, (int) $request->query('page_processed', 1));
         $pageFailed = \max(1, (int) $request->query('page_failed', 1));
 
-        $paginators = $this->buildAggregatedStatusPaginators(
+        $paginators = self::buildAggregatedStatusPaginators(
             $servicesWithApi,
             $search,
             $pageProcessing,
@@ -102,7 +80,7 @@ class JobListService
      *
      * @return array{processing: LengthAwarePaginator, processed: LengthAwarePaginator, failed: LengthAwarePaginator}
      */
-    public function buildAggregatedStatusPaginators(
+    public static function buildAggregatedStatusPaginators(
         Collection $services,
         string $search,
         int $pageProcessing,
@@ -112,14 +90,14 @@ class JobListService
         string $path,
         array $query,
     ): array {
-        $jobsProcessing = $this->private__collectAndSortJobsForServices($services, 'processing', $search);
-        $jobsProcessed = $this->private__collectAndSortJobsForServices($services, 'processed', $search);
-        $jobsFailed = $this->private__collectAndSortJobsForServices($services, 'failed', $search);
+        $jobsProcessing = self::private__collectAndSortJobsForServices($services, 'processing', $search);
+        $jobsProcessed = self::private__collectAndSortJobsForServices($services, 'processed', $search);
+        $jobsFailed = self::private__collectAndSortJobsForServices($services, 'failed', $search);
 
         return [
-            'processing' => $this->private__makePaginator($jobsProcessing, $perPage, $pageProcessing, $path, $query, 'page_processing'),
-            'processed' => $this->private__makePaginator($jobsProcessed, $perPage, $pageProcessed, $path, $query, 'page_processed'),
-            'failed' => $this->private__makePaginator($jobsFailed, $perPage, $pageFailed, $path, $query, 'page_failed'),
+            'processing' => self::private__makePaginator($jobsProcessing, $perPage, $pageProcessing, $path, $query, 'page_processing'),
+            'processed' => self::private__makePaginator($jobsProcessed, $perPage, $pageProcessed, $path, $query, 'page_processed'),
+            'failed' => self::private__makePaginator($jobsFailed, $perPage, $pageFailed, $path, $query, 'page_failed'),
         ];
     }
 
@@ -135,7 +113,7 @@ class JobListService
      *
      * @return array{rows: list<array<string, mixed>>, total: int, last_page: int}
      */
-    public function buildFailedJobsRetryModalPage(
+    public static function buildFailedJobsRetryModalPage(
         Collection $services,
         string $search,
         mixed $dateFrom,
@@ -143,7 +121,7 @@ class JobListService
         int $page,
         int $perPage,
     ): array {
-        $rows = $this->private__buildRetryModalFailedRows($services, $search, $dateFrom, $dateTo);
+        $rows = self::private__buildRetryModalFailedRows($services, $search, $dateFrom, $dateTo);
 
         $total = \count($rows);
         $lastPage = $perPage > 0 ? (int) \max(1, (int) \ceil($total / $perPage)) : 1;
@@ -178,7 +156,7 @@ class JobListService
      *
      * @return array{processing: LengthAwarePaginator, processed: LengthAwarePaginator, failed: LengthAwarePaginator}
      */
-    public function buildServiceStatusPaginators(
+    public static function buildServiceStatusPaginators(
         Service $service,
         string $search,
         int $pageProcessing,
@@ -190,14 +168,14 @@ class JobListService
     ): array {
         $merged = \collect();
         $merged->push($service);
-        $jobsProcessing = $this->private__collectAndSortJobsForServices($merged, 'processing', $search);
-        $jobsProcessed = $this->private__collectAndSortJobsForServices($merged, 'processed', $search);
-        $jobsFailed = $this->private__collectAndSortJobsForServices($merged, 'failed', $search);
+        $jobsProcessing = self::private__collectAndSortJobsForServices($merged, 'processing', $search);
+        $jobsProcessed = self::private__collectAndSortJobsForServices($merged, 'processed', $search);
+        $jobsFailed = self::private__collectAndSortJobsForServices($merged, 'failed', $search);
 
         return [
-            'processing' => $this->private__makePaginator($jobsProcessing, $perPage, $pageProcessing, $path, $query, 'page_processing'),
-            'processed' => $this->private__makePaginator($jobsProcessed, $perPage, $pageProcessed, $path, $query, 'page_processed'),
-            'failed' => $this->private__makePaginator($jobsFailed, $perPage, $pageFailed, $path, $query, 'page_failed'),
+            'processing' => self::private__makePaginator($jobsProcessing, $perPage, $pageProcessing, $path, $query, 'page_processing'),
+            'processed' => self::private__makePaginator($jobsProcessed, $perPage, $pageProcessed, $path, $query, 'page_processed'),
+            'failed' => self::private__makePaginator($jobsFailed, $perPage, $pageFailed, $path, $query, 'page_failed'),
         ];
     }
 
@@ -209,12 +187,12 @@ class JobListService
      *
      * @return callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>}
      */
-    private function private__apiFetcherForStatus(Service $service, string $status): callable
+    private static function private__apiFetcherForStatus(Service $service, string $status): callable
     {
         return match ($status) {
-            'processing' => fn (array $query): array => $this->horizonApi->getPendingJobs($service, $query),
-            'processed' => fn (array $query): array => $this->horizonApi->getCompletedJobs($service, $query),
-            'failed' => fn (array $query): array => $this->horizonApi->getFailedJobs($service, $query),
+            'processing' => fn (array $query): array => HorizonClientApiService::getPendingJobs($service, $query),
+            'processed' => fn (array $query): array => HorizonClientApiService::getCompletedJobs($service, $query),
+            'failed' => fn (array $query): array => HorizonClientApiService::getFailedJobs($service, $query),
             default => throw new \InvalidArgumentException("Unsupported job list status [$status]."),
         };
     }
@@ -229,7 +207,7 @@ class JobListService
      *
      * @return list<array<string, mixed>>
      */
-    private function private__buildRetryModalFailedRows(
+    private static function private__buildRetryModalFailedRows(
         Collection $services,
         string $search,
         mixed $dateFrom,
@@ -244,7 +222,7 @@ class JobListService
 
         foreach ($services as $service) {
             $rawJobs = JobsPaginator::fetchAllPages(
-                fn (array $query): array => $this->horizonApi->getFailedJobs($service, $query),
+                fn (array $query): array => HorizonClientApiService::getFailedJobs($service, $query),
             );
 
             foreach ($rawJobs as $job) {
@@ -260,7 +238,7 @@ class JobListService
                 $queue = (string) ($job['queue'] ?? '');
                 $name = (string) ($job['name'] ?? '');
 
-                if (! $this->private__matchesSearch((object) [
+                if (! self::private__matchesSearch((object) [
                     'queue' => $queue,
                     'name' => $name,
                     'uuid' => $jobUuid,
@@ -326,12 +304,12 @@ class JobListService
      *
      * @return Collection<int, object>
      */
-    private function private__collectAndSortJobsForServices(Collection $services, string $status, string $search): Collection
+    private static function private__collectAndSortJobsForServices(Collection $services, string $status, string $search): Collection
     {
         $merged = \collect();
 
         foreach ($services as $service) {
-            $fetcher = $this->private__apiFetcherForStatus($service, $status);
+            $fetcher = self::private__apiFetcherForStatus($service, $status);
             $rawJobs = JobsPaginator::fetchAllPages($fetcher);
 
             foreach ($rawJobs as $job) {
@@ -339,13 +317,13 @@ class JobListService
                     continue;
                 }
 
-                $row = $this->private__mapRawJobToListRow($job, $service, $status);
+                $row = self::private__mapRawJobToListRow($job, $service, $status);
 
                 if ($row === null) {
                     continue;
                 }
 
-                if (! $this->private__matchesSearch($row, $search)) {
+                if (! self::private__matchesSearch($row, $search)) {
                     continue;
                 }
                 $merged->push($row);
@@ -353,8 +331,8 @@ class JobListService
         }
 
         return $merged->sort(function (object $a, object $b) use ($status): int {
-            $timeA = $this->private__sortTimeForStatus($a, $status);
-            $timeB = $this->private__sortTimeForStatus($b, $status);
+            $timeA = self::private__sortTimeForStatus($a, $status);
+            $timeB = self::private__sortTimeForStatus($b, $status);
 
             if ($timeA === $timeB) {
                 $sidA = $a->service->id ?? 0;
@@ -381,7 +359,7 @@ class JobListService
      * @param array<string, mixed> $query The query.
      * @param string $pageName The page name.
      */
-    private function private__makePaginator(
+    private static function private__makePaginator(
         Collection $items,
         int $perPage,
         int $page,
@@ -427,7 +405,7 @@ class JobListService
      * @param Service $service The service.
      * @param 'processing'|'processed'|'failed' $status The status.
      */
-    private function private__mapRawJobToListRow(array $job, Service $service, string $status): ?object
+    private static function private__mapRawJobToListRow(array $job, Service $service, string $status): ?object
     {
         $uuid = (string) ($job['id'] ?? '');
 
@@ -466,7 +444,7 @@ class JobListService
      * @param object $row The row.
      * @param string $search The search.
      */
-    private function private__matchesSearch(object $row, string $search): bool
+    private static function private__matchesSearch(object $row, string $search): bool
     {
         if ($search === '') {
             return true;
@@ -483,7 +461,7 @@ class JobListService
      * @param object $row The row.
      * @param 'processing'|'processed'|'failed' $status The status.
      */
-    private function private__sortTimeForStatus(object $row, string $status): float
+    private static function private__sortTimeForStatus(object $row, string $status): float
     {
         $carbon = match ($status) {
             'processing' => $row->queued_at,

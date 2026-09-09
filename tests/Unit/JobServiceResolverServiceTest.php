@@ -3,10 +3,10 @@
 namespace Tests\Unit;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
 use App\Services\Jobs\JobServiceResolverService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class JobServiceResolverServiceTest extends TestCase
@@ -22,50 +22,54 @@ class JobServiceResolverServiceTest extends TestCase
 
     public function test_resolve_caches_service_id_after_first_match(): void
     {
-        $first = Service::create(['name' => 'alpha', 'base_url' => 'https://alpha.test', 'status' => 'online']);
+        config()->set('horizonhub.horizon_http_retry', ['times' => 1, 'sleep_ms' => 0, 'retry_on_status' => []]);
+
+        Service::create(['name' => 'alpha', 'base_url' => 'https://alpha.test', 'status' => 'online']);
         $second = Service::create(['name' => 'beta', 'base_url' => 'https://beta.test', 'status' => 'online']);
 
-        $api = $this->createMock(HorizonClientService::class);
-        $api->expects($this->exactly(2))
-            ->method('getJob')
-            ->willReturnCallback(function (Service $service) use ($first): array {
-                if ($service->is($first)) {
-                    return ['success' => false];
-                }
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), 'https://alpha.test/horizon/api/jobs/job-uuid-1')) {
+                return Http::response(['message' => 'not found'], 404);
+            }
 
-                return [
-                    'success' => true,
-                    'data' => ['id' => 'job-uuid-1'],
-                ];
-            });
+            if (str_contains($request->url(), 'https://beta.test/horizon/api/jobs/job-uuid-1')) {
+                return Http::response(['id' => 'job-uuid-1'], 200);
+            }
 
-        $resolver = new JobServiceResolverService($api);
-        $resolved = $resolver->resolve('job-uuid-1');
+            return Http::response('unexpected', 500);
+        });
+
+        $resolved = JobServiceResolverService::resolve('job-uuid-1');
 
         $this->assertTrue($resolved['service']->is($second));
         $this->assertEquals($second->id, Cache::get('horizonhub:job-service:job-uuid-1'));
+
+        Http::assertSentCount(2);
     }
 
     public function test_resolve_returns_null_for_blank_uuid(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-        $api->expects($this->never())->method('getJob');
+        Http::fake();
 
-        $resolver = new JobServiceResolverService($api);
-
-        $this->assertNull($resolver->resolve(''));
+        $this->assertNull(JobServiceResolverService::resolve(''));
+        Http::assertNothingSent();
     }
 
     public function test_resolve_returns_null_when_no_service_has_job(): void
     {
+        config()->set('horizonhub.horizon_http_retry', ['times' => 1, 'sleep_ms' => 0, 'retry_on_status' => []]);
+
         Service::create(['name' => 'alpha', 'base_url' => 'https://alpha.test', 'status' => 'online']);
 
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getJob')->willReturn(['success' => false]);
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), 'https://alpha.test/horizon/api/jobs/missing-job')) {
+                return Http::response(['message' => 'not found'], 404);
+            }
 
-        $resolver = new JobServiceResolverService($api);
+            return Http::response('unexpected', 500);
+        });
 
-        $this->assertNull($resolver->resolve('missing-job'));
+        $this->assertNull(JobServiceResolverService::resolve('missing-job'));
     }
 
     public function test_resolve_uses_cached_service_id(): void
@@ -75,13 +79,15 @@ class JobServiceResolverServiceTest extends TestCase
 
         Cache::forever('horizonhub:job-service:job-uuid-1', $second->id);
 
-        $api = $this->createMock(HorizonClientService::class);
-        $api->expects($this->once())
-            ->method('getJob')
-            ->willReturn(['success' => true, 'data' => ['id' => 'job-uuid-1']]);
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), 'https://beta.test/horizon/api/jobs/job-uuid-1')) {
+                return Http::response(['id' => 'job-uuid-1'], 200);
+            }
 
-        $resolver = new JobServiceResolverService($api);
+            return Http::response('unexpected', 500);
+        });
 
-        $this->assertTrue($resolver->resolve('job-uuid-1')['service']->is($second));
+        $this->assertTrue(JobServiceResolverService::resolve('job-uuid-1')['service']->is($second));
+        Http::assertSentCount(1);
     }
 }

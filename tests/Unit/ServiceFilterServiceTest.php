@@ -14,14 +14,6 @@ class ServiceFilterServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    private ServiceFilterService $filter;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->filter = new ServiceFilterService;
-    }
-
     #[Test]
     public function resolve_filters_by_tags(): void
     {
@@ -33,7 +25,7 @@ class ServiceFilterServiceTest extends TestCase
             'service_tag' => ['production', 'staging'],
         ]);
 
-        $ids = $this->filter->resolveServiceIds($request);
+        $ids = ServiceFilterService::resolveServiceIds($request);
 
         $this->assertSame([$prod->id, $staging->id], $ids);
     }
@@ -49,7 +41,7 @@ class ServiceFilterServiceTest extends TestCase
             'service_id' => [$prod->id],
         ]);
 
-        $ids = $this->filter->resolveServiceIds($request);
+        $ids = ServiceFilterService::resolveServiceIds($request);
 
         $this->assertSame([$prod->id], $ids);
         $this->assertNotContains($staging->id, $ids);
@@ -60,7 +52,7 @@ class ServiceFilterServiceTest extends TestCase
     {
         $request = Request::create('/horizon/dashboard', 'GET');
 
-        $this->assertSame([], $this->filter->resolveServiceIds($request));
+        $this->assertSame([], ServiceFilterService::resolveServiceIds($request));
     }
 
     #[Test]
@@ -74,7 +66,7 @@ class ServiceFilterServiceTest extends TestCase
             'service_id' => [$staging->id],
         ]);
 
-        $ids = $this->filter->resolveServiceIds($request);
+        $ids = ServiceFilterService::resolveServiceIds($request);
 
         $this->assertNotContains($prod->id, $ids);
         $this->assertNotContains($staging->id, $ids);

@@ -1,10 +1,8 @@
 <?php
 
-namespace App\Services\Horizon\Concerns;
+namespace App\Services\Horizon;
 
 use App\Models\Service;
-use App\Services\Horizon\Contracts\HorizonClientCache as HorizonClientCacheContract;
-use App\Services\Horizon\Contracts\HorizonClientHttp as HorizonClientHttpContract;
 use App\Support\Http\HttpRetryBackoff;
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Exception\GuzzleException;
@@ -16,23 +14,8 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class HorizonClientHttp implements HorizonClientHttpContract
+class HorizonClientHttpService
 {
-    /**
-     * The cache instance.
-     */
-    private HorizonClientCacheContract $cache;
-
-    /**
-     * The constructor.
-     *
-     * @param HorizonClientCacheContract $cache The cache instance.
-     */
-    public function __construct(HorizonClientCacheContract $cache)
-    {
-        $this->cache = $cache;
-    }
-
     /**
      * Call the Horizon HTTP API for a service.
      *
@@ -45,7 +28,7 @@ class HorizonClientHttp implements HorizonClientHttpContract
      *
      * @return array The response data.
      */
-    public function call(
+    public static function call(
         Service $service,
         string $path,
         string $method = 'post',
@@ -63,7 +46,7 @@ class HorizonClientHttp implements HorizonClientHttpContract
         }
 
         // Check if the service is in cooldown.
-        if (! $bypassFailureCooldown && $this->cache->hasFailureCooldown($service)) {
+        if (! $bypassFailureCooldown && HorizonClientCacheService::hasFailureCooldown($service)) {
             return [
                 'success' => false,
                 'message' => 'Service temporarily in cooldown after recent upstream failures.',
@@ -84,10 +67,10 @@ class HorizonClientHttp implements HorizonClientHttpContract
         try {
             // Check if request was previously cached so we can avoid new HTTP request.
             if ($shouldCache) {
-                $cached = $this->cache->getRequestPathCache($service, $path);
+                $cached = HorizonClientCacheService::getRequestPathCache($service, $path);
 
                 if (empty($cached)) {
-                    $lock = $this->cache->requestPathFillLock($service, $path);
+                    $lock = HorizonClientCacheService::requestPathFillLock($service, $path);
 
                     try {
                         $lock->block((int) config('horizonhub.api_timeout'));
@@ -101,7 +84,7 @@ class HorizonClientHttp implements HorizonClientHttpContract
                         ];
                     }
 
-                    $cached = $this->cache->getRequestPathCache($service, $path);
+                    $cached = HorizonClientCacheService::getRequestPathCache($service, $path);
                 }
 
                 if ($cached !== null) {
@@ -121,7 +104,7 @@ class HorizonClientHttp implements HorizonClientHttpContract
 
                 // Reserve a concurrency slot so a slow upstream service is not
                 // overwhelmed by parallel polls coming from multiple streams.
-                $slotAcquired = $this->cache->acquireServiceRequestSlot($service);
+                $slotAcquired = HorizonClientCacheService::acquireServiceRequestSlot($service);
 
                 if (! $slotAcquired) {
                     return [
@@ -145,10 +128,10 @@ class HorizonClientHttp implements HorizonClientHttpContract
 
             // Attempt to make the HTTP request.
             $attempt = function () use ($service, $url, $httpMethod, $withDashboardSession): ?Response {
-                $request = $this->private__newHorizonPendingRequest($httpMethod, $service);
+                $request = self::private__newHorizonPendingRequest($httpMethod, $service);
 
                 if ($withDashboardSession) {
-                    $bootstrap = $this->private__bootstrapDashboardSession($service);
+                    $bootstrap = self::private__bootstrapDashboardSession($service);
 
                     if (empty($bootstrap)) {
                         return null;
@@ -185,7 +168,7 @@ class HorizonClientHttp implements HorizonClientHttpContract
             }
 
             // Process the HTTP response.
-            $result = $this->private__processHttpResponse(
+            $result = self::private__processHttpResponse(
                 $response,
                 $service,
                 $url,
@@ -195,12 +178,13 @@ class HorizonClientHttp implements HorizonClientHttpContract
 
             // Handle successful response.
             if ($result['success'] === true) {
-                // Forget failure cooldown.
-                $this->cache->forgetFailureCooldown($service);
+                // Forget failure cooldown and timeout advice.
+                HorizonClientCacheService::forgetFailureCooldown($service);
+                HorizonClientCacheService::forgetTimeoutAdvice($service);
 
                 if ($shouldCache) {
                     // Cache the response.
-                    $this->cache->putRequestPathCache($service, $path, $result);
+                    HorizonClientCacheService::putRequestPathCache($service, $path, $result);
                 }
 
                 return $result;
@@ -208,7 +192,7 @@ class HorizonClientHttp implements HorizonClientHttpContract
 
             // If the response is not authorized, put the service in cooldown.
             if (! \in_array($result['status'], config('horizonhub.horizon_http_auth_statuses'), true)) {
-                $this->cache->putFailureCooldown($service);
+                HorizonClientCacheService::putFailureCooldown($service);
             }
 
             return $result;
@@ -221,7 +205,13 @@ class HorizonClientHttp implements HorizonClientHttpContract
             ]);
 
             // Put the service in cooldown.
-            $this->cache->putFailureCooldown($service);
+            HorizonClientCacheService::putFailureCooldown($service);
+
+            // Advise the user to raise the API timeout when the upstream service
+            // responds slower than the configured value.
+            if (self::private__isTimeoutException($e)) {
+                HorizonClientCacheService::putTimeoutAdvice($service);
+            }
 
             $statusCode = $e->getCode();
 
@@ -241,7 +231,7 @@ class HorizonClientHttp implements HorizonClientHttpContract
             ];
         } finally {
             if ($slotAcquired) {
-                $this->cache->releaseServiceRequestSlot($service);
+                HorizonClientCacheService::releaseServiceRequestSlot($service);
             }
 
             $lock?->release();
@@ -255,14 +245,14 @@ class HorizonClientHttp implements HorizonClientHttpContract
      *
      * @return array|null The response data.
      */
-    private function private__bootstrapDashboardSession(Service $service): ?array
+    private static function private__bootstrapDashboardSession(Service $service): ?array
     {
         $dashboardUrl = $service->getBaseUrl() . (string) config('horizonhub.horizon_paths.dashboard');
 
         $cookieJar = new CookieJar;
 
         try {
-            $response = $this->private__newHorizonPendingRequest('get', $service)
+            $response = self::private__newHorizonPendingRequest('get', $service)
                 ->withOptions(['cookies' => $cookieJar])
                 ->get($dashboardUrl);
         } catch (\Throwable $e) {
@@ -306,6 +296,22 @@ class HorizonClientHttp implements HorizonClientHttpContract
     }
 
     /**
+     * Determine whether an exception represents an upstream connection timeout.
+     *
+     * @param \Throwable $e The exception.
+     *
+     * @return bool True when the upstream service timed out, false otherwise.
+     */
+    private static function private__isTimeoutException(\Throwable $e): bool
+    {
+        if (! $e instanceof ConnectionException) {
+            return false;
+        }
+
+        return \str_contains(\strtolower((string) $e->getMessage()), 'timed out');
+    }
+
+    /**
      * Create a new Horizon pending request.
      *
      * @param string $httpMethod The HTTP method.
@@ -313,7 +319,7 @@ class HorizonClientHttp implements HorizonClientHttpContract
      *
      * @return PendingRequest The pending request.
      */
-    private function private__newHorizonPendingRequest(string $httpMethod, ?Service $service = null): PendingRequest
+    private static function private__newHorizonPendingRequest(string $httpMethod, ?Service $service = null): PendingRequest
     {
         $request = Http::timeout((int) config('horizonhub.api_timeout'));
 
@@ -382,7 +388,7 @@ class HorizonClientHttp implements HorizonClientHttpContract
      *
      * @return array The response data.
      */
-    private function private__processHttpResponse(Response $response, Service $service, string $url, bool $updateHeartbeat = false, string $logContext = ''): array
+    private static function private__processHttpResponse(Response $response, Service $service, string $url, bool $updateHeartbeat = false, string $logContext = ''): array
     {
         if ($response->successful()) {
             $data = \json_decode($response->body(), true);

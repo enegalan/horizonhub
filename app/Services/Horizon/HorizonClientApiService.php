@@ -1,28 +1,11 @@
 <?php
 
-namespace App\Services\Horizon\Concerns;
+namespace App\Services\Horizon;
 
 use App\Models\Service;
-use App\Services\Horizon\Contracts\HorizonClientApi as HorizonClientApiContract;
-use App\Services\Horizon\Contracts\HorizonClientCache as HorizonClientCacheContract;
 
-class HorizonClientApi implements HorizonClientApiContract
+class HorizonClientApiService
 {
-    /**
-     * The HTTP client.
-     */
-    private HorizonClientHttp $http;
-
-    /**
-     * The constructor.
-     *
-     * @param HorizonClientCacheContract $cache The cache instance.
-     */
-    public function __construct(HorizonClientCacheContract $cache)
-    {
-        $this->http = new HorizonClientHttp($cache);
-    }
-
     /**
      * Get completed/processed jobs from the Horizon HTTP API for a service.
      *
@@ -31,11 +14,11 @@ class HorizonClientApi implements HorizonClientApiContract
      *
      * @return array The response data.
      */
-    public function getCompletedJobs(Service $service, array $query = []): array
+    public static function getCompletedJobs(Service $service, array $query = []): array
     {
         $relativePath = (string) config('horizonhub.horizon_paths.completed_jobs');
 
-        return $this->http->call($service, "$relativePath?" . \http_build_query($this->private__buildJobListQuery($query)), 'get');
+        return HorizonClientHttpService::call($service, "$relativePath?" . \http_build_query(self::private__buildJobListQuery($query)), 'get');
     }
 
     /**
@@ -46,11 +29,11 @@ class HorizonClientApi implements HorizonClientApiContract
      *
      * @return array The response data.
      */
-    public function getFailedJobs(Service $service, array $query = []): array
+    public static function getFailedJobs(Service $service, array $query = []): array
     {
         $relativePath = (string) config('horizonhub.horizon_paths.failed_jobs');
 
-        return $this->http->call($service, "$relativePath?" . \http_build_query($this->private__buildJobListQuery($query)), 'get');
+        return HorizonClientHttpService::call($service, "$relativePath?" . \http_build_query(self::private__buildJobListQuery($query)), 'get');
     }
 
     /**
@@ -61,11 +44,11 @@ class HorizonClientApi implements HorizonClientApiContract
      *
      * @return array The response data.
      */
-    public function getJob(Service $service, string $jobUuid): array
+    public static function getJob(Service $service, string $jobUuid): array
     {
         $relativePath = \str_replace('{id}', $jobUuid, (string) config('horizonhub.horizon_paths.job'));
 
-        return $this->http->call($service, $relativePath, 'get');
+        return HorizonClientHttpService::call($service, $relativePath, 'get');
     }
 
     /**
@@ -75,11 +58,11 @@ class HorizonClientApi implements HorizonClientApiContract
      *
      * @return array The response data.
      */
-    public function getMasters(Service $service): array
+    public static function getMasters(Service $service): array
     {
         $relativePath = (string) config('horizonhub.horizon_paths.masters');
 
-        return $this->http->call($service, $relativePath, 'get');
+        return HorizonClientHttpService::call($service, $relativePath, 'get');
     }
 
     /**
@@ -90,11 +73,11 @@ class HorizonClientApi implements HorizonClientApiContract
      *
      * @return array The response data.
      */
-    public function getPendingJobs(Service $service, array $query = []): array
+    public static function getPendingJobs(Service $service, array $query = []): array
     {
         $relativePath = (string) config('horizonhub.horizon_paths.pending_jobs');
 
-        return $this->http->call($service, "$relativePath?" . \http_build_query($this->private__buildJobListQuery($query)), 'get');
+        return HorizonClientHttpService::call($service, "$relativePath?" . \http_build_query(self::private__buildJobListQuery($query)), 'get');
     }
 
     /**
@@ -104,11 +87,11 @@ class HorizonClientApi implements HorizonClientApiContract
      *
      * @return array The response data.
      */
-    public function getStats(Service $service): array
+    public static function getStats(Service $service): array
     {
         $relativePath = (string) config('horizonhub.horizon_paths.ping');
 
-        return $this->http->call($service, $relativePath, 'get');
+        return HorizonClientHttpService::call($service, $relativePath, 'get');
     }
 
     /**
@@ -118,11 +101,11 @@ class HorizonClientApi implements HorizonClientApiContract
      *
      * @return array The response data.
      */
-    public function getWorkload(Service $service): array
+    public static function getWorkload(Service $service): array
     {
         $relativePath = (string) config('horizonhub.horizon_paths.workload');
 
-        return $this->http->call($service, $relativePath, 'get');
+        return HorizonClientHttpService::call($service, $relativePath, 'get');
     }
 
     /**
@@ -132,26 +115,26 @@ class HorizonClientApi implements HorizonClientApiContract
      *
      * @return array The response data.
      */
-    public function ping(Service $service): array
+    public static function ping(Service $service): array
     {
         $relativePath = (string) config('horizonhub.horizon_paths.ping');
 
-        return $this->http->call($service, $relativePath, 'get', allowWhenDisabled: true, bypassFailureCooldown: true);
+        return HorizonClientHttpService::call($service, $relativePath, 'get', allowWhenDisabled: true, bypassFailureCooldown: true);
     }
 
     /**
-     * Retry a job through the Horizon HTTP API for a service.
+     * Retry a job through the Horizon HTTP API.
      *
      * @param Service $service The service instance.
      * @param string $jobUuid The job UUID.
      *
      * @return array The response data.
      */
-    public function retryJob(Service $service, string $jobUuid): array
+    public static function retryJob(Service $service, string $jobUuid): array
     {
         $relativePath = \str_replace('{id}', $jobUuid, (string) config('horizonhub.horizon_paths.retry'));
 
-        return $this->http->call($service, $relativePath, 'post', withDashboardSession: true);
+        return HorizonClientHttpService::call($service, $relativePath, 'post', withDashboardSession: true);
     }
 
     /**
@@ -161,7 +144,7 @@ class HorizonClientApi implements HorizonClientApiContract
      *
      * @return array{starting_at: int, limit: int}
      */
-    private function private__buildJobListQuery(array $overrides = []): array
+    private static function private__buildJobListQuery(array $overrides = []): array
     {
         return \array_merge([
             'starting_at' => 0,

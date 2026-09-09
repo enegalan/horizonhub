@@ -3,8 +3,8 @@
 namespace Tests\Unit;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
@@ -16,13 +16,15 @@ class ServiceWithHorizonStatsTest extends TestCase
     {
         $service = Service::create(['name' => 'a', 'base_url' => 'https://a.test', 'status' => 'online']);
 
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getStats')->willReturn([
-            'success' => true,
-            'data' => ['failedJobs' => 4, 'recentJobs' => 9, 'status' => 'active'],
+        Http::fake([
+            'https://a.test/horizon/api/stats' => Http::response([
+                'failedJobs' => 4,
+                'recentJobs' => 9,
+                'status' => 'active',
+            ], 200),
         ]);
 
-        $service->withHorizonStats($api);
+        $service->withHorizonStats();
 
         $this->assertSame(4, $service->horizon_failed_jobs_count);
         $this->assertSame(9, $service->horizon_jobs_count);
@@ -38,10 +40,10 @@ class ServiceWithHorizonStatsTest extends TestCase
             'enabled' => false,
         ]);
 
-        $api = $this->createMock(HorizonClientService::class);
-        $api->expects($this->never())->method('getStats');
+        Http::fake(['*' => Http::response([], 200)]);
 
-        $disabled->withHorizonStats($api);
+        $disabled->withHorizonStats();
+        Http::assertNothingSent();
 
         $this->assertSame(0, $disabled->horizon_failed_jobs_count);
         $this->assertSame(0, $disabled->horizon_jobs_count);

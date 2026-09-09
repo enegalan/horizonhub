@@ -7,7 +7,7 @@ use App\Http\Requests\Horizon\FailedJobsListRequest;
 use App\Http\Requests\Horizon\RetryBatchRequest;
 use App\Http\Requests\Horizon\RetryJobRequest;
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\HorizonClientApiService;
 use App\Services\Jobs\JobListService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
@@ -15,28 +15,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 class JobActionController extends Controller
 {
-    /**
-     * The Horizon API proxy service.
-     */
-    private HorizonClientService $horizonApi;
-
-    /**
-     * The job list service.
-     */
-    private JobListService $jobList;
-
-    /**
-     * The constructor.
-     *
-     * @param HorizonClientService $horizonApi The Horizon API proxy service.
-     * @param JobListService $jobList The job list service.
-     */
-    public function __construct(HorizonClientService $horizonApi, JobListService $jobList)
-    {
-        $this->horizonApi = $horizonApi;
-        $this->jobList = $jobList;
-    }
-
     /**
      * List failed jobs for the retry modal (with filters).
      */
@@ -94,7 +72,7 @@ class JobActionController extends Controller
         $dateTo = $validated['date_to'] ?? null;
 
         if ($selection === 'all') {
-            $pageData = $this->jobList->buildFailedJobsRetryModalPage(
+            $pageData = JobListService::buildFailedJobsRetryModalPage(
                 $services,
                 $search,
                 $dateFrom,
@@ -117,7 +95,7 @@ class JobActionController extends Controller
             ]);
         }
 
-        $pageData = $this->jobList->buildFailedJobsRetryModalPage(
+        $pageData = JobListService::buildFailedJobsRetryModalPage(
             $services,
             $search,
             $dateFrom,
@@ -148,7 +126,7 @@ class JobActionController extends Controller
             return \response()->json(['message' => 'Service not found'], 404);
         }
 
-        $result = $this->horizonApi->retryJob($service, $uuid);
+        $result = HorizonClientApiService::retryJob($service, $uuid);
 
         if (! $result['success']) {
             return \response()->json(
@@ -185,7 +163,7 @@ class JobActionController extends Controller
 
                 continue;
             }
-            $result = $this->horizonApi->retryJob($service, $id);
+            $result = HorizonClientApiService::retryJob($service, $id);
 
             if ($result['success']) {
                 $results[] = ['id' => $id, 'success' => true];

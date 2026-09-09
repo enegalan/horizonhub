@@ -4,22 +4,11 @@ namespace App\Services\Notifiers;
 
 use App\Mail\AlertBatchedMail;
 use App\Models\Alert;
-use App\Services\Horizon\HorizonClientService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class EmailNotifierService extends AbstractAlertNotifier
 {
-    /**
-     * The constructor.
-     *
-     * @param HorizonClientService $horizonApi The horizon API client.
-     */
-    public function __construct(HorizonClientService $horizonApi)
-    {
-        parent::__construct($horizonApi);
-    }
-
     /**
      * Get the metadata.
      *

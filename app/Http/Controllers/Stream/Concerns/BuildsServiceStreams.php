@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Stream\Concerns;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\HorizonClientApiService;
+use App\Services\Jobs\JobListService;
+use App\Services\Services\ServiceFilterService;
 use App\Support\Horizon\ClientResponse;
 use App\Support\Horizon\MasterReader;
 use App\Support\Horizon\StatsReader;
@@ -21,13 +23,13 @@ trait BuildsServiceStreams
     protected function buildServices(string $query): string
     {
         $services = Service::getServices(
-            $this->serviceFilter->resolveServiceIdsFromQuery($query),
+            ServiceFilterService::resolveServiceIdsFromQuery($query),
             false,
             true,
         );
 
         foreach ($services as $service) {
-            $service->withHorizonStats($this->horizonApi);
+            $service->withHorizonStats();
         }
 
         $enabledServices = $services->where('enabled', true);
@@ -57,7 +59,7 @@ trait BuildsServiceStreams
 
         \parse_str($query, $queryParams);
 
-        $d = $this->private__buildServiceShowData($service, Request::create($url, 'GET', $queryParams), $this->horizonApi);
+        $d = $this->private__buildServiceShowData($service, Request::create($url, 'GET', $queryParams));
 
         $workloadCount = $d['workloadQueues']->count();
 
@@ -90,7 +92,6 @@ trait BuildsServiceStreams
      *
      * @param Service $service The service.
      * @param Request $request The request.
-     * @param HorizonClientService $horizonApi The horizon API client.
      *
      * @return array{
      *     jobsPastMinute: int|mixed,
@@ -110,7 +111,7 @@ trait BuildsServiceStreams
      *     search: string
      * }
      */
-    private function private__buildServiceShowData(Service $service, Request $request, HorizonClientService $horizonApi): array
+    private function private__buildServiceShowData(Service $service, Request $request): array
     {
         $search = (string) $request->query('search', '');
 
@@ -135,7 +136,7 @@ trait BuildsServiceStreams
             $data['failedPastSevenDays'] = $this->metrics->getFailedPastSevenDays($service);
 
             $stats = StatsReader::summary(ClientResponse::data(
-                $horizonApi->getStats($service),
+                HorizonClientApiService::getStats($service),
             ));
 
             $data['horizonStatus'] = $stats['status'];
@@ -147,7 +148,7 @@ trait BuildsServiceStreams
             $supervisorGroups = collect();
             $supervisors = collect();
 
-            $mastersData = ClientResponse::data($horizonApi->getMasters($service));
+            $mastersData = ClientResponse::data(HorizonClientApiService::getMasters($service));
 
             if ($mastersData !== null) {
                 foreach (
@@ -194,7 +195,7 @@ trait BuildsServiceStreams
             $pageProcessed = max(1, (int) $request->query('page_processed', 1));
             $pageFailed = max(1, (int) $request->query('page_failed', 1));
 
-            $paginators = $this->jobList->buildServiceStatusPaginators(
+            $paginators = JobListService::buildServiceStatusPaginators(
                 $service,
                 $search,
                 $pageProcessing,

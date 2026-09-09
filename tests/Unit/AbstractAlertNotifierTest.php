@@ -5,9 +5,9 @@ namespace Tests\Unit;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Strategies\FailureCount;
-use App\Services\Horizon\HorizonClientService;
 use App\Services\Notifiers\AbstractAlertNotifier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class AbstractAlertNotifierTest extends TestCase
@@ -19,8 +19,7 @@ class AbstractAlertNotifierTest extends TestCase
         $service = Service::create(['name' => 'svc-sparse', 'base_url' => 'https://svc.test', 'status' => 'online']);
         $alert = Alert::create(['name' => 'a', 'rule_type' => FailureCount::type(), 'enabled' => true]);
 
-        $api = $this->createMock(HorizonClientService::class);
-        $notifier = new class($api) extends AbstractAlertNotifier
+        $notifier = new class extends AbstractAlertNotifier
         {
             public static function meta(): array
             {
@@ -59,10 +58,7 @@ class AbstractAlertNotifierTest extends TestCase
         $service = Service::create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);
         $alert = Alert::create(['name' => 'a', 'rule_type' => FailureCount::type(), 'enabled' => true]);
 
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getJob')->willReturn(['success' => false]);
-
-        $notifier = new class($api) extends AbstractAlertNotifier
+        $notifier = new class extends AbstractAlertNotifier
         {
             public static function meta(): array
             {
@@ -103,19 +99,21 @@ class AbstractAlertNotifierTest extends TestCase
         $alert = Alert::create(['name' => 'a', 'rule_type' => FailureCount::type(), 'enabled' => true]);
         $exception = "line1\nline2\nline3\nline4\nline5\nline6";
 
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getJob')->willReturn([
-            'success' => true,
-            'data' => [
-                'name' => 'App\\Jobs\\Demo',
-                'queue' => 'default',
-                'failed_at' => now()->toIso8601String(),
-                'exception' => $exception,
-                'attempts' => 2,
-            ],
-        ]);
+        Http::fake(function ($request) use ($exception) {
+            if ($request->method() === 'GET' && \str_contains($request->url(), '/horizon/api/jobs/')) {
+                return Http::response([
+                    'name' => 'App\\Jobs\\Demo',
+                    'queue' => 'default',
+                    'failed_at' => now()->toIso8601String(),
+                    'exception' => $exception,
+                    'attempts' => 2,
+                ], 200);
+            }
 
-        $notifier = new class($api) extends AbstractAlertNotifier
+            return Http::response('unexpected', 500);
+        });
+
+        $notifier = new class extends AbstractAlertNotifier
         {
             public array $captured = [];
 

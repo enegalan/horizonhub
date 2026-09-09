@@ -3,13 +3,13 @@
 namespace Tests\Unit;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
 use App\Services\Jobs\JobsWindowFetcherService;
 use App\Services\Metrics\Calculators\JobsVolumeLast24hCalculator;
 use App\Services\Metrics\Calculators\RuntimeMetricsCalculator;
 use App\Services\Metrics\Calculators\WorkloadMetricsCalculator;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class MetricsCalculatorsCoverageTest extends TestCase
@@ -22,17 +22,19 @@ class MetricsCalculatorsCoverageTest extends TestCase
         $service = Service::create(['name' => 'svc-volume', 'base_url' => 'https://v.test', 'status' => 'online']);
         $since = now()->subHours(24)->getTimestamp();
 
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getCompletedJobs')->willReturn([
-            'success' => true,
-            'data' => ['jobs' => [['index' => 1, 'completed_at' => $since + 3600]]],
-        ]);
-        $api->method('getFailedJobs')->willReturn([
-            'success' => true,
-            'data' => ['jobs' => [['index' => 2, 'failed_at' => $since + 3600]]],
-        ]);
+        Http::fake(function ($request) use ($since) {
+            if (\str_contains($request->url(), '/jobs/completed')) {
+                return Http::response(['jobs' => [['index' => 1, 'completed_at' => $since + 3600]]], 200);
+            }
 
-        $calc = new JobsVolumeLast24hCalculator($api, new JobsWindowFetcherService($api));
+            if (\str_contains($request->url(), '/jobs/failed')) {
+                return Http::response(['jobs' => [['index' => 2, 'failed_at' => $since + 3600]]], 200);
+            }
+
+            return Http::response('unexpected', 500);
+        });
+
+        $calc = new JobsVolumeLast24hCalculator(new JobsWindowFetcherService);
         $result = $calc->getJobsVolumeLast24h([$service->id]);
         $this->assertCount(25, $result['xAxis']);
         $this->assertSame(1, $result['completed'][1]);
@@ -46,27 +48,29 @@ class MetricsCalculatorsCoverageTest extends TestCase
         $service = Service::create(['name' => 'svc-runtime-calc', 'base_url' => 'https://r.test', 'status' => 'online']);
         $since = now()->subHours(24)->getTimestamp();
 
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getCompletedJobs')->willReturn([
-            'success' => true,
-            'data' => ['jobs' => [[
-                'index' => 1,
-                'name' => 'App\\Jobs\\Done',
-                'reserved_at' => $since + 100,
-                'completed_at' => $since + 140,
-            ]]],
-        ]);
-        $api->method('getFailedJobs')->willReturn([
-            'success' => true,
-            'data' => ['jobs' => [[
-                'index' => 2,
-                'name' => 'App\\Jobs\\Failed',
-                'reserved_at' => $since + 200,
-                'failed_at' => $since + 260,
-            ]]],
-        ]);
+        Http::fake(function ($request) use ($since) {
+            if (\str_contains($request->url(), '/jobs/completed')) {
+                return Http::response(['jobs' => [[
+                    'index' => 1,
+                    'name' => 'App\\Jobs\\Done',
+                    'reserved_at' => $since + 100,
+                    'completed_at' => $since + 140,
+                ]]], 200);
+            }
 
-        $calc = new RuntimeMetricsCalculator($api, new JobsWindowFetcherService($api));
+            if (\str_contains($request->url(), '/jobs/failed')) {
+                return Http::response(['jobs' => [[
+                    'index' => 2,
+                    'name' => 'App\\Jobs\\Failed',
+                    'reserved_at' => $since + 200,
+                    'failed_at' => $since + 260,
+                ]]], 200);
+            }
+
+            return Http::response('unexpected', 500);
+        });
+
+        $calc = new RuntimeMetricsCalculator(new JobsWindowFetcherService);
         $result = $calc->getJobRuntimesLast24h([$service->id]);
         $this->assertCount(2, $result['points']);
         $this->assertSame('completed', $result['points'][0]['status']);
@@ -77,36 +81,40 @@ class MetricsCalculatorsCoverageTest extends TestCase
     public function test_workload_calculator_builds_data_and_fallback_from_masters(): void
     {
         $serviceA = Service::create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
-        $serviceB = Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
+        Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getWorkload')->willReturnCallback(function (Service $service): array {
-            if ($service->name === 'svc-a') {
-                return ['success' => true, 'data' => ['data' => [['name' => 'redis.default', 'length' => 3, 'processes' => 1, 'wait' => 0.4]]]];
+        Http::fake(function ($request) use ($serviceA) {
+            if (\str_contains($request->url(), '/workload')) {
+                if (\str_contains($request->url(), $serviceA->getBaseUrl())) {
+                    return Http::response(['data' => [['name' => 'redis.default', 'length' => 3, 'processes' => 1, 'wait' => 0.4]]], 200);
+                }
+
+                return Http::response(['data' => []], 200);
             }
 
-            return ['success' => true, 'data' => ['data' => []]];
-        });
-        $api->method('getMasters')->willReturnCallback(function (Service $service): array {
-            if ($service->name === 'svc-a') {
-                return ['success' => true, 'data' => [[
+            if (\str_contains($request->url(), '/masters')) {
+                if (\str_contains($request->url(), $serviceA->getBaseUrl())) {
+                    return Http::response([[
+                        'supervisors' => [[
+                            'name' => 'sup-a',
+                            'processes' => [1, 2],
+                            'options' => ['queue' => 'redis.default'],
+                        ]],
+                    ]], 200);
+                }
+
+                return Http::response([[
                     'supervisors' => [[
-                        'name' => 'sup-a',
-                        'processes' => [1, 2],
-                        'options' => ['queue' => 'redis.default'],
+                        'name' => 'sup-b',
+                        'options' => ['queue' => ['redis.fallback']],
                     ]],
-                ]]];
+                ]], 200);
             }
 
-            return ['success' => true, 'data' => [[
-                'supervisors' => [[
-                    'name' => 'sup-b',
-                    'options' => ['queue' => ['redis.fallback']],
-                ]],
-            ]]];
+            return Http::response('unexpected', 500);
         });
 
-        $calc = new WorkloadMetricsCalculator($api, new JobsWindowFetcherService($api));
+        $calc = new WorkloadMetricsCalculator(new JobsWindowFetcherService);
         $workload = $calc->getWorkloadData([]);
         $this->assertNotEmpty($workload);
         $this->assertSame('default', $workload[0]['queue']);

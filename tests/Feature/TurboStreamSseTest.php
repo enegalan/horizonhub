@@ -9,12 +9,13 @@ use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Strategies\FailureCount;
-use App\Services\Horizon\HorizonClientService;
 use App\Services\Metrics\MetricsDataService;
 use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Notifiers\SlackNotifierService;
 use App\Services\Services\ServiceFilterService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -218,12 +219,12 @@ class TurboStreamSseTest extends TestCase
                 ]);
         });
 
-        $this->mock(HorizonClientService::class, function ($mock): void {
-            $mock->shouldReceive('getStats')->andReturn([
-                'success' => true,
-                'data' => ['failedJobs' => 0, 'recentJobs' => 0, 'status' => 'running'],
-            ]);
-        });
+        // The stats read is intentionally not successful: a 2xx response would
+        // mark every service online via the heartbeat, which must not happen
+        // here because the assertions rely on each service's stored status.
+        Http::fake([
+            '*/horizon/api/stats' => Http::response(['message' => 'Forbidden'], 403),
+        ]);
 
         $result = $this->private__invokeStreamBuilder('buildDashboard', '');
 
@@ -235,6 +236,8 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('dash-alert', $result);
         $this->assertStringContainsString('online-svc', $result);
         $this->assertStringContainsString('target="dashboard-workload-summary-body" method="morph"', $result);
+
+        Http::assertSentCount(3);
     }
 
     public function test_build_dashboard_streams_returns_expected_targets(): void
@@ -276,21 +279,16 @@ class TurboStreamSseTest extends TestCase
 
         $jobUuid = '763dc9c2-a7cd-4b95-9da5-77beff5c264e';
 
-        $this->mock(HorizonClientService::class, function ($mock) use ($jobUuid): void {
-            $mock->shouldReceive('getJob')
-                ->zeroOrMoreTimes()
-                ->andReturn([
-                    'success' => true,
-                    'data' => [
-                        'id' => $jobUuid,
-                        'name' => 'App\\Jobs\\Demo',
-                        'queue' => 'default',
-                        'status' => 'failed',
-                        'payload' => [],
-                        'connection' => 'database',
-                    ],
-                ]);
-        });
+        Http::fake([
+            "*/horizon/api/jobs/$jobUuid" => Http::response([
+                'id' => $jobUuid,
+                'name' => 'App\\Jobs\\Demo',
+                'queue' => 'default',
+                'status' => 'failed',
+                'payload' => [],
+                'connection' => 'database',
+            ], 200),
+        ]);
 
         $result = $this->private__invokeStreamBuilder('buildJobShow', $jobUuid);
 
@@ -299,6 +297,8 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('target="horizon-job-detail-actions-stream"', $result);
         $this->assertStringContainsString('data-job-detail-retry-url', $result);
         $this->assertStringContainsString('action="update"', $result);
+
+        Http::assertSent(fn (Request $request): bool => \str_ends_with($request->url(), "/horizon/api/jobs/$jobUuid"));
     }
 
     public function test_build_job_show_streams_returns_null_for_missing_service_or_api_failure(): void
@@ -310,10 +310,16 @@ class TurboStreamSseTest extends TestCase
             'base_url' => 'https://horizon-api-stream-null.test',
             'status' => 'online',
         ]);
-        $this->mock(HorizonClientService::class, function ($mock): void {
-            $mock->shouldReceive('getJob')->andReturn(['success' => false]);
-        });
+
+        \config()->set('horizonhub.horizon_http_retry', ['times' => 1, 'sleep_ms' => 0, 'retry_on_status' => []]);
+
+        Http::fake([
+            '*/horizon/api/jobs/*' => Http::response(['message' => 'not found'], 404),
+        ]);
+
         $this->assertNull($this->private__invokeStreamBuilder('buildJobShow', 'uuid-y'));
+
+        Http::assertSentCount(1);
     }
 
     public function test_build_jobs_index_streams_returns_per_section_tbody_updates(): void
@@ -489,12 +495,12 @@ class TurboStreamSseTest extends TestCase
         Service::create(['name' => 'offline-svc', 'base_url' => 'https://offline.test', 'status' => 'offline']);
         Service::create(['name' => 'standby-svc', 'base_url' => 'https://standby.test', 'status' => 'stand_by']);
 
-        $this->mock(HorizonClientService::class, function ($mock): void {
-            $mock->shouldReceive('getStats')->andReturn([
-                'success' => true,
-                'data' => ['failedJobs' => 0, 'recentJobs' => 0, 'status' => 'running'],
-            ]);
-        });
+        // The stats read is intentionally not successful: a 2xx response would
+        // mark every service online via the heartbeat, which must not happen
+        // here because the assertions rely on each service's stored status.
+        Http::fake([
+            '*/horizon/api/stats' => Http::response(['message' => 'Forbidden'], 403),
+        ]);
 
         $result = $this->private__invokeStreamBuilder('buildServices', '');
 
@@ -502,6 +508,8 @@ class TurboStreamSseTest extends TestCase
         $this->assertMatchesRegularExpression('/Total.*?<span>3<\/span>/s', $result);
         $this->assertMatchesRegularExpression('/Online.*?<span>1<\/span>/s', $result);
         $this->assertMatchesRegularExpression('/Offline.*?<span>2<\/span>/s', $result);
+
+        Http::assertSentCount(3);
     }
 
     public function test_build_services_streams_returns_tbody_morph_update(): void
@@ -512,12 +520,13 @@ class TurboStreamSseTest extends TestCase
             'status' => 'online',
         ]);
 
-        $this->mock(HorizonClientService::class, function ($mock): void {
-            $mock->shouldReceive('getStats')->andReturn([
-                'success' => true,
-                'data' => ['failedJobs' => 0, 'recentJobs' => 0, 'status' => 'running'],
-            ]);
-        });
+        Http::fake([
+            '*/horizon/api/stats' => Http::response([
+                'failedJobs' => 0,
+                'recentJobs' => 0,
+                'status' => 'running',
+            ], 200),
+        ]);
 
         $result = $this->private__invokeStreamBuilder('buildServices', '');
 
@@ -526,25 +535,26 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('target="turbo-tbody-horizon-service-list" method="morph"', $result);
         $this->assertStringContainsString('action="update"', $result);
         $this->assertStringContainsString('data-horizon-stream-sig="', $result);
+
+        Http::assertSentCount(1);
     }
 
     public function test_parse_service_ids_and_turbo_stream_tag_helper_branches(): void
     {
         $controller = $this->app->make(HorizonStreamsController::class);
-        $filter = $this->app->make(ServiceFilterService::class);
 
-        $this->assertSame([], $filter->resolveServiceIdsFromQuery(''));
-        $this->assertSame([], $filter->resolveServiceIdsFromQuery('service_id=abc'));
+        $this->assertSame([], ServiceFilterService::resolveServiceIdsFromQuery(''));
+        $this->assertSame([], ServiceFilterService::resolveServiceIdsFromQuery('service_id=abc'));
 
         $service = Service::create([
             'name' => 'parse-svc',
             'base_url' => 'https://parse.test',
             'status' => 'online',
         ]);
-        $this->assertSame([$service->id], $filter->resolveServiceIdsFromQuery('service_id[]=' . $service->id));
+        $this->assertSame([$service->id], ServiceFilterService::resolveServiceIdsFromQuery('service_id[]=' . $service->id));
 
         $service->update(['tags' => ['production']]);
-        $this->assertSame([$service->id], $filter->resolveServiceIdsFromQuery('service_tag[]=production'));
+        $this->assertSame([$service->id], ServiceFilterService::resolveServiceIdsFromQuery('service_tag[]=production'));
 
         $tag = new \ReflectionMethod(StreamController::class, 'private__turboStreamTag');
         $tag->setAccessible(true);
@@ -601,20 +611,15 @@ class TurboStreamSseTest extends TestCase
 
         $jobUuid = '863dc9c2-a7cd-4b95-9da5-77beff5c264e';
 
-        $this->mock(HorizonClientService::class, function ($mock) use ($jobUuid): void {
-            $mock->shouldReceive('getJob')
-                ->zeroOrMoreTimes()
-                ->andReturn([
-                    'success' => true,
-                    'data' => [
-                        'id' => $jobUuid,
-                        'name' => 'App\\Jobs\\Demo',
-                        'queue' => 'default',
-                        'status' => 'failed',
-                        'payload' => [],
-                    ],
-                ]);
-        });
+        Http::fake([
+            "*/horizon/api/jobs/$jobUuid" => Http::response([
+                'id' => $jobUuid,
+                'name' => 'App\\Jobs\\Demo',
+                'queue' => 'default',
+                'status' => 'failed',
+                'payload' => [],
+            ], 200),
+        ]);
 
         $response = $this->get('/horizon/streams/horizon/jobs/' . $jobUuid);
 
