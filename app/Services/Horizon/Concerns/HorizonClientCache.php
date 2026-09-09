@@ -65,6 +65,16 @@ class HorizonClientCache implements HorizonClientCacheContract
     }
 
     /**
+     * Forget the timeout advice for a service.
+     *
+     * @param Service $service The service instance.
+     */
+    public function forgetTimeoutAdvice(Service $service): void
+    {
+        Cache::forget($this->timeoutAdviceCacheKey($service));
+    }
+
+    /**
      * Get the request path cache.
      *
      * @param Service $service The service instance.
@@ -120,6 +130,20 @@ class HorizonClientCache implements HorizonClientCacheContract
     }
 
     /**
+     * Put the timeout advice for a service.
+     *
+     * @param Service $service The service instance.
+     */
+    public function putTimeoutAdvice(Service $service): void
+    {
+        $seconds = (int) config('horizonhub.horizon_http_failure_cooldown_seconds');
+
+        if ($seconds > 0) {
+            Cache::put($this->timeoutAdviceCacheKey($service), true, \now()->addSeconds($seconds));
+        }
+    }
+
+    /**
      * Release a concurrency slot for a service.
      *
      * @param Service $service The service instance.
@@ -158,6 +182,18 @@ class HorizonClientCache implements HorizonClientCacheContract
     public function requestPathFillLock(Service $service, string $path): Lock
     {
         return Cache::lock("{$this->requestPathCacheKey($service, $path)}:fill", $this->private__requestLockSeconds());
+    }
+
+    /**
+     * Get the timeout advice cache key.
+     *
+     * @param Service $service The service instance.
+     *
+     * @return string The cache key.
+     */
+    public function timeoutAdviceCacheKey(Service $service): string
+    {
+        return "horizonhub:horizon-api-timeout-advice:{$service->id}";
     }
 
     /**

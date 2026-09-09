@@ -135,6 +135,17 @@ class ServiceController extends Controller
 
         $message = $result['message'] ?? 'Connection test failed.';
 
+        if (\str_contains(\strtolower((string) $message), 'timed out')) {
+            $message .= \sprintf(
+                ' Consider raising HORIZON_HUB_API_TIMEOUT (currently %ds) if this service is legitimately slow.',
+                (int) config('horizonhub.api_timeout'),
+            );
+
+            return redirect()
+                ->back()
+                ->with('status', FlashStatus::warning($message));
+        }
+
         return redirect()
             ->back()
             ->with('status', FlashStatus::error($message));

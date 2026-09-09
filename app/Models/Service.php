@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Horizon\Concerns\HorizonClientCache;
 use App\Services\Horizon\HorizonClientService;
 use App\Support\Horizon\ClientResponse;
 use App\Support\Horizon\StatsReader;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -128,6 +130,19 @@ class Service extends Model
         }
 
         return $this->getBaseUrl();
+    }
+
+    /**
+     * Check whether the upstream API recently timed out and the timeout
+     * configuration should be reviewed.
+     */
+    public function hasTimeoutAdvice(): bool
+    {
+        if (! $this->id) {
+            return false;
+        }
+
+        return Cache::has((new HorizonClientCache)->timeoutAdviceCacheKey($this));
     }
 
     /**

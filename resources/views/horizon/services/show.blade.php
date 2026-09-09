@@ -22,6 +22,8 @@
             </div>
         @endif
 
+        @include('horizon.services.partials.timeout-advice', ['service' => $service])
+
         @php
             if ($service->status === 'online') {
                 $serviceStatusColor = 'bg-emerald-500';
