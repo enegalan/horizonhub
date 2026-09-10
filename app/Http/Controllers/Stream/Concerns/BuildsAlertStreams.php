@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Stream\Concerns;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\Service;
+use App\Services\Services\ServiceFilterService;
 use Carbon\Carbon;
 
 trait BuildsAlertStreams
@@ -16,7 +17,7 @@ trait BuildsAlertStreams
      */
     protected function buildAlerts(string $query = ''): string
     {
-        $search = $this->serviceFilter->searchFromQuery($query);
+        $search = ServiceFilterService::searchFromQuery($query);
 
         $alertsQuery = Alert::withCount('alertLogs')
             ->withMax('alertLogs', 'sent_at')

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Stream\Concerns;
 
 use App\Models\Service;
+use App\Services\Jobs\JobListService;
+use App\Services\Jobs\JobServiceResolverService;
 use App\Support\Jobs\JobCommandDataExtractor;
 use App\Support\Jobs\JobRuntime;
 use Illuminate\Http\Request;
@@ -16,7 +18,7 @@ trait BuildsJobStreams
      */
     protected function buildJobShow(string $routeJobUuid): ?string
     {
-        $resolved = $this->jobServiceResolver->resolve($routeJobUuid);
+        $resolved = JobServiceResolverService::resolve($routeJobUuid);
 
         if ($resolved === null) {
             return null;
@@ -63,7 +65,7 @@ trait BuildsJobStreams
 
         \parse_str($query, $queryParams);
 
-        $index = $this->jobList->buildAggregatedJobsIndexFromRequest(Request::create($url, 'GET', $queryParams));
+        $index = JobListService::buildAggregatedJobsIndexFromRequest(Request::create($url, 'GET', $queryParams));
 
         return $this->streamsForJobListSections(
             [

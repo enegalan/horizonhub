@@ -7,6 +7,7 @@
         $isOnline = $serviceStatus === 'online';
         $isStandBy = $serviceStatus === 'stand_by';
         $isEnabled = (bool) ($service->enabled ?? true);
+        $isTimedOut = $service->hasTimeoutAdvice();
         $horizonStatus = isset($service->horizon_status) && (string) $service->horizon_status !== ''
             ? \strtolower((string) $service->horizon_status)
             : '';
@@ -37,6 +38,7 @@
             'horizon_failed_jobs_count' => (int) ($service->horizon_failed_jobs_count ?? 0),
             'last_seen_minute' => $lastSeenKey,
             'tags' => $tags,
+            'timeout_advice' => $isTimedOut,
         ];
 
         $streamSig = \hash('sha256', \json_encode($payload, \JSON_THROW_ON_ERROR));
@@ -119,6 +121,8 @@
                                 Online
                             @elseif($isStandBy)
                                 Stand-by
+                            @elseif($isTimedOut)
+                                Timed Out
                             @else
                                 Offline
                             @endif

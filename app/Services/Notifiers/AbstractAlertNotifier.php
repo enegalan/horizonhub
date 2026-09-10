@@ -4,7 +4,7 @@ namespace App\Services\Notifiers;
 
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\HorizonClientApiService;
 use App\Services\Notifiers\Contracts\AlertNotifier;
 use App\Services\Notifiers\Contracts\AlertNotifierMetadata;
 use App\Support\Alerts\AlertRuleCatalog;
@@ -15,21 +15,6 @@ use Illuminate\Support\Collection;
 
 abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMetadata
 {
-    /**
-     * The Horizon API proxy service.
-     */
-    protected HorizonClientService $horizonApi;
-
-    /**
-     * The constructor.
-     *
-     * @param HorizonClientService $horizonApi The horizon API client.
-     */
-    public function __construct(HorizonClientService $horizonApi)
-    {
-        $this->horizonApi = $horizonApi;
-    }
-
     /**
      * Get the metadata.
      *
@@ -201,7 +186,7 @@ abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMeta
             if (blank($jobUuid)) {
                 continue;
             }
-            $data = ClientResponse::data($this->horizonApi->getJob($service, $jobUuid));
+            $data = ClientResponse::data(HorizonClientApiService::getJob($service, $jobUuid));
 
             if ($data === null) {
                 continue;

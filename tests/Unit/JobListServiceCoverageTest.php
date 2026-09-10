@@ -3,11 +3,10 @@
 namespace Tests\Unit;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
 use App\Services\Jobs\JobListService;
-use App\Services\Services\ServiceFilterService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class JobListServiceCoverageTest extends TestCase
@@ -23,27 +22,27 @@ class JobListServiceCoverageTest extends TestCase
         $s1 = Service::create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
         $s2 = Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getPendingJobs')->willReturn([
-            'success' => true,
-            'data' => ['jobs' => [
-                ['id' => 'p1', 'queue' => 'redis.default', 'name' => 'JobA', 'pushedAt' => now()->subMinute()->timestamp, 'index' => 1],
-            ]],
-        ]);
-        $api->method('getCompletedJobs')->willReturn([
-            'success' => true,
-            'data' => ['jobs' => [
-                ['id' => 'c1', 'queue' => 'redis.default', 'name' => 'JobC', 'pushedAt' => now()->subMinutes(2)->timestamp, 'completed_at' => now()->subMinute()->timestamp, 'index' => 1],
-            ]],
-        ]);
-        $api->method('getFailedJobs')->willReturn([
-            'success' => true,
-            'data' => ['jobs' => [
-                ['id' => 'f1', 'queue' => 'redis.failed', 'name' => 'JobF', 'failed_at' => now()->toIso8601String(), 'index' => 1],
-            ]],
-        ]);
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/jobs/pending')) {
+                return Http::response(['jobs' => [
+                    ['id' => 'p1', 'queue' => 'redis.default', 'name' => 'JobA', 'pushedAt' => now()->subMinute()->timestamp, 'index' => 1],
+                ]], 200);
+            }
 
-        $service = new JobListService($api, new ServiceFilterService);
+            if (str_contains($request->url(), '/jobs/completed')) {
+                return Http::response(['jobs' => [
+                    ['id' => 'c1', 'queue' => 'redis.default', 'name' => 'JobC', 'pushedAt' => now()->subMinutes(2)->timestamp, 'completed_at' => now()->subMinute()->timestamp, 'index' => 1],
+                ]], 200);
+            }
+
+            if (str_contains($request->url(), '/jobs/failed')) {
+                return Http::response(['jobs' => [
+                    ['id' => 'f1', 'queue' => 'redis.failed', 'name' => 'JobF', 'failed_at' => now()->toIso8601String(), 'index' => 1],
+                ]], 200);
+            }
+
+            return Http::response('unexpected', 500);
+        });
 
         $request = Request::create('/horizon/jobs', 'GET', [
             'search' => 'Job',
@@ -53,17 +52,17 @@ class JobListServiceCoverageTest extends TestCase
             'page_failed' => 1,
         ]);
 
-        $aggregated = $service->buildAggregatedJobsIndexFromRequest($request);
+        $aggregated = JobListService::buildAggregatedJobsIndexFromRequest($request);
         $this->assertSame([$s1->id, $s2->id], $aggregated['serviceFilterIds']);
         $this->assertSame('Job', $aggregated['search']);
         $this->assertGreaterThanOrEqual(1, $aggregated['processing']->total());
         $this->assertGreaterThanOrEqual(1, $aggregated['processed']->total());
         $this->assertGreaterThanOrEqual(1, $aggregated['failed']->total());
 
-        $singleService = $service->buildServiceStatusPaginators($s1, '', 1, 1, 1, 2, '/horizon/services/' . $s1->id, []);
+        $singleService = JobListService::buildServiceStatusPaginators($s1, '', 1, 1, 1, 2, '/horizon/services/' . $s1->id, []);
         $this->assertGreaterThanOrEqual(1, $singleService['processing']->total());
 
-        $retryModal = $service->buildFailedJobsRetryModalPage(collect([$s1, $s2]), 'JobF', now()->subHour()->toDateTimeString(), now()->addHour()->toDateTimeString(), 1, 10);
+        $retryModal = JobListService::buildFailedJobsRetryModalPage(collect([$s1, $s2]), 'JobF', now()->subHour()->toDateTimeString(), now()->addHour()->toDateTimeString(), 1, 10);
         $this->assertGreaterThanOrEqual(1, $retryModal['total']);
         $this->assertSame(1, $retryModal['last_page']);
         $this->assertArrayHasKey('uuid', $retryModal['rows'][0]);

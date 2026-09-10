@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Stream\Concerns;
 
+use App\Services\Services\ServiceFilterService;
+
 trait BuildsMetricsStreams
 {
     /**
@@ -11,7 +13,7 @@ trait BuildsMetricsStreams
      */
     protected function buildMetrics(string $query): string
     {
-        $d = $this->metrics->buildMetricsDashboardData($this->serviceFilter->resolveServiceIdsFromQuery($query));
+        $d = $this->metrics->buildMetricsDashboardData(ServiceFilterService::resolveServiceIdsFromQuery($query));
 
         $failureRateHtml = \view('horizon.metrics.partials.index.failure-rate-value', [
             'failureRate24h' => $d['failureRate24h'],

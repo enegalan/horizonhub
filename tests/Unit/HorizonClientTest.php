@@ -3,7 +3,8 @@
 namespace Tests\Unit;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\HorizonClientApiService;
+use App\Services\Horizon\HorizonClientCacheService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
@@ -21,6 +22,55 @@ class HorizonClientTest extends TestCase
         Carbon::setTestNow();
 
         parent::tearDown();
+    }
+
+    public function test_concurrency_limit_disabled_when_max_concurrent_is_zero(): void
+    {
+        Http::fake([
+            '*' => Http::response(['ok' => true], 200),
+        ]);
+
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.ping', '/stats');
+        \config()->set('horizonhub.horizon_http_max_concurrent_requests_per_service', 0);
+
+        $service = Service::create([
+            'name' => 'svc-concurrency-disabled',
+            'base_url' => 'https://service-concurrency-disabled.test',
+            'status' => 'online',
+        ]);
+
+        // Seed the slot key with count 1 to verify that a disabled limit (max=0)
+        // bypasses slot acquisition regardless of existing cache state.
+        Cache::put(HorizonClientCacheService::serviceRequestSlotCacheKey($service), 1, \now()->addSeconds(30));
+
+        $result = HorizonClientApiService::getStats($service);
+
+        $this->assertTrue($result['success']);
+        Http::assertSentCount(1);
+    }
+
+    public function test_connection_errors_without_timeout_do_not_set_timeout_advice(): void
+    {
+        Http::fake(function () {
+            throw new ConnectionException('Connection refused');
+        });
+
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.stats', '/stats');
+
+        $service = Service::create([
+            'name' => 'svc-conn-refused',
+            'base_url' => 'https://service-conn-refused.test',
+            'status' => 'online',
+        ]);
+
+        $result = HorizonClientApiService::getStats($service);
+
+        $this->assertFalse($result['success']);
+        $this->assertSame(502, $result['status'] ?? null);
+        $this->assertFalse(Cache::has(HorizonClientCacheService::timeoutAdviceCacheKey($service)));
+        $this->assertFalse($service->hasTimeoutAdvice());
     }
 
     public function test_dashboard_bootstrap_sends_service_headers(): void
@@ -50,7 +100,7 @@ class HorizonClientTest extends TestCase
             'value' => 'service-key',
         ]);
 
-        $result = (new HorizonClientService)->retryJob($service, 'job-uuid');
+        $result = HorizonClientApiService::retryJob($service, 'job-uuid');
 
         $this->assertTrue($result['success']);
     }
@@ -74,14 +124,13 @@ class HorizonClientTest extends TestCase
             'status' => 'online',
         ]);
 
-        $proxy = new HorizonClientService;
-        $jsonResult = $proxy->ping($service);
+        $jsonResult = HorizonClientApiService::ping($service);
         $this->assertFalse($jsonResult['success']);
         $this->assertSame('json boom', $jsonResult['message']);
 
         \config()->set('horizonhub.horizon_paths.ping', '/html-message');
-        Cache::forget('horizonhub:horizon-api-failure-cooldown:' . $service->id);
-        $htmlResult = $proxy->ping($service);
+        Cache::forget(HorizonClientCacheService::failureCooldownCacheKey($service));
+        $htmlResult = HorizonClientApiService::ping($service);
         $this->assertFalse($htmlResult['success']);
         $this->assertStringContainsString('Horizon API returned an HTTP error', (string) $htmlResult['message']);
     }
@@ -111,12 +160,10 @@ class HorizonClientTest extends TestCase
             'status' => 'online',
         ]);
 
-        Cache::forget('horizonhub:horizon-api-failure-cooldown:' . $service->id);
+        Cache::forget(HorizonClientCacheService::failureCooldownCacheKey($service));
 
-        $proxy = new HorizonClientService;
-
-        $first = $proxy->getStats($service);
-        $second = $proxy->getStats($service);
+        $first = HorizonClientApiService::getStats($service);
+        $second = HorizonClientApiService::getStats($service);
 
         $this->assertFalse($first['success']);
         $this->assertSame(504, $first['status'] ?? null);
@@ -149,7 +196,7 @@ class HorizonClientTest extends TestCase
             'status' => 'online',
         ]);
 
-        $result = (new HorizonClientService)->getStats($service);
+        $result = HorizonClientApiService::getStats($service);
 
         $this->assertFalse($result['success']);
         $this->assertSame(502, $result['status'] ?? null);
@@ -168,8 +215,7 @@ class HorizonClientTest extends TestCase
             'status' => 'online',
         ]);
 
-        $proxy = new HorizonClientService;
-        $result = $proxy->getFailedJobs($service, ['starting_at' => 0, 'limit' => 10]);
+        $result = HorizonClientApiService::getFailedJobs($service, ['starting_at' => 0, 'limit' => 10]);
 
         $this->assertTrue($result['success']);
         Http::assertSent(function ($request) {
@@ -204,8 +250,7 @@ class HorizonClientTest extends TestCase
             'status' => 'online',
         ]);
 
-        $proxy = new HorizonClientService;
-        $result = $proxy->getFailedJobs($service, ['starting_at' => 0, 'limit' => 10]);
+        $result = HorizonClientApiService::getFailedJobs($service, ['starting_at' => 0, 'limit' => 10]);
 
         $this->assertTrue($result['success']);
         $this->assertSame(3, $calls);
@@ -232,8 +277,7 @@ class HorizonClientTest extends TestCase
             'status' => 'online',
         ]);
 
-        $proxy = new HorizonClientService;
-        $result = $proxy->getFailedJobs($service, ['starting_at' => 0, 'limit' => 10]);
+        $result = HorizonClientApiService::getFailedJobs($service, ['starting_at' => 0, 'limit' => 10]);
 
         $this->assertFalse($result['success']);
         $this->assertSame(429, $result['status'] ?? null);
@@ -261,18 +305,39 @@ class HorizonClientTest extends TestCase
 
         Cache::flush();
 
-        $proxy = new HorizonClientService;
-
-        $first = $proxy->getStats($service);
+        $first = HorizonClientApiService::getStats($service);
         $this->assertTrue($first['success']);
         $this->assertSame(1, (int) ($first['data']['failedJobs'] ?? 0));
 
         \sleep(2);
 
-        $second = $proxy->getStats($service);
+        $second = HorizonClientApiService::getStats($service);
         $this->assertTrue($second['success']);
         $this->assertSame(2, (int) ($second['data']['failedJobs'] ?? 0));
         $this->assertSame(2, $calls);
+    }
+
+    public function test_get_releases_concurrency_slot_after_request(): void
+    {
+        Http::fake([
+            '*' => Http::response(['failedJobs' => 1], 200),
+        ]);
+
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.ping', '/stats');
+
+        $service = Service::create([
+            'name' => 'svc-slot-release',
+            'base_url' => 'https://service-slot-release.test',
+            'status' => 'online',
+        ]);
+
+        $this->assertTrue(HorizonClientApiService::getStats($service)['success']);
+
+        $this->assertFalse(Cache::has(HorizonClientCacheService::serviceRequestSlotCacheKey($service)));
+
+        $this->assertTrue(HorizonClientApiService::getStats($service)['success']);
+        Http::assertSentCount(1);
     }
 
     public function test_get_returns_503_when_path_fill_lock_cannot_be_acquired(): void
@@ -291,11 +356,11 @@ class HorizonClientTest extends TestCase
             'status' => 'online',
         ]);
 
-        $lock = Cache::lock('horizonhub:horizon-api-hot-reload-path:' . $service->id . ':/stats:fill', 30);
+        $lock = Cache::lock(HorizonClientCacheService::requestPathCacheKey($service, '/stats') . ':fill', 30);
         $this->assertTrue($lock->get());
 
         try {
-            $result = (new HorizonClientService)->getStats($service);
+            $result = HorizonClientApiService::getStats($service);
 
             $this->assertFalse($result['success']);
             $this->assertSame(503, $result['status'] ?? null);
@@ -304,6 +369,35 @@ class HorizonClientTest extends TestCase
         } finally {
             $lock->release();
         }
+    }
+
+    public function test_get_returns_503_when_service_concurrency_limit_reached(): void
+    {
+        Http::fake([
+            '*' => Http::response(['ok' => true], 200),
+        ]);
+
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.ping', '/stats');
+        \config()->set('horizonhub.horizon_http_max_concurrent_requests_per_service', 1);
+        \config()->set('horizonhub.horizon_http_concurrent_request_wait_ms', 50);
+
+        $service = Service::create([
+            'name' => 'svc-concurrency-limit',
+            'base_url' => 'https://service-concurrency.test',
+            'status' => 'online',
+        ]);
+
+        // Simulate an in-flight request holding the only concurrency slot.
+        Cache::add(HorizonClientCacheService::serviceRequestSlotCacheKey($service), 0, \now()->addSeconds(30));
+        Cache::increment(HorizonClientCacheService::serviceRequestSlotCacheKey($service));
+
+        $result = HorizonClientApiService::getStats($service);
+
+        $this->assertFalse($result['success']);
+        $this->assertSame(503, $result['status'] ?? null);
+        $this->assertSame('Service concurrent request limit reached.', $result['message'] ?? null);
+        Http::assertNothingSent();
     }
 
     public function test_get_reuses_successful_response_within_hot_reload_interval(): void
@@ -327,10 +421,8 @@ class HorizonClientTest extends TestCase
 
         Cache::flush();
 
-        $proxy = new HorizonClientService;
-
-        $this->assertTrue($proxy->getStats($service)['success']);
-        $this->assertTrue($proxy->getStats($service)['success']);
+        $this->assertTrue(HorizonClientApiService::getStats($service)['success']);
+        $this->assertTrue(HorizonClientApiService::getStats($service)['success']);
         $this->assertSame(1, $calls);
     }
 
@@ -345,11 +437,48 @@ class HorizonClientTest extends TestCase
 
         Http::fake();
 
-        $result = (new HorizonClientService)->getStats($service);
+        $result = HorizonClientApiService::getStats($service);
 
         $this->assertFalse($result['success']);
         $this->assertSame('Service is disabled.', $result['message']);
         Http::assertNothingSent();
+    }
+
+    public function test_get_timeout_sets_timeout_advice_and_clears_it_on_next_success(): void
+    {
+        $calls = 0;
+        Http::fake(function () use (&$calls) {
+            $calls++;
+
+            if ($calls === 1) {
+                throw new ConnectionException('cURL error 28: Operation timed out after 10001 milliseconds with 0 bytes received');
+            }
+
+            return Http::response(['ok' => true], 200);
+        });
+
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.ping', '/stats');
+        \config()->set('horizonhub.horizon_http_failure_cooldown_seconds', 60);
+
+        $service = Service::create([
+            'name' => 'svc-timeout-advice',
+            'base_url' => 'https://service-timeout-advice.test',
+            'status' => 'online',
+        ]);
+
+        $first = HorizonClientApiService::getStats($service);
+        $this->assertFalse($first['success']);
+        $this->assertSame(502, $first['status'] ?? null);
+        $this->assertTrue(Cache::has(HorizonClientCacheService::timeoutAdviceCacheKey($service)));
+        $this->assertTrue($service->hasTimeoutAdvice());
+
+        Cache::forget(HorizonClientCacheService::failureCooldownCacheKey($service));
+
+        $second = HorizonClientApiService::getStats($service);
+        $this->assertTrue($second['success']);
+        $this->assertFalse(Cache::has(HorizonClientCacheService::timeoutAdviceCacheKey($service)));
+        $this->assertFalse($service->hasTimeoutAdvice());
     }
 
     public function test_get_workload_returns_unauthorized_without_dashboard_bootstrap(): void
@@ -384,8 +513,7 @@ class HorizonClientTest extends TestCase
             'status' => 'offline',
         ]);
 
-        $proxy = new HorizonClientService;
-        $result = $proxy->getWorkload($service);
+        $result = HorizonClientApiService::getWorkload($service);
 
         $this->assertFalse($result['success']);
         $this->assertSame(401, $result['status']);
@@ -418,12 +546,9 @@ class HorizonClientTest extends TestCase
             'status' => 'online',
         ]);
 
-        $cacheKey = 'horizonhub:horizon-api-failure-cooldown:' . $service->id;
-        Cache::put($cacheKey, true, \now()->addMinutes(1));
+        Cache::put(HorizonClientCacheService::failureCooldownCacheKey($service), true, \now()->addMinutes(1));
 
-        $proxy = new HorizonClientService;
-
-        $pingResult = $proxy->ping($service);
+        $pingResult = HorizonClientApiService::ping($service);
 
         $this->assertFalse($pingResult['success']);
         $this->assertSame(504, $pingResult['status'] ?? null);
@@ -445,8 +570,7 @@ class HorizonClientTest extends TestCase
             'status' => 'offline',
         ]);
 
-        $proxy = new HorizonClientService;
-        $result = $proxy->ping($service);
+        $result = HorizonClientApiService::ping($service);
 
         $this->assertFalse($result['success']);
         $this->assertSame(500, $result['status'] ?? null);
@@ -468,8 +592,7 @@ class HorizonClientTest extends TestCase
             'status' => 'offline',
         ]);
 
-        $proxy = new HorizonClientService;
-        $result = $proxy->ping($service);
+        $result = HorizonClientApiService::ping($service);
 
         $this->assertFalse($result['success']);
         $this->assertSame(502, $result['status'] ?? null);
@@ -498,7 +621,7 @@ class HorizonClientTest extends TestCase
             'value' => 'Bearer test-token',
         ]);
 
-        $result = (new HorizonClientService)->ping($service);
+        $result = HorizonClientApiService::ping($service);
 
         $this->assertTrue($result['success']);
     }
@@ -517,7 +640,7 @@ class HorizonClientTest extends TestCase
             'enabled' => false,
         ]);
 
-        $result = (new HorizonClientService)->ping($service);
+        $result = HorizonClientApiService::ping($service);
 
         $this->assertTrue($result['success']);
         Http::assertSentCount(1);
@@ -539,8 +662,7 @@ class HorizonClientTest extends TestCase
             'last_seen_at' => null,
         ]);
 
-        $proxy = new HorizonClientService;
-        $result = $proxy->ping($service);
+        $result = HorizonClientApiService::ping($service);
 
         $freshService = $service->fresh();
         $this->assertTrue($result['success']);
@@ -569,13 +691,12 @@ class HorizonClientTest extends TestCase
             'status' => 'online',
         ]);
 
-        $proxy = new HorizonClientService;
-        $this->assertTrue($proxy->getCompletedJobs($service)['success']);
-        $this->assertTrue($proxy->getPendingJobs($service, ['starting_at' => 5])['success']);
-        $this->assertTrue($proxy->getFailedJobs($service)['success']);
-        $this->assertTrue($proxy->getJob($service, 'uuid-1')['success']);
-        $this->assertTrue($proxy->getMasters($service)['success']);
-        $this->assertTrue($proxy->getStats($service)['success']);
+        $this->assertTrue(HorizonClientApiService::getCompletedJobs($service)['success']);
+        $this->assertTrue(HorizonClientApiService::getPendingJobs($service, ['starting_at' => 5])['success']);
+        $this->assertTrue(HorizonClientApiService::getFailedJobs($service)['success']);
+        $this->assertTrue(HorizonClientApiService::getJob($service, 'uuid-1')['success']);
+        $this->assertTrue(HorizonClientApiService::getMasters($service)['success']);
+        $this->assertTrue(HorizonClientApiService::getStats($service)['success']);
     }
 
     public function test_retry_job_retries_once_after_419_response(): void
@@ -613,8 +734,7 @@ class HorizonClientTest extends TestCase
             'status' => 'online',
         ]);
 
-        $proxy = new HorizonClientService;
-        $result = $proxy->retryJob($service, 'job-uuid-419');
+        $result = HorizonClientApiService::retryJob($service, 'job-uuid-419');
 
         $this->assertTrue($result['success']);
         $this->assertSame(2, $retryCalls);
@@ -637,8 +757,7 @@ class HorizonClientTest extends TestCase
             'status' => 'online',
         ]);
 
-        $proxy = new HorizonClientService;
-        $result = $proxy->retryJob($service, 'uuid-bootstrap');
+        $result = HorizonClientApiService::retryJob($service, 'uuid-bootstrap');
 
         $this->assertFalse($result['success']);
         $this->assertSame(502, $result['status'] ?? null);

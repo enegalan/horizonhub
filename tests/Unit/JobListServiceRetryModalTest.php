@@ -3,11 +3,10 @@
 namespace Tests\Unit;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
 use App\Services\Jobs\JobListService;
-use App\Services\Services\ServiceFilterService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class JobListServiceRetryModalTest extends TestCase
@@ -16,33 +15,32 @@ class JobListServiceRetryModalTest extends TestCase
 
     public function test_build_failed_jobs_retry_modal_page_slice_matches_full_total(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getFailedJobs')
-            ->willReturn([
-                'success' => true,
-                'data' => [
-                    'jobs' => [
-                        [
-                            'id' => 'job-1',
-                            'queue' => 'default',
-                            'name' => 'J1',
-                            'failed_at' => '2024-06-01 12:00:00',
-                        ],
-                        [
-                            'id' => 'job-2',
-                            'queue' => 'default',
-                            'name' => 'J2',
-                            'failed_at' => '2024-06-01 13:00:00',
-                        ],
-                        [
-                            'id' => 'job-3',
-                            'queue' => 'default',
-                            'name' => 'J3',
-                            'failed_at' => '2024-06-01 14:00:00',
-                        ],
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/jobs/failed')) {
+                return Http::response(['jobs' => [
+                    [
+                        'id' => 'job-1',
+                        'queue' => 'default',
+                        'name' => 'J1',
+                        'failed_at' => '2024-06-01 12:00:00',
                     ],
-                ],
-            ]);
+                    [
+                        'id' => 'job-2',
+                        'queue' => 'default',
+                        'name' => 'J2',
+                        'failed_at' => '2024-06-01 13:00:00',
+                    ],
+                    [
+                        'id' => 'job-3',
+                        'queue' => 'default',
+                        'name' => 'J3',
+                        'failed_at' => '2024-06-01 14:00:00',
+                    ],
+                ]], 200);
+            }
+
+            return Http::response('unexpected', 500);
+        });
 
         $svc = Service::create([
             'name' => 'svc-retry-modal-page',
@@ -50,11 +48,10 @@ class JobListServiceRetryModalTest extends TestCase
             'status' => 'online',
         ]);
 
-        $list = new JobListService($api, new ServiceFilterService);
         $services = new Collection([$svc]);
 
-        $page = $list->buildFailedJobsRetryModalPage($services, '', null, null, 1, 1);
-        $all = $list->buildFailedJobsRetryModalPage($services, '', null, null, 1, \PHP_INT_MAX);
+        $page = JobListService::buildFailedJobsRetryModalPage($services, '', null, null, 1, 1);
+        $all = JobListService::buildFailedJobsRetryModalPage($services, '', null, null, 1, \PHP_INT_MAX);
 
         $this->assertSame(3, $page['total']);
         $this->assertCount(1, $page['rows']);
@@ -64,27 +61,26 @@ class JobListServiceRetryModalTest extends TestCase
 
     public function test_build_failed_jobs_retry_modal_page_with_max_per_page_returns_all_rows(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getFailedJobs')
-            ->willReturn([
-                'success' => true,
-                'data' => [
-                    'jobs' => [
-                        [
-                            'id' => 'job-a',
-                            'queue' => 'default',
-                            'name' => 'JobA',
-                            'failed_at' => '2024-06-01 10:00:00',
-                        ],
-                        [
-                            'id' => 'job-b',
-                            'queue' => 'default',
-                            'name' => 'JobB',
-                            'failed_at' => '2024-06-01 11:00:00',
-                        ],
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/jobs/failed')) {
+                return Http::response(['jobs' => [
+                    [
+                        'id' => 'job-a',
+                        'queue' => 'default',
+                        'name' => 'JobA',
+                        'failed_at' => '2024-06-01 10:00:00',
                     ],
-                ],
-            ]);
+                    [
+                        'id' => 'job-b',
+                        'queue' => 'default',
+                        'name' => 'JobB',
+                        'failed_at' => '2024-06-01 11:00:00',
+                    ],
+                ]], 200);
+            }
+
+            return Http::response('unexpected', 500);
+        });
 
         $svc = Service::create([
             'name' => 'svc-retry-modal-batch',
@@ -92,10 +88,9 @@ class JobListServiceRetryModalTest extends TestCase
             'status' => 'online',
         ]);
 
-        $list = new JobListService($api, new ServiceFilterService);
         $services = new Collection([$svc]);
 
-        $all = $list->buildFailedJobsRetryModalPage($services, '', null, null, 1, \PHP_INT_MAX);
+        $all = JobListService::buildFailedJobsRetryModalPage($services, '', null, null, 1, \PHP_INT_MAX);
 
         $this->assertSame(2, $all['total']);
         $this->assertCount(2, $all['rows']);

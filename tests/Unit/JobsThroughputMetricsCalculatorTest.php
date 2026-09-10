@@ -3,10 +3,10 @@
 namespace Tests\Unit;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
 use App\Services\Jobs\JobsWindowFetcherService;
 use App\Services\Metrics\Calculators\JobsThroughputMetricsCalculator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class JobsThroughputMetricsCalculatorTest extends TestCase
@@ -18,16 +18,15 @@ class JobsThroughputMetricsCalculatorTest extends TestCase
         $s1 = Service::create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
         Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getStats')->willReturnCallback(function (Service $service) use ($s1) {
-            if ($service->id === $s1->id) {
-                return ['success' => true, 'data' => ['failedJobs' => 2, 'recentJobs' => 20, 'jobsPerMinute' => 3.4]];
+        Http::fake(function ($request) use ($s1) {
+            if (\str_contains($request->url(), $s1->getBaseUrl())) {
+                return Http::response(['failedJobs' => 2, 'recentJobs' => 20, 'jobsPerMinute' => 3.4], 200);
             }
 
-            return ['success' => true, 'data' => ['failedJobs' => 1, 'recentJobs' => 10, 'periods' => ['recentJobs' => 20]]];
+            return Http::response(['failedJobs' => 1, 'recentJobs' => 10, 'periods' => ['recentJobs' => 20]], 200);
         });
 
-        $calc = new JobsThroughputMetricsCalculator($api, new JobsWindowFetcherService($api));
+        $calc = new JobsThroughputMetricsCalculator(new JobsWindowFetcherService);
 
         $this->assertSame(2, $calc->getFailedPastSevenDays($s1));
         $this->assertSame(3, $calc->getJobsPastMinute($s1));

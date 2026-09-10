@@ -3,33 +3,18 @@
 namespace App\Services\Jobs;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\HorizonClientApiService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 final class JobServiceResolverService
 {
     /**
-     * The Horizon API client.
-     */
-    private HorizonClientService $horizonApi;
-
-    /**
-     * The constructor.
-     *
-     * @param HorizonClientService $horizonApi The horizon API client.
-     */
-    public function __construct(HorizonClientService $horizonApi)
-    {
-        $this->horizonApi = $horizonApi;
-    }
-
-    /**
      * Resolve the service that is hosting a job by its UUID, caching the result for future lookups.
      *
      * @return array{service: Service, data: array<string, mixed>}|null
      */
-    public function resolve(string $jobUuid): ?array
+    public static function resolve(string $jobUuid): ?array
     {
         $jobUuid = \trim($jobUuid);
 
@@ -37,7 +22,7 @@ final class JobServiceResolverService
             return null;
         }
 
-        $cacheKey = $this->private__cacheKey($jobUuid);
+        $cacheKey = self::private__cacheKey($jobUuid);
 
         $cachedServiceId = (int) Cache::get($cacheKey, 0);
 
@@ -45,7 +30,7 @@ final class JobServiceResolverService
             $service = Service::enabled()->find($cachedServiceId);
 
             if ($service !== null) {
-                $resolved = $this->private__fetchFromService($service, $jobUuid);
+                $resolved = self::private__fetchFromService($service, $jobUuid);
 
                 if ($resolved !== null) {
                     return $resolved;
@@ -61,7 +46,7 @@ final class JobServiceResolverService
             ->get();
 
         foreach ($services as $service) {
-            $resolved = $this->private__fetchFromService($service, $jobUuid);
+            $resolved = self::private__fetchFromService($service, $jobUuid);
 
             if ($resolved === null) {
                 continue;
@@ -80,7 +65,7 @@ final class JobServiceResolverService
      *
      * @param string $jobUuid The job UUID.
      */
-    private function private__cacheKey(string $jobUuid): string
+    private static function private__cacheKey(string $jobUuid): string
     {
         return "horizonhub:job-service:$jobUuid";
     }
@@ -93,9 +78,9 @@ final class JobServiceResolverService
      *
      * @return array{service: Service, data: array<string, mixed>}|null
      */
-    private function private__fetchFromService(Service $service, string $jobUuid): ?array
+    private static function private__fetchFromService(Service $service, string $jobUuid): ?array
     {
-        $response = $this->horizonApi->getJob($service, $jobUuid);
+        $response = HorizonClientApiService::getJob($service, $jobUuid);
 
         if (! $response['success'] || empty($response['data'])) {
             return null;

@@ -2,7 +2,8 @@
 
 namespace App\Models;
 
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\HorizonClientApiService;
+use App\Services\Horizon\HorizonClientCacheService;
 use App\Support\Horizon\ClientResponse;
 use App\Support\Horizon\StatsReader;
 use Database\Factories\ServiceFactory;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -131,6 +133,19 @@ class Service extends Model
     }
 
     /**
+     * Check whether the upstream API recently timed out and the timeout
+     * configuration should be reviewed.
+     */
+    public function hasTimeoutAdvice(): bool
+    {
+        if (! $this->id) {
+            return false;
+        }
+
+        return Cache::has(HorizonClientCacheService::timeoutAdviceCacheKey($this));
+    }
+
+    /**
      * HTTP headers sent on outbound requests to this service.
      *
      * @return HasMany<ServiceHeader, $this>
@@ -184,7 +199,7 @@ class Service extends Model
     /**
      * Attach Horizon stats to the service.
      */
-    public function withHorizonStats(HorizonClientService $horizonApi): void
+    public function withHorizonStats(): void
     {
         if (! $this->enabled) {
             $this->horizon_failed_jobs_count = 0;
@@ -194,7 +209,7 @@ class Service extends Model
             return;
         }
 
-        $stats = StatsReader::summary(ClientResponse::data($horizonApi->getStats($this)));
+        $stats = StatsReader::summary(ClientResponse::data(HorizonClientApiService::getStats($this)));
 
         $this->horizon_failed_jobs_count = $stats['failedJobs'];
         $this->horizon_jobs_count = $stats['recentJobs'];

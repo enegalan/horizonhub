@@ -3,7 +3,6 @@
 namespace Tests\Unit;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
 use App\Services\Jobs\JobsWindowFetcherService;
 use App\Services\Metrics\Calculators\FailureMetricsCalculator;
 use App\Services\Metrics\Calculators\JobsThroughputMetricsCalculator;
@@ -14,6 +13,7 @@ use App\Services\Metrics\MetricsDataService;
 use App\Support\Queues\QueueNameNormalizer;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class MetricsDataServiceTest extends TestCase
@@ -22,7 +22,6 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_build_queues_collection_for_service_filter_maps_and_sorts_rows(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
         $serviceA = Service::create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
         $serviceB = Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
@@ -45,8 +44,6 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_failure_rate_24h_fetches_multiple_horizon_pages_using_index_cursor(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-
         $now = Carbon::parse('2026-03-20 15:30:00');
         Carbon::setTestNow($now);
 
@@ -60,39 +57,40 @@ class MetricsDataServiceTest extends TestCase
         $sinceTs = $since->getTimestamp();
         $completedTs = $sinceTs + 3600;
 
-        $api->method('getCompletedJobs')->willReturnCallback(function ($svc, array $query) use ($service, $completedTs): array {
-            $this->assertInstanceOf(Service::class, $svc);
-            $this->assertSame((int) $service->id, (int) $svc->id);
-            $startingAt = (int) ($query['starting_at'] ?? -1);
+        Http::fake(function ($request) use ($completedTs) {
+            if (\str_contains($request->url(), '/jobs/completed')) {
+                $startingAt = (int) ($request->data()['starting_at'] ?? -1);
 
-            if ($startingAt === -1) {
-                $jobs = [];
+                if ($startingAt === -1) {
+                    $jobs = [];
 
-                for ($i = 0; $i < 50; $i++) {
-                    $jobs[] = [
-                        'completed_at' => $completedTs + $i,
-                        'index' => $i,
-                    ];
+                    for ($i = 0; $i < 50; $i++) {
+                        $jobs[] = [
+                            'completed_at' => $completedTs + $i,
+                            'index' => $i,
+                        ];
+                    }
+
+                    return Http::response(['jobs' => $jobs], 200);
                 }
 
-                return ['success' => true, 'data' => ['jobs' => $jobs]];
+                if ($startingAt === 49) {
+                    return Http::response(['jobs' => [
+                        ['completed_at' => $completedTs + 100, 'index' => 50],
+                    ]], 200);
+                }
+
+                return Http::response(['jobs' => []], 200);
             }
 
-            if ($startingAt === 49) {
-                return ['success' => true, 'data' => ['jobs' => [
-                    ['completed_at' => $completedTs + 100, 'index' => 50],
-                ]]];
+            if (\str_contains($request->url(), '/jobs/failed')) {
+                return Http::response(['jobs' => []], 200);
             }
 
-            return ['success' => true, 'data' => ['jobs' => []]];
+            return Http::response('unexpected', 500);
         });
 
-        $api->method('getFailedJobs')->willReturn([
-            'success' => true,
-            'data' => ['jobs' => []],
-        ]);
-
-        $metrics = $this->private__makeMetricsDataService($api);
+        $metrics = $this->private__makeMetricsDataService();
         $result = $metrics->getFailureRate24h([$service->id]);
 
         $this->assertSame(51, $result['processed']);
@@ -104,8 +102,6 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_failure_rate_over_time_builds_expected_buckets_and_rates(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-
         $now = Carbon::parse('2026-03-20 15:30:00');
         Carbon::setTestNow($now);
 
@@ -131,28 +127,19 @@ class MetricsDataServiceTest extends TestCase
             ['failed_at' => $bucket1->copy()->addMinutes(40)->getTimestamp()],
         ];
 
-        $api->method('getCompletedJobs')->willReturn([
-            'success' => true,
-            'data' => [
-                'jobs' => (function () use ($completedJobsBucket1, $completedJobsBucket2): array {
-                    $jobs = $completedJobsBucket1;
+        Http::fake(function ($request) use ($completedJobsBucket1, $completedJobsBucket2, $failedJobsBucket1) {
+            if (\str_contains($request->url(), '/jobs/completed')) {
+                return Http::response(['jobs' => \array_merge($completedJobsBucket1, $completedJobsBucket2)], 200);
+            }
 
-                    foreach ($completedJobsBucket2 as $job) {
-                        $jobs[] = $job;
-                    }
+            if (\str_contains($request->url(), '/jobs/failed')) {
+                return Http::response(['jobs' => $failedJobsBucket1], 200);
+            }
 
-                    return $jobs;
-                })(),
-            ],
-        ]);
-        $api->method('getFailedJobs')->willReturn([
-            'success' => true,
-            'data' => [
-                'jobs' => $failedJobsBucket1,
-            ],
-        ]);
+            return Http::response('unexpected', 500);
+        });
 
-        $metrics = $this->private__makeMetricsDataService($api);
+        $metrics = $this->private__makeMetricsDataService();
         $result = $metrics->getFailureRateOverTime([$service->id]);
 
         $endHour = $now->copy()->startOfHour();
@@ -176,8 +163,6 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_job_runtimes_last24h_returns_sorted_points_with_seconds(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-
         $now = Carbon::parse('2026-03-20 15:30:00');
         Carbon::setTestNow($now);
 
@@ -196,10 +181,9 @@ class MetricsDataServiceTest extends TestCase
         $endOlder = $now->copy()->subHours(3)->getTimestamp();
         $reservedOlder = $endOlder - 240;
 
-        $api->method('getCompletedJobs')->willReturn([
-            'success' => true,
-            'data' => [
-                'jobs' => [
+        Http::fake(function ($request) use ($endNewer, $reservedNewer, $endMid, $reservedMid, $endOlder, $reservedOlder) {
+            if (\str_contains($request->url(), '/jobs/completed')) {
+                return Http::response(['jobs' => [
                     [
                         'name' => 'App\\Jobs\\Newer',
                         'reserved_at' => $reservedNewer,
@@ -210,23 +194,23 @@ class MetricsDataServiceTest extends TestCase
                         'reserved_at' => $reservedMid,
                         'completed_at' => $endMid,
                     ],
-                ],
-            ],
-        ]);
-        $api->method('getFailedJobs')->willReturn([
-            'success' => true,
-            'data' => [
-                'jobs' => [
+                ]], 200);
+            }
+
+            if (\str_contains($request->url(), '/jobs/failed')) {
+                return Http::response(['jobs' => [
                     [
                         'name' => 'App\\Jobs\\OlderFailed',
                         'reserved_at' => $reservedOlder,
                         'failed_at' => $endOlder,
                     ],
-                ],
-            ],
-        ]);
+                ]], 200);
+            }
 
-        $metrics = $this->private__makeMetricsDataService($api);
+            return Http::response('unexpected', 500);
+        });
+
+        $metrics = $this->private__makeMetricsDataService();
         $result = $metrics->getJobRuntimesLast24h([$service->id]);
 
         $this->assertCount(3, $result['points']);
@@ -249,8 +233,6 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_jobs_volume_last24h_counts_hourly_completed_and_failed(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-
         $now = Carbon::parse('2026-03-21 15:30:00');
         Carbon::setTestNow($now);
 
@@ -263,25 +245,24 @@ class MetricsDataServiceTest extends TestCase
         $sinceBucketStart = $now->copy()->subHours(24)->startOfHour();
         $activeHour = $sinceBucketStart->copy()->addHour();
 
-        $api->method('getCompletedJobs')->willReturn([
-            'success' => true,
-            'data' => [
-                'jobs' => [
+        Http::fake(function ($request) use ($activeHour) {
+            if (\str_contains($request->url(), '/jobs/completed')) {
+                return Http::response(['jobs' => [
                     ['completed_at' => $activeHour->copy()->addMinutes(10)->getTimestamp()],
                     ['completed_at' => $activeHour->copy()->addMinutes(20)->getTimestamp()],
-                ],
-            ],
-        ]);
-        $api->method('getFailedJobs')->willReturn([
-            'success' => true,
-            'data' => [
-                'jobs' => [
-                    ['failed_at' => $activeHour->copy()->addMinutes(30)->getTimestamp()],
-                ],
-            ],
-        ]);
+                ]], 200);
+            }
 
-        $metrics = $this->private__makeMetricsDataService($api);
+            if (\str_contains($request->url(), '/jobs/failed')) {
+                return Http::response(['jobs' => [
+                    ['failed_at' => $activeHour->copy()->addMinutes(30)->getTimestamp()],
+                ]], 200);
+            }
+
+            return Http::response('unexpected', 500);
+        });
+
+        $metrics = $this->private__makeMetricsDataService();
         $result = $metrics->getJobsVolumeLast24h([$service->id]);
 
         $this->assertCount(25, $result['xAxis']);
@@ -298,53 +279,47 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_supervisors_data_aggregates_jobs_by_queue_and_processes(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-
         $service = Service::create([
             'name' => 'svc-supervisors',
             'base_url' => 'https://metrics-supervisors.test',
             'status' => 'online',
         ]);
 
-        $serviceId = $service->id;
+        Http::fake(function ($request) {
+            if (\str_contains($request->url(), '/workload')) {
+                return Http::response([
+                    'data' => [
+                        ['name' => 'redis.default', 'length' => 7, 'processes' => 2, 'wait' => 1.5],
+                    ],
+                ], 200);
+            }
 
-        $api->method('getWorkload')->with($this->callback(function ($svc) use ($serviceId): bool {
-            return $svc instanceof Service && (int) $svc->id === (int) $serviceId;
-        }))->willReturn([
-            'success' => true,
-            'data' => [
-                'data' => [
-                    ['name' => 'redis.default', 'length' => 7, 'processes' => 2, 'wait' => 1.5],
-                ],
-            ],
-        ]);
-
-        $api->method('getMasters')->with($this->callback(function ($svc) use ($serviceId): bool {
-            return $svc instanceof Service && (int) $svc->id === (int) $serviceId;
-        }))->willReturn([
-            'success' => true,
-            'data' => [
-                [
-                    'supervisors' => [
-                        [
-                            'name' => 'sup-1',
-                            'processes' => [1, '2'],
-                            'options' => [
-                                'queue' => 'redis.default',
+            if (\str_contains($request->url(), '/masters')) {
+                return Http::response([
+                    [
+                        'supervisors' => [
+                            [
+                                'name' => 'sup-1',
+                                'processes' => [1, '2'],
+                                'options' => [
+                                    'queue' => 'redis.default',
+                                ],
                             ],
-                        ],
-                        [
-                            'name' => 'sup-2',
-                            'options' => [
-                                'queue' => ['redis.default', 'beta'],
+                            [
+                                'name' => 'sup-2',
+                                'options' => [
+                                    'queue' => ['redis.default', 'beta'],
+                                ],
                             ],
                         ],
                     ],
-                ],
-            ],
-        ]);
+                ], 200);
+            }
 
-        $metrics = $this->private__makeMetricsDataService($api);
+            return Http::response('unexpected', 500);
+        });
+
+        $metrics = $this->private__makeMetricsDataService();
         $rows = $metrics->getSupervisorsData([$service->id]);
 
         $this->assertCount(2, $rows);
@@ -367,16 +342,15 @@ class MetricsDataServiceTest extends TestCase
         $serviceA = Service::create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
         $serviceB = Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
-        $api = $this->createMock(HorizonClientService::class);
-        $api->expects($this->exactly(4))->method('getStats')->willReturnCallback(function (Service $service) use ($serviceA) {
-            if ($service->id === $serviceA->id) {
-                return ['success' => true, 'data' => ['failedJobs' => 5, 'recentJobs' => 3, 'jobsPerMinute' => 1]];
+        Http::fake(function ($request) use ($serviceA) {
+            if (\str_contains($request->url(), $serviceA->getBaseUrl())) {
+                return Http::response(['failedJobs' => 5, 'recentJobs' => 3, 'jobsPerMinute' => 1], 200);
             }
 
-            return ['success' => true, 'data' => ['failedJobs' => 6, 'recentJobs' => 4, 'jobsPerMinute' => 2]];
+            return Http::response(['failedJobs' => 6, 'recentJobs' => 4, 'jobsPerMinute' => 2], 200);
         });
 
-        $metrics = $this->private__makeMetricsDataService($api);
+        $metrics = $this->private__makeMetricsDataService();
 
         $all = $metrics->getThroughputTotalsForServiceIds([]);
         $this->assertSame(['jobsPastMinute' => 3, 'jobsPastHour' => 7, 'failedPastSevenDays' => 11], $all);
@@ -387,8 +361,7 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_wait_by_queue_chart_data_picks_top_queues_by_max_wait(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-        $metrics = $this->private__makeMetricsDataService($api);
+        $metrics = $this->private__makeMetricsDataService();
 
         $workload = [
             ['queue' => 'low', 'wait' => 1.0],
@@ -407,8 +380,7 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_wait_by_queue_chart_data_returns_null_when_no_wait_values(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-        $metrics = $this->private__makeMetricsDataService($api);
+        $metrics = $this->private__makeMetricsDataService();
 
         $this->assertNull($metrics->getWaitByQueueChartData([
             ['queue' => 'a'],
@@ -418,12 +390,10 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_workload_for_service_accepts_numeric_indexed_rows(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getWorkload')->willReturn([
-            'success' => true,
-            'data' => [
+        Http::fake([
+            'https://metrics-d.test/horizon/api/workload' => Http::response([
                 ['name' => 'alpha', 'size' => 4],
-            ],
+            ], 200),
         ]);
 
         $service = Service::create([
@@ -432,7 +402,7 @@ class MetricsDataServiceTest extends TestCase
             'status' => 'online',
         ]);
 
-        $metrics = $this->private__makeMetricsDataService($api);
+        $metrics = $this->private__makeMetricsDataService();
         $rows = $metrics->getWorkloadForService($service);
 
         $this->assertCount(1, $rows);
@@ -442,17 +412,17 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_workload_for_service_maps_nested_data_payload(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-        $api->expects($this->once())
-            ->method('getWorkload')
-            ->willReturn([
-                'success' => true,
-                'data' => [
+        Http::fake(function ($request) {
+            if (\str_contains($request->url(), '/workload')) {
+                return Http::response([
                     'data' => [
                         ['name' => 'redis.default', 'length' => 7, 'processes' => 2, 'wait' => 1.5],
                     ],
-                ],
-            ]);
+                ], 200);
+            }
+
+            return Http::response('unexpected', 500);
+        });
 
         $service = Service::create([
             'name' => 'svc-a',
@@ -460,7 +430,7 @@ class MetricsDataServiceTest extends TestCase
             'status' => 'online',
         ]);
 
-        $metrics = $this->private__makeMetricsDataService($api);
+        $metrics = $this->private__makeMetricsDataService();
         $rows = $metrics->getWorkloadForService($service);
 
         $this->assertCount(1, $rows);
@@ -472,11 +442,14 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_workload_for_service_returns_empty_when_api_fails(): void
     {
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getWorkload')->willReturn([
-            'success' => false,
-            'status' => 503,
-            'message' => 'unavailable',
+        \config()->set('horizonhub.horizon_http_retry', [
+            'times' => 1,
+            'sleep_ms' => 0,
+            'retry_on_status' => [],
+        ]);
+
+        Http::fake([
+            'https://metrics-c.test/horizon/api/workload' => Http::response('unavailable', 503),
         ]);
 
         $service = Service::create([
@@ -485,7 +458,7 @@ class MetricsDataServiceTest extends TestCase
             'status' => 'online',
         ]);
 
-        $metrics = $this->private__makeMetricsDataService($api);
+        $metrics = $this->private__makeMetricsDataService();
         $this->assertSame([], $metrics->getWorkloadForService($service));
     }
 
@@ -520,16 +493,16 @@ class MetricsDataServiceTest extends TestCase
         $this->assertSame('alpha', QueueNameNormalizer::normalize('alpha'));
     }
 
-    private function private__makeMetricsDataService(HorizonClientService $api): MetricsDataService
+    private function private__makeMetricsDataService(): MetricsDataService
     {
-        $fetcher = new JobsWindowFetcherService($api);
+        $fetcher = new JobsWindowFetcherService;
 
         return new MetricsDataService(
-            new FailureMetricsCalculator($api, $fetcher),
-            new JobsThroughputMetricsCalculator($api, $fetcher),
-            new JobsVolumeLast24hCalculator($api, $fetcher),
-            new RuntimeMetricsCalculator($api, $fetcher),
-            new WorkloadMetricsCalculator($api, $fetcher),
+            new FailureMetricsCalculator($fetcher),
+            new JobsThroughputMetricsCalculator($fetcher),
+            new JobsVolumeLast24hCalculator($fetcher),
+            new RuntimeMetricsCalculator($fetcher),
+            new WorkloadMetricsCalculator($fetcher),
             $fetcher,
         );
     }

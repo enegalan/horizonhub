@@ -13,7 +13,7 @@ class JobController extends Controller
     /**
      * Show the jobs index.
      */
-    public function index(Request $request, ServiceFilterService $serviceFilter): View
+    public function index(Request $request): View
     {
         return \view('horizon.jobs.index', \array_merge([
             'jobsProcessing' => [],
@@ -23,7 +23,7 @@ class JobController extends Controller
             'search' => \trim((string) $request->query('search', '')),
             'defer' => true,
             'header' => 'Jobs',
-        ], $serviceFilter->viewData($request)));
+        ], ServiceFilterService::viewData($request)));
     }
 
     /**

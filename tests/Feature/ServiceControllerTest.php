@@ -3,9 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\HorizonClientCacheService;
 use App\Support\FormDrawer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class ServiceControllerTest extends TestCase
@@ -21,17 +24,13 @@ class ServiceControllerTest extends TestCase
             'status' => 'offline',
         ]);
 
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('ping')->willReturnOnConsecutiveCalls(
-            ['success' => true],
-            ['success' => false, 'message' => 'failed ping'],
-        );
-        $api->expects($this->once())
-            ->method('resetFailureCooldown')
-            ->with($this->callback(function (Service $cooldownService) use ($service): bool {
-                return $cooldownService->id === $service->id;
-            }));
-        $this->app->instance(HorizonClientService::class, $api);
+        \config()->set('horizonhub.horizon_http_retry', ['times' => 1, 'sleep_ms' => 0, 'retry_on_status' => []]);
+
+        Http::fake([
+            'https://svc-a-updated.test/horizon/api/stats' => Http::sequence()
+                ->push(['status' => 'running'], 200)
+                ->push(['message' => 'failed ping'], 500),
+        ]);
 
         $this->get(route('horizon.services.index'))->assertOk();
         Service::factory()->create(['tags' => ['production']]);
@@ -60,11 +59,15 @@ class ServiceControllerTest extends TestCase
         $this->assertNotNull($created);
         $this->assertSame(['mailing', 'production'], $created->tags);
 
+        Cache::put(HorizonClientCacheService::failureCooldownCacheKey($service), true, now()->addMinutes(1));
+
         $this->put(route('horizon.services.update', ['service' => $service]), [
             'name' => 'svc-a-updated',
             'base_url' => 'https://svc-a-updated.test/',
             'public_url' => '',
         ])->assertRedirect(route('horizon.services.index'));
+
+        $this->assertFalse(Cache::has(HorizonClientCacheService::failureCooldownCacheKey($service)));
 
         $this->post(route('horizon.services.test-connection', ['service' => $service]))
             ->assertRedirect()
@@ -208,5 +211,31 @@ class ServiceControllerTest extends TestCase
             ->assertSessionHasErrors(['headers.0.name']);
 
         $this->assertDatabaseMissing('services', ['name' => 'svc-reserved-header']);
+    }
+
+    public function test_test_connection_returns_warning_flash_when_upstream_times_out(): void
+    {
+        $service = Service::create([
+            'name' => 'svc-timeout-flash',
+            'base_url' => 'https://service-timeout-flash.test',
+            'status' => 'online',
+        ]);
+
+        \config()->set('horizonhub.api_timeout', 10);
+        \config()->set('horizonhub.horizon_http_retry', ['times' => 1, 'sleep_ms' => 0, 'retry_on_status' => []]);
+
+        Http::fake(fn () => throw new ConnectionException('cURL error 28: Operation timed out after 10001 milliseconds with 0 bytes received'));
+
+        $this->post(route('horizon.services.test-connection', ['service' => $service]))
+            ->assertRedirect()
+            ->assertSessionHas('status.type', 'warning');
+
+        $status = \session('status');
+        $this->assertIsArray($status);
+        $this->assertStringContainsString('HORIZON_HUB_API_TIMEOUT', (string) ($status['message'] ?? ''));
+        $this->assertStringContainsString('10s', (string) ($status['message'] ?? ''));
+
+        $service->refresh();
+        $this->assertSame('offline', $service->status);
     }
 }

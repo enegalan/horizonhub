@@ -3,31 +3,16 @@
 namespace App\Services\Jobs;
 
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\HorizonClientApiService;
 use App\Support\Jobs\JobRuntime;
 use App\Support\Jobs\JobsPaginator;
 
 final class JobsWindowFetcherService
 {
     /**
-     * The Horizon API client.
-     */
-    private HorizonClientService $horizonApi;
-
-    /**
      * @var array<string, list<array<string, mixed>>>
      */
     private array $memo = [];
-
-    /**
-     * The constructor.
-     *
-     * @param HorizonClientService $horizonApi The horizon API client.
-     */
-    public function __construct(HorizonClientService $horizonApi)
-    {
-        $this->horizonApi = $horizonApi;
-    }
 
     /**
      * Fetch completed jobs with completed_at >= $sinceTimestamp by paginating the Horizon API.
@@ -45,7 +30,7 @@ final class JobsWindowFetcherService
         $jobs = JobsPaginator::fetchSinceTimestamp(
             $sinceTimestamp,
             function (array $query) use ($service): array {
-                return $this->horizonApi->getCompletedJobs($service, $query);
+                return HorizonClientApiService::getCompletedJobs($service, $query);
             },
             static function (array $job): ?int {
                 return self::private__extractTimestamp($job['completed_at'] ?? $job['processed_at'] ?? null);
@@ -73,7 +58,7 @@ final class JobsWindowFetcherService
         $jobs = JobsPaginator::fetchSinceTimestamp(
             $sinceTimestamp,
             function (array $query) use ($service): array {
-                return $this->horizonApi->getFailedJobs($service, $query);
+                return HorizonClientApiService::getFailedJobs($service, $query);
             },
             static function (array $job): ?int {
                 return self::private__extractTimestamp($job['failed_at'] ?? null);

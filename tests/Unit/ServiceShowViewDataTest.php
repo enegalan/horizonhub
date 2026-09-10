@@ -4,12 +4,10 @@ namespace Tests\Unit;
 
 use App\Http\Controllers\Stream\HorizonStreamsController;
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
-use App\Services\Jobs\JobListService;
 use App\Services\Metrics\MetricsDataService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class ServiceShowViewDataTest extends TestCase
@@ -30,39 +28,36 @@ class ServiceShowViewDataTest extends TestCase
         ]);
         $this->app->instance(MetricsDataService::class, $metrics);
 
-        $paginator = new LengthAwarePaginator([], 0, 15, 1);
-        $jobList = $this->createMock(JobListService::class);
-        $jobList->method('buildServiceStatusPaginators')->willReturn([
-            'processing' => $paginator,
-            'processed' => $paginator,
-            'failed' => $paginator,
-        ]);
-        $this->app->instance(JobListService::class, $jobList);
-
-        $horizonApi = $this->createMock(HorizonClientService::class);
-        $horizonApi->method('getStats')->willReturn([
-            'success' => true,
-            'data' => [
-                'status' => 'running',
-                'processes' => 3,
-                'wait' => ['default' => 5.0, 'emails' => 0],
-                'queueWithMaxRuntime' => 'default',
-                'queueWithMaxThroughput' => 'emails',
-            ],
-        ]);
-        $horizonApi->method('getMasters')->willReturn([
-            'success' => true,
-            'data' => [[
-                'supervisors' => [[
-                    'name' => 'prod:supervisor-1',
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/horizon/api/stats')) {
+                return Http::response([
                     'status' => 'running',
-                    'processes' => [1, 2],
-                    'options' => ['connection' => 'redis', 'queue' => ['default', 'emails'], 'balance' => 'auto'],
-                ]],
-            ]],
-        ]);
+                    'processes' => 3,
+                    'wait' => ['default' => 5.0, 'emails' => 0],
+                    'queueWithMaxRuntime' => 'default',
+                    'queueWithMaxThroughput' => 'emails',
+                ], 200);
+            }
 
-        $data = $this->private__invokeBuildServiceShowData($service, $request, $horizonApi);
+            if (str_contains($request->url(), '/horizon/api/masters')) {
+                return Http::response([[
+                    'supervisors' => [[
+                        'name' => 'prod:supervisor-1',
+                        'status' => 'running',
+                        'processes' => [1, 2],
+                        'options' => ['connection' => 'redis', 'queue' => ['default', 'emails'], 'balance' => 'auto'],
+                    ]],
+                ]], 200);
+            }
+
+            if (str_contains($request->url(), '/horizon/api/jobs/')) {
+                return Http::response(['jobs' => []], 200);
+            }
+
+            return Http::response('unexpected', 500);
+        });
+
+        $data = $this->private__invokeBuildServiceShowData($service, $request);
 
         $this->assertSame(2, $data['jobsPastMinute']);
         $this->assertSame(20, $data['jobsPastHour']);
@@ -89,29 +84,26 @@ class ServiceShowViewDataTest extends TestCase
         $metrics->expects($this->never())->method('getJobsPastMinute');
         $this->app->instance(MetricsDataService::class, $metrics);
 
-        $jobList = $this->createMock(JobListService::class);
-        $jobList->expects($this->never())->method('buildServiceStatusPaginators');
-        $this->app->instance(JobListService::class, $jobList);
+        Http::fake(['*' => Http::response([], 200)]);
 
-        $horizonApi = $this->createMock(HorizonClientService::class);
-        $horizonApi->expects($this->never())->method('getStats');
-
-        $data = $this->private__invokeBuildServiceShowData($service, $request, $horizonApi);
+        $data = $this->private__invokeBuildServiceShowData($service, $request);
 
         $this->assertSame(0, $data['jobsPastMinute']);
         $this->assertNull($data['horizonStatus']);
         $this->assertTrue($data['workloadQueues']->isEmpty());
+
+        Http::assertNothingSent();
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function private__invokeBuildServiceShowData(Service $service, Request $request, HorizonClientService $horizonApi): array
+    private function private__invokeBuildServiceShowData(Service $service, Request $request): array
     {
         $controller = $this->app->make(HorizonStreamsController::class);
         $reflection = new \ReflectionMethod($controller, 'private__buildServiceShowData');
         $reflection->setAccessible(true);
 
-        return $reflection->invoke($controller, $service, $request, $horizonApi);
+        return $reflection->invoke($controller, $service, $request);
     }
 }

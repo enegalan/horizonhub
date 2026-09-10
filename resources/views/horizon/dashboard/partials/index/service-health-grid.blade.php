@@ -19,7 +19,7 @@
             $hoverChevronClass = 'group-hover:text-amber-600 dark:group-hover:text-amber-400';
         } else {
             $svcDot = 'bg-red-500';
-            $svcLabel = 'Offline';
+            $svcLabel = $service->hasTimeoutAdvice() ? 'Timed Out' : 'Offline';
             $topBarClass = 'from-red-500/80 via-red-400/60 to-transparent';
             $hoverBorderClass = 'hover:border-red-500/45 dark:hover:border-red-400/50';
             $hoverChevronClass = 'group-hover:text-red-600 dark:group-hover:text-red-400';

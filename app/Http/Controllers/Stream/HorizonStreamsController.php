@@ -13,11 +13,7 @@ use App\Http\Controllers\Stream\Concerns\BuildsServiceStreams;
 use App\Http\Controllers\StreamController;
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Horizon\HorizonClientService;
-use App\Services\Jobs\JobListService;
-use App\Services\Jobs\JobServiceResolverService;
 use App\Services\Metrics\MetricsDataService;
-use App\Services\Services\ServiceFilterService;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -33,46 +29,18 @@ class HorizonStreamsController extends StreamController
     use BuildsServiceStreams;
 
     /**
-     * The horizon api proxy service.
-     */
-    private HorizonClientService $horizonApi;
-
-    /**
-     * The job list service.
-     */
-    private JobListService $jobList;
-
-    /**
-     * The job service resolver.
-     */
-    private JobServiceResolverService $jobServiceResolver;
-
-    /**
      * The metrics data service.
      */
     private MetricsDataService $metrics;
 
     /**
-     * The service filter service.
-     */
-    private ServiceFilterService $serviceFilter;
-
-    /**
      * The constructor.
      *
      * @param MetricsDataService $metrics The metrics data service.
-     * @param HorizonClientService $horizonApi The horizon API client.
-     * @param JobListService $jobList The job list service.
-     * @param JobServiceResolverService $jobServiceResolver The job service resolver.
-     * @param ServiceFilterService $serviceFilter The service filter service.
      */
-    public function __construct(MetricsDataService $metrics, HorizonClientService $horizonApi, JobListService $jobList, JobServiceResolverService $jobServiceResolver, ServiceFilterService $serviceFilter)
+    public function __construct(MetricsDataService $metrics)
     {
         $this->metrics = $metrics;
-        $this->horizonApi = $horizonApi;
-        $this->jobList = $jobList;
-        $this->jobServiceResolver = $jobServiceResolver;
-        $this->serviceFilter = $serviceFilter;
     }
 
     public function alerts(Request $request): StreamedResponse

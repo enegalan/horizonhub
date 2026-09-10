@@ -13,12 +13,12 @@ class DashboardController extends Controller
     /**
      * Show the dashboard.
      */
-    public function index(Request $request, ServiceFilterService $serviceFilter): View
+    public function index(Request $request): View
     {
         return \view('horizon.dashboard.index', \array_merge([
             'header' => 'Dashboard',
             'defer' => true,
             'services' => Service::enabled()->orderBy('name')->get(),
-        ], $serviceFilter->viewData($request)));
+        ], ServiceFilterService::viewData($request)));
     }
 }

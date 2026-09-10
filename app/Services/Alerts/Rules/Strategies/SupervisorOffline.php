@@ -5,28 +5,13 @@ namespace App\Services\Alerts\Rules\Strategies;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
-use App\Services\Horizon\HorizonClientService;
+use App\Services\Horizon\HorizonClientApiService;
 use App\Support\Horizon\ClientResponse;
 use App\Support\Horizon\MasterReader;
 use App\Support\Jobs\JobRuntime;
 
 final class SupervisorOffline implements AlertRuleContract
 {
-    /**
-     * The Horizon API client.
-     */
-    private HorizonClientService $horizonApi;
-
-    /**
-     * The constructor.
-     *
-     * @param HorizonClientService $horizonApi The Horizon API client.
-     */
-    public function __construct(HorizonClientService $horizonApi)
-    {
-        $this->horizonApi = $horizonApi;
-    }
-
     /**
      * Get the type.
      */
@@ -46,7 +31,7 @@ final class SupervisorOffline implements AlertRuleContract
             return ['triggered' => false, 'job_uuids' => []];
         }
 
-        $mastersData = ClientResponse::data($this->horizonApi->getMasters($service));
+        $mastersData = ClientResponse::data(HorizonClientApiService::getMasters($service));
 
         if ($mastersData === null) {
             return ['triggered' => false, 'job_uuids' => []];

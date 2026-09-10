@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Stream\Concerns;
 
 use App\Models\AlertLog;
 use App\Models\Service;
+use App\Services\Services\ServiceFilterService;
 
 trait BuildsDashboardStreams
 {
@@ -14,12 +15,12 @@ trait BuildsDashboardStreams
      */
     protected function buildDashboard(string $query): string
     {
-        $serviceFilterIds = $this->serviceFilter->resolveServiceIdsFromQuery($query);
+        $serviceFilterIds = ServiceFilterService::resolveServiceIdsFromQuery($query);
         $metrics = $this->metrics->buildMetricsDashboardData($serviceFilterIds);
         $services = Service::getServices($serviceFilterIds, false, true);
 
         foreach ($services as $service) {
-            $service->withHorizonStats($this->horizonApi);
+            $service->withHorizonStats();
         }
 
         $onlineCount = 0;

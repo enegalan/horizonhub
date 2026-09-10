@@ -13,7 +13,7 @@ class QueueController extends Controller
     /**
      * Display the queue list.
      */
-    public function index(Request $request, ServiceFilterService $serviceFilter): View
+    public function index(Request $request): View
     {
         return \view('horizon.queues.index', \array_merge([
             'queueCount' => 0,
@@ -22,6 +22,6 @@ class QueueController extends Controller
             'totalJobs' => 0,
             'defer' => true,
             'header' => 'Queues',
-        ], $serviceFilter->viewData($request)));
+        ], ServiceFilterService::viewData($request)));
     }
 }

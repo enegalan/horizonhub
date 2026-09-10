@@ -11,11 +11,11 @@ use App\Services\Alerts\Engine\AlertEngine;
 use App\Services\Alerts\Rules\AlertRuleStrategyRegistry;
 use App\Services\Alerts\Rules\Strategies\FailureCount;
 use App\Services\Alerts\Rules\Strategies\HorizonOffline;
-use App\Services\Horizon\HorizonClientService;
 use App\Services\Notifiers\DiscordNotifierService;
 use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Notifiers\SlackNotifierService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class AlertEngineTest extends TestCase
@@ -127,15 +127,17 @@ class AlertEngineTest extends TestCase
             'enabled' => true,
         ]);
 
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getFailedJobs')->willReturn([
-            'success' => true,
-            'data' => ['jobs' => []],
-        ]);
+        Http::fake(function ($request) {
+            if (\str_contains($request->url(), '/horizon/api/jobs/failed')) {
+                return Http::response(['jobs' => []], 200);
+            }
+
+            return Http::response('unexpected', 500);
+        });
 
         $engine = new AlertEngine(
             new AlertBatchStore,
-            $this->private__resolveRegistry($api),
+            $this->private__resolveRegistry(),
         );
 
         $result = $engine->evaluateAlert($alert);
@@ -158,7 +160,7 @@ class AlertEngineTest extends TestCase
 
         $engine = new AlertEngine(
             $batch,
-            $this->private__resolveRegistry($this->createMock(HorizonClientService::class)),
+            $this->private__resolveRegistry(),
         );
         $result = $engine->evaluateAlert($alert);
 
@@ -176,7 +178,7 @@ class AlertEngineTest extends TestCase
         ]);
 
         $batch = new AlertBatchStore;
-        $registry = $this->private__resolveRegistry($this->createMock(HorizonClientService::class));
+        $registry = $this->private__resolveRegistry();
         $engine = new AlertEngine($batch, $registry);
 
         $result = $engine->evaluateAlert($alert);
@@ -195,7 +197,7 @@ class AlertEngineTest extends TestCase
 
         $engine = new AlertEngine(
             new AlertBatchStore,
-            $this->private__resolveRegistry($this->createMock(HorizonClientService::class)),
+            $this->private__resolveRegistry(),
         );
 
         $engine->evaluateScheduled();
@@ -219,14 +221,21 @@ class AlertEngineTest extends TestCase
         ]);
         $alert->notificationProviders()->sync([$provider->id]);
 
-        $api = $this->createMock(HorizonClientService::class);
-        $api->method('getFailedJobs')->willReturn([
-            'success' => true,
-            'data' => ['jobs' => [['id' => 'uuid-z', 'failed_at' => now()->toIso8601String(), 'queue' => '', 'payload' => []]]],
-        ]);
+        Http::fake(function ($request) {
+            if (\str_contains($request->url(), '/horizon/api/jobs/failed')) {
+                return Http::response(['jobs' => [[
+                    'id' => 'uuid-z',
+                    'failed_at' => now()->toIso8601String(),
+                    'queue' => '',
+                    'payload' => [],
+                ]]], 200);
+            }
+
+            return Http::response('unexpected', 500);
+        });
 
         $engine = $this->getMockBuilder(AlertEngine::class)
-            ->setConstructorArgs([new AlertBatchStore, $this->private__resolveRegistry($api)])
+            ->setConstructorArgs([new AlertBatchStore, $this->private__resolveRegistry()])
             ->onlyMethods(['dispatch'])
             ->getMock();
         $engine->expects($this->exactly(2))->method('dispatch');
@@ -270,7 +279,7 @@ class AlertEngineTest extends TestCase
         $batch->setPending($alert, [['service_id' => $service->id, 'job_uuid' => 'u-ex', 'triggered_at' => now()->toIso8601String()]]);
 
         $engine = $this->getMockBuilder(AlertEngine::class)
-            ->setConstructorArgs([$batch, $this->private__resolveRegistry($this->createMock(HorizonClientService::class))])
+            ->setConstructorArgs([$batch, $this->private__resolveRegistry()])
             ->onlyMethods(['dispatch'])
             ->getMock();
         $engine->method('dispatch')->willThrowException(new \RuntimeException('dispatch fail'));
@@ -301,7 +310,7 @@ class AlertEngineTest extends TestCase
         $batch->setPending($alert, [['service_id' => $service->id, 'job_uuid' => 'u1', 'triggered_at' => now()->toIso8601String()]]);
 
         $engine = $this->getMockBuilder(AlertEngine::class)
-            ->setConstructorArgs([$batch, $this->private__resolveRegistry($this->createMock(HorizonClientService::class))])
+            ->setConstructorArgs([$batch, $this->private__resolveRegistry()])
             ->onlyMethods(['dispatch'])
             ->getMock();
         $engine->expects($this->once())->method('dispatch');
@@ -341,7 +350,7 @@ class AlertEngineTest extends TestCase
         ]);
 
         $batch = new AlertBatchStore;
-        $registry = $this->private__resolveRegistry($this->createMock(HorizonClientService::class));
+        $registry = $this->private__resolveRegistry();
         $engine = $this->getMockBuilder(AlertEngine::class)
             ->setConstructorArgs([$batch, $registry])
             ->onlyMethods(['dispatch'])
@@ -366,14 +375,12 @@ class AlertEngineTest extends TestCase
 
         return new AlertEngine(
             new AlertBatchStore,
-            $this->private__resolveRegistry($this->createMock(HorizonClientService::class)),
+            $this->private__resolveRegistry(),
         );
     }
 
-    private function private__resolveRegistry(HorizonClientService $api): AlertRuleStrategyRegistry
+    private function private__resolveRegistry(): AlertRuleStrategyRegistry
     {
-        $this->app->instance(HorizonClientService::class, $api);
-
         return $this->app->make(AlertRuleStrategyRegistry::class);
     }
 }
