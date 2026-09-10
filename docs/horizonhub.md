@@ -18,10 +18,10 @@ For installation and environment setup, see the [README](../README.md). For step
 
 ## Key concepts
 
-| Term           | Meaning |
+| Term           | Meaning                                                                                                                                                                                                                                                     |
 |----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Service**    | A registered remote Horizon instance: internal `base_url` for API calls, optional `public_url` for browser links, `tags`, optional HTTP `headers`, `enabled` flag, and health `status` (`online`, `stand_by`, `offline`). Stored in Horizon Hub's database. |
-| **Provider**   | A reusable **notification channel** (Slack incoming webhook, Discord webhook, or email recipients), not a Laravel “service provider”. Alerts attach one or more providers.                                                                                                    |
+| **Provider**   | A reusable **notification channel** (Slack incoming webhook, Discord webhook, or email recipients), not a Laravel “service provider”. Alerts attach one or more providers.                                                                                  |
 | **Alert**      | A named rule scoped to services (and optionally queues/jobs) that evaluates conditions and sends notifications through providers.                                                                                                                           |
 | **Hot reload** | Server-Sent Events (SSE) that push Turbo Stream HTML fragments to the open page so lists and KPIs update without a full reload. Toggle in the header toolbar.                                                                                               |
 
@@ -185,9 +185,9 @@ Web UI: `routes/web.php`. SSE: `routes/streams.php`.
 
 ## Related documentation
 
-| Document | Audience |
-|----------|----------|
-| [README.md](../README.md) | Install, requirements, quick start |
-| [guide.md](guide.md) | End-user manual for all features |
+| Document                  | Audience                                    |
+|---------------------------|---------------------------------------------|
+| [README.md](../README.md) | Install, requirements, quick start          |
+| [guide.md](guide.md) | End-user manual for all features                 |
 | [decisions/](decisions/) | Accepted and rejected architecture decisions |
-| [AGENTS.md](../AGENTS.md) | Coding and testing conventions for agents |
+| [AGENTS.md](../AGENTS.md) | Coding and testing conventions for agents   |
