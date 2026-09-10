@@ -9,9 +9,14 @@ import { isHotReloadEnabled } from '../lib/sse';
  * @returns {object}
  */
 export function horizonServiceForm(initialHeaders, initialTags, existingTags) {
+    // Normalize tag value to lowercase and remove whitespace
+    function normalizeTag(value) {
+        return (value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    }
+
     var headers = Array.isArray(initialHeaders) ? initialHeaders : [];
-    var tags = Array.isArray(initialTags) ? initialTags.slice() : [];
-    var knownTags = Array.isArray(existingTags) ? existingTags.slice() : [];
+    var tags = Array.isArray(initialTags) ? initialTags.map(normalizeTag).filter(Boolean) : [];
+    var knownTags = Array.isArray(existingTags) ? existingTags.map(normalizeTag).filter(Boolean) : [];
 
     if (headers.length === 0) {
         headers.push({ name: '', value: '' });
@@ -26,8 +31,8 @@ export function horizonServiceForm(initialHeaders, initialTags, existingTags) {
         tagSuggestionHighlight: -1,
         tagSuggestionsLimit: 15,
         get tagSuggestions() {
-            var query = (this.tagInput || '').trim().toLowerCase();
-            var available = this.existingTags.filter(function (tag) {
+            var query = normalizeTag(this.tagInput);
+            var available = this.existingTags.filter((tag) => {
                 return this.tags.indexOf(tag) === -1;
             });
 
@@ -96,13 +101,20 @@ export function horizonServiceForm(initialHeaders, initialTags, existingTags) {
             this.closeTagSuggestions();
         },
 
-        addTag() {
-            var value = (this.tagInput || '').trim();
-            if (value === '') {
-                return;
+        canAddTag() {
+            var normalized = normalizeTag(this.tagInput);
+            if (normalized === '') {
+                return false;
             }
 
-            var normalized = value.toLowerCase().replace(/\s+/g, ' ');
+            return this.tags.indexOf(normalized) === -1;
+        },
+
+        addTag() {
+            var normalized = normalizeTag(this.tagInput);
+            if (normalized === '') {
+                return;
+            }
             if (this.tags.indexOf(normalized) !== -1) {
                 this.tagInput = '';
                 this.closeTagSuggestions();
