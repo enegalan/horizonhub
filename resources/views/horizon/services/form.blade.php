@@ -128,7 +128,7 @@
                                 Pick an existing tag from the list or type a new one.
                             </p>
                         </div>
-                        <x-button type="button" variant="secondary" class="h-9 shrink-0 text-sm" @click="addTag()">
+                        <x-button type="button" variant="secondary" class="h-9 shrink-0 text-sm" x-bind:disabled="!canAddTag()" @click="addTag()">
                             Add
                         </x-button>
                     </div>

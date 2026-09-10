@@ -27,7 +27,7 @@ export function horizonServiceForm(initialHeaders, initialTags, existingTags) {
         tagSuggestionsLimit: 15,
         get tagSuggestions() {
             var query = (this.tagInput || '').trim().toLowerCase();
-            var available = this.existingTags.filter(function (tag) {
+            var available = this.existingTags.filter((tag) => {
                 return this.tags.indexOf(tag) === -1;
             });
 
@@ -94,6 +94,15 @@ export function horizonServiceForm(initialHeaders, initialTags, existingTags) {
             this.tagInput = tag;
             this.addTag();
             this.closeTagSuggestions();
+        },
+
+        canAddTag() {
+            var value = (this.tagInput || '').trim();
+            if (value === '') {
+                return false;
+            }
+
+            return this.tags.indexOf(value.toLowerCase().replace(/\s+/g, ' ')) === -1;
         },
 
         addTag() {
