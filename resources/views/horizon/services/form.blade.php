@@ -85,7 +85,7 @@
                             </span>
                         </template>
                     </div>
-                    <div class="flex flex-wrap items-end gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <div class="relative min-w-0 flex-1 space-y-2" @click.outside="closeTagSuggestions()">
                             <x-input-label for="service-tag-input">Add tag</x-input-label>
                             <x-text-input
