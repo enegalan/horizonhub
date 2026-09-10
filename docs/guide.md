@@ -73,7 +73,7 @@ Services are the foundation of Horizon Hub. Every monitoring view, metric, and a
 1. Open **Services** and choose **Add service**.
 2. Fill in **Connection details**:
 
-| Field | Purpose                                                                                                                                                           |
+| Field                       | Purpose                                                                                                                                     |
 |-----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
 | **Name**                    | Unique label shown across Horizon Hub (e.g. `billing-api`).                                                                                 |
 | **Base URL**                | Internal URL Horizon Hub uses to call the Horizon HTTP API. Must be reachable from Horizon Hub server. Trailing slashes are normalized.     |
