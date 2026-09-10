@@ -17,8 +17,8 @@
             />
 
             <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
-                <div class="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
-                    <form method="GET" action="{{ route('horizon.jobs.index') }}" class="flex min-w-0 flex-1 flex-col flex-wrap gap-3 sm:flex-row sm:items-end" data-turbo-frame="_top" data-service-tag-filter="1">
+                <div class="flex flex-col gap-4 xl:flex-row xl:flex-wrap xl:items-end xl:justify-between">
+                    <form method="GET" action="{{ route('horizon.jobs.index') }}" class="flex min-w-0 flex-1 flex-col gap-3 md:flex-row md:flex-wrap md:items-end" data-turbo-frame="_top" data-service-tag-filter="1">
                         <x-service-tag-filter
                             :all-tags="$allTags ?? []"
                             :selected-tags="$selectedTags ?? []"
@@ -28,25 +28,25 @@
                             service-multiselect-id="jobs-index-services"
                             service-multiselect-label="Services"
                         />
-                        <div class="min-w-0 flex-1 space-y-2 sm:max-w-none">
+                        <div class="flex min-w-0 flex-1 flex-col gap-2 md:max-w-[22rem]">
                             <x-input-label for="jobs-index-search">Search</x-input-label>
-                            <div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+                            <div class="flex min-w-0 flex-col gap-2 md:flex-row md:items-center">
                                 <x-text-input
                                     id="jobs-index-search"
                                     type="text"
                                     name="search"
                                     value="{{ $search ?? '' }}"
                                     placeholder="Queue, job or UUID"
-                                    class="w-full min-w-0 sm:w-56"
+                                    class="w-full min-w-0 md:flex-1 md:max-w-56"
                                 />
-                                <x-button type="submit" class="h-9 text-sm">
+                                <x-button type="submit" class="h-9 w-full text-sm md:w-auto">
                                     Search
                                 </x-button>
                             </div>
                         </div>
                     </form>
-                    <div class="flex shrink-0 items-end gap-2">
-                        <x-button type="button" variant="secondary" class="h-9 text-sm" @click="openRetryModal()">
+                    <div class="flex w-full shrink-0 items-end gap-2 sm:w-auto">
+                        <x-button type="button" variant="secondary" class="h-9 w-full text-sm sm:w-auto" @click="openRetryModal()">
                             <x-icons.arrow-path class="size-4" />
                             Retry failed jobs
                         </x-button>

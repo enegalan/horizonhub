@@ -162,15 +162,15 @@
             <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
                 <div class="space-y-2">
                     <x-input-label for="service-jobs-search">Search</x-input-label>
-                    <form method="GET" action="{{ route('horizon.services.show', $service) }}" id="service-jobs-search" class="flex gap-2" data-turbo-frame="service-jobs">
+                    <form method="GET" action="{{ route('horizon.services.show', $service) }}" id="service-jobs-search" class="flex flex-col gap-2 sm:flex-row sm:items-center" data-turbo-frame="service-jobs">
                         <x-text-input
                             type="text"
                             name="search"
                             value="{{ $search ?? '' }}"
                             placeholder="Queue, job or UUID"
-                            class="w-52"
+                            class="w-full min-w-0 sm:w-52"
                         />
-                        <x-button type="submit" class="shrink-0">Search</x-button>
+                        <x-button type="submit" class="h-9 w-full shrink-0 text-sm sm:w-auto">Search</x-button>
                     </form>
                 </div>
             </div>

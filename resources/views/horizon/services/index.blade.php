@@ -24,7 +24,7 @@
                         :all-tags="$allTags ?? []"
                         :selected-tags="$selectedTags ?? []"
                     />
-                    <x-button type="submit" class="h-9 shrink-0 text-sm">
+                    <x-button type="submit" class="h-9 w-full shrink-0 text-sm sm:w-auto">
                         Search
                     </x-button>
                 </form>
