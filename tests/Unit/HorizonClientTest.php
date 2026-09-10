@@ -40,6 +40,10 @@ class HorizonClientTest extends TestCase
             'status' => 'online',
         ]);
 
+        // Seed the slot key with count 1 to verify that a disabled limit (max=0)
+        // bypasses slot acquisition regardless of existing cache state.
+        Cache::put(HorizonClientCacheService::serviceRequestSlotCacheKey($service), 1, \now()->addSeconds(30));
+
         $result = HorizonClientApiService::getStats($service);
 
         $this->assertTrue($result['success']);
@@ -125,7 +129,7 @@ class HorizonClientTest extends TestCase
         $this->assertSame('json boom', $jsonResult['message']);
 
         \config()->set('horizonhub.horizon_paths.ping', '/html-message');
-        Cache::forget('horizonhub:horizon-api-failure-cooldown:' . $service->id);
+        Cache::forget(HorizonClientCacheService::failureCooldownCacheKey($service));
         $htmlResult = HorizonClientApiService::ping($service);
         $this->assertFalse($htmlResult['success']);
         $this->assertStringContainsString('Horizon API returned an HTTP error', (string) $htmlResult['message']);
@@ -156,7 +160,7 @@ class HorizonClientTest extends TestCase
             'status' => 'online',
         ]);
 
-        Cache::forget('horizonhub:horizon-api-failure-cooldown:' . $service->id);
+        Cache::forget(HorizonClientCacheService::failureCooldownCacheKey($service));
 
         $first = HorizonClientApiService::getStats($service);
         $second = HorizonClientApiService::getStats($service);
@@ -330,7 +334,7 @@ class HorizonClientTest extends TestCase
 
         $this->assertTrue(HorizonClientApiService::getStats($service)['success']);
 
-        $this->assertFalse(Cache::has('horizonhub:horizon-api-service-slot:' . $service->id));
+        $this->assertFalse(Cache::has(HorizonClientCacheService::serviceRequestSlotCacheKey($service)));
 
         $this->assertTrue(HorizonClientApiService::getStats($service)['success']);
         Http::assertSentCount(1);
@@ -352,7 +356,7 @@ class HorizonClientTest extends TestCase
             'status' => 'online',
         ]);
 
-        $lock = Cache::lock('horizonhub:horizon-api-hot-reload-path:' . $service->id . ':/stats:fill', 30);
+        $lock = Cache::lock(HorizonClientCacheService::requestPathCacheKey($service, '/stats') . ':fill', 30);
         $this->assertTrue($lock->get());
 
         try {
@@ -385,8 +389,8 @@ class HorizonClientTest extends TestCase
         ]);
 
         // Simulate an in-flight request holding the only concurrency slot.
-        Cache::add('horizonhub:horizon-api-service-slot:' . $service->id, 0, \now()->addSeconds(30));
-        Cache::increment('horizonhub:horizon-api-service-slot:' . $service->id);
+        Cache::add(HorizonClientCacheService::serviceRequestSlotCacheKey($service), 0, \now()->addSeconds(30));
+        Cache::increment(HorizonClientCacheService::serviceRequestSlotCacheKey($service));
 
         $result = HorizonClientApiService::getStats($service);
 
@@ -469,7 +473,7 @@ class HorizonClientTest extends TestCase
         $this->assertTrue(Cache::has(HorizonClientCacheService::timeoutAdviceCacheKey($service)));
         $this->assertTrue($service->hasTimeoutAdvice());
 
-        Cache::forget('horizonhub:horizon-api-failure-cooldown:' . $service->id);
+        Cache::forget(HorizonClientCacheService::failureCooldownCacheKey($service));
 
         $second = HorizonClientApiService::getStats($service);
         $this->assertTrue($second['success']);
@@ -542,8 +546,7 @@ class HorizonClientTest extends TestCase
             'status' => 'online',
         ]);
 
-        $cacheKey = 'horizonhub:horizon-api-failure-cooldown:' . $service->id;
-        Cache::put($cacheKey, true, \now()->addMinutes(1));
+        Cache::put(HorizonClientCacheService::failureCooldownCacheKey($service), true, \now()->addMinutes(1));
 
         $pingResult = HorizonClientApiService::ping($service);
 

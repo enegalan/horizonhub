@@ -102,17 +102,18 @@ class HorizonClientHttpService
                     return $cached;
                 }
 
-                // Reserve a concurrency slot so a slow upstream service is not
-                // overwhelmed by parallel polls coming from multiple streams.
-                $slotAcquired = HorizonClientCacheService::acquireServiceRequestSlot($service);
+            }
 
-                if (! $slotAcquired) {
-                    return [
-                        'success' => false,
-                        'message' => 'Service concurrent request limit reached.',
-                        'status' => 503,
-                    ];
-                }
+            // Reserve a concurrency slot so a slow upstream service is not
+            // overwhelmed by parallel polls coming from multiple streams.
+            $slotAcquired = HorizonClientCacheService::acquireServiceRequestSlot($service);
+
+            if (! $slotAcquired) {
+                return [
+                    'success' => false,
+                    'message' => 'Service concurrent request limit reached.',
+                    'status' => 503,
+                ];
             }
 
             if (config('app.debug')) {

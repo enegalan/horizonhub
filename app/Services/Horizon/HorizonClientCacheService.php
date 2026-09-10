@@ -29,7 +29,7 @@ class HorizonClientCacheService
             return true;
         }
 
-        $key = self::private__serviceRequestSlotCacheKey($service);
+        $key = self::serviceRequestSlotCacheKey($service);
         $waitBudgetMs = (int) config('horizonhub.horizon_http_concurrent_request_wait_ms');
         $deadline = \microtime(true) + ($waitBudgetMs / 1000);
 
@@ -52,13 +52,25 @@ class HorizonClientCacheService
     }
 
     /**
+     * Get the failure cooldown cache key.
+     *
+     * @param Service $service The service instance.
+     *
+     * @return string The cache key.
+     */
+    public static function failureCooldownCacheKey(Service $service): string
+    {
+        return "horizonhub:horizon-api-failure-cooldown:{$service->id}";
+    }
+
+    /**
      * Forget the failure cooldown for a service.
      *
      * @param Service $service The service instance.
      */
     public static function forgetFailureCooldown(Service $service): void
     {
-        Cache::forget(self::private__failureCooldownCacheKey($service));
+        Cache::forget(self::failureCooldownCacheKey($service));
     }
 
     /**
@@ -93,7 +105,7 @@ class HorizonClientCacheService
      */
     public static function hasFailureCooldown(Service $service): bool
     {
-        return Cache::has(self::private__failureCooldownCacheKey($service));
+        return Cache::has(self::failureCooldownCacheKey($service));
     }
 
     /**
@@ -106,7 +118,7 @@ class HorizonClientCacheService
         $seconds = (int) config('horizonhub.horizon_http_failure_cooldown_seconds');
 
         if ($seconds > 0) {
-            Cache::put(self::private__failureCooldownCacheKey($service), true, \now()->addSeconds($seconds));
+            Cache::put(self::failureCooldownCacheKey($service), true, \now()->addSeconds($seconds));
         }
     }
 
@@ -147,7 +159,7 @@ class HorizonClientCacheService
      */
     public static function releaseServiceRequestSlot(Service $service): void
     {
-        $key = self::private__serviceRequestSlotCacheKey($service);
+        $key = self::serviceRequestSlotCacheKey($service);
         $count = Cache::decrement($key);
 
         if ($count <= 0) {
@@ -182,6 +194,18 @@ class HorizonClientCacheService
     }
 
     /**
+     * Get the service request slot cache key.
+     *
+     * @param Service $service The service instance.
+     *
+     * @return string The cache key.
+     */
+    public static function serviceRequestSlotCacheKey(Service $service): string
+    {
+        return "horizonhub:horizon-api-service-slot:{$service->id}";
+    }
+
+    /**
      * Get the timeout advice cache key.
      *
      * @param Service $service The service instance.
@@ -191,18 +215,6 @@ class HorizonClientCacheService
     public static function timeoutAdviceCacheKey(Service $service): string
     {
         return "horizonhub:horizon-api-timeout-advice:{$service->id}";
-    }
-
-    /**
-     * Get the failure cooldown cache key.
-     *
-     * @param Service $service The service instance.
-     *
-     * @return string The cache key.
-     */
-    private static function private__failureCooldownCacheKey(Service $service): string
-    {
-        return "horizonhub:horizon-api-failure-cooldown:{$service->id}";
     }
 
     /**
@@ -227,17 +239,5 @@ class HorizonClientCacheService
         $backoffSeconds = (int) \ceil($backoffMs / 1000);
 
         return $baseSeconds + $backoffSeconds + 1;
-    }
-
-    /**
-     * Get the service request slot cache key.
-     *
-     * @param Service $service The service instance.
-     *
-     * @return string The cache key.
-     */
-    private static function private__serviceRequestSlotCacheKey(Service $service): string
-    {
-        return "horizonhub:horizon-api-service-slot:{$service->id}";
     }
 }

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Service;
+use App\Services\Horizon\HorizonClientCacheService;
 use App\Support\FormDrawer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
@@ -58,7 +59,7 @@ class ServiceControllerTest extends TestCase
         $this->assertNotNull($created);
         $this->assertSame(['mailing', 'production'], $created->tags);
 
-        Cache::put('horizonhub:horizon-api-failure-cooldown:' . $service->id, true, now()->addMinutes(1));
+        Cache::put(HorizonClientCacheService::failureCooldownCacheKey($service), true, now()->addMinutes(1));
 
         $this->put(route('horizon.services.update', ['service' => $service]), [
             'name' => 'svc-a-updated',
@@ -66,7 +67,7 @@ class ServiceControllerTest extends TestCase
             'public_url' => '',
         ])->assertRedirect(route('horizon.services.index'));
 
-        $this->assertFalse(Cache::has('horizonhub:horizon-api-failure-cooldown:' . $service->id));
+        $this->assertFalse(Cache::has(HorizonClientCacheService::failureCooldownCacheKey($service)));
 
         $this->post(route('horizon.services.test-connection', ['service' => $service]))
             ->assertRedirect()

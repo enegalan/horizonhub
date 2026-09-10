@@ -38,7 +38,7 @@
             'horizon_failed_jobs_count' => (int) ($service->horizon_failed_jobs_count ?? 0),
             'last_seen_minute' => $lastSeenKey,
             'tags' => $tags,
-            'timeout_advice' => $service->hasTimeoutAdvice(),
+            'timeout_advice' => $isTimedOut,
         ];
 
         $streamSig = \hash('sha256', \json_encode($payload, \JSON_THROW_ON_ERROR));
