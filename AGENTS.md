@@ -16,6 +16,8 @@ These instructions apply to the whole repository.
 - Laravel 13
 - PHPUnit 12
 - Laravel Pint
+- PHPStan (Larastan)
+- ESLint
 
 ## Development rules
 
@@ -48,6 +50,8 @@ composer test
 php artisan test
 ./vendor/bin/phpunit
 ./vendor/bin/pint
+./vendor/bin/phpstan
+npm run lint
 ```
 
 ## Change boundaries
