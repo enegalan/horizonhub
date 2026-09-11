@@ -24,6 +24,19 @@ class JobDashboardUrlBuilderTest extends TestCase
     }
 
     #[Test]
+    public function it_builds_an_absolute_dashboard_url_from_base_url_when_public_url_is_null(): void
+    {
+        $service = new Service;
+        $service->forceFill([
+            'base_url' => 'http://internal.test/',
+            'public_url' => null,
+        ]);
+
+        $this->assertSame('http://internal.test/horizon', PathBuilder::dashboard($service));
+        $this->assertSame('http://internal.test/horizon', PathBuilder::dashboard($service, public: false));
+    }
+
+    #[Test]
     public function it_builds_pending_and_default_paths_and_encodes_uuid(): void
     {
         $service = new Service;
@@ -50,6 +63,19 @@ class JobDashboardUrlBuilderTest extends TestCase
 
         $this->assertNull(PathBuilder::jobDashboard(null, 'abc-123', 'processed'));
         $this->assertNull(PathBuilder::jobDashboard($service, '', 'processed'));
+    }
+
+    #[Test]
+    public function it_uses_public_url_for_dashboard_when_available(): void
+    {
+        $service = new Service;
+        $service->forceFill([
+            'base_url' => 'http://internal.test',
+            'public_url' => 'http://public.test',
+        ]);
+
+        $this->assertSame('http://public.test/horizon', PathBuilder::dashboard($service));
+        $this->assertSame('http://internal.test/horizon', PathBuilder::dashboard($service, public: false));
     }
 
     #[Test]
