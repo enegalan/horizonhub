@@ -6,8 +6,11 @@ These instructions apply to the whole repository.
 
 ## Product documentation
 
-- [docs/horizonhub.md](docs/horizonhub.md) — product overview, integration model, architecture decisions summary, FAQ
-- [docs/guide.md](docs/guide.md) — end-user guide for all UI features
+- [docs/HORIZONHUB.md](docs/HORIZONHUB.md) — product overview, integration model, architecture decisions summary, FAQ
+- [docs/GUIDE.md](docs/GUIDE.md) — end-user guide for all UI features
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — internal architecture and data flow
+- [docs/CONVENTIONS.md](docs/CONVENTIONS.md) — coding and testing conventions
+- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) — local setup and development workflow
 - [docs/decisions/](docs/decisions/) — canonical accepted and rejected ADRs (see workspace decisions guardrails)
 
 ## Tech stack

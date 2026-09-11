@@ -2,7 +2,7 @@
 
 This guide explains how to use Horizon Hub day to day: navigation, monitoring, connecting services, alerting, and common workflows.
 
-For what Horizon Hub is and how it integrates technically, see [horizonhub.md](horizonhub.md). For installation, see the [README](../README.md).
+For what Horizon Hub is and how it integrates technically, see [HORIZONHUB.md](HORIZONHUB.md). For installation, see the [README](../README.md).
 
 ## Getting started
 
@@ -360,6 +360,6 @@ Turn hot reload off if you prefer a static page or need to reduce background tra
 
 ## See also
 
-- [horizonhub.md](horizonhub.md) — product overview, architecture, agent FAQ
+- [HORIZONHUB.md](HORIZONHUB.md) — product overview, architecture, agent FAQ
 - [README.md](../README.md) — requirements, quick start, environment variables
 - [decisions/](decisions/) — architecture decisions affecting deployment and security

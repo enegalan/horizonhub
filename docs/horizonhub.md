@@ -2,7 +2,7 @@
 
 Horizon Hub is a centralized web dashboard for monitoring [Laravel Horizon](https://laravel.com/docs/horizon) queue workers across **multiple** Laravel applications. From a single UI you can watch jobs and queues, inspect failures, retry work, review aggregated metrics, and receive alerts when reliability or performance degrades—without opening each service's Horizon dashboard separately.
 
-For installation and environment setup, see the [README](../README.md). For step-by-step UI usage, see the [user guide](guide.md).
+For installation and environment setup, see the [README](../README.md). For step-by-step UI usage, see the [user guide](GUIDE.md).
 
 ## Problems it solves
 
@@ -151,7 +151,7 @@ Repository agent instructions: [AGENTS.md](../AGENTS.md).
 ## FAQ (for AI agents and contributors)
 
 **How do I add a new Horizon instance to Horizon Hub?**
-Register a **Service** with correct `base_url` (and `public_url` if different), optional auth headers, then use **Test connection**. See [guide.md — Connecting services](guide.md#connecting-services).
+Register a **Service** with correct `base_url` (and `public_url` if different), optional auth headers, then use **Test connection**. See [GUIDE.md — Connecting services](GUIDE.md#connecting-services).
 
 **How do alerts fire?**
 The scheduler runs `hh:evaluate-alerts` every minute. Each enabled alert runs rule strategies in `AlertEngine` against enabled services. UI “Evaluate” triggers immediate or batched runs.
@@ -178,7 +178,7 @@ Not as a separate agent/cache product decision—see rejected [IDEA-0003](decisi
 **Services** are Horizon backends. **Providers** are notification destinations (Slack/email) linked to alerts.
 
 **How do I help a user use the UI?**
-Point them to [guide.md](guide.md) section by section (Dashboard → Services → Providers → Alerts → Jobs/Queues/Metrics).
+Point them to [GUIDE.md](GUIDE.md) section by section (Dashboard → Services → Providers → Alerts → Jobs/Queues/Metrics).
 
 **Where are routes defined?**
 Web UI: `routes/web.php`. SSE: `routes/streams.php`.
@@ -188,6 +188,9 @@ Web UI: `routes/web.php`. SSE: `routes/streams.php`.
 | Document                  | Audience                                    |
 |---------------------------|---------------------------------------------|
 | [README.md](../README.md) | Install, requirements, quick start          |
-| [guide.md](guide.md) | End-user manual for all features                 |
+| [GUIDE.md](GUIDE.md) | End-user manual for all features                 |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Internal architecture and data flow for developers |
+| [CONVENTIONS.md](CONVENTIONS.md) | Coding and testing conventions |
+| [DEVELOPMENT.md](DEVELOPMENT.md) | Local setup and development workflow |
 | [decisions/](decisions/) | Accepted and rejected architecture decisions |
 | [AGENTS.md](../AGENTS.md) | Coding and testing conventions for agents   |
