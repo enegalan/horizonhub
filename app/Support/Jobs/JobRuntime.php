@@ -36,8 +36,8 @@ final class JobRuntime
             return $runtimeSeconds;
         }
 
-        $start = self::private__normalizeToCarbon($reservedAt);
-        $end = self::private__normalizeToCarbon($processedAt) ?? self::private__normalizeToCarbon($failedAt);
+        $start = self::parseJobTimestamp($reservedAt);
+        $end = self::parseJobTimestamp($processedAt) ?? self::parseJobTimestamp($failedAt);
 
         if ($start === null || $end === null) {
             return null;
@@ -149,15 +149,5 @@ final class JobRuntime
                 self::getRuntimeSeconds($runtimeSeconds, $reservedAt, $processedAt, $failedAt),
             ),
         ];
-    }
-
-    /**
-     * Normalize a value to a Carbon instance.
-     *
-     * @param Carbon|string|null $value The value.
-     */
-    private static function private__normalizeToCarbon(Carbon|string|null $value): ?Carbon
-    {
-        return self::parseJobTimestamp($value);
     }
 }
