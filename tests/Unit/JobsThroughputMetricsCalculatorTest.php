@@ -19,7 +19,7 @@ class JobsThroughputMetricsCalculatorTest extends TestCase
         Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
         Http::fake(function ($request) use ($s1) {
-            if (\str_contains($request->url(), $s1->getBaseUrl())) {
+            if (\str_contains($request->url(), $s1->base_url)) {
                 return Http::response(['failedJobs' => 2, 'recentJobs' => 20, 'jobsPerMinute' => 3.4], 200);
             }
 

@@ -10,9 +10,9 @@
             @endif
             <li class="min-w-0">
                 @if(! empty($item['url'] ?? null))
-                    <a href="{{ $item['url'] }}" class="link" data-turbo-action="replace">{{ $item['label'] }}</a>
+                    <a href="{{ $item['url'] }}" class="link block truncate" data-turbo-action="replace">{{ $item['label'] }}</a>
                 @else
-                    <span class="truncate text-foreground">{{ $item['label'] }}</span>
+                    <span class="block truncate text-foreground">{{ $item['label'] }}</span>
                 @endif
             </li>
         @endforeach

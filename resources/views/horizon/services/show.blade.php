@@ -35,7 +35,7 @@
                 $serviceStatusColor = 'bg-red-500';
                 $serviceStatusLabel = 'Offline';
             }
-            $dashboardUrl = $service->getPublicUrl().config('horizonhub.horizon_paths.dashboard');
+            $dashboardUrl = $service->public_url . config('horizonhub.horizon_paths.dashboard');
         @endphp
         <div class="mb-4 flex flex-wrap items-center gap-2">
             <div class="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-1.5">
@@ -44,7 +44,7 @@
                     Status: <span class="font-medium text-foreground">{{ $serviceStatusLabel }}</span>
                 </span>
             </div>
-            @include('horizon.services.partials.tags', ['tags' => $service->tags ?? []])
+            @include('horizon.services.partials.tags', ['tags' => $service->tags])
             <div class="inline-flex flex-wrap items-center gap-1 rounded-lg border border-border bg-card p-1">
                 <x-button
                     variant="ghost"

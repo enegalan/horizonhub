@@ -3,45 +3,28 @@
 @endphp
 @forelse($services as $service)
     @php
-        $serviceStatus = \strtolower((string) ($service->status ?? ''));
-        $isOnline = $serviceStatus === 'online';
-        $isStandBy = $serviceStatus === 'stand_by';
-        $isEnabled = (bool) ($service->enabled ?? true);
+        $isOnline = $service->status === 'online';
+        $isStandBy = $service->status === 'stand_by';
+        $isEnabled = $service->enabled;
         $isTimedOut = $service->hasTimeoutAdvice();
-        $horizonStatus = isset($service->horizon_status) && (string) $service->horizon_status !== ''
-            ? \strtolower((string) $service->horizon_status)
-            : '';
-        $dashboardUrl = $service->getPublicUrl().config('horizonhub.horizon_paths.dashboard');
-        $tags = $service->tags ?? [];
+        $dashboardUrl = $service->public_url . config('horizonhub.horizon_paths.dashboard');
 
-        if (! \is_array($tags)) {
-            $tags = [];
-        }
-        $tags = \array_values($tags);
-        \sort($tags);
+        $lastSeenKey = $service->last_seen_at?->copy()->startOfMinute()->toIso8601String();
 
-        $lastSeenKey = null;
-
-        if ($service->last_seen_at !== null) {
-            $lastSeenKey = $service->last_seen_at->copy()->startOfMinute()->toIso8601String();
-        }
-
-        $payload = [
-            'id' => (int) $service->id,
-            'name' => (string) ($service->name),
-            'base_url' => (string) ($service->base_url),
-            'public_url' => (string) ($service->public_url),
-            'status' => $serviceStatus,
-            'horizon_status' => $horizonStatus,
+        $streamSig = \hash('sha256', \json_encode([
+            'id' => $service->id,
+            'name' => $service->name,
+            'base_url' => $service->base_url,
+            'public_url' => $service->public_url,
+            'status' => $service->status,
+            'horizon_status' => $service->horizon_status,
             'enabled' => $isEnabled,
-            'horizon_jobs_count' => (int) ($service->horizon_jobs_count ?? 0),
-            'horizon_failed_jobs_count' => (int) ($service->horizon_failed_jobs_count ?? 0),
+            'horizon_jobs_count' => $service->horizon_jobs_count,
+            'horizon_failed_jobs_count' => $service->horizon_failed_jobs_count,
             'last_seen_minute' => $lastSeenKey,
-            'tags' => $tags,
+            'tags' => $service->tags,
             'timeout_advice' => $isTimedOut,
-        ];
-
-        $streamSig = \hash('sha256', \json_encode($payload, \JSON_THROW_ON_ERROR));
+        ], \JSON_THROW_ON_ERROR));
     @endphp
     <article
         @class([
@@ -53,7 +36,7 @@
         ])
         data-stream-row-id="svc-{{ (int) $service->id }}"
         data-horizon-stream-sig="{{ $streamSig }}"
-        data-service-connectivity="{{ $serviceStatus }}"
+        data-service-connectivity="{{ $service->status }}"
     >
         <div
             @class([
@@ -81,11 +64,11 @@
                         <x-icons.server-stack class="size-5" />
                     </div>
                     <div class="min-w-0">
-                        <a href="{{ route('horizon.services.show', $service) }}" class="link truncate text-sm font-semibold text-foreground" data-turbo-action="replace">
+                        <a href="{{ route('horizon.services.show', $service) }}" class="link block truncate text-sm font-semibold text-foreground" data-turbo-action="replace">
                             {{ $service->name }}
                         </a>
-                        <p class="mt-1 truncate font-mono text-xs text-muted-foreground">{{ $service->getBaseUrl() }}</p>
-                        @include('horizon.services.partials.tags', ['tags' => $service->tags ?? [], 'class' => 'mt-2'])
+                        <p class="mt-1 truncate font-mono text-xs text-muted-foreground">{{ $service->base_url }}</p>
+                        @include('horizon.services.partials.tags', ['tags' => $service->tags, 'class' => 'mt-2'])
                     </div>
                 </div>
                 <div class="flex shrink-0 flex-col items-end gap-1.5">
@@ -138,11 +121,7 @@
                     <div>
                         <p class="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Horizon</p>
                         <p class="mt-1 text-xs text-foreground/90">
-                            @if($horizonStatus !== '')
-                                {{ $service->horizon_status }}
-                            @else
-                                offline
-                            @endif
+                            {{ $service->horizon_status }}
                         </p>
                     </div>
                     <div>
@@ -162,11 +141,11 @@
                 <div class="grid gap-2 sm:grid-cols-2">
                     <div>
                         <p class="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Jobs</p>
-                        <p class="mt-1 text-sm font-semibold tabular-nums text-foreground">{{ $service->horizon_jobs_count ?? 0 }}</p>
+                        <p class="mt-1 text-sm font-semibold tabular-nums text-foreground">{{ $service->horizon_jobs_count }}</p>
                     </div>
                     <div>
                         <p class="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Failed</p>
-                        <p class="mt-1 text-sm font-semibold tabular-nums text-foreground">{{ $service->horizon_failed_jobs_count ?? 0 }}</p>
+                        <p class="mt-1 text-sm font-semibold tabular-nums text-foreground">{{ $service->horizon_failed_jobs_count }}</p>
                     </div>
                 </div>
             </div>

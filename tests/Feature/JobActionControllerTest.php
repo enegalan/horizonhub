@@ -28,7 +28,7 @@ class JobActionControllerTest extends TestCase
         ]);
 
         Http::fake(function ($request) use ($matching) {
-            if (\str_contains($request->url(), $matching->getBaseUrl() . '/horizon/api/jobs/failed')) {
+            if (\str_contains($request->url(), $matching->base_url . '/horizon/api/jobs/failed')) {
                 return Http::response(['jobs' => [
                     ['id' => 'f1', 'queue' => 'default', 'name' => 'F1', 'failed_at' => '2024-01-01 00:00:00'],
                 ]], 200);
@@ -43,7 +43,7 @@ class JobActionControllerTest extends TestCase
         ]));
 
         $response->assertOk();
-        Http::assertSent(fn (Request $request): bool => \str_contains($request->url(), $matching->getBaseUrl() . '/horizon/api/jobs/failed'));
+        Http::assertSent(fn (Request $request): bool => \str_contains($request->url(), $matching->base_url . '/horizon/api/jobs/failed'));
     }
 
     public function test_failed_list_returns_empty_meta_when_no_services_match(): void
@@ -57,7 +57,7 @@ class JobActionControllerTest extends TestCase
         $service = Service::create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
 
         Http::fake(function ($request) use ($service) {
-            if (\str_contains($request->url(), $service->getBaseUrl() . '/horizon/api/jobs/failed')) {
+            if (\str_contains($request->url(), $service->base_url . '/horizon/api/jobs/failed')) {
                 return Http::response(['jobs' => [
                     ['id' => 'u1', 'queue' => 'default', 'name' => 'U1', 'failed_at' => '2024-01-01 00:00:00'],
                     ['id' => 'u2', 'queue' => 'default', 'name' => 'U2', 'failed_at' => '2024-01-01 01:00:00'],
@@ -88,7 +88,7 @@ class JobActionControllerTest extends TestCase
         $service = Service::create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
 
         Http::fake(function (Request $request) use ($service) {
-            if ($request->url() === $service->getBaseUrl() . '/horizon') {
+            if ($request->url() === $service->base_url . '/horizon') {
                 return Http::response('<html><head><meta name="csrf-token" content="csrf-123"></head></html>', 200);
             }
 
@@ -127,7 +127,7 @@ class JobActionControllerTest extends TestCase
         $service = Service::create(['name' => 'svc-retry-fail', 'base_url' => 'https://retry-fail.test', 'status' => 'online']);
 
         Http::fake(function (Request $request) use ($service) {
-            if ($request->url() === $service->getBaseUrl() . '/horizon') {
+            if ($request->url() === $service->base_url . '/horizon') {
                 return Http::response('<html><head><meta name="csrf-token" content="csrf-123"></head></html>', 200);
             }
 
@@ -161,7 +161,7 @@ class JobActionControllerTest extends TestCase
         $service = Service::create(['name' => 'svc2', 'base_url' => 'https://x2.test', 'status' => 'online']);
 
         Http::fake(function (Request $request) use ($service) {
-            if ($request->url() === $service->getBaseUrl() . '/horizon') {
+            if ($request->url() === $service->base_url . '/horizon') {
                 return Http::response('<html><head><meta name="csrf-token" content="csrf-123"></head></html>', 200);
             }
 
