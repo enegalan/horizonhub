@@ -100,8 +100,8 @@ class ServiceController extends Controller
 
         $service = Service::create([
             'name' => $validated['name'],
-            'base_url' => \rtrim($validated['base_url'], '/'),
-            'public_url' => ! empty($validated['public_url']) ? \rtrim($validated['public_url'], '/') : null,
+            'base_url' => $validated['base_url'],
+            'public_url' => $validated['public_url'] ?? null,
             'status' => 'offline',
             'enabled' => true,
             'tags' => $validated['tags'] ?? [],
@@ -175,8 +175,8 @@ class ServiceController extends Controller
 
         $service->update([
             'name' => $validated['name'],
-            'base_url' => \rtrim($validated['base_url'], '/'),
-            'public_url' => ! empty($validated['public_url']) ? \rtrim($validated['public_url'], '/') : null,
+            'base_url' => $validated['base_url'],
+            'public_url' => $validated['public_url'] ?? null,
             'tags' => $validated['tags'] ?? [],
         ]);
 

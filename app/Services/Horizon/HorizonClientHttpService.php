@@ -4,6 +4,7 @@ namespace App\Services\Horizon;
 
 use App\Models\Service;
 use App\Support\Http\HttpRetryBackoff;
+use App\Support\PathBuilder;
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Contracts\Cache\LockTimeoutException;
@@ -54,9 +55,7 @@ class HorizonClientHttpService
             ];
         }
 
-        $base = $service->base_url . (string) config('horizonhub.horizon_paths.api');
-
-        $url = "$base/" . \ltrim($path, '/');
+        $url = PathBuilder::api($service, $path);
 
         $httpMethod = \strtolower($method);
 
@@ -248,7 +247,7 @@ class HorizonClientHttpService
      */
     private static function private__bootstrapDashboardSession(Service $service): ?array
     {
-        $dashboardUrl = $service->base_url . (string) config('horizonhub.horizon_paths.dashboard');
+        $dashboardUrl = PathBuilder::dashboard($service, public: false);
 
         $cookieJar = new CookieJar;
 

@@ -99,7 +99,7 @@ tests/
 
 1. Browser hits `/horizon` (or one of the section routes in `routes/web.php`).
 2. The controller loads data via services and returns a Blade view.
-3. When hot reload is enabled, the layout also injects a stream endpoint URL and the client opens an SSE connection.
+3. The layout always injects a stream base URL (`window.horizonHubStreamsBaseUrl`); the client opens an SSE connection on load — long-lived when hot reload is enabled, one-shot when disabled (see [Stream (SSE) path](#stream-sse-path)).
 
 Controllers stay thin: they resolve request input (usually via a Form Request), delegate to the relevant service, and pass data to the view.
 
@@ -116,9 +116,18 @@ Horizon Hub retries jobs by reading a job's service and build from its ID, then 
 - `routes/streams.php` declares a stream route that mirrors each section page, mounted with `SubstituteBindings`.
 - `HorizonStreamsController` composes eight `Builds*Streams` traits; each trait renders `turbo-stream` fragments for the partials on its page.
 - `StreamController` (the abstract base) deduplicates payloads by SHA-256 fingerprint per target so identical data does not re-emit redundant fragments.
-- The client (`resources/js/lib/sse.js`) reconnects with backoff; `resources/js/lib/stream-guard.js` guards against stale/duplicate stream application.
+- The client (`resources/js/lib/sse.js`) opens the stream on `turbo:load`; `resources/js/lib/stream-guard.js` guards against stale/duplicate stream application.
 
 Received `<turbo-stream>` fragments replace the matching fragment in the Blade `layouts/app` shell without a full page reload. Stream endpoints are excluded from the not-found redirect handling (see `bootstrap/app.php`).
+
+#### Hot reload enabled vs disabled
+
+`openStream()` switches on the hot-reload toggle (`isHotReloadEnabled()` reads `localStorage.horizonhub_hotreload`), which can change at runtime via the `horizonhub-hotreload-changed` event:
+
+- **Enabled** — a long-lived `EventSource` stays open; Turbo applies incoming fragments, and on error the client reconnects with exponential backoff (up to 12 attempts, capped at 30 s).
+- **Disabled** — the client **still calls the same stream endpoint**, but as a one-shot (`openStreamOneShot()`): it opens the `EventSource`, applies the first `turbo-stream` message it receives, then closes the connection (`cleanupOneShot()`). A 30 s safety timer closes it even if no payload arrives. Every `turbo:load` repeats this, so each page load gets a fresh snapshot without keeping the channel open.
+
+See `resources/js/lib/sse.js` for the exact sequencing.
 
 ## Horizon integration
 

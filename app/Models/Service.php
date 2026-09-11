@@ -217,6 +217,7 @@ class Service extends Model
     {
         return Attribute::make(
             get: fn ($value) => \rtrim((string) $value, '/'),
+            set: fn ($value) => ! empty($value) ? \rtrim($value, '/') : null,
         );
     }
 
@@ -273,6 +274,7 @@ class Service extends Model
 
                 return $this->base_url;
             },
+            set: fn ($value) => ! empty($value) ? \rtrim($value, '/') : null,
         );
     }
 

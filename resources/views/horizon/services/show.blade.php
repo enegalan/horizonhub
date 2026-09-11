@@ -35,7 +35,7 @@
                 $serviceStatusColor = 'bg-red-500';
                 $serviceStatusLabel = 'Offline';
             }
-            $dashboardUrl = $service->public_url . config('horizonhub.horizon_paths.dashboard');
+            $dashboardUrl = \App\Support\PathBuilder::dashboard($service);
         @endphp
         <div class="mb-4 flex flex-wrap items-center gap-2">
             <div class="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-1.5">

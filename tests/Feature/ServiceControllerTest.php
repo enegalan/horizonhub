@@ -67,6 +67,12 @@ class ServiceControllerTest extends TestCase
             'public_url' => '',
         ])->assertRedirect(route('horizon.services.index'));
 
+        $this->assertDatabaseHas('services', [
+            'name' => 'svc-a-updated',
+            'base_url' => 'https://svc-a-updated.test',
+            'public_url' => null,
+        ]);
+
         $this->assertFalse(Cache::has(HorizonClientCacheService::failureCooldownCacheKey($service)));
 
         $this->post(route('horizon.services.test-connection', ['service' => $service]))
