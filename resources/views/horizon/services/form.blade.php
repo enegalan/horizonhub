@@ -19,11 +19,7 @@
             $headersForForm[] = ['name' => '', 'value' => ''];
         }
 
-        $tagsForForm = [];
-
-        if ($isEdit) {
-            $tagsForForm = $service->tags ?? [];
-        }
+        $tagsForForm = $isEdit ? $service->tags : [];
     @endphp
 
     <div
@@ -49,7 +45,7 @@
                     </div>
                     <div class="space-y-2 rounded-xl border border-border/70 bg-muted/20 px-4 py-4">
                         <x-input-label>Base URL</x-input-label>
-                        <x-text-input type="url" name="base_url" value="{{ $service->exists ? $service->getBaseUrl() : '' }}" class="w-full font-mono text-sm" />
+                        <x-text-input type="url" name="base_url" value="{{ $service->exists ? $service->base_url : '' }}" class="w-full font-mono text-sm" />
                         @error('base_url') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                         <p class="text-xs text-muted-foreground">
                             Internal URL used to obtain events from the service.

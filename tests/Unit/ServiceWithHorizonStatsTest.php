@@ -47,7 +47,7 @@ class ServiceWithHorizonStatsTest extends TestCase
 
         $this->assertSame(0, $disabled->horizon_failed_jobs_count);
         $this->assertSame(0, $disabled->horizon_jobs_count);
-        $this->assertNull($disabled->horizon_status);
+        $this->assertSame('offline', $disabled->horizon_status);
     }
 
     public function test_service_rejects_empty_base_url_on_save(): void

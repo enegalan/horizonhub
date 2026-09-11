@@ -54,7 +54,7 @@ class HorizonClientHttpService
             ];
         }
 
-        $base = $service->getBaseUrl() . (string) config('horizonhub.horizon_paths.api');
+        $base = $service->base_url . (string) config('horizonhub.horizon_paths.api');
 
         $url = "$base/" . \ltrim($path, '/');
 
@@ -248,7 +248,7 @@ class HorizonClientHttpService
      */
     private static function private__bootstrapDashboardSession(Service $service): ?array
     {
-        $dashboardUrl = $service->getBaseUrl() . (string) config('horizonhub.horizon_paths.dashboard');
+        $dashboardUrl = $service->base_url . (string) config('horizonhub.horizon_paths.dashboard');
 
         $cookieJar = new CookieJar;
 

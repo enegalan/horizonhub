@@ -19,7 +19,6 @@ final class JobDashboardUrlBuilder
             return null;
         }
 
-        $dashboardBase = $service->getPublicUrl();
         $encodedUuid = \urlencode($jobUuid);
 
         $jobPath = match ((string) $jobStatus) {
@@ -29,6 +28,6 @@ final class JobDashboardUrlBuilder
             default => config('horizonhub.horizon_paths.pending_jobs') . "/$encodedUuid",
         };
 
-        return \rtrim($dashboardBase, '/') . config('horizonhub.horizon_paths.dashboard') . $jobPath;
+        return $service->public_url . config('horizonhub.horizon_paths.dashboard') . $jobPath;
     }
 }

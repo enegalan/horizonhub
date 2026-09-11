@@ -343,7 +343,7 @@ class MetricsDataServiceTest extends TestCase
         $serviceB = Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
         Http::fake(function ($request) use ($serviceA) {
-            if (\str_contains($request->url(), $serviceA->getBaseUrl())) {
+            if (\str_contains($request->url(), $serviceA->base_url)) {
                 return Http::response(['failedJobs' => 5, 'recentJobs' => 3, 'jobsPerMinute' => 1], 200);
             }
 

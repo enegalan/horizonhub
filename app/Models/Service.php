@@ -8,6 +8,7 @@ use App\Support\Horizon\ClientResponse;
 use App\Support\Horizon\StatsReader;
 use Database\Factories\ServiceFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -21,6 +22,7 @@ use Illuminate\Validation\ValidationException;
  * @property int $horizon_jobs_count
  * @property list<string> $tags
  * @property string $base_url
+ * @property string $public_url
  * @property string|null $horizon_status
  */
 class Service extends Model
@@ -111,37 +113,13 @@ class Service extends Model
     }
 
     /**
-     * Get the base URL of the service.
-     */
-    public function getBaseUrl(): string
-    {
-        return \rtrim((string) $this->base_url, '/');
-    }
-
-    /**
-     * Get the public URL of the service.
-     */
-    public function getPublicUrl(): string
-    {
-        $publicUrl = \rtrim($this->public_url ?? '', '/');
-
-        if ($publicUrl !== '') {
-            return $publicUrl;
-        }
-
-        return $this->getBaseUrl();
-    }
-
-    /**
      * Check whether the upstream API recently timed out and the timeout
      * configuration should be reviewed.
+     *
+     * @return bool Whether the service has timeout advice.
      */
     public function hasTimeoutAdvice(): bool
     {
-        if (! $this->id) {
-            return false;
-        }
-
         return Cache::has(HorizonClientCacheService::timeoutAdviceCacheKey($this));
     }
 
@@ -162,7 +140,7 @@ class Service extends Model
      *
      * @return Builder<Service>
      */
-    public function scopeDisabled($query)
+    public function scopeDisabled(Builder $query): Builder
     {
         return $query->where('enabled', false);
     }
@@ -174,7 +152,7 @@ class Service extends Model
      *
      * @return Builder<Service>
      */
-    public function scopeEnabled($query)
+    public function scopeEnabled(Builder $query): Builder
     {
         return $query->where('enabled', true);
     }
@@ -222,13 +200,97 @@ class Service extends Model
     protected static function booted(): void
     {
         static::saving(static function (Service $service): void {
-            $service->base_url = \rtrim((string) ($service->base_url ?? ''), '/');
-
-            if ($service->base_url === '') {
+            if (blank($service->base_url)) {
                 throw ValidationException::withMessages([
                     'base_url' => ['The base URL is required.'],
                 ]);
             }
         });
+    }
+
+    /**
+     * Get the base URL of the service.
+     *
+     * @return Attribute<string, mixed>
+     */
+    protected function baseUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => \rtrim((string) $value, '/'),
+        );
+    }
+
+    /**
+     * Get the horizon failed jobs count of the service.
+     *
+     * @return Attribute<int, mixed>
+     */
+    protected function horizonFailedJobsCount(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value ?? 0,
+        );
+    }
+
+    /**
+     * Get the horizon jobs count of the service.
+     *
+     * @return Attribute<int, mixed>
+     */
+    protected function horizonJobsCount(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value ?? 0,
+        );
+    }
+
+    /**
+     * Get the horizon status of the service.
+     *
+     * @return Attribute<string, mixed>
+     */
+    protected function horizonStatus(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value ? \strtolower($value) : 'offline',
+        );
+    }
+
+    /**
+     * Get the public URL of the service.
+     *
+     * @return Attribute<string, mixed>
+     */
+    protected function publicUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value) {
+                $value = \rtrim($value ?? '', '/');
+
+                if (! blank($value)) {
+                    return $value;
+                }
+
+                return $this->base_url;
+            },
+        );
+    }
+
+    /**
+     * Get the tags of the service.
+     *
+     * @return Attribute<list<string>, mixed>
+     */
+    protected function tags(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value) {
+                $value = json_decode($value, true) ?: [];
+
+                sort($value);
+
+                return $value;
+            },
+        );
     }
 }

@@ -70,7 +70,7 @@
                         <x-icons.bell class="size-5" />
                     </div>
                     <div class="min-w-0">
-                        <a href="{{ route('horizon.alerts.show', $alert) }}" class="link truncate text-sm font-semibold text-foreground" data-turbo-action="replace">
+                        <a href="{{ route('horizon.alerts.show', $alert) }}" class="link block truncate text-sm font-semibold text-foreground" data-turbo-action="replace">
                             {{ $alert->name }}
                         </a>
                         <p class="mt-1 font-mono text-xs text-muted-foreground">{{ $alert->rule_type }}</p>
