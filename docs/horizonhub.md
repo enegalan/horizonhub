@@ -103,7 +103,7 @@ Controllers and services call `HorizonClientService` to perform GETs (and POST f
 
 ### Live updates (SSE)
 
-Stream routes mirror UI paths under `/horizon/streams/horizon/...` (see `routes/streams.php`). The client (`resources/js/lib/sse.js`) connects when hot reload is enabled, receives Turbo Stream patches, and reconnects with backoff.
+Stream routes mirror UI paths under `/horizon/streams/horizon/...` (see `routes/streams.php`). The client opens a long-lived SSE channel when hot reload is enabled (receiving Turbo Stream patches, with backoff reconnect) and a single one-shot snapshot when it is disabled — see the [FAQ](#what-happens-when-hot-reload-is-off) and [ARCHITECTURE.md — Stream (SSE) path](ARCHITECTURE.md#stream-sse-path) for internals.
 
 ## Alert rule types
 
@@ -170,6 +170,9 @@ Primary file: `config/horizonhub.php`. Many keys have `HORIZON_HUB_*` env overri
 
 **What HTTP statuses does the proxy treat specially?**
 `401`, `403`, `419` skip failure cooldown (fix access via per-service headers); dashboard session is used only for POST job retry. `429`, `502`, `503`, `504` may be retried on GET per `horizon_http_retry`.
+
+**What happens when hot reload is off?**
+The page still calls the same SSE stream endpoint once and applies the first Turbo Stream payload, then it closes the connection — an up-to-date snapshot on every page load without keeping the channel open (internals in [ARCHITECTURE.md — Stream (SSE) path](ARCHITECTURE.md#stream-sse-path)).
 
 **Does Horizon Hub cache remote Horizon data?**
 Not as a separate agent/cache product decision—see rejected [IDEA-0003](decisions/rejected/0003-cache-horizon-service-data.md). Live UI updates use SSE patches, not a substitute for Horizon's own storage.
