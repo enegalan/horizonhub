@@ -141,7 +141,7 @@
             x-transition:leave="transition ease-in duration-75"
             x-transition:leave-start="opacity-100 scale-100"
             x-transition:leave-end="opacity-0 scale-95"
-            x-bind:style="{ top: anchor.top + 'px', left: anchor.left + 'px', minWidth: Math.max(anchor.width, 192) + 'px' }"
+            x-bind:style="{ top: anchor.top + 'px', left: anchor.left + 'px', width: Math.max(anchor.width, 192) + 'px' }"
             class="fixed z-[70] flex max-h-[min(18rem,50vh)] max-w-[min(24rem,calc(100vw_-_2rem))] flex-col overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md"
             role="listbox">
         <div x-show="searchable && dataOptions.length > 0" class="shrink-0 border-b border-border p-2" @click.stop>
