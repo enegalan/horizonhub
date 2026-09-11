@@ -7,7 +7,7 @@
         $isStandBy = $service->status === 'stand_by';
         $isEnabled = $service->enabled;
         $isTimedOut = $service->hasTimeoutAdvice();
-        $dashboardUrl = $service->public_url . config('horizonhub.horizon_paths.dashboard');
+        $dashboardUrl = \App\Support\PathBuilder::dashboard($service);
 
         $lastSeenKey = $service->last_seen_at?->copy()->startOfMinute()->toIso8601String();
 

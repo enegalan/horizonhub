@@ -3,7 +3,7 @@
 namespace Tests\Unit;
 
 use App\Models\Service;
-use App\Support\Jobs\JobDashboardUrlBuilder;
+use App\Support\PathBuilder;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -18,7 +18,7 @@ class JobDashboardUrlBuilderTest extends TestCase
             'public_url' => null,
         ]);
 
-        $url = JobDashboardUrlBuilder::build($service, 'abc-123', 'processed');
+        $url = PathBuilder::jobDashboard($service, 'abc-123', 'processed');
 
         $this->assertSame('http://example.test/horizon/jobs/completed/abc-123', $url);
     }
@@ -32,8 +32,8 @@ class JobDashboardUrlBuilderTest extends TestCase
             'public_url' => null,
         ]);
 
-        $pending = JobDashboardUrlBuilder::build($service, 'abc 123', 'pending');
-        $unknown = JobDashboardUrlBuilder::build($service, 'abc 123', 'unknown');
+        $pending = PathBuilder::jobDashboard($service, 'abc 123', 'pending');
+        $unknown = PathBuilder::jobDashboard($service, 'abc 123', 'unknown');
 
         $this->assertSame('http://example.test/horizon/jobs/pending/abc+123', $pending);
         $this->assertSame('http://example.test/horizon/jobs/pending/abc+123', $unknown);
@@ -48,8 +48,8 @@ class JobDashboardUrlBuilderTest extends TestCase
             'public_url' => null,
         ]);
 
-        $this->assertNull(JobDashboardUrlBuilder::build(null, 'abc-123', 'processed'));
-        $this->assertNull(JobDashboardUrlBuilder::build($service, '', 'processed'));
+        $this->assertNull(PathBuilder::jobDashboard(null, 'abc-123', 'processed'));
+        $this->assertNull(PathBuilder::jobDashboard($service, '', 'processed'));
     }
 
     #[Test]
@@ -61,7 +61,7 @@ class JobDashboardUrlBuilderTest extends TestCase
             'public_url' => 'http://public.test',
         ]);
 
-        $url = JobDashboardUrlBuilder::build($service, 'abc-123', 'failed');
+        $url = PathBuilder::jobDashboard($service, 'abc-123', 'failed');
 
         $this->assertSame('http://public.test/horizon/failed/abc-123', $url);
     }
