@@ -4,7 +4,7 @@
     @php
         $isEdit = $provider->exists;
         $action = $isEdit ? route('horizon.providers.update', $provider) : route('horizon.providers.store');
-        $currentType = $provider->type ?? \array_key_first(\App\Models\NotificationProvider::getProviders());
+        $currentType = $provider->type?->value ?? \array_key_first(\App\Models\NotificationProvider::getProviders());
     @endphp
 
     <div class="space-y-6" x-data="{ type: '{{ $currentType }}' }">
@@ -96,7 +96,7 @@
                                         type="url"
                                         id="webhook_url_{{ $type }}"
                                         name="webhook_url"
-                                        value="{{ old('webhook_url', ($provider->type ?? '') === $type ? $provider->getWebhookUrl() : '') }}"
+                                        value="{{ old('webhook_url', ($provider->type?->value ?? '') === $type ? $provider->getWebhookUrl() : '') }}"
                                         placeholder="https://..."
                                         class="w-full font-mono text-sm"
                                         x-bind:disabled="type !== '{{ $type }}'"
@@ -121,7 +121,7 @@
                                         type="text"
                                         id="email_to_{{ $type }}"
                                         name="email_to"
-                                        value="{{ old('email_to', ($provider->type ?? '') === $type ? implode(', ', $provider->getToEmails()) : '') }}"
+                                        value="{{ old('email_to', ($provider->type?->value ?? '') === $type ? implode(', ', $provider->getToEmails()) : '') }}"
                                         placeholder="alerts@example.com, oncall@example.com"
                                         class="w-full"
                                         x-bind:disabled="type !== '{{ $type }}'"

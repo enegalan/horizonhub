@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Horizon;
 
+use App\Enums\AlertLogStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Alert;
 use App\Models\AlertLog;
@@ -114,7 +115,7 @@ class AlertController extends Controller
      */
     public function retryLog(AlertLog $log, AlertEngine $engine): RedirectResponse
     {
-        if ($log->status === 'failed') {
+        if ($log->status === AlertLogStatus::Failed) {
             $engine->retryAlertLog($log);
         }
 

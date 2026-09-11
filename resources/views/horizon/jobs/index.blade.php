@@ -125,7 +125,7 @@
                                             @change="retryFilters.service_ids = $event.detail.values"
                                         >
                                             @foreach($services as $s)
-                                                <option value="{{ $s->id }}">{{ $s->name }} ({{ $s->status }})</option>
+                                                <option value="{{ $s->id }}">{{ $s->name }} ({{ $s->status?->value }})</option>
                                             @endforeach
                                         </x-multiselect>
                                     </div>

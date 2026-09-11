@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Stream\Concerns;
 
+use App\Enums\ServiceStatus;
 use App\Models\AlertLog;
 use App\Models\Service;
 use App\Services\Services\ServiceFilterService;
@@ -30,15 +31,15 @@ trait BuildsDashboardStreams
         $enabledServices = $services->where('enabled', true);
 
         foreach ($enabledServices as $service) {
-            if ($service->status === 'online') {
+            if ($service->status === ServiceStatus::Online) {
                 $onlineCount++;
             }
 
-            if ($service->status === 'offline') {
+            if ($service->status === ServiceStatus::Offline) {
                 $anyOffline = true;
             }
 
-            if ($service->status === 'stand_by') {
+            if ($service->status === ServiceStatus::StandBy) {
                 $anyStandBy = true;
             }
         }

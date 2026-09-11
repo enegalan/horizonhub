@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Horizon;
 
+use App\Enums\JobStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Services\Services\ServiceFilterService;
@@ -36,7 +37,7 @@ class JobController extends Controller
                 'uuid' => $job,
                 'name' => null,
                 'queue' => '—',
-                'status' => 'pending',
+                'status' => JobStatus::Pending->value,
                 'attempts' => 0,
                 'connection' => '—',
                 'retries' => null,

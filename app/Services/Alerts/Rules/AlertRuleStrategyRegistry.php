@@ -2,6 +2,7 @@
 
 namespace App\Services\Alerts\Rules;
 
+use App\Enums\AlertRuleType;
 use App\Models\Alert;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy;
 use App\Services\Alerts\Rules\Strategies\NullRule;
@@ -36,11 +37,11 @@ final class AlertRuleStrategyRegistry
 
     /**
      * Resolve the strategy for the given rule type.
-     *
-     * @param string $ruleType The rule type.
      */
-    public function resolve(string $ruleType): AlertRuleStrategy
+    public function resolve(AlertRuleType|string $ruleType): AlertRuleStrategy
     {
-        return $this->strategies[$ruleType] ?? $this->nullStrategy;
+        $key = $ruleType instanceof AlertRuleType ? $ruleType->value : $ruleType;
+
+        return $this->strategies[$key] ?? $this->nullStrategy;
     }
 }

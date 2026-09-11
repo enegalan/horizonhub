@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Stream\Concerns;
 
+use App\Enums\ServiceStatus;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientApiService;
 use App\Services\Jobs\JobListService;
@@ -36,8 +37,8 @@ trait BuildsServiceStreams
 
         $serviceStats = [
             'total' => $services->count(),
-            'online' => $enabledServices->where('status', 'online')->count(),
-            'offline' => $enabledServices->whereIn('status', ['offline', 'stand_by'])->count(),
+            'online' => $enabledServices->where('status', ServiceStatus::Online)->count(),
+            'offline' => $enabledServices->whereIn('status', [ServiceStatus::Offline, ServiceStatus::StandBy])->count(),
         ];
 
         return $this->buildStreams([

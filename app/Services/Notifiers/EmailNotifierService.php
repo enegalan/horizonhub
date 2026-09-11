@@ -2,6 +2,7 @@
 
 namespace App\Services\Notifiers;
 
+use App\Enums\NotificationProviderType;
 use App\Mail\AlertBatchedMail;
 use App\Models\Alert;
 use Illuminate\Support\Facades\Log;
@@ -51,9 +52,9 @@ class EmailNotifierService extends AbstractAlertNotifier
     /**
      * Get the type.
      */
-    public static function type(): string
+    public static function type(): NotificationProviderType
     {
-        return 'email';
+        return NotificationProviderType::Email;
     }
 
     /**

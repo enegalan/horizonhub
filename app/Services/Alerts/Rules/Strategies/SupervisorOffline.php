@@ -2,6 +2,7 @@
 
 namespace App\Services\Alerts\Rules\Strategies;
 
+use App\Enums\AlertRuleType;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
@@ -15,9 +16,9 @@ final class SupervisorOffline implements AlertRuleContract
     /**
      * Get the type.
      */
-    public static function type(): string
+    public static function type(): AlertRuleType
     {
-        return 'supervisor_offline';
+        return AlertRuleType::SupervisorOffline;
     }
 
     /**

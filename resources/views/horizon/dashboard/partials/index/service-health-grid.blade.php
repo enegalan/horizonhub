@@ -4,14 +4,14 @@
 @endphp
 @forelse($services as $service)
     @php
-        $svcSt = \strtolower((string) ($service->status ?? ''));
-        if ($svcSt === 'online') {
+        $svcSt = $service->status;
+        if ($svcSt === \App\Enums\ServiceStatus::Online) {
             $svcDot = 'bg-emerald-500';
             $svcLabel = 'Online';
             $topBarClass = 'from-emerald-500/80 via-emerald-400/60 to-transparent';
             $hoverBorderClass = 'hover:border-emerald-500/45 dark:hover:border-emerald-400/50';
             $hoverChevronClass = 'group-hover:text-emerald-600 dark:group-hover:text-emerald-400';
-        } elseif ($svcSt === 'stand_by') {
+        } elseif ($svcSt === \App\Enums\ServiceStatus::StandBy) {
             $svcDot = 'bg-amber-500';
             $svcLabel = 'Stand-by';
             $topBarClass = 'from-amber-500/80 via-amber-400/60 to-transparent';
@@ -24,8 +24,8 @@
             $hoverBorderClass = 'hover:border-red-500/45 dark:hover:border-red-400/50';
             $hoverChevronClass = 'group-hover:text-red-600 dark:group-hover:text-red-400';
         }
-        $hz = \strtolower((string) $service->horizon_status);
-        if ($hz === 'active' || $hz === 'running') {
+        $hzStatus = \App\Enums\HorizonStatus::tryFrom(\strtolower((string) $service->horizon_status));
+        if ($hzStatus?->isActive() === true) {
             $hzDot = 'bg-emerald-500';
             $hzLabel = 'Horizon active';
         } else {

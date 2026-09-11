@@ -2,6 +2,8 @@
 
 namespace App\Services\Notifiers\Contracts;
 
+use App\Enums\NotificationProviderType;
+
 interface AlertNotifierMetadata
 {
     /**
@@ -21,5 +23,5 @@ interface AlertNotifierMetadata
     /**
      * Get the type.
      */
-    public static function type(): string;
+    public static function type(): NotificationProviderType;
 }

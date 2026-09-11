@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Enums\FlashType;
+
 final class FlashStatus
 {
     /**
@@ -9,7 +11,7 @@ final class FlashStatus
      */
     public static function error(string $message): array
     {
-        return self::make($message, 'error');
+        return self::make($message, FlashType::Error);
     }
 
     /**
@@ -17,7 +19,7 @@ final class FlashStatus
      */
     public static function success(string $message): array
     {
-        return self::make($message, 'success');
+        return self::make($message, FlashType::Success);
     }
 
     /**
@@ -25,17 +27,17 @@ final class FlashStatus
      */
     public static function warning(string $message): array
     {
-        return self::make($message, 'warning');
+        return self::make($message, FlashType::Warning);
     }
 
     /**
      * @return array{message: string, type: string}
      */
-    private static function make(string $message, string $type): array
+    private static function make(string $message, FlashType $type): array
     {
         return [
             'message' => $message,
-            'type' => $type,
+            'type' => $type->value,
         ];
     }
 }

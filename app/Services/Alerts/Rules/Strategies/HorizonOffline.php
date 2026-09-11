@@ -2,6 +2,8 @@
 
 namespace App\Services\Alerts\Rules\Strategies;
 
+use App\Enums\AlertRuleType;
+use App\Enums\HorizonStatus;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
@@ -20,9 +22,9 @@ final class HorizonOffline implements AlertRuleContract
     /**
      * Get the type.
      */
-    public static function type(): string
+    public static function type(): AlertRuleType
     {
-        return 'horizon_offline';
+        return AlertRuleType::HorizonOffline;
     }
 
     /**
@@ -39,8 +41,7 @@ final class HorizonOffline implements AlertRuleContract
         }
 
         $status = StatsReader::summary(ClientResponse::data(HorizonClientApiService::getStats($service)))['status'];
-        $isOnline = $status !== null
-            && (\strtolower($status) === 'active' || \strtolower($status) === 'running');
+        $isOnline = $status !== null && HorizonStatus::tryFrom(\strtolower($status))?->isActive() === true;
 
         $cacheKey = self::CACHE_KEY_PREFIX . $serviceId;
 

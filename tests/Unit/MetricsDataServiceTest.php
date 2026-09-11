@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Enums\ServiceStatus;
 use App\Models\Service;
 use App\Services\Jobs\JobsWindowFetcherService;
 use App\Services\Metrics\Calculators\FailureMetricsCalculator;
@@ -327,7 +328,7 @@ class MetricsDataServiceTest extends TestCase
         $this->assertSame($service->id, $rows[0]['service_id']);
         $this->assertSame('svc-supervisors', $rows[0]['service']);
         $this->assertSame('sup-1', $rows[0]['name']);
-        $this->assertSame('online', $rows[0]['status']);
+        $this->assertSame(ServiceStatus::Online, $rows[0]['status']);
         $this->assertSame(7, $rows[0]['jobs']);
         $this->assertSame(3, $rows[0]['processes']);
 

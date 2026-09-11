@@ -2,6 +2,7 @@
 
 namespace App\Support\Jobs;
 
+use App\Enums\JobStatus;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 
@@ -55,17 +56,19 @@ final class JobRuntime
      * - For "failed" jobs, processed_at is cleared.
      * - For "processing" jobs, both processed_at and failed_at are cleared.
      *
-     * @param string|null $status The status.
+     * @param JobStatus|string|null $status The status.
      * @param Carbon|string|null $processedAt The processed at.
      * @param Carbon|string|null $failedAt The failed at.
      */
-    public static function normalizeStatusDates(?string $status, Carbon|string|null &$processedAt, Carbon|string|null &$failedAt): void
+    public static function normalizeStatusDates(JobStatus|string|null $status, Carbon|string|null &$processedAt, Carbon|string|null &$failedAt): void
     {
-        if ($status === 'processed') {
+        $status = \is_string($status) ? JobStatus::tryFrom($status) : $status;
+
+        if ($status === JobStatus::Processed) {
             $failedAt = null;
-        } elseif ($status === 'failed') {
+        } elseif ($status === JobStatus::Failed) {
             $processedAt = null;
-        } elseif ($status === 'processing') {
+        } elseif ($status === JobStatus::Processing) {
             $processedAt = null;
             $failedAt = null;
         }

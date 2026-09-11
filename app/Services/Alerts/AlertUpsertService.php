@@ -2,6 +2,7 @@
 
 namespace App\Services\Alerts;
 
+use App\Enums\AlertRuleType;
 use App\Models\Alert;
 use App\Support\Alerts\AlertRuleCatalog;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ class AlertUpsertService
      */
     public function validateAlert(Request $request): array
     {
-        $ruleTypes = \array_keys(AlertRuleCatalog::ruleTypeLabels());
+        $ruleTypes = AlertRuleType::values();
         $baseRules = [
             'rule_type' => 'required|in:' . implode(',', $ruleTypes),
             'service_ids' => 'required|array|min:1',

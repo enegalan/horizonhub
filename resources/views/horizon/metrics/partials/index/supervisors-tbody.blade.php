@@ -35,9 +35,9 @@
             @endif
         </td>
         <td class="px-4 py-2.5 text-xs" data-column-id="status">
-            @php($status = $row['status'] ?? 'stale')
-            <span class="{{ $status === 'online' ? 'badge-success' : 'badge-warning' }}">
-                {{ $status === 'online' ? 'Online' : 'Stale' }}
+            @php($status = $row['status'] ?? null)
+            <span class="{{ $status === \App\Enums\ServiceStatus::Online ? 'badge-success' : 'badge-warning' }}">
+                {{ $status === \App\Enums\ServiceStatus::Online ? 'Online' : 'Stale' }}
             </span>
         </td>
     </tr>

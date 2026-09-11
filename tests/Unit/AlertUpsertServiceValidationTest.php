@@ -29,7 +29,7 @@ class AlertUpsertServiceValidationTest extends TestCase
 
         $request = Request::create('/horizon/alerts', 'POST', [
             'name' => 'alert-scope',
-            'rule_type' => FailureCount::type(),
+            'rule_type' => FailureCount::type()->value,
             'service_ids' => [$enabled->id],
             'thresholdCount' => 1,
             'thresholdMinutes' => 5,
@@ -54,7 +54,7 @@ class AlertUpsertServiceValidationTest extends TestCase
 
         $request = Request::create('/horizon/alerts', 'POST', [
             'name' => 'alert-a',
-            'rule_type' => FailureCount::type(),
+            'rule_type' => FailureCount::type()->value,
             'service_ids' => [$service->id, $service->id],
             'job_patterns' => [' App\\Jobs\\Sync ', ''],
             'queue_patterns' => ['default'],
@@ -86,7 +86,7 @@ class AlertUpsertServiceValidationTest extends TestCase
 
         $request = Request::create('/horizon/alerts', 'POST', [
             'name' => 'alert-no-services',
-            'rule_type' => FailureCount::type(),
+            'rule_type' => FailureCount::type()->value,
             'thresholdCount' => 1,
             'thresholdMinutes' => 5,
             'provider_ids' => [$provider->id],
@@ -109,7 +109,7 @@ class AlertUpsertServiceValidationTest extends TestCase
 
         $request = Request::create('/horizon/alerts', 'POST', [
             'name' => 'alert-b',
-            'rule_type' => AvgExecutionTime::type(),
+            'rule_type' => AvgExecutionTime::type()->value,
             'service_ids' => [$service->id],
             'thresholdMinutes' => 5,
             'provider_ids' => [$provider->id],

@@ -19,7 +19,7 @@
     <div
         class="space-y-6"
         x-data="{
-            ruleType: {!! \Illuminate\Support\Js::from($alert->rule_type ?? $formRuleMetadata['defaultRuleType']) !!},
+            ruleType: {!! \Illuminate\Support\Js::from($alert->rule_type?->value ?? $formRuleMetadata['defaultRuleType']) !!},
             ruleMeta: {!! \Illuminate\Support\Js::from($formRuleMetadata) !!},
             jobPatternNextId: 0,
             jobPatterns: [],
@@ -173,7 +173,7 @@
                             @change="$parent.ruleType = $event.target.value"
                         >
                             @foreach($ruleTypes as $key => $label)
-                                <option value="{{ $key }}" @selected($alert->rule_type ?? $formRuleMetadata['defaultRuleType'] === $key)>{{ $label }}</option>
+                                <option value="{{ $key }}" @selected(($alert->rule_type?->value ?? $formRuleMetadata['defaultRuleType']) === $key)>{{ $label }}</option>
                             @endforeach
                         </x-select>
                         @error('rule_type') <span class="text-xs text-destructive">{{ $message }}</span> @enderror

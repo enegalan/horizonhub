@@ -120,7 +120,7 @@ class NotifiersTest extends TestCase
     {
         foreach (NotificationProvider::getProviders() as $type => $class) {
             $this->assertTrue(\is_subclass_of($class, AlertNotifierMetadata::class));
-            $this->assertSame($type, $class::type());
+            $this->assertSame($type, $class::type()->value);
             $meta = $class::meta();
 
             foreach (['label', 'icon', 'description', 'color'] as $key) {

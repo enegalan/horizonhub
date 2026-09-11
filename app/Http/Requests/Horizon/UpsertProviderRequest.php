@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Horizon;
 
+use App\Enums\NotificationProviderType;
 use App\Models\NotificationProvider;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -36,12 +37,12 @@ class UpsertProviderRequest extends FormRequest
      */
     public function rules(): array
     {
-        $providers = NotificationProvider::getProviders();
+        $providers = NotificationProviderType::values();
 
         $webhookRules = ['nullable', 'url'];
         $mailingRules = [];
 
-        foreach (\array_keys($providers) as $type) {
+        foreach ($providers as $type) {
             $provider = new NotificationProvider(['type' => $type]);
 
             if ($provider->usesWebhook()) {
@@ -55,7 +56,7 @@ class UpsertProviderRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'in:' . implode(',', array_keys($providers))],
+            'type' => ['required', 'in:' . implode(',', $providers)],
             'webhook_url' => $webhookRules,
             'email_to' => $mailingRules,
         ];

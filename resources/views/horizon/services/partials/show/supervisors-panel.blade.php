@@ -3,14 +3,16 @@
         @foreach($supervisors as $supervisor)
             @php
                 $apiStatus = $supervisor->status ?? '';
-                if (\strtolower($apiStatus) === 'running') {
+                /** @var \App\Enums\HorizonStatus|null $apiStatusEnum */
+                $apiStatusEnum = \App\Enums\HorizonStatus::tryFrom(\strtolower((string) $apiStatus));
+                if ($apiStatusEnum === \App\Enums\HorizonStatus::Running) {
                     $statusColor = 'bg-emerald-500';
                     $statusTitle = 'Online';
                     $statusBlink = false;
-                } elseif (\strtolower($apiStatus) === 'inactive' || $apiStatus !== '') {
+                } elseif ($apiStatusEnum !== null || $apiStatus !== '') {
                     $statusColor = 'bg-amber-500';
                     $statusTitle = $apiStatus !== '' ? \ucfirst($apiStatus) : 'Unknown';
-                    $statusBlink = \strtolower($apiStatus) === 'inactive';
+                    $statusBlink = $apiStatusEnum === \App\Enums\HorizonStatus::Inactive;
                 } else {
                     $statusColor = 'bg-slate-400';
                     $statusTitle = 'Unknown';

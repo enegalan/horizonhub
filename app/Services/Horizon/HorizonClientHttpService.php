@@ -2,6 +2,7 @@
 
 namespace App\Services\Horizon;
 
+use App\Enums\ServiceStatus;
 use App\Models\Service;
 use App\Support\Http\HttpRetryBackoff;
 use App\Support\PathBuilder;
@@ -396,7 +397,7 @@ class HorizonClientHttpService
             if ($updateHeartbeat) {
                 $service->forceFill([
                     'last_seen_at' => \now(),
-                    'status' => 'online',
+                    'status' => ServiceStatus::Online,
                 ])->saveQuietly();
             }
 

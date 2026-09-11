@@ -2,6 +2,7 @@
 
 namespace App\Services\Notifiers;
 
+use App\Enums\NotificationProviderType;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientApiService;
@@ -48,7 +49,7 @@ abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMeta
     /**
      * Get the type.
      */
-    abstract public static function type(): string;
+    abstract public static function type(): NotificationProviderType;
 
     /**
      * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events
@@ -119,7 +120,7 @@ abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMeta
 
         return [
             'alertName' => $alert->name,
-            'ruleLabel' => AlertRuleCatalog::ruleTypeLabels()[$alert->rule_type] ?? $alert->rule_type,
+            'ruleLabel' => $alert->rule_type->label(),
             'condition' => AlertRuleCatalog::conditionSummary($alert, $detectedAt),
             'serviceName' => $serviceName,
             'serviceUrl' => $serviceId > 0 ? \route('horizon.services.show', ['service' => $serviceId], absolute: true) : null,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Stream\Concerns;
 
+use App\Enums\AlertLogStatus;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\Service;
@@ -118,7 +119,7 @@ trait BuildsAlertStreams
                 continue;
             }
 
-            $status = (string) $log->status === 'sent' ? 'sent' : 'failed';
+            $status = $log->status === AlertLogStatus::Sent ? 'sent' : 'failed';
             $buckets[$key][$status]++;
         }
 

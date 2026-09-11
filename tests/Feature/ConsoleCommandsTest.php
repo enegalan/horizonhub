@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ServiceStatus;
 use App\Models\Service;
 use App\Services\Alerts\Engine\AlertEngine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -42,7 +43,7 @@ class ConsoleCommandsTest extends TestCase
 
         $standBy->refresh();
         $offline->refresh();
-        $this->assertSame('stand_by', $standBy->status);
-        $this->assertSame('offline', $offline->status);
+        $this->assertSame(ServiceStatus::StandBy, $standBy->status);
+        $this->assertSame(ServiceStatus::Offline, $offline->status);
     }
 }

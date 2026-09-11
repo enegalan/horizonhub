@@ -2,6 +2,7 @@
 
 namespace App\Services\Metrics\Calculators;
 
+use App\Enums\ServiceStatus;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientApiService;
 use App\Support\Horizon\ClientResponse;
@@ -19,7 +20,7 @@ final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
      *     service_id: int,
      *     service: string,
      *     name: string,
-     *     status: string,
+     *     status: ServiceStatus,
      *     jobs: int,
      *     processes: int|null
      * }>

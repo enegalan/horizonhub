@@ -2,6 +2,7 @@
 
 namespace App\Services\Alerts\Rules\Strategies;
 
+use App\Enums\AlertRuleType;
 use App\Models\Alert;
 use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 
@@ -9,10 +10,12 @@ final class NullRule implements AlertRuleContract
 {
     /**
      * Get the type.
+     *
+     * Sentinel value: the null rule is never stored or validated as a rule type.
      */
-    public static function type(): string
+    public static function type(): AlertRuleType
     {
-        return 'null';
+        return AlertRuleType::FailureCount;
     }
 
     /**

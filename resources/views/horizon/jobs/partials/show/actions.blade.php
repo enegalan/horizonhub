@@ -1,4 +1,4 @@
-@if($job->service && $job->status === 'failed')
+@if($job->service && $job->status === \App\Enums\JobStatus::Failed->value)
     <x-button
         type="button"
         class="job-detail-retry-trigger h-8 min-h-8 p-2 relative"

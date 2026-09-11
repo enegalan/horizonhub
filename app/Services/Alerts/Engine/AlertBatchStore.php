@@ -2,6 +2,7 @@
 
 namespace App\Services\Alerts\Engine;
 
+use App\Enums\EvaluationStatus;
 use App\Models\Alert;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -204,7 +205,7 @@ class AlertBatchStore
     public function markBatchFailed(string $evaluationId, string $message): void
     {
         $this->private__putEvaluation($evaluationId, 'error_message', $message);
-        $this->private__putEvaluation($evaluationId, 'status', 'failed');
+        $this->private__putEvaluation($evaluationId, 'status', EvaluationStatus::Failed->value);
     }
 
     /**
@@ -214,17 +215,18 @@ class AlertBatchStore
      */
     public function markCompleted(string $evaluationId): void
     {
-        $this->private__putEvaluation($evaluationId, 'status', 'completed');
+        $this->private__putEvaluation($evaluationId, 'status', EvaluationStatus::Completed->value);
     }
 
     /**
      * Put the status.
      *
      * @param string $evaluationId The evaluation ID.
-     * @param string $status The status.
+     * @param EvaluationStatus|string $status The status.
      */
-    public function putStatus(string $evaluationId, string $status): void
+    public function putStatus(string $evaluationId, EvaluationStatus|string $status): void
     {
+        $status = $status instanceof EvaluationStatus ? $status->value : $status;
         $this->private__putEvaluation($evaluationId, 'status', $status, true);
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Services\Notifiers;
 
+use App\Enums\NotificationProviderType;
 use App\Models\Alert;
 use Illuminate\Support\Facades\Http;
 
@@ -42,9 +43,9 @@ class DiscordNotifierService extends AbstractAlertNotifier
         return ['webhook_url' => (string) ($validated['webhook_url'] ?? '')];
     }
 
-    public static function type(): string
+    public static function type(): NotificationProviderType
     {
-        return 'discord';
+        return NotificationProviderType::Discord;
     }
 
     /**

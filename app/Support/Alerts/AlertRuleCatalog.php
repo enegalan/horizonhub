@@ -2,13 +2,8 @@
 
 namespace App\Support\Alerts;
 
+use App\Enums\AlertRuleType;
 use App\Models\Alert;
-use App\Services\Alerts\Rules\Strategies\AvgExecutionTime;
-use App\Services\Alerts\Rules\Strategies\FailureCount;
-use App\Services\Alerts\Rules\Strategies\HorizonOffline;
-use App\Services\Alerts\Rules\Strategies\QueueBlocked;
-use App\Services\Alerts\Rules\Strategies\SupervisorOffline;
-use App\Services\Alerts\Rules\Strategies\WorkerOffline;
 
 final class AlertRuleCatalog
 {
@@ -23,16 +18,15 @@ final class AlertRuleCatalog
     public static function conditionSummary(Alert $alert, ?string $detectedAt = null): string
     {
         $summary = match ($alert->rule_type) {
-            FailureCount::type() => 'At least ' . $alert->getThresholdCount() . " failures in the last {$alert->getThresholdMinutes()} minutes",
-            AvgExecutionTime::type() => 'Average execution time exceeds ' . $alert->getThresholdSeconds() . "s in the last {$alert->getThresholdMinutes()} minutes",
-            QueueBlocked::type() => "Queue blocked for {$alert->getThresholdMinutes()} minutes",
-            WorkerOffline::type() => "Worker offline for {$alert->getThresholdMinutes()} minutes",
-            SupervisorOffline::type() => "Supervisor offline for {$alert->getThresholdMinutes()} minutes",
-            HorizonOffline::type() => "Horizon offline for {$alert->getThresholdMinutes()} minutes" . (filled($detectedAt) ? " (detected at {$detectedAt})" : ''),
-            default => 'Alert condition met',
+            AlertRuleType::FailureCount => 'At least ' . $alert->getThresholdCount() . " failures in the last {$alert->getThresholdMinutes()} minutes",
+            AlertRuleType::AvgExecutionTime => 'Average execution time exceeds ' . $alert->getThresholdSeconds() . "s in the last {$alert->getThresholdMinutes()} minutes",
+            AlertRuleType::QueueBlocked => "Queue blocked for {$alert->getThresholdMinutes()} minutes",
+            AlertRuleType::WorkerOffline => "Worker offline for {$alert->getThresholdMinutes()} minutes",
+            AlertRuleType::SupervisorOffline => "Supervisor offline for {$alert->getThresholdMinutes()} minutes",
+            AlertRuleType::HorizonOffline => "Horizon offline for {$alert->getThresholdMinutes()} minutes" . (filled($detectedAt) ? " (detected at {$detectedAt})" : ''),
         };
 
-        if ($alert->rule_type === FailureCount::type()) {
+        if ($alert->rule_type === AlertRuleType::FailureCount) {
             $queuePatterns = $alert->getQueuePatterns();
 
             if (\count($queuePatterns) === 1) {
@@ -59,7 +53,7 @@ final class AlertRuleCatalog
     public static function formRuleMetadata(): array
     {
         return [
-            'defaultRuleType' => FailureCount::type(),
+            'defaultRuleType' => AlertRuleType::FailureCount->value,
             'queuePatternRuleTypes' => self::ruleTypesWithQueuePatterns(),
             'jobPatternRuleTypes' => self::ruleTypesWithJobPatterns(),
             'thresholdRuleTypes' => self::ruleTypesRequiringMinutes(),
@@ -76,14 +70,7 @@ final class AlertRuleCatalog
      */
     public static function ruleTypeLabels(): array
     {
-        return [
-            FailureCount::type() => 'Failure count in window',
-            AvgExecutionTime::type() => 'Avg execution time exceeded',
-            QueueBlocked::type() => 'Queue blocked',
-            WorkerOffline::type() => 'Worker offline',
-            SupervisorOffline::type() => 'Supervisor offline',
-            HorizonOffline::type() => 'Horizon offline',
-        ];
+        return AlertRuleType::labels();
     }
 
     /**
@@ -93,7 +80,7 @@ final class AlertRuleCatalog
      */
     public static function ruleTypesRequiringCount(): array
     {
-        return [FailureCount::type()];
+        return [AlertRuleType::FailureCount->value];
     }
 
     /**
@@ -104,12 +91,12 @@ final class AlertRuleCatalog
     public static function ruleTypesRequiringMinutes(): array
     {
         return [
-            FailureCount::type(),
-            AvgExecutionTime::type(),
-            QueueBlocked::type(),
-            WorkerOffline::type(),
-            SupervisorOffline::type(),
-            HorizonOffline::type(),
+            AlertRuleType::FailureCount->value,
+            AlertRuleType::AvgExecutionTime->value,
+            AlertRuleType::QueueBlocked->value,
+            AlertRuleType::WorkerOffline->value,
+            AlertRuleType::SupervisorOffline->value,
+            AlertRuleType::HorizonOffline->value,
         ];
     }
 
@@ -120,7 +107,7 @@ final class AlertRuleCatalog
      */
     public static function ruleTypesRequiringSeconds(): array
     {
-        return [AvgExecutionTime::type()];
+        return [AlertRuleType::AvgExecutionTime->value];
     }
 
     /**
@@ -130,7 +117,7 @@ final class AlertRuleCatalog
      */
     public static function ruleTypesWithJobPatterns(): array
     {
-        return [FailureCount::type(), AvgExecutionTime::type()];
+        return [AlertRuleType::FailureCount->value, AlertRuleType::AvgExecutionTime->value];
     }
 
     /**
@@ -141,10 +128,10 @@ final class AlertRuleCatalog
     public static function ruleTypesWithMinutesOnlyThreshold(): array
     {
         return [
-            QueueBlocked::type(),
-            WorkerOffline::type(),
-            SupervisorOffline::type(),
-            HorizonOffline::type(),
+            AlertRuleType::QueueBlocked->value,
+            AlertRuleType::WorkerOffline->value,
+            AlertRuleType::SupervisorOffline->value,
+            AlertRuleType::HorizonOffline->value,
         ];
     }
 
@@ -156,9 +143,9 @@ final class AlertRuleCatalog
     public static function ruleTypesWithQueuePatterns(): array
     {
         return [
-            FailureCount::type(),
-            AvgExecutionTime::type(),
-            QueueBlocked::type(),
+            AlertRuleType::FailureCount->value,
+            AlertRuleType::AvgExecutionTime->value,
+            AlertRuleType::QueueBlocked->value,
         ];
     }
 }
