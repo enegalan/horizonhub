@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Enums\ServiceStatus;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientApiService;
 use App\Services\Horizon\HorizonClientCacheService;
@@ -519,7 +520,7 @@ class HorizonClientTest extends TestCase
         $this->assertSame(401, $result['status']);
         $this->assertSame(1, $apiCalls);
         $this->assertSame(0, $dashboardCalls);
-        $this->assertSame('offline', $service->fresh()->status);
+        $this->assertSame(ServiceStatus::Offline, $service->fresh()->status);
     }
 
     public function test_ping_always_bypasses_failure_cooldown_and_hits_upstream_for_diagnostics(): void
@@ -666,7 +667,7 @@ class HorizonClientTest extends TestCase
 
         $freshService = $service->fresh();
         $this->assertTrue($result['success']);
-        $this->assertSame('online', $freshService->status);
+        $this->assertSame(ServiceStatus::Online, $freshService->status);
         $this->assertNotNull($freshService->last_seen_at);
     }
 

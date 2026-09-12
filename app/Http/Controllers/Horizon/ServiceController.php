@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Horizon;
 
+use App\Enums\ServiceStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Horizon\UpsertServiceRequest;
 use App\Models\Service;
@@ -102,7 +103,7 @@ class ServiceController extends Controller
             'name' => $validated['name'],
             'base_url' => $validated['base_url'],
             'public_url' => $validated['public_url'] ?? null,
-            'status' => 'offline',
+            'status' => ServiceStatus::Offline->value,
             'enabled' => true,
             'tags' => $validated['tags'] ?? [],
         ]);
@@ -123,7 +124,7 @@ class ServiceController extends Controller
 
         if ($result['success']) {
             $service->update([
-                'status' => 'online',
+                'status' => ServiceStatus::Online->value,
                 'last_seen_at' => now(),
             ]);
 
@@ -132,7 +133,7 @@ class ServiceController extends Controller
                 ->with('status', FlashStatus::success('Service Horizon API is reachable.'));
         }
 
-        $service->update(['status' => 'offline']);
+        $service->update(['status' => ServiceStatus::Offline->value]);
 
         $message = $result['message'] ?? 'Connection test failed.';
 

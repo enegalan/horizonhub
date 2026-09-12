@@ -44,7 +44,7 @@ final class AlertDeliveryLogPresenter
             'service_name' => $log->service instanceof Service ? $log->service->name : '–',
             'events_text' => $initialTriggerCount === 1 ? '1 event' : "$initialTriggerCount events",
             'events_count' => $initialTriggerCount,
-            'status' => (string) ($log->status ?? ''),
+            'status' => $log->status->value,
             'failure_message' => (string) ($log->failure_message ?? ''),
             'job_items' => $initialJobItems,
             'job_ids_more' => \max(0, $initialEffectiveJobTypesCount - $maxDistinctJobs),

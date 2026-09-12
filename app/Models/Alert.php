@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AlertRuleType;
 use App\Services\Alerts\Rules\Strategies\AvgExecutionTime;
 use App\Services\Alerts\Rules\Strategies\FailureCount;
 use App\Services\Alerts\Rules\Strategies\HorizonOffline;
@@ -44,6 +45,7 @@ class Alert extends Model
         'service_ids' => 'array',
         'enabled' => 'boolean',
         'email_interval_minutes' => 'integer',
+        'rule_type' => AlertRuleType::class,
     ];
 
     /**
@@ -68,12 +70,12 @@ class Alert extends Model
     public static function getProviders(): array
     {
         return [
-            FailureCount::type() => FailureCount::class,
-            AvgExecutionTime::type() => AvgExecutionTime::class,
-            QueueBlocked::type() => QueueBlocked::class,
-            WorkerOffline::type() => WorkerOffline::class,
-            SupervisorOffline::type() => SupervisorOffline::class,
-            HorizonOffline::type() => HorizonOffline::class,
+            FailureCount::type()->value => FailureCount::class,
+            AvgExecutionTime::type()->value => AvgExecutionTime::class,
+            QueueBlocked::type()->value => QueueBlocked::class,
+            WorkerOffline::type()->value => WorkerOffline::class,
+            SupervisorOffline::type()->value => SupervisorOffline::class,
+            HorizonOffline::type()->value => HorizonOffline::class,
         ];
     }
 

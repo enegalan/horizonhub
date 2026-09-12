@@ -2,6 +2,7 @@
 
 namespace App\Services\Alerts\Rules\Contracts;
 
+use App\Enums\AlertRuleType;
 use App\Models\Alert;
 
 interface AlertRuleStrategy
@@ -9,7 +10,7 @@ interface AlertRuleStrategy
     /**
      * Get the type.
      */
-    public static function type(): string;
+    public static function type(): ?AlertRuleType;
 
     /**
      * Evaluate the rule and return whether it triggered plus triggering job UUIDs (if applicable).

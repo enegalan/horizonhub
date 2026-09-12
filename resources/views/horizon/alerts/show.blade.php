@@ -28,7 +28,7 @@
             <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                 <div>
                     <dt class="label-muted">Type</dt>
-                    <dd class="mt-0.5 text-foreground font-mono text-xs">{{ $alert->rule_type ?? 'unknown' }}</dd>
+                    <dd class="mt-0.5 text-foreground font-mono text-xs">{{ $alert->rule_type?->value ?? 'unknown' }}</dd>
                 </div>
                 <div>
                     <dt class="label-muted">Service scope</dt>
@@ -133,7 +133,7 @@
                             <x-select id="serviceFilter" name="service_id" class="w-44" onchange="typeof this.form.requestSubmit === 'function' ? this.form.requestSubmit() : this.form.submit()">
                                 <option value="">All</option>
                                 @foreach($services as $s)
-                                    <option value="{{ $s->id }}" @selected(($filters['service_id'] ?? '') !== '' && (int) ($filters['service_id'] ?? 0) === (int) $s->id)>{{ $s->name }} ({{ $s->status }})</option>
+                                    <option value="{{ $s->id }}" @selected(($filters['service_id'] ?? '') !== '' && (int) ($filters['service_id'] ?? 0) === (int) $s->id)>{{ $s->name }} ({{ $s->status?->value }})</option>
                                 @endforeach
                             </x-select>
                         </div>
@@ -192,7 +192,7 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-2.5" data-column-id="status">
-                                        @if($log->status === 'sent')
+                                        @if($log->status === \App\Enums\AlertLogStatus::Sent)
                                             <span class="badge-success">sent</span>
                                         @else
                                             <span class="badge-danger">failed</span>
@@ -210,7 +210,7 @@
                                             >
                                                 <x-icons.document-text class="size-4" />
                                             </x-button>
-                                            @if($log->status === 'failed')
+                                            @if($log->status === \App\Enums\AlertLogStatus::Failed)
                                                 <form method="POST" action="{{ route('horizon.alerts.logs.retry', $log) }}">
                                                     @csrf
                                                     <x-button

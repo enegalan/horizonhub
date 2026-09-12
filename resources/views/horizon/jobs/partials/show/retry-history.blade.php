@@ -1,4 +1,4 @@
-@if($job->status === 'failed' && count($retryHistory) > 0)
+@if($job->status === \App\Enums\JobStatus::Failed->value && count($retryHistory) > 0)
     @php
         $retryRowsNormalized = [];
         foreach ($retryHistory as $row) {
@@ -31,7 +31,7 @@
                         $retriedAt = \Carbon\Carbon::createFromTimestamp((int) $retryJob['retried_at']);
                     }
                     $retryStatus = isset($retryJob['status']) && \is_string($retryJob['status']) && $retryJob['status'] !== ''
-                        ? $retryJob['status']
+                        ? \App\Enums\JobStatus::normalizeStatus($retryJob['status'])?->value ?? $retryJob['status']
                         : null;
                 @endphp
                 <tr class="transition-colors hover:bg-muted/30">

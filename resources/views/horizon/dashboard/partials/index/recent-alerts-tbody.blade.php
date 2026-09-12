@@ -18,7 +18,7 @@
                 –
             @endif
         </td>
-        <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="status">{{ $log->status ?? '–' }}</td>
+        <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="status">{{ $log->status?->value ?? '–' }}</td>
         <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="sent">
             @if($log->sent_at)
                 {{ $log->sent_at->diffForHumans() }}

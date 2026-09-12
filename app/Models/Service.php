@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ServiceStatus;
 use App\Services\Horizon\HorizonClientApiService;
 use App\Services\Horizon\HorizonClientCacheService;
 use App\Support\Horizon\ClientResponse;
@@ -49,6 +50,7 @@ class Service extends Model
         'enabled' => 'boolean',
         'last_seen_at' => 'datetime',
         'tags' => 'array',
+        'status' => ServiceStatus::class,
     ];
 
     /**

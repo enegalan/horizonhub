@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\ServiceStatus;
 use App\Models\Service;
 use Illuminate\Console\Command;
 
@@ -19,21 +20,21 @@ class MarkStaleServicesOfflineCommand extends Command
         $dead_threshold = \now()->subMinutes($dead_minutes);
 
         $stand_by = Service::enabled()
-            ->where('status', 'online')
+            ->where('status', ServiceStatus::Online->value)
             ->where(function ($q) use ($stale_threshold) {
                 $q->whereNull('last_seen_at')->orWhere('last_seen_at', '<', $stale_threshold);
             })
-            ->update(['status' => 'stand_by']);
+            ->update(['status' => ServiceStatus::StandBy->value]);
         if ($stand_by > 0) {
             $this->info("Marked {$stand_by} service(s) as stand-by (no events since {$stale_minutes} min).");
         }
 
         $offline = Service::enabled()
-            ->whereIn('status', ['online', 'stand_by'])
+            ->whereIn('status', [ServiceStatus::Online->value, ServiceStatus::StandBy->value])
             ->where(function ($q) use ($dead_threshold) {
                 $q->whereNull('last_seen_at')->orWhere('last_seen_at', '<', $dead_threshold);
             })
-            ->update(['status' => 'offline']);
+            ->update(['status' => ServiceStatus::Offline->value]);
         if ($offline > 0) {
             $this->info("Marked {$offline} service(s) as offline (no events since {$dead_minutes} min).");
         }

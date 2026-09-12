@@ -3,8 +3,10 @@
 @endphp
 @forelse($services as $service)
     @php
-        $isOnline = $service->status === 'online';
-        $isStandBy = $service->status === 'stand_by';
+        /** @var \App\Enums\ServiceStatus|null $status */
+        $status = $service->status;
+        $isOnline = $status === \App\Enums\ServiceStatus::Online;
+        $isStandBy = $status === \App\Enums\ServiceStatus::StandBy;
         $isEnabled = $service->enabled;
         $isTimedOut = $service->hasTimeoutAdvice();
         $dashboardUrl = \App\Support\PathBuilder::dashboard($service);
@@ -16,7 +18,7 @@
             'name' => $service->name,
             'base_url' => $service->base_url,
             'public_url' => $service->public_url,
-            'status' => $service->status,
+            'status' => $status?->value,
             'horizon_status' => $service->horizon_status,
             'enabled' => $isEnabled,
             'horizon_jobs_count' => $service->horizon_jobs_count,
@@ -36,7 +38,7 @@
         ])
         data-stream-row-id="svc-{{ (int) $service->id }}"
         data-horizon-stream-sig="{{ $streamSig }}"
-        data-service-connectivity="{{ $service->status }}"
+        data-service-connectivity="{{ $status?->value }}"
     >
         <div
             @class([

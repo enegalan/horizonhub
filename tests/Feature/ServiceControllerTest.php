@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ServiceStatus;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientCacheService;
 use App\Support\FormDrawer;
@@ -82,7 +83,7 @@ class ServiceControllerTest extends TestCase
                 'type' => 'success',
             ]);
         $service->refresh();
-        $this->assertSame('online', $service->status);
+        $this->assertSame(ServiceStatus::Online, $service->status);
 
         $this->post(route('horizon.services.test-connection', ['service' => $service]))
             ->assertRedirect()
@@ -91,7 +92,7 @@ class ServiceControllerTest extends TestCase
                 'type' => 'error',
             ]);
         $service->refresh();
-        $this->assertSame('offline', $service->status);
+        $this->assertSame(ServiceStatus::Offline, $service->status);
 
         $this->post(route('horizon.services.toggle-enabled', ['service' => $service]))
             ->assertOk()
@@ -242,6 +243,6 @@ class ServiceControllerTest extends TestCase
         $this->assertStringContainsString('10s', (string) ($status['message'] ?? ''));
 
         $service->refresh();
-        $this->assertSame('offline', $service->status);
+        $this->assertSame(ServiceStatus::Offline, $service->status);
     }
 }

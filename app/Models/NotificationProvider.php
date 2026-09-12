@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\NotificationProviderType;
 use App\Services\Notifiers\DiscordNotifierService;
 use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Notifiers\SlackNotifierService;
@@ -12,6 +13,7 @@ class NotificationProvider extends Model
 {
     protected $casts = [
         'config' => 'array',
+        'type' => NotificationProviderType::class,
     ];
 
     protected $fillable = [
@@ -28,9 +30,9 @@ class NotificationProvider extends Model
     public static function getProviders(): array
     {
         return [
-            SlackNotifierService::type() => SlackNotifierService::class,
-            DiscordNotifierService::type() => DiscordNotifierService::class,
-            EmailNotifierService::type() => EmailNotifierService::class,
+            SlackNotifierService::type()->value => SlackNotifierService::class,
+            DiscordNotifierService::type()->value => DiscordNotifierService::class,
+            EmailNotifierService::type()->value => EmailNotifierService::class,
         ];
     }
 
@@ -103,7 +105,7 @@ class NotificationProvider extends Model
         $class = $this->notifierClass();
 
         if ($class === null) {
-            throw new \RuntimeException('Unknown notifier class for type: ' . $this->type);
+            throw new \RuntimeException('Unknown notifier class for type: ' . $this->type->value);
         }
 
         return $class::meta();
@@ -116,7 +118,7 @@ class NotificationProvider extends Model
      */
     public function notifierClass(): ?string
     {
-        return self::getProviders()[$this->type] ?? null;
+        return self::getProviders()[$this->type->value] ?? null;
     }
 
     /**
@@ -124,7 +126,7 @@ class NotificationProvider extends Model
      */
     public function usesMailing(): bool
     {
-        return \in_array($this->type, [EmailNotifierService::type()], true);
+        return $this->type->isMailing();
     }
 
     /**
@@ -132,6 +134,6 @@ class NotificationProvider extends Model
      */
     public function usesWebhook(): bool
     {
-        return \in_array($this->type, [SlackNotifierService::type(), DiscordNotifierService::type()], true);
+        return $this->type->isWebhook();
     }
 }

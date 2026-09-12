@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Stream\Concerns;
 
+use App\Enums\JobStatus;
 use App\Models\Service;
 use App\Services\Jobs\JobListService;
 use App\Services\Jobs\JobServiceResolverService;
@@ -140,7 +141,7 @@ trait BuildsJobStreams
         $commandData = JobCommandDataExtractor::extract($payload);
 
         $rawStatus = (string) ($jobData['status'] ?? 'failed');
-        $status = $rawStatus === 'completed' ? 'processed' : $rawStatus;
+        $status = JobStatus::normalizeStatus($rawStatus)->value;
         $timing = JobRuntime::resolveJobTimingFields($jobData, $payload, $status);
 
         return (object) [

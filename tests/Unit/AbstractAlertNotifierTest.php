@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Enums\NotificationProviderType;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Alerts\Rules\Strategies\FailureCount;
@@ -31,9 +32,9 @@ class AbstractAlertNotifierTest extends TestCase
                 return [];
             }
 
-            public static function type(): string
+            public static function type(): NotificationProviderType
             {
-                return 'test';
+                return NotificationProviderType::Email;
             }
 
             public function sendBatched(Alert $alert, array $events, array $config): void {}
@@ -70,9 +71,9 @@ class AbstractAlertNotifierTest extends TestCase
                 return [];
             }
 
-            public static function type(): string
+            public static function type(): NotificationProviderType
             {
-                return 'test';
+                return NotificationProviderType::Email;
             }
 
             public function sendBatched(Alert $alert, array $events, array $config): void {}
@@ -127,9 +128,9 @@ class AbstractAlertNotifierTest extends TestCase
                 return [];
             }
 
-            public static function type(): string
+            public static function type(): NotificationProviderType
             {
-                return 'test';
+                return NotificationProviderType::Email;
             }
 
             public function sendBatched(Alert $alert, array $events, array $config): void

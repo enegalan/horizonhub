@@ -21,9 +21,9 @@
 <div>
     <dt class="label-muted">Status</dt>
     <dd class="mt-0.5">
-        @if($job->status === 'failed')
+        @if($job->status === \App\Enums\JobStatus::Failed->value)
             <span class="badge-danger">{{ $job->status }}</span>
-        @elseif($job->status === 'processed')
+        @elseif($job->status === \App\Enums\JobStatus::Processed->value)
             <span class="badge-success">{{ $job->status }}</span>
         @else
             <span class="badge-muted">{{ $job->status }}</span>
@@ -59,13 +59,13 @@
         <dd class="mt-0.5 text-foreground">{{ $job->available_at?->format('Y-m-d H:i:s') ?? '–' }}</dd>
     </div>
 @endif
-@if($job->status !== 'failed')
+@if($job->status !== \App\Enums\JobStatus::Failed->value)
     <div>
         <dt class="label-muted">Processed at</dt>
         <dd class="mt-0.5 text-foreground">{{ $job->processed_at?->format('Y-m-d H:i:s') ?? '–' }}</dd>
     </div>
 @endif
-@if($job->status === 'failed')
+@if($job->status === \App\Enums\JobStatus::Failed->value)
     <div>
         <dt class="label-muted">Failed at</dt>
         <dd class="mt-0.5 text-foreground">{{ $job->failed_at?->format('Y-m-d H:i:s') ?? '–' }}</dd>

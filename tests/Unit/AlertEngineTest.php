@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Enums\AlertLogStatus;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
@@ -58,7 +59,7 @@ class AlertEngineTest extends TestCase
         $engine->dispatch($alert, [['service_id' => 1, 'job_uuid' => null, 'triggered_at' => now()->toIso8601String()]], $log);
 
         $log->refresh();
-        $this->assertSame('failed', $log->status);
+        $this->assertSame(AlertLogStatus::Failed, $log->status);
         $this->assertSame('boom', $log->failure_message);
     }
 

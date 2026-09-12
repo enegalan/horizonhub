@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Enums\AlertRuleType;
 use App\Models\Alert;
-use App\Services\Alerts\Rules\Strategies\FailureCount;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -21,7 +21,7 @@ class AlertFactory extends Factory
         return [
             'name' => $this->faker->words(3, true),
             'service_ids' => [],
-            'rule_type' => FailureCount::type(),
+            'rule_type' => AlertRuleType::FailureCount->value,
             'threshold' => ['count' => 1, 'minutes' => 5],
             'enabled' => true,
             'email_interval_minutes' => 0,

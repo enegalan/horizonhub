@@ -22,7 +22,7 @@
             'id' => (int) $alert->id,
             'name' => (string) $alert->name,
             'enabled' => (bool) $alert->enabled,
-            'rule_type' => (string) ($alert->rule_type ?? ''),
+            'rule_type' => (string) ($alert->rule_type?->value ?? ''),
             'queue_patterns' => $queuePatternsForSig,
             'job_patterns' => $jobPatternsForSig,
             'service_labels' => $serviceLabelsForSig,
@@ -73,7 +73,7 @@
                         <a href="{{ route('horizon.alerts.show', $alert) }}" class="link block truncate text-sm font-semibold text-foreground" data-turbo-action="replace">
                             {{ $alert->name }}
                         </a>
-                        <p class="mt-1 font-mono text-xs text-muted-foreground">{{ $alert->rule_type }}</p>
+                        <p class="mt-1 font-mono text-xs text-muted-foreground">{{ $alert->rule_type?->value }}</p>
                     </div>
                 </div>
                 <button

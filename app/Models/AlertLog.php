@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AlertLogStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -15,6 +16,7 @@ class AlertLog extends Model
     protected $casts = [
         'sent_at' => 'datetime',
         'job_uuids' => 'array',
+        'status' => AlertLogStatus::class,
     ];
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Services\Metrics;
 
+use App\Enums\ServiceStatus;
 use App\Models\Service;
 use App\Services\Jobs\JobsWindowFetcherService;
 use App\Services\Metrics\Calculators\AbstractMetricsCalculator;
@@ -122,7 +123,7 @@ class MetricsDataService
             $onlineSupervisors = 0;
 
             foreach ($supervisorsRows as $row) {
-                if ($row['status'] === 'online') {
+                if ($row['status'] === ServiceStatus::Online) {
                     $onlineSupervisors++;
                 }
             }
@@ -270,7 +271,7 @@ class MetricsDataService
     /**
      * Get the supervisors data for a single service.
      *
-     * @return array<int, array{service_id: int, service: string, name: string, status: string, jobs: int, processes: int|null}>
+     * @return array<int, array{service_id: int, service: string, name: string, status: ServiceStatus, jobs: int, processes: int|null}>
      */
     public function getSupervisorsData(array $serviceIds = []): array
     {

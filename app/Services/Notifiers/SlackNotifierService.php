@@ -2,6 +2,7 @@
 
 namespace App\Services\Notifiers;
 
+use App\Enums\NotificationProviderType;
 use App\Models\Alert;
 use Illuminate\Support\Facades\Http;
 
@@ -37,9 +38,9 @@ class SlackNotifierService extends AbstractAlertNotifier
     /**
      * Get the type.
      */
-    public static function type(): string
+    public static function type(): NotificationProviderType
     {
-        return 'slack';
+        return NotificationProviderType::Slack;
     }
 
     /**

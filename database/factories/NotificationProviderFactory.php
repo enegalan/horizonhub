@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Enums\NotificationProviderType;
 use App\Models\NotificationProvider;
-use App\Services\Notifiers\EmailNotifierService;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -20,7 +20,7 @@ class NotificationProviderFactory extends Factory
     {
         return [
             'name' => $this->faker->words(2, true),
-            'type' => EmailNotifierService::type(),
+            'type' => NotificationProviderType::Email->value,
             'config' => ['to' => [$this->faker->safeEmail()]],
         ];
     }

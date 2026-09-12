@@ -25,16 +25,14 @@
         @include('horizon.services.partials.timeout-advice', ['service' => $service])
 
         @php
-            if ($service->status === 'online') {
+            if ($service->status === \App\Enums\ServiceStatus::Online) {
                 $serviceStatusColor = 'bg-emerald-500';
-                $serviceStatusLabel = 'Online';
-            } elseif ($service->status === 'stand_by') {
+            } elseif ($service->status === \App\Enums\ServiceStatus::StandBy) {
                 $serviceStatusColor = 'bg-amber-500';
-                $serviceStatusLabel = 'Stand-by';
             } else {
                 $serviceStatusColor = 'bg-red-500';
-                $serviceStatusLabel = 'Offline';
             }
+            $serviceStatusLabel = $service->status?->label() ?? 'Offline';
             $dashboardUrl = \App\Support\PathBuilder::dashboard($service);
         @endphp
         <div class="mb-4 flex flex-wrap items-center gap-2">

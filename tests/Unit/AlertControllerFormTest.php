@@ -20,7 +20,7 @@ class AlertControllerFormTest extends TestCase
 
         $this->assertNotContains('job_specific_failure', $keys);
         $this->assertNotContains('job_type_failure', $keys);
-        $this->assertContains(FailureCount::type(), $keys);
+        $this->assertContains(FailureCount::type()->value, $keys);
     }
 
     public function test_form_services_include_disabled_services_still_in_alert_scope(): void

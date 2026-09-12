@@ -2,6 +2,7 @@
 
 namespace App\Services\Alerts;
 
+use App\Enums\EvaluationStatus;
 use App\Jobs\EvaluateAlertJob;
 use App\Models\Alert;
 use App\Services\Alerts\Engine\AlertBatchStore;
@@ -50,14 +51,14 @@ class AlertEvaluationBatchService
         $evaluationId = (string) Str::uuid();
         $store = new AlertBatchStore;
 
-        $store->putStatus($evaluationId, $total > 0 ? 'running' : 'completed');
+        $store->putStatus($evaluationId, $total > 0 ? EvaluationStatus::Running : EvaluationStatus::Completed);
         $store->putTotalAlerts($evaluationId, $total);
         $store->initializeCounters($evaluationId);
 
         if ($total === 0) {
             return [
                 'evaluation_id' => $evaluationId,
-                'status' => 'completed',
+                'status' => EvaluationStatus::Completed->value,
                 'total_alerts' => 0,
             ];
         }
@@ -83,7 +84,7 @@ class AlertEvaluationBatchService
 
         return [
             'evaluation_id' => $evaluationId,
-            'status' => 'running',
+            'status' => EvaluationStatus::Running->value,
             'total_alerts' => $total,
         ];
     }

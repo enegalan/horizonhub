@@ -14,7 +14,7 @@
         $streamSig = \hash('sha256', \json_encode([
             'id' => (int) $provider->id,
             'name' => (string) ($provider->name ?? ''),
-            'type' => (string) ($provider->type ?? ''),
+            'type' => (string) ($provider->type?->value ?? ''),
             'webhook_url' => $usesWebhook ? (string) $provider->getWebhookUrl() : '',
             'to_emails' => $usesWebhook ? [] : $emailsForSig,
         ], \JSON_THROW_ON_ERROR));
