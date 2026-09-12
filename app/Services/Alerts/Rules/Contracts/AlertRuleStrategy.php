@@ -10,7 +10,7 @@ interface AlertRuleStrategy
     /**
      * Get the type.
      */
-    public static function type(): AlertRuleType;
+    public static function type(): ?AlertRuleType;
 
     /**
      * Evaluate the rule and return whether it triggered plus triggering job UUIDs (if applicable).

@@ -11,11 +11,12 @@ final class NullRule implements AlertRuleContract
     /**
      * Get the type.
      *
-     * Sentinel value: the null rule is never stored or validated as a rule type.
+     * The null rule has no concrete rule type; it is only used as a fallback
+     * strategy and is never stored or validated as a rule type.
      */
-    public static function type(): AlertRuleType
+    public static function type(): ?AlertRuleType
     {
-        return AlertRuleType::FailureCount;
+        return null;
     }
 
     /**

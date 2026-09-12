@@ -20,7 +20,7 @@ class NotificationProviderFactory extends Factory
     {
         return [
             'name' => $this->faker->words(2, true),
-            'type' => NotificationProviderType::Email,
+            'type' => NotificationProviderType::Email->value,
             'config' => ['to' => [$this->faker->safeEmail()]],
         ];
     }
