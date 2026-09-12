@@ -20,6 +20,15 @@ Repository-specific conventions that expand on the rules in [AGENTS.md](../AGENT
 - `app/Models` uses Eloquent idioms already present: `Attribute::make` accessors, local query scopes (`enabled()`, `disabled()`, `matchingTags()`), JSON casts for structured columns (`service_ids`, `tags`, `threshold`, `config`), and `HasFactory` with factories under `database/factories`.
 - Keep model events minimal; the only model hook is a `saving` event on `Service`.
 
+### Enums
+
+- Domain enums live in `app/Enums/`, back `string`, and reuse the `HasOptions` trait (`label()`, `labels()`, `options()`, `values()`) instead of hardcoded string literals.
+- **Reading cast attributes** returns the enum instance, so compare with `===` against the enum case (no `->value`), e.g. `$service->status === ServiceStatus::Online`. `Collection::where()`/`whereIn()` on loaded models also accept the enum directly (loose `==`, and backed enums equal their value).
+- **Writing model attributes** that have an enum cast: always pass the backing value explicitly (`ServiceStatus::Online->value`), including `create()`/`update()`/`fill()`/`forceFill()`. The cast tolerates the raw enum, but the codebase standard is `->value` for clarity and consistency.
+- **Query builder / raw SQL** (`Model::where(...)->update()`, `where`, `whereIn`, `DB::`): casts are not applied, so you must bind the backing value (`ServiceStatus::Online->value`).
+- **Plain structures** (array keys, JSON/SSE payloads, Blade/JS transport, factory definitions): enums have no implicit string conversion and cannot be array keys, so emit `->value` (or `->label()` for display labels).
+- Fallback strategies that map to no concrete type return `null` from their `type()` (e.g. `NullRule::type()`), never a real enum case.
+
 ### Migrations
 
 - Named with date + 6-digit sequence (e.g. `2026_03_25_000110_migrate_alert_service_id_to_service_ids.php`).

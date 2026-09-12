@@ -71,7 +71,7 @@ class AlertEngine
                 app($notifierClass)->sendBatched($alert, $events, $config);
             } catch (\Throwable $e) {
                 Log::channel('app')->error('alert notification failed', ['alert_id' => $alert->id, 'provider_id' => $provider->id, 'error' => $e->getMessage()]);
-                $log->update(['status' => AlertLogStatus::Failed, 'failure_message' => $e->getMessage()]);
+                $log->update(['status' => AlertLogStatus::Failed->value, 'failure_message' => $e->getMessage()]);
             }
         }
     }
@@ -244,7 +244,7 @@ class AlertEngine
             'service_id' => (int) $log->service_id,
             'trigger_count' => \count($events),
             'job_uuids' => ! empty($jobUuids) ? $jobUuids : null,
-            'status' => AlertLogStatus::Sent,
+            'status' => AlertLogStatus::Sent->value,
             'failure_message' => null,
             'sent_at' => \now(),
         ]);
@@ -358,7 +358,7 @@ class AlertEngine
             'service_id' => $serviceId,
             'trigger_count' => \count($events),
             'job_uuids' => $jobUuids ?: null,
-            'status' => AlertLogStatus::Sent,
+            'status' => AlertLogStatus::Sent->value,
             'sent_at' => \now(),
         ]);
 

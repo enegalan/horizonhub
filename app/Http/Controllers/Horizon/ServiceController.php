@@ -103,7 +103,7 @@ class ServiceController extends Controller
             'name' => $validated['name'],
             'base_url' => $validated['base_url'],
             'public_url' => $validated['public_url'] ?? null,
-            'status' => ServiceStatus::Offline,
+            'status' => ServiceStatus::Offline->value,
             'enabled' => true,
             'tags' => $validated['tags'] ?? [],
         ]);
@@ -124,7 +124,7 @@ class ServiceController extends Controller
 
         if ($result['success']) {
             $service->update([
-                'status' => ServiceStatus::Online,
+                'status' => ServiceStatus::Online->value,
                 'last_seen_at' => now(),
             ]);
 
@@ -133,7 +133,7 @@ class ServiceController extends Controller
                 ->with('status', FlashStatus::success('Service Horizon API is reachable.'));
         }
 
-        $service->update(['status' => ServiceStatus::Offline]);
+        $service->update(['status' => ServiceStatus::Offline->value]);
 
         $message = $result['message'] ?? 'Connection test failed.';
 

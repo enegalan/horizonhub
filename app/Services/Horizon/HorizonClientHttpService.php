@@ -397,7 +397,7 @@ class HorizonClientHttpService
             if ($updateHeartbeat) {
                 $service->forceFill([
                     'last_seen_at' => \now(),
-                    'status' => ServiceStatus::Online,
+                    'status' => ServiceStatus::Online->value,
                 ])->saveQuietly();
             }
 
