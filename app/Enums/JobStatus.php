@@ -12,6 +12,7 @@ enum JobStatus: string
     case Pending = 'pending';
     case Processed = 'processed';
     case Processing = 'processing';
+    case Reserved = 'reserved';
 
     public static function labels(): array
     {
@@ -20,6 +21,7 @@ enum JobStatus: string
             self::Processing->value => 'Processing',
             self::Processed->value => 'Processed',
             self::Failed->value => 'Failed',
+            self::Reserved->value => 'Reserved',
         ];
     }
 

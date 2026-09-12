@@ -264,6 +264,29 @@ class JobShowViewDataTest extends TestCase
     }
 
     #[Test]
+    public function it_retains_reserved_status_when_service_resolver_provides_it(): void
+    {
+        $service = new Service;
+        $service->forceFill([
+            'name' => 'Orders API',
+            'base_url' => 'http://example.test',
+        ]);
+
+        $jobData = [
+            'id' => 'job-reserved-123',
+            'name' => 'App\\Jobs\\SlowJob',
+            'queue' => 'default',
+            'connection' => 'database',
+            'status' => 'reserved',
+            'reserved_at' => '1711111111.100',
+        ];
+
+        $result = $this->private__invokeBuildJobShowViewData($service, $jobData);
+
+        $this->assertSame('reserved', $result->status);
+    }
+
+    #[Test]
     public function it_sets_null_delay_when_no_delay_present(): void
     {
         $service = new Service;
