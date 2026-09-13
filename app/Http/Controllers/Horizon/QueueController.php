@@ -15,13 +15,12 @@ class QueueController extends Controller
      */
     public function index(Request $request): View
     {
-        return \view('horizon.queues.index', \array_merge([
+        return \view('horizon.queues.index', ServiceFilterService::indexViewData($request, [
             'queueCount' => 0,
             'queues' => \collect(),
-            'services' => Service::enabled()->orderBy('name')->get(),
+            'services' => Service::enabledNamed(),
             'totalJobs' => 0,
-            'defer' => true,
             'header' => 'Queues',
-        ], ServiceFilterService::viewData($request)));
+        ]));
     }
 }

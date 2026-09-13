@@ -45,9 +45,7 @@ class HorizonStreamsController extends StreamController
 
     public function alerts(Request $request): StreamedResponse
     {
-        $query = $request->getQueryString() ?? '';
-
-        return $this->runStream(fn (): string => $this->buildAlerts($query));
+        return $this->private__streamFromRequest($request, fn (string $query): string => $this->buildAlerts($query));
     }
 
     public function alertShow(Alert $alert): StreamedResponse
@@ -57,16 +55,12 @@ class HorizonStreamsController extends StreamController
 
     public function dashboard(Request $request): StreamedResponse
     {
-        $query = $request->getQueryString() ?? '';
-
-        return $this->runStream(fn (): string => $this->buildDashboard($query));
+        return $this->private__streamFromRequest($request, fn (string $query): string => $this->buildDashboard($query));
     }
 
     public function jobs(Request $request): StreamedResponse
     {
-        $query = $request->getQueryString() ?? '';
-
-        return $this->runStream(fn (): string => $this->buildJobsIndex($query));
+        return $this->private__streamFromRequest($request, fn (string $query): string => $this->buildJobsIndex($query));
     }
 
     public function jobShow(string $job): StreamedResponse
@@ -76,36 +70,39 @@ class HorizonStreamsController extends StreamController
 
     public function metrics(Request $request): StreamedResponse
     {
-        $query = $request->getQueryString() ?? '';
-
-        return $this->runStream(fn (): string => $this->buildMetrics($query));
+        return $this->private__streamFromRequest($request, fn (string $query): string => $this->buildMetrics($query));
     }
 
     public function providerList(Request $request): StreamedResponse
     {
-        $query = $request->getQueryString() ?? '';
-
-        return $this->runStream(fn (): string => $this->buildProviders($query));
+        return $this->private__streamFromRequest($request, fn (string $query): string => $this->buildProviders($query));
     }
 
     public function queues(Request $request): StreamedResponse
     {
-        $query = $request->getQueryString() ?? '';
-
-        return $this->runStream(fn (): string => $this->buildQueues($query));
+        return $this->private__streamFromRequest($request, fn (string $query): string => $this->buildQueues($query));
     }
 
     public function serviceList(Request $request): StreamedResponse
     {
-        $query = $request->getQueryString() ?? '';
-
-        return $this->runStream(fn (): string => $this->buildServices($query));
+        return $this->private__streamFromRequest($request, fn (string $query): string => $this->buildServices($query));
     }
 
     public function serviceShow(Request $request, Service $service): StreamedResponse
     {
+        return $this->private__streamFromRequest($request, fn (string $query): string => $this->buildServiceShow($service, $query));
+    }
+
+    /**
+     * Run a stream originating from a request query string.
+     *
+     * @param Request $request The request.
+     * @param callable(string): string $builder The stream builder.
+     */
+    private function private__streamFromRequest(Request $request, callable $builder): StreamedResponse
+    {
         $query = $request->getQueryString() ?? '';
 
-        return $this->runStream(fn (): string => $this->buildServiceShow($service, $query));
+        return $this->runStream(fn (): string => $builder($query));
     }
 }

@@ -5,16 +5,10 @@ namespace App\Services\Alerts\Rules\Strategies;
 use App\Enums\AlertRuleType;
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Support\Alerts\AlertRuleEvaluation;
 
-final class QueueBlocked implements AlertRuleContract
+final class QueueBlocked extends AbstractAlertRuleStrategy
 {
-    /**
-     * The evaluation support.
-     */
-    private AlertRuleEvaluation $support;
-
     /**
      * The constructor.
      *
@@ -22,7 +16,7 @@ final class QueueBlocked implements AlertRuleContract
      */
     public function __construct(AlertRuleEvaluation $support)
     {
-        $this->support = $support;
+        parent::__construct($support);
     }
 
     /**

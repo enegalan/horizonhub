@@ -3,16 +3,10 @@
 namespace App\Http\Requests\Horizon;
 
 use App\Rules\RetryModalDateFilter;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class FailedJobsListRequest extends FormRequest
+class FailedJobsListRequest extends HorizonRequest
 {
-    public function authorize(): bool
-    {
-        return true;
-    }
-
     /**
      * @return array<string, mixed>
      */

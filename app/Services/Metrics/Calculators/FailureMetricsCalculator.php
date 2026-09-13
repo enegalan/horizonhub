@@ -15,9 +15,7 @@ final class FailureMetricsCalculator extends AbstractMetricsCalculator
      */
     public function getFailureRate24h(array $serviceIds = []): array
     {
-        $since = \now()->subDay()->startOfDay();
-        $sinceTimestamp = $since->getTimestamp();
-
+        $sinceTimestamp = \now()->subDay()->startOfDay()->getTimestamp();
         $services = Service::getServices($serviceIds);
 
         if ($services->isEmpty()) {
@@ -59,41 +57,24 @@ final class FailureMetricsCalculator extends AbstractMetricsCalculator
      */
     public function getFailureRateOverTime(array $serviceIds = []): array
     {
-        $now = \now();
-        $since = $now->copy()->subDay()->startOfDay();
-        $sinceTimestamp = $since->getTimestamp();
-        $bucketFormat = 'Y-m-d H:00';
-        $endHour = $now->copy()->startOfHour();
-
-        $buckets = $this->private__initHourlyBuckets(
-            $since,
-            $endHour,
-            $bucketFormat,
+        $result = $this->private__buildHourlyCompletedFailedBuckets(
+            $serviceIds,
+            \now()->copy()->subDay()->startOfDay(),
             48,
             static function (): array {
                 return ['processed' => 0, 'failed' => 0];
             },
-        );
-
-        $services = Service::getServices($serviceIds);
-
-        if ($services->isEmpty()) {
-            return ['xAxis' => [], 'rate' => []];
-        }
-
-        $this->private__accumulateCompletedFailedHourlyBuckets(
-            $buckets,
-            $services,
-            $sinceTimestamp,
-            $bucketFormat,
             'processed',
             'failed',
         );
 
-        $xAxis = $this->private__hourlyAxisLabels($buckets);
+        if ($result === null) {
+            return ['xAxis' => [], 'rate' => []];
+        }
+
         $series = [];
 
-        foreach ($buckets as $v) {
+        foreach ($result['buckets'] as $v) {
             $total = $v['processed'] + $v['failed'];
 
             if ($total > 0) {
@@ -103,6 +84,6 @@ final class FailureMetricsCalculator extends AbstractMetricsCalculator
             }
         }
 
-        return ['xAxis' => $xAxis, 'rate' => $series];
+        return ['xAxis' => $result['xAxis'], 'rate' => $series];
     }
 }

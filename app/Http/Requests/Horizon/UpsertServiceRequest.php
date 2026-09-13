@@ -4,18 +4,12 @@ namespace App\Http\Requests\Horizon;
 
 use App\Models\Service;
 use App\Support\Services\ServiceTagNormalizer;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
-class UpsertServiceRequest extends FormRequest
+class UpsertServiceRequest extends HorizonRequest
 {
     private const HEADER_NAME_PATTERN = '/^[!#$%&\'*+.^_`|~0-9A-Za-z-]+$/';
-
-    public function authorize(): bool
-    {
-        return true;
-    }
 
     /**
      * @return array<string, mixed>

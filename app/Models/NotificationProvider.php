@@ -6,6 +6,7 @@ use App\Enums\NotificationProviderType;
 use App\Services\Notifiers\DiscordNotifierService;
 use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Notifiers\SlackNotifierService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
@@ -34,6 +35,18 @@ class NotificationProvider extends Model
             DiscordNotifierService::type()->value => DiscordNotifierService::class,
             EmailNotifierService::type()->value => EmailNotifierService::class,
         ];
+    }
+
+    /**
+     * Get the providers ordered by type and name.
+     *
+     * @return Builder<static>
+     */
+    public static function ordered(): Builder
+    {
+        return static::query()
+            ->orderBy('type')
+            ->orderBy('name');
     }
 
     /**

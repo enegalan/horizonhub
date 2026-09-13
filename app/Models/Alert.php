@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AlertRuleType;
+use App\Models\Concerns\Enablable;
 use App\Services\Alerts\Rules\Strategies\AvgExecutionTime;
 use App\Services\Alerts\Rules\Strategies\FailureCount;
 use App\Services\Alerts\Rules\Strategies\HorizonOffline;
@@ -10,7 +11,6 @@ use App\Services\Alerts\Rules\Strategies\QueueBlocked;
 use App\Services\Alerts\Rules\Strategies\SupervisorOffline;
 use App\Services\Alerts\Rules\Strategies\WorkerOffline;
 use Database\Factories\AlertFactory;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,6 +23,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Alert extends Model
 {
+    use Enablable;
+
     /** @use HasFactory<AlertFactory> */
     use HasFactory;
 
@@ -173,30 +175,6 @@ class Alert extends Model
         \sort($ids);
 
         return $ids;
-    }
-
-    /**
-     * Scope to disabled alerts only.
-     *
-     * @param Builder<Alert> $query
-     *
-     * @return Builder<Alert>
-     */
-    public function scopeDisabled($query)
-    {
-        return $query->where('enabled', false);
-    }
-
-    /**
-     * Scope to enabled alerts only.
-     *
-     * @param Builder<Alert> $query
-     *
-     * @return Builder<Alert>
-     */
-    public function scopeEnabled($query)
-    {
-        return $query->where('enabled', true);
     }
 
     /**

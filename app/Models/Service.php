@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ServiceStatus;
+use App\Models\Concerns\Enablable;
 use App\Services\Horizon\HorizonClientApiService;
 use App\Services\Horizon\HorizonClientCacheService;
 use App\Support\Horizon\ClientResponse;
@@ -28,6 +29,8 @@ use Illuminate\Validation\ValidationException;
  */
 class Service extends Model
 {
+    use Enablable;
+
     /** @use HasFactory<ServiceFactory> */
     use HasFactory;
 
@@ -67,6 +70,28 @@ class Service extends Model
         'last_seen_at',
         'tags',
     ];
+
+    /**
+     * Get all distinct tags across services.
+     *
+     * @return list<string>
+     */
+    public static function allTags(): array
+    {
+        return static::get(['tags'])->pluck('tags')->flatten()->unique()->sort()->values()->all();
+    }
+
+    /**
+     * Get enabled services ordered by name.
+     *
+     * @param list<string> $selectColumns The columns to select.
+     *
+     * @return Collection<int, Service>
+     */
+    public static function enabledNamed(array $selectColumns = ['*']): Collection
+    {
+        return static::enabled()->orderBy('name')->get($selectColumns);
+    }
 
     /**
      * Get services by IDs.
@@ -133,30 +158,6 @@ class Service extends Model
     public function headers(): HasMany
     {
         return $this->hasMany(ServiceHeader::class)->orderBy('id');
-    }
-
-    /**
-     * Scope to disabled services only.
-     *
-     * @param Builder<Service> $query
-     *
-     * @return Builder<Service>
-     */
-    public function scopeDisabled(Builder $query): Builder
-    {
-        return $query->where('enabled', false);
-    }
-
-    /**
-     * Scope to enabled services only.
-     *
-     * @param Builder<Service> $query
-     *
-     * @return Builder<Service>
-     */
-    public function scopeEnabled(Builder $query): Builder
-    {
-        return $query->where('enabled', true);
     }
 
     /**

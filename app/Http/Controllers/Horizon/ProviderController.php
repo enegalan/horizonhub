@@ -30,9 +30,7 @@ class ProviderController extends Controller
     {
         $provider->delete();
 
-        return redirect()
-            ->route('horizon.providers.index')
-            ->with('status', FlashStatus::success('Provider deleted.'));
+        return $this->redirectToRoute('horizon.providers.index', FlashStatus::success('Provider deleted.'));
     }
 
     /**
@@ -66,9 +64,7 @@ class ProviderController extends Controller
     {
         NotificationProvider::create($request->normalizedProviderData());
 
-        return redirect()
-            ->route('horizon.providers.index')
-            ->with('status', FlashStatus::success('Provider created.'));
+        return $this->redirectToRoute('horizon.providers.index', FlashStatus::success('Provider created.'));
     }
 
     /**
@@ -78,8 +74,6 @@ class ProviderController extends Controller
     {
         $provider->update($request->normalizedProviderData());
 
-        return redirect()
-            ->route('horizon.providers.index')
-            ->with('status', FlashStatus::success('Provider updated.'));
+        return $this->redirectToRoute('horizon.providers.index', FlashStatus::success('Provider updated.'));
     }
 }

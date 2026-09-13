@@ -41,9 +41,7 @@ final class JobServiceResolverService
         }
 
         /** @var Collection<int, Service> $services */
-        $services = Service::enabled()
-            ->orderBy('name')
-            ->get();
+        $services = Service::enabledNamed();
 
         foreach ($services as $service) {
             $resolved = self::private__fetchFromService($service, $jobUuid);

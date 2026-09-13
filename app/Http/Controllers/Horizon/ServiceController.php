@@ -25,7 +25,7 @@ class ServiceController extends Controller
         return \view('horizon.services.form', [
             'service' => new Service,
             'header' => 'Register service',
-            'existingTags' => Service::get(['tags'])->pluck('tags')->flatten()->unique()->sort()->values()->all(),
+            'existingTags' => Service::allTags(),
         ]);
     }
 
@@ -36,9 +36,7 @@ class ServiceController extends Controller
     {
         $service->delete();
 
-        return redirect()
-            ->route('horizon.services.index')
-            ->with('status', FlashStatus::success('Service deleted.'));
+        return $this->redirectToRoute('horizon.services.index', FlashStatus::success('Service deleted.'));
     }
 
     /**
@@ -49,7 +47,7 @@ class ServiceController extends Controller
         return \view('horizon.services.form', [
             'service' => $service,
             'header' => 'Edit service',
-            'existingTags' => Service::get(['tags'])->pluck('tags')->flatten()->unique()->sort()->values()->all(),
+            'existingTags' => Service::allTags(),
         ]);
     }
 
@@ -58,11 +56,10 @@ class ServiceController extends Controller
      */
     public function index(Request $request): View
     {
-        return \view('horizon.services.index', \array_merge([
+        return \view('horizon.services.index', ServiceFilterService::indexViewData($request, [
             'services' => collect(),
-            'defer' => true,
             'header' => 'Services',
-        ], ServiceFilterService::viewData($request)));
+        ]));
     }
 
     /**
@@ -100,19 +97,14 @@ class ServiceController extends Controller
         $validated = $request->validated();
 
         $service = Service::create([
-            'name' => $validated['name'],
-            'base_url' => $validated['base_url'],
-            'public_url' => $validated['public_url'] ?? null,
+            ...$this->private__attributesFromValidated($validated),
             'status' => ServiceStatus::Offline->value,
             'enabled' => true,
-            'tags' => $validated['tags'] ?? [],
         ]);
 
         $this->private__storeHeaders($service, $validated['headers'] ?? []);
 
-        return redirect()
-            ->route('horizon.services.index')
-            ->with('status', FlashStatus::success('Service created.'));
+        return $this->redirectToRoute('horizon.services.index', FlashStatus::success('Service created.'));
     }
 
     /**
@@ -174,21 +166,31 @@ class ServiceController extends Controller
     {
         $validated = $request->validated();
 
-        $service->update([
-            'name' => $validated['name'],
-            'base_url' => $validated['base_url'],
-            'public_url' => $validated['public_url'] ?? null,
-            'tags' => $validated['tags'] ?? [],
-        ]);
+        $service->update($this->private__attributesFromValidated($validated));
 
         $service->headers()->delete();
         $this->private__storeHeaders($service, $validated['headers'] ?? []);
 
         HorizonClientCacheService::forgetFailureCooldown($service);
 
-        return redirect()
-            ->route('horizon.services.index')
-            ->with('status', FlashStatus::success('Service updated.'));
+        return $this->redirectToRoute('horizon.services.index', FlashStatus::success('Service updated.'));
+    }
+
+    /**
+     * Build the service attributes from validated input.
+     *
+     * @param array<string, mixed> $validated The validated input.
+     *
+     * @return array{name: string, base_url: string, public_url: string|null, tags: list<string>}
+     */
+    private function private__attributesFromValidated(array $validated): array
+    {
+        return [
+            'name' => $validated['name'],
+            'base_url' => $validated['base_url'],
+            'public_url' => $validated['public_url'] ?? null,
+            'tags' => $validated['tags'] ?? [],
+        ];
     }
 
     /**

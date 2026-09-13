@@ -5,17 +5,11 @@ namespace App\Services\Alerts\Rules\Strategies;
 use App\Enums\AlertRuleType;
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Support\Alerts\AlertRuleEvaluation;
 use App\Support\Jobs\JobRuntime;
 
-final class AvgExecutionTime implements AlertRuleContract
+final class AvgExecutionTime extends AbstractAlertRuleStrategy
 {
-    /**
-     * The evaluation support.
-     */
-    private AlertRuleEvaluation $support;
-
     /**
      * The constructor.
      *
@@ -23,7 +17,7 @@ final class AvgExecutionTime implements AlertRuleContract
      */
     public function __construct(AlertRuleEvaluation $support)
     {
-        $this->support = $support;
+        parent::__construct($support);
     }
 
     /**
@@ -47,7 +41,7 @@ final class AvgExecutionTime implements AlertRuleContract
         $service = Service::find($serviceId);
 
         if ($service === null) {
-            return ['triggered' => false, 'job_uuids' => []];
+            return $this->notTriggered();
         }
 
         $cutoff = \now()->subMinutes($alert->getThresholdMinutes());
@@ -66,7 +60,7 @@ final class AvgExecutionTime implements AlertRuleContract
             })->filter(static fn ($v) => $v !== null);
 
         if ($durations->isEmpty()) {
-            return ['triggered' => false, 'job_uuids' => []];
+            return $this->notTriggered();
         }
 
         $triggered = (float) $durations->average() >= $alert->getThresholdSeconds();
