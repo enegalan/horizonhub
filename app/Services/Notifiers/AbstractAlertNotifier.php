@@ -13,24 +13,31 @@ use App\Support\Horizon\ClientResponse;
 use App\Support\Jobs\JobRuntime;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Http;
 
 abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMetadata
 {
+    /**
+     * Normalize the config.
+     *
+     * Webhook-based notifiers share a single `webhook_url` setting; notifiers
+     * with a different shape override this method.
+     *
+     * @param array<string, mixed> $validated
+     *
+     * @return array<string, mixed>
+     */
+    public static function normalizedConfig(array $validated): array
+    {
+        return ['webhook_url' => (string) ($validated['webhook_url'] ?? '')];
+    }
+
     /**
      * Get the metadata.
      *
      * @return array{label: string, icon: string, description: string, color: string}
      */
     abstract public static function meta(): array;
-
-    /**
-     * Normalize the config.
-     *
-     * @param array<string, mixed> $validated
-     *
-     * @return array<string, mixed>
-     */
-    abstract public static function normalizedConfig(array $validated): array;
 
     /**
      * Send an alert for a single event.
@@ -50,6 +57,46 @@ abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMeta
      * Get the type.
      */
     abstract public static function type(): NotificationProviderType;
+
+    /**
+     * Build the shared event details used by event renderers.
+     *
+     * @param array<string, mixed> $event The event.
+     *
+     * @return array{title: string, heading: string, rows: array<int, array{0: string, 1: string}>, exceptionPreview: string|null, exceptionExpandable: bool, jobUrl: string|null}
+     */
+    protected static function buildEventDetail(array $event, bool $multi): array
+    {
+        return [
+            'title' => $event['job_class'] ?? $event['job_uuid'] ?? 'Unknown job',
+            'heading' => $multi ? "Event {$event['index']}" : 'Failed job',
+            'rows' => self::eventFieldRows($event),
+            'exceptionPreview' => $event['exceptionPreview'] ?? null,
+            'exceptionExpandable' => (bool) ($event['exceptionExpandable'] ?? false),
+            'jobUrl' => $event['jobUrl'] ?? null,
+        ];
+    }
+
+    /**
+     * Build the label/value rows of an event.
+     *
+     * @param array<string, mixed> $event The event.
+     *
+     * @return array<int, array{0: string, 1: string}>
+     */
+    protected static function eventFieldRows(array $event): array
+    {
+        $rows = [];
+
+        foreach (['Queue' => $event['queue'], 'Failed at' => $event['failed_at'], 'Attempts' => $event['attempts'], 'Triggered at' => $event['triggered_at'] ?: null] as $label => $value) {
+            if (empty($value)) {
+                continue;
+            }
+            $rows[] = [$label, (string) $value];
+        }
+
+        return $rows;
+    }
 
     /**
      * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events
@@ -205,5 +252,26 @@ abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMeta
         }
 
         return $jobs;
+    }
+
+    /**
+     * Send a batched webhook alert to the configured webhook URL.
+     *
+     * @param Alert $alert The alert.
+     * @param array<int, array{service_id: int, job_uuid: string|null, triggered_at: string}> $events The events.
+     * @param array<string, mixed> $config The config.
+     * @param callable(array<string, mixed>): array<string, mixed> $payloadBuilder The payload builder.
+     */
+    protected function sendWebhook(Alert $alert, array $events, array $config, callable $payloadBuilder): void
+    {
+        $webhookUrl = $config['webhook_url'] ?? '';
+
+        if (blank($webhookUrl) || empty($events)) {
+            return;
+        }
+
+        $payload = $payloadBuilder($this->buildNotification($alert, $events));
+
+        Http::post($webhookUrl, $payload)->throw();
     }
 }

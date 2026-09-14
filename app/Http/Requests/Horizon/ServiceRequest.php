@@ -3,10 +3,9 @@
 namespace App\Http\Requests\Horizon;
 
 use App\Models\Service;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Request;
 
-class ServiceRequest extends FormRequest
+class ServiceRequest extends HorizonRequest
 {
     /**
      * Parse `service_id` from the request and restrict to existing services.
@@ -28,14 +27,6 @@ class ServiceRequest extends FormRequest
         \sort($existing);
 
         return $existing;
-    }
-
-    /**
-     * Authorize the request.
-     */
-    public function authorize(): bool
-    {
-        return true;
     }
 
     /**

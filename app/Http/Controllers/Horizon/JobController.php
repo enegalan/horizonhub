@@ -16,15 +16,14 @@ class JobController extends Controller
      */
     public function index(Request $request): View
     {
-        return \view('horizon.jobs.index', \array_merge([
+        return \view('horizon.jobs.index', ServiceFilterService::indexViewData($request, [
             'jobsProcessing' => [],
             'jobsProcessed' => [],
             'jobsFailed' => [],
-            'services' => Service::enabled()->orderBy('name')->get(),
+            'services' => Service::enabledNamed(),
             'search' => \trim((string) $request->query('search', '')),
-            'defer' => true,
             'header' => 'Jobs',
-        ], ServiceFilterService::viewData($request)));
+        ]));
     }
 
     /**

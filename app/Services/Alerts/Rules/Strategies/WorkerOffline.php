@@ -5,9 +5,8 @@ namespace App\Services\Alerts\Rules\Strategies;
 use App\Enums\AlertRuleType;
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 
-final class WorkerOffline implements AlertRuleContract
+final class WorkerOffline extends AbstractAlertRuleStrategy
 {
     /**
      * Get the type.

@@ -4,7 +4,6 @@ namespace App\Services\Notifiers;
 
 use App\Enums\NotificationProviderType;
 use App\Models\Alert;
-use Illuminate\Support\Facades\Http;
 
 class DiscordNotifierService extends AbstractAlertNotifier
 {
@@ -31,18 +30,6 @@ class DiscordNotifierService extends AbstractAlertNotifier
         ];
     }
 
-    /**
-     * Normalize the config.
-     *
-     * @param array<string, mixed> $validated
-     *
-     * @return array<string, mixed>
-     */
-    public static function normalizedConfig(array $validated): array
-    {
-        return ['webhook_url' => (string) ($validated['webhook_url'] ?? '')];
-    }
-
     public static function type(): NotificationProviderType
     {
         return NotificationProviderType::Discord;
@@ -57,15 +44,7 @@ class DiscordNotifierService extends AbstractAlertNotifier
      */
     public function sendBatched(Alert $alert, array $events, array $config): void
     {
-        $webhookUrl = $config['webhook_url'] ?? '';
-
-        if (blank($webhookUrl) || empty($events)) {
-            return;
-        }
-
-        $notification = $this->buildNotification($alert, $events);
-
-        Http::post($webhookUrl, $this->private__discordPayload($notification));
+        $this->sendWebhook($alert, $events, $config, fn (array $notification): array => $this->private__discordPayload($notification));
     }
 
     /**
@@ -78,21 +57,18 @@ class DiscordNotifierService extends AbstractAlertNotifier
      */
     private static function private__eventEmbed(array $event, bool $multi): array
     {
-        $title = $event['job_class'] ?? $event['job_uuid'] ?? 'Unknown job';
-        $lines = ['**' . ($multi ? "Event {$event['index']}" : 'Failed job') . ":** `{$title}`"];
+        $detail = self::buildEventDetail($event, $multi);
+        $lines = ['**' . $detail['heading'] . ":** `{$detail['title']}`"];
 
-        foreach (['Queue' => $event['queue'], 'Failed at' => $event['failed_at'], 'Attempts' => $event['attempts'], 'Triggered at' => $event['triggered_at'] ?: null] as $label => $value) {
-            if (empty($value)) {
-                continue;
-            }
+        foreach ($detail['rows'] as [$label, $value]) {
             $lines[] = "**{$label}:** {$value}";
         }
 
-        if (! empty($event['exceptionPreview'])) {
-            $lines[] = "**Exception:**\n```\n{$event['exceptionPreview']}\n```";
+        if (! empty($detail['exceptionPreview'])) {
+            $lines[] = "**Exception:**\n```\n{$detail['exceptionPreview']}\n```";
 
-            if (! empty($event['exceptionExpandable']) && ! empty($event['jobUrl'])) {
-                $lines[] = "[Show more]({$event['jobUrl']})";
+            if (! empty($detail['exceptionExpandable']) && ! empty($detail['jobUrl'])) {
+                $lines[] = "[Show more]({$detail['jobUrl']})";
             }
         }
 
@@ -101,8 +77,8 @@ class DiscordNotifierService extends AbstractAlertNotifier
             'color' => self::EMBED_COLOR,
         ];
 
-        if (! empty($event['jobUrl'])) {
-            $embed['url'] = $event['jobUrl'];
+        if (! empty($detail['jobUrl'])) {
+            $embed['url'] = $detail['jobUrl'];
         }
 
         return $embed;

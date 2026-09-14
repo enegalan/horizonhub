@@ -4,15 +4,9 @@ namespace App\Http\Requests\Horizon;
 
 use App\Enums\NotificationProviderType;
 use App\Models\NotificationProvider;
-use Illuminate\Foundation\Http\FormRequest;
 
-class UpsertProviderRequest extends FormRequest
+class UpsertProviderRequest extends HorizonRequest
 {
-    public function authorize(): bool
-    {
-        return true;
-    }
-
     /**
      * @return array<string, mixed>
      */

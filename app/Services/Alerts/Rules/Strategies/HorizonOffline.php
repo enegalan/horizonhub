@@ -6,14 +6,13 @@ use App\Enums\AlertRuleType;
 use App\Enums\HorizonStatus;
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Services\Horizon\HorizonClientApiService;
 use App\Support\Horizon\ClientResponse;
 use App\Support\Horizon\StatsReader;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
-final class HorizonOffline implements AlertRuleContract
+final class HorizonOffline extends AbstractAlertRuleStrategy
 {
     private const CACHE_KEY_PREFIX = 'horizon_offline_since:';
 
@@ -37,7 +36,7 @@ final class HorizonOffline implements AlertRuleContract
         $service = Service::find($serviceId);
 
         if ($service === null) {
-            return ['triggered' => false, 'job_uuids' => []];
+            return $this->notTriggered();
         }
 
         $status = StatsReader::summary(ClientResponse::data(HorizonClientApiService::getStats($service)))['status'];
@@ -48,7 +47,7 @@ final class HorizonOffline implements AlertRuleContract
         if ($isOnline) {
             Cache::forget($cacheKey);
 
-            return ['triggered' => false, 'job_uuids' => []];
+            return $this->notTriggered();
         }
 
         $offlineSinceTimestamp = Cache::get($cacheKey);
@@ -57,7 +56,7 @@ final class HorizonOffline implements AlertRuleContract
             $cacheTtlSeconds = ($alert->getThresholdMinutes() + self::CACHE_TTL_MARGIN_MINUTES) * 60;
             Cache::put($cacheKey, \now()->getTimestamp(), $cacheTtlSeconds);
 
-            return ['triggered' => false, 'job_uuids' => []];
+            return $this->notTriggered();
         }
 
         $offlineSinceTimestamp = (int) $offlineSinceTimestamp;

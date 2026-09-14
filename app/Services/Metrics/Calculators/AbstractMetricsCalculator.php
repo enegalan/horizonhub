@@ -68,6 +68,57 @@ abstract class AbstractMetricsCalculator
     }
 
     /**
+     * Build hourly completed/failed buckets over a rolling window and return them with axis labels.
+     *
+     * @param list<int> $serviceIds
+     * @param Carbon $since The start of the window (inclusive).
+     * @param int $maxBuckets Maximum number of hourly buckets.
+     * @param callable(): array $bucketInitializer Callback producing a fresh bucket value.
+     * @param string $completedKey Key name for completed/processed counts.
+     * @param string $failedKey Key name for failed counts.
+     *
+     * @return array{buckets: array<string, array<string, mixed>>, xAxis: list<string>}|null
+     */
+    protected function private__buildHourlyCompletedFailedBuckets(
+        array $serviceIds,
+        Carbon $since,
+        int $maxBuckets,
+        callable $bucketInitializer,
+        string $completedKey,
+        string $failedKey,
+    ): ?array {
+        $now = \now();
+        $sinceTimestamp = $since->getTimestamp();
+        $bucketFormat = 'Y-m-d H:00';
+        $endHour = $now->copy()->startOfHour();
+
+        $buckets = $this->private__initHourlyBuckets(
+            $since,
+            $endHour,
+            $bucketFormat,
+            $maxBuckets,
+            $bucketInitializer,
+        );
+
+        $services = Service::getServices($serviceIds);
+
+        if ($services->isEmpty()) {
+            return null;
+        }
+
+        $this->private__accumulateCompletedFailedHourlyBuckets(
+            $buckets,
+            $services,
+            $sinceTimestamp,
+            $bucketFormat,
+            $completedKey,
+            $failedKey,
+        );
+
+        return ['buckets' => $buckets, 'xAxis' => $this->private__hourlyAxisLabels($buckets)];
+    }
+
+    /**
      * Format hourly bucket keys as chart axis labels.
      *
      * @param array<string, mixed> $buckets

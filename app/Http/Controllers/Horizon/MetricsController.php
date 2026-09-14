@@ -15,11 +15,10 @@ class MetricsController extends Controller
      */
     public function index(Request $request): View
     {
-        return \view('horizon.metrics.index', \array_merge([
-            'services' => Service::enabled()->orderBy('name')->get(['id', 'name']),
+        return \view('horizon.metrics.index', ServiceFilterService::indexViewData($request, [
+            'services' => Service::enabledNamed(['id', 'name']),
             'header' => 'Metrics',
-            'defer' => true,
             'metricsChartData' => [],
-        ], ServiceFilterService::viewData($request)));
+        ]));
     }
 }

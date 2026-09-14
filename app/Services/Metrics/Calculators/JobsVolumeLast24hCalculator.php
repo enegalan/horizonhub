@@ -2,8 +2,6 @@
 
 namespace App\Services\Metrics\Calculators;
 
-use App\Models\Service;
-
 final class JobsVolumeLast24hCalculator extends AbstractMetricsCalculator
 {
     /**
@@ -15,47 +13,31 @@ final class JobsVolumeLast24hCalculator extends AbstractMetricsCalculator
      */
     public function getJobsVolumeLast24h(array $serviceIds = []): array
     {
-        $now = \now();
-        $sinceBucketStart = $now->copy()->subHours(24)->startOfHour();
-        $sinceTimestamp = $now->copy()->subHours(24)->getTimestamp();
-        $bucketFormat = 'Y-m-d H:00';
-        $endHour = $now->copy()->startOfHour();
-
-        $buckets = $this->private__initHourlyBuckets(
-            $sinceBucketStart,
-            $endHour,
-            $bucketFormat,
+        $result = $this->private__buildHourlyCompletedFailedBuckets(
+            $serviceIds,
+            \now()->copy()->subHours(24)->startOfHour(),
             25,
             static function (): array {
                 return ['completed' => 0, 'failed' => 0];
             },
-        );
-
-        $services = Service::getServices($serviceIds);
-
-        if ($services->isEmpty()) {
-            return ['xAxis' => [], 'completed' => [], 'failed' => []];
-        }
-
-        $this->private__accumulateCompletedFailedHourlyBuckets(
-            $buckets,
-            $services,
-            $sinceTimestamp,
-            $bucketFormat,
             'completed',
             'failed',
         );
 
+        if ($result === null) {
+            return ['xAxis' => [], 'completed' => [], 'failed' => []];
+        }
+
         $completedSeries = [];
         $failedSeries = [];
 
-        foreach ($buckets as $v) {
+        foreach ($result['buckets'] as $v) {
             $completedSeries[] = $v['completed'];
             $failedSeries[] = $v['failed'];
         }
 
         return [
-            'xAxis' => $this->private__hourlyAxisLabels($buckets),
+            'xAxis' => $result['xAxis'],
             'completed' => $completedSeries,
             'failed' => $failedSeries,
         ];

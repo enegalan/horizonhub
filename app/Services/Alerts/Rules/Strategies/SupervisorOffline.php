@@ -5,13 +5,12 @@ namespace App\Services\Alerts\Rules\Strategies;
 use App\Enums\AlertRuleType;
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Services\Horizon\HorizonClientApiService;
 use App\Support\Horizon\ClientResponse;
 use App\Support\Horizon\MasterReader;
 use App\Support\Jobs\JobRuntime;
 
-final class SupervisorOffline implements AlertRuleContract
+final class SupervisorOffline extends AbstractAlertRuleStrategy
 {
     /**
      * Get the type.
@@ -29,13 +28,13 @@ final class SupervisorOffline implements AlertRuleContract
         $service = Service::find($serviceId);
 
         if ($service === null) {
-            return ['triggered' => false, 'job_uuids' => []];
+            return $this->notTriggered();
         }
 
         $mastersData = ClientResponse::data(HorizonClientApiService::getMasters($service));
 
         if ($mastersData === null) {
-            return ['triggered' => false, 'job_uuids' => []];
+            return $this->notTriggered();
         }
 
         $staleAt = \now()->subMinutes($alert->getThresholdMinutes());
@@ -54,6 +53,6 @@ final class SupervisorOffline implements AlertRuleContract
             }
         }
 
-        return ['triggered' => false, 'job_uuids' => []];
+        return $this->notTriggered();
     }
 }

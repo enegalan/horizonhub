@@ -4,7 +4,6 @@ namespace App\Services\Notifiers;
 
 use App\Enums\NotificationProviderType;
 use App\Models\Alert;
-use Illuminate\Support\Facades\Http;
 
 class SlackNotifierService extends AbstractAlertNotifier
 {
@@ -24,18 +23,6 @@ class SlackNotifierService extends AbstractAlertNotifier
     }
 
     /**
-     * Normalize the config.
-     *
-     * @param array<string, mixed> $validated
-     *
-     * @return array<string, mixed>
-     */
-    public static function normalizedConfig(array $validated): array
-    {
-        return ['webhook_url' => (string) ($validated['webhook_url'] ?? '')];
-    }
-
-    /**
      * Get the type.
      */
     public static function type(): NotificationProviderType
@@ -52,15 +39,7 @@ class SlackNotifierService extends AbstractAlertNotifier
      */
     public function sendBatched(Alert $alert, array $events, array $config): void
     {
-        $webhookUrl = $config['webhook_url'] ?? '';
-
-        if (blank($webhookUrl) || empty($events)) {
-            return;
-        }
-
-        $notification = $this->buildNotification($alert, $events);
-
-        Http::post($webhookUrl, $this->private__slackPayload($notification));
+        $this->sendWebhook($alert, $events, $config, fn (array $notification): array => $this->private__slackPayload($notification));
     }
 
     /**
@@ -92,28 +71,25 @@ class SlackNotifierService extends AbstractAlertNotifier
      */
     private static function private__slackEvent(array $event, bool $multi): array
     {
-        $title = $event['job_class'] ?? $event['job_uuid'] ?? 'Unknown job';
-        $lines = ['*' . ($multi ? "Event {$event['index']}" : 'Failed job') . ":* `{$title}`"];
+        $detail = self::buildEventDetail($event, $multi);
+        $lines = ['*' . $detail['heading'] . ":* `{$detail['title']}`"];
 
-        foreach (['Queue' => $event['queue'], 'Failed at' => $event['failed_at'], 'Attempts' => $event['attempts'], 'Triggered at' => $event['triggered_at'] ?: null] as $label => $value) {
-            if (empty($value)) {
-                continue;
-            }
+        foreach ($detail['rows'] as [$label, $value]) {
             $lines[] = "*{$label}:* {$value}";
         }
 
-        if (! empty($event['exceptionPreview'])) {
-            $lines[] = "*Exception:*\n```{$event['exceptionPreview']}```";
+        if (! empty($detail['exceptionPreview'])) {
+            $lines[] = "*Exception:*\n```{$detail['exceptionPreview']}```";
 
-            if (! empty($event['exceptionExpandable']) && ! empty($event['jobUrl'])) {
-                $lines[] = "<{$event['jobUrl']}|Show more>";
+            if (! empty($detail['exceptionExpandable']) && ! empty($detail['jobUrl'])) {
+                $lines[] = "<{$detail['jobUrl']}|Show more>";
             }
         }
 
         $section = ['type' => 'section', 'text' => ['type' => 'mrkdwn', 'text' => \implode("\n", $lines)]];
 
-        if (! empty($event['jobUrl'])) {
-            $section['accessory'] = self::private__slackButton('View job', $event['jobUrl'], 'view_job_' . $event['index']);
+        if (! empty($detail['jobUrl'])) {
+            $section['accessory'] = self::private__slackButton('View job', $detail['jobUrl'], 'view_job_' . $event['index']);
         }
 
         return $section;

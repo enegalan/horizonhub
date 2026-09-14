@@ -59,9 +59,7 @@ class AlertController extends Controller
     {
         $alert->delete();
 
-        return redirect()
-            ->route('horizon.alerts.index')
-            ->with('status', FlashStatus::success("Alert {$alert->name} deleted."));
+        return $this->redirectToRoute('horizon.alerts.index', FlashStatus::success("Alert {$alert->name} deleted."));
     }
 
     /**
@@ -119,9 +117,7 @@ class AlertController extends Controller
             $engine->retryAlertLog($log);
         }
 
-        return redirect()
-            ->route('horizon.alerts.show', [$log->alert_id])
-            ->with('status', FlashStatus::success('Retry requested for alert delivery.'));
+        return $this->redirectToRoute('horizon.alerts.show', FlashStatus::success('Retry requested for alert delivery.'), [$log->alert_id]);
     }
 
     /**
@@ -162,7 +158,7 @@ class AlertController extends Controller
             'logs' => $logs,
             'chartData' => new \stdClass,
             'defer' => true,
-            'services' => Service::enabled()->orderBy('name')->get(),
+            'services' => Service::enabledNamed(),
             'selectedLog' => $selectedLog,
             'initialDeliveryLogPayload' => AlertDeliveryLogPresenter::payloadFromLog($selectedLog),
             'filters' => [
@@ -183,9 +179,7 @@ class AlertController extends Controller
         $alert = Alert::create($data['alert']);
         $alert->notificationProviders()->sync($data['provider_ids']);
 
-        return redirect()
-            ->route('horizon.alerts.index')
-            ->with('status', FlashStatus::success('Alert created.'));
+        return $this->redirectToRoute('horizon.alerts.index', FlashStatus::success('Alert created.'));
     }
 
     /**
@@ -211,9 +205,7 @@ class AlertController extends Controller
         $alert->update($data['alert']);
         $alert->notificationProviders()->sync($data['provider_ids']);
 
-        return redirect()
-            ->route('horizon.alerts.index')
-            ->with('status', FlashStatus::success('Alert updated.'));
+        return $this->redirectToRoute('horizon.alerts.index', FlashStatus::success('Alert updated.'));
     }
 
     /**
@@ -240,7 +232,7 @@ class AlertController extends Controller
         return [
             'alert' => $alert,
             'services' => $services,
-            'providers' => NotificationProvider::orderBy('type')->orderBy('name')->get(),
+            'providers' => NotificationProvider::ordered()->get(),
             'ruleTypes' => AlertRuleCatalog::ruleTypeLabels(),
             'formRuleMetadata' => AlertRuleCatalog::formRuleMetadata(),
             'selectedProviderIds' => $alert->exists ? $alert->notificationProviders()->pluck('notification_providers.id')->all() : [],

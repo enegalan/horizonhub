@@ -17,7 +17,7 @@ trait BuildsProviderStreams
     {
         $search = ServiceFilterService::searchFromQuery($query);
 
-        $providersQuery = NotificationProvider::orderBy('type')->orderBy('name');
+        $providersQuery = NotificationProvider::ordered();
 
         if ($search !== '') {
             $providersQuery->where('name', 'like', "%$search%");

@@ -2,15 +2,8 @@
 
 namespace App\Http\Requests\Horizon;
 
-use Illuminate\Foundation\Http\FormRequest;
-
-class RetryBatchRequest extends FormRequest
+class RetryBatchRequest extends HorizonRequest
 {
-    public function authorize(): bool
-    {
-        return true;
-    }
-
     /**
      * @return array<string, mixed>
      */

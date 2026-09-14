@@ -10,6 +10,18 @@ use Illuminate\Http\Request;
 final class ServiceFilterService
 {
     /**
+     * Get the view data for a deferred index page using the service filter.
+     *
+     * @param array<string, mixed> $pageData The page-specific data.
+     *
+     * @return array<string, mixed>
+     */
+    public static function indexViewData(Request $request, array $pageData = []): array
+    {
+        return \array_merge(['defer' => true], $pageData, self::viewData($request));
+    }
+
+    /**
      * Resolve filtered service ids.
      *
      * Empty list means no filter (all services).

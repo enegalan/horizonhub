@@ -5,16 +5,10 @@ namespace App\Services\Alerts\Rules\Strategies;
 use App\Enums\AlertRuleType;
 use App\Models\Alert;
 use App\Models\Service;
-use App\Services\Alerts\Rules\Contracts\AlertRuleStrategy as AlertRuleContract;
 use App\Support\Alerts\AlertRuleEvaluation;
 
-final class FailureCount implements AlertRuleContract
+final class FailureCount extends AbstractAlertRuleStrategy
 {
-    /**
-     * The evaluation support.
-     */
-    private AlertRuleEvaluation $support;
-
     /**
      * The constructor.
      *
@@ -22,7 +16,7 @@ final class FailureCount implements AlertRuleContract
      */
     public function __construct(AlertRuleEvaluation $support)
     {
-        $this->support = $support;
+        parent::__construct($support);
     }
 
     /**
@@ -41,7 +35,7 @@ final class FailureCount implements AlertRuleContract
         $service = Service::find($serviceId);
 
         if ($service === null) {
-            return ['triggered' => false, 'job_uuids' => []];
+            return $this->notTriggered();
         }
 
         $cutoff = \now()->subMinutes($alert->getThresholdMinutes());

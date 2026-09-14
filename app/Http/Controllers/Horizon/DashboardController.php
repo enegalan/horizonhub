@@ -15,10 +15,9 @@ class DashboardController extends Controller
      */
     public function index(Request $request): View
     {
-        return \view('horizon.dashboard.index', \array_merge([
+        return \view('horizon.dashboard.index', ServiceFilterService::indexViewData($request, [
             'header' => 'Dashboard',
-            'defer' => true,
-            'services' => Service::enabled()->orderBy('name')->get(),
-        ], ServiceFilterService::viewData($request)));
+            'services' => Service::enabledNamed(),
+        ]));
     }
 }
