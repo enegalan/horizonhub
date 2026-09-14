@@ -272,6 +272,6 @@ abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMeta
 
         $payload = $payloadBuilder($this->buildNotification($alert, $events));
 
-        Http::post($webhookUrl, $payload);
+        Http::post($webhookUrl, $payload)->throw();
     }
 }
