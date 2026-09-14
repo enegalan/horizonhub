@@ -3,7 +3,7 @@
 @section('content')
     <div
         class="space-y-6"
-        x-data="window.horizonDeleteConfirm ? window.horizonDeleteConfirm('Provider') : {}"
+        x-data="window.deleteConfirm ? window.deleteConfirm('Provider') : {}"
     >
         <div class="card overflow-hidden">
             <x-page-hero

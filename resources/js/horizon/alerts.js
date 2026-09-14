@@ -1,4 +1,4 @@
-import { getChartColors, applyChartOptions } from '../charts/metrics-charts';
+import { getChartColors, applyChartOptions } from '../charts/charts';
 import { parseJsonFromElement } from '../lib/parse';
 import { isHotReloadEnabled } from '../lib/sse';
 

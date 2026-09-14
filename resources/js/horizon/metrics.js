@@ -1,4 +1,4 @@
-import { applyChartOptions, buildJobsVolumeLast24hOptions, getAxisTooltipViewportOptions, getChartColors } from "../charts/metrics-charts";
+import { applyChartOptions, getChartColors } from "../charts/charts";
 import { parseJsonFromElement } from "../lib/parse";
 
 /**
@@ -41,6 +41,18 @@ function setMetricsChartPanelState(loaderEl, emptyEl, loaded, hasData) {
             emptyEl.setAttribute('aria-hidden', 'false');
         }
     }
+}
+
+/**
+ * ECharts axis tooltip options: stay in viewport and allow scroll when content is tall.
+ * @returns {object}
+ */
+function getAxisTooltipViewportOptions() {
+    return {
+        confine: true,
+        enterable: true,
+        extraCssText: 'max-width:min(96vw, 440px);max-height:min(55vh, 400px);overflow:auto;padding:8px 10px;',
+    };
 }
 
 /**
@@ -90,7 +102,49 @@ function initMetricsCharts() {
 
     var jobsVolumeEl = document.getElementById('jobs-volume-last-24h-chart');
     if (jobsVolumeEl && data.jobsVolumeLast24h && data.jobsVolumeLast24h.xAxis && data.jobsVolumeLast24h.xAxis.length) {
-        applyChartOptions(jobsVolumeEl, buildJobsVolumeLast24hOptions(data.jobsVolumeLast24h, c));
+        applyChartOptions(jobsVolumeEl, {
+            animation: false,
+            color: [c.processed, c.failed],
+            tooltip: Object.assign({}, getAxisTooltipViewportOptions(), { trigger: 'axis' }),
+            legend: {
+                data: ['Completed', 'Failed'],
+                bottom: 0,
+                textStyle: { color: c.axis, fontSize: 10 },
+            },
+            grid: { left: 8, right: 16, top: 16, bottom: 36, containLabel: true },
+            xAxis: {
+                type: 'category',
+                data: data.jobsVolumeLast24h.xAxis || [],
+                axisLine: { lineStyle: { color: c.axis } },
+                axisLabel: { color: c.axis, fontSize: 10 },
+            },
+            yAxis: {
+                type: 'value',
+                name: 'Jobs',
+                minInterval: 1,
+                axisLine: { show: false },
+                splitLine: { lineStyle: { color: c.axis, opacity: 0.3 } },
+                axisLabel: { color: c.axis, fontSize: 10 },
+            },
+            series: [
+                {
+                    type: 'line',
+                    name: 'Completed',
+                    data: data.jobsVolumeLast24h.completed || [],
+                    smooth: false,
+                    showSymbol: false,
+                    lineStyle: { width: 2 },
+                },
+                {
+                    type: 'line',
+                    name: 'Failed',
+                    data: data.jobsVolumeLast24h.failed || [],
+                    smooth: false,
+                    showSymbol: false,
+                    lineStyle: { width: 2 },
+                },
+            ],
+        })
     }
 
     var processedFailedEl = document.getElementById('processed-failed-chart');

@@ -3,7 +3,7 @@
 @section('content')
     <div
         class="space-y-6"
-        x-data="window.horizonDeleteConfirm ? window.horizonDeleteConfirm('Service') : {}"
+        x-data="window.deleteConfirm ? window.deleteConfirm('Service') : {}"
     >
         <div class="card overflow-hidden" x-data="window.horizonServicesList ? window.horizonServicesList() : {}" x-init="typeof init === 'function' && init()">
             <x-page-hero

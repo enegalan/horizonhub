@@ -202,7 +202,7 @@ See [DEVELOPMENT.md — Running the application](DEVELOPMENT.md#running-the-appl
 - **Blade + Tailwind CSS v3** with a shadcn-style CSS-variable palette (`resources/css/app.css`, `tailwind.config.js`).
 - **Hotwired Turbo** handles partial page updates, including frames (`data-turbo-frame`) used by the form drawer and tables.
 - **Alpine.js** powers interactive components (drawer, toolbars, toggles, toasts).
-- **ECharts** renders the metrics charts (`resources/js/charts/metrics-charts.js`).
+- **ECharts** renders charts common functions (`resources/js/charts/charts.js`).
 - Vanilla ES modules under `resources/js/` grouped by concern (`horizon/`, `lib/`, `components/`).
 
 

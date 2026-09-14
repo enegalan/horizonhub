@@ -3,7 +3,7 @@
 @section('content')
     <div
         class="space-y-6"
-        x-data="window.horizonDeleteConfirm ? window.horizonDeleteConfirm('Alert') : {}"
+        x-data="window.deleteConfirm ? window.deleteConfirm('Alert') : {}"
     >
         <div
             class="card overflow-hidden"
