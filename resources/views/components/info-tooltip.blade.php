@@ -9,12 +9,9 @@
         anchor: { top: 0, left: 0, width: 208 },
         _repositionHandler: null,
         show() {
+            this.updateAnchor();
             this.open = true;
-            var self = this;
-            this.$nextTick(function () {
-                self.updateAnchor();
-                self.bindReposition();
-            });
+            this.bindReposition();
         },
         hide() {
             if (!this.open) {
