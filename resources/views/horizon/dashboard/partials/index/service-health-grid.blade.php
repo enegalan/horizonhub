@@ -45,7 +45,7 @@
         ></div>
         <div class="relative flex items-start justify-between gap-2 p-4">
             <div class="min-w-0">
-                <p class="truncate text-sm font-semibold text-foreground">{{ $service->name }}</p>
+                <p class="truncate text-sm font-semibold text-foreground" title="{{ $service->name }}">{{ $service->name }}</p>
                 <p class="mt-1 text-xs text-muted-foreground">
                     <span class="inline-flex items-center gap-1">
                         <span class="inline-block size-1.5 shrink-0 rounded-full {{ $svcDot }}" title="{{ $svcLabel }}" aria-hidden="true"></span>

@@ -66,7 +66,7 @@
                         <x-icons.server-stack class="size-5" />
                     </div>
                     <div class="min-w-0">
-                        <a href="{{ route('horizon.services.show', $service) }}" class="link block truncate text-sm font-semibold text-foreground" data-turbo-action="replace">
+                        <a href="{{ route('horizon.services.show', $service) }}" class="link block truncate text-sm font-semibold text-foreground" data-turbo-action="replace" title="{{ $service->name }}">
                             {{ $service->name }}
                         </a>
                         <p class="mt-1 truncate font-mono text-xs text-muted-foreground">{{ $service->base_url }}</p>

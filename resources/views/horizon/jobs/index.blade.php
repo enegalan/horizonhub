@@ -287,7 +287,7 @@
                                                     </div>
                                                 </template>
                                             </td>
-                                            <td class="hidden max-w-[8rem] truncate px-3 py-2.5 text-sm text-muted-foreground sm:table-cell sm:max-w-[11rem] sm:px-4" data-column-id="service" x-text="job.service_name || '–'"></td>
+                                            <td class="hidden max-w-[8rem] truncate px-3 py-2.5 text-sm text-muted-foreground sm:table-cell sm:max-w-[11rem] sm:px-4" data-column-id="service" x-text="job.service_name || '–'" x-bind:title="job.service_name || ''"></td>
                                             <td class="hidden max-w-[6rem] truncate px-3 py-2.5 font-mono text-xs text-muted-foreground md:table-cell md:max-w-[11rem] md:px-4" data-column-id="queue" x-text="job.queue || '–'"></td>
                                             <td
                                                 class="max-w-[10rem] px-3 py-2.5 sm:max-w-[14rem] sm:px-4"
