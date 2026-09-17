@@ -1,15 +1,20 @@
+name: horizonhub-dev
+
 services:
   hub:
-    image: enegalan/horizonhub:latest
-    container_name: horizonhub
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: horizonhub:dev
+    container_name: horizonhub-dev
     restart: unless-stopped
+    entrypoint: ["sh", "/var/www/html/docker-entrypoint.dev.sh"]
     ports:
       - "80:80"
     environment:
-      - APP_ENV=production
-      - APP_DEBUG=false
+      - APP_ENV=local
+      - APP_DEBUG=true
       - APP_URL=http://localhost
-      - APP_KEY=${APP_KEY:-}
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -22,7 +27,7 @@ services:
       - SESSION_DRIVER=redis
       - BROADCAST_CONNECTION=null
     volumes:
-      - horizonhub_storage:/var/www/html/storage
+      - .:/var/www/html
     depends_on:
       mysql:
         condition: service_healthy
@@ -33,7 +38,7 @@ services:
 
   mysql:
     image: mysql:8.0
-    container_name: horizonhub-mysql
+    container_name: horizonhub-dev-mysql
     restart: unless-stopped
     command:
       - mysqld
@@ -58,7 +63,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: horizonhub-redis
+    container_name: horizonhub-dev-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -66,7 +71,6 @@ services:
       - horizonhub
 
 volumes:
-  horizonhub_storage:
   horizonhub_mysql_data:
 
 networks:

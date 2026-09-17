@@ -19,29 +19,42 @@ Centralized dashboard for monitoring Laravel Horizon jobs across multiple servic
 
 ## Requirements
 
-- PHP 8.4+
-- Laravel 13
-- Composer
-- Node.js and npm
-- MySQL 8 or SQLite
-- Redis
+The recommended setup is **MySQL 8 + Redis**: both handle concurrent writes from the SSE streams and the queue/scheduler workers optimally. The [docker-compose.yml](docker-compose.yml) provides them for you, so you never configure them by hand.
 
-## Quick start
+To run from source instead of Docker, see the [manual install](docs/DEVELOPMENT.md) (PHP 8.4+, Composer, Node.js, and MySQL/SQLite or Redis).
+
+## Quick start (recommended: MySQL + Redis)
+
+Prebuilt multi-architecture images are published to Docker Hub on every release (tagged `latest` plus the semver version). Pull the ready-to-run compose stack (no clone, no build):
 
 ```bash
-git clone https://github.com/enegalan/horizonhub.git
-cd horizonhub
-cp .env.example .env
-# Edit .env: set APP_KEY (generate with `php artisan key:generate`), DB_*, REDIS_*
+mkdir horizonhub && cd horizonhub
+curl -o docker-compose.yml https://raw.githubusercontent.com/enegalan/horizonhub/main/docker-compose.yml
+echo "APP_KEY=$(openssl rand -base64 32)" > .env
 docker compose up -d
-docker compose exec hub php artisan key:generate
-docker compose exec hub php artisan migrate --force
+```
+
+Open http://localhost — the root path redirects to `/horizon`. The container entrypoint runs the migrations and starts the queue and scheduler workers automatically. MySQL and Redis run inside the stack, so there is nothing to configure. To pin a version, change `enegalan/horizonhub:latest` to e.g. `enegalan/horizonhub:1.0.0` in `docker-compose.yml`.
+
+Prefer your own databases? Point the `DB_*` (MySQL) and `REDIS_*` variables at your services and drop the compose `mysql`/`redis` services.
+
+## Quick test (zero-config: no MySQL/Redis)
+
+For a quick test or a simplified deploy without external services, extend the published image with a **minimal Dockerfile** — it runs standalone on the embedded SQLite fallback (`APP_KEY` is generated automatically on first boot). For real workloads prefer the full MySQL + Redis stack above.
+
+```dockerfile
+FROM enegalan/horizonhub:latest
+```
+
+```bash
+docker build -t my-hub .
+docker run -d -p 80:80 -v horizonhub_storage:/var/www/html/storage my-hub
 ```
 
 ## Configuration
 
-- **Database**: `DB_*` in `.env` (MySQL or SQLite)
-- **Redis**: `REDIS_*` when using Redis for cache/sessions
+- **Database**: MySQL 8 (recommended) via `DB_*`; SQLite fallback for zero-config runs
+- **Redis**: `REDIS_*` for cache/sessions (recommended for multistreaming workloads)
 - **Alerts**: configure SMTP (`MAIL_*`) and/or Slack webhooks in alert rules
 
 ## Testing and code style

@@ -182,7 +182,9 @@ Most keys expose `HORIZON_HUB_*` environment overrides documented in that file. 
 
 ## Database
 
-- Default local driver: SQLite; Docker/compose and CI demo: MySQL 8.0; Redis for cache/sessions in Docker.
+- **Recommended: MySQL 8.0 + Redis** (Redis for cache/sessions). These handle concurrent writers best: the SSE streams, `queue:work`, and the scheduler all touch the datastore at the same time; the published compose stack ships both.
+- **Fallback:** SQLite (`DB_CONNECTION=sqlite`, database-backed cache/sessions/queue) for local dev, tests, and zero-config single-container runs — fine for quick tests, not recommended for real multi-stream workloads.
+- SQLite connections enable WAL journal mode and a busy timeout in `config/database.php` to absorb concurrent writes from the queue worker and scheduler in a standalone container.
 - Tables: `services`, `alerts`, `alert_logs`, `notification_providers`, `alert_notification_provider` (pivot), `service_headers`, plus stock cache/queue/session tables. Auth tables were dropped (no auth by design).
 - Migrations follow the date + 6-digit sequence convention; some are data migrations that normalize or backfill columns (e.g. `services.service_ids`, alert rule type consolidation).
 
@@ -209,8 +211,11 @@ See [DEVELOPMENT.md — Running the application](DEVELOPMENT.md#running-the-appl
 
 ## Deployment
 
-- **Dockerfile**: `php:8.4-fpm-alpine` with nginx and PHP extensions; the entrypoint runs migrations, caches config, then starts `queue:work` and `schedule:work` alongside php-fpm and nginx.
-- **docker-compose.yml**: hub + MySQL 8.0 + Redis 7.
+- **Dockerfile**: `php:8.4-fpm-alpine` with nginx and PHP extensions; frontend assets are built at image build time. The entrypoint runs migrations, caches config, then starts `queue:work` and `schedule:work` alongside php-fpm and nginx. With no env overrides it falls back to an embedded SQLite/database-driver setup so the image works with zero configuration; MySQL + Redis are used as soon as the `DB_*`/`REDIS_*`/`CACHE_STORE`/`SESSION_DRIVER` vars are provided (as the compose stack does).
+- **docker-compose.yml**: complete published stack — hub (prebuilt image from Docker Hub) + MySQL 8.0 + Redis 7, with `storage` and `mysql_data` volumes.
+- **Published image** (`FROM enegalan/horizonhub:latest`): the image runs standalone on an embedded SQLite fallback, no external MySQL or Redis — see the [README quick test](../README.md).
+- **docker-compose.dev.yml**: development stack — builds from source, bind-mounts the repo, and runs MySQL + Redis (see [DEVELOPMENT.md — Docker / compose](DEVELOPMENT.md#docker--compose)).
+- **Docker Hub**: `.github/workflows/publish-image.yml` builds a multi-architecture image (`linux/amd64`, `linux/arm64`) and pushes `latest` plus semver tags whenever a `v*` tag is pushed.
 - **demo/**: a separate compose stack that also runs three fake Horizon apps; usage in [DEVELOPMENT.md — Demo environment](DEVELOPMENT.md#demo-environment).
 - **GitHub Actions** (`.github/workflows/ci.yml`) enforces the verification commands documented in [DEVELOPMENT.md — CI](DEVELOPMENT.md#ci).
 

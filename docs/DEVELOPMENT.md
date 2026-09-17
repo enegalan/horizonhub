@@ -83,13 +83,36 @@ Doubles, environment details, and expectations follow [CONVENTIONS.md — Testin
 
 ## Docker / compose
 
-Full stack (hub + MySQL + Redis):
+Three Docker workflows:
+
+**1. End-user production stack (recommended):** the published [docker-compose.yml](../docker-compose.yml) pulls the **prebuilt image** from Docker Hub and runs it with **MySQL 8 + Redis** (optimal for the concurrent SSE writes). Works without cloning:
 
 ```bash
+mkdir horizonhub && cd horizonhub
+curl -o docker-compose.yml https://raw.githubusercontent.com/enegalan/horizonhub/main/docker-compose.yml
+echo "APP_KEY=$(openssl rand -base64 32)" > .env
 docker compose up -d
 ```
 
-Then follow the key/migrate steps from the [README.md](../README.md) quick start. Hub runs on port 80; the image and entrypoint behavior are described in [ARCHITECTURE.md — Deployment](ARCHITECTURE.md#deployment).
+See the [README.md](../README.md) quick start. Hub runs on port 80; the image and entrypoint behavior are described in [ARCHITECTURE.md — Deployment](ARCHITECTURE.md#deployment).
+
+**2. Zero-config single container (fallback):** the image also runs standalone on the embedded SQLite fallback with no external services — just `FROM enegalan/horizonhub:latest` and run:
+
+```bash
+docker build -t my-hub .
+docker run -d -p 80:80 -v horizonhub_storage:/var/www/html/storage my-hub
+```
+
+**3. Development from source:** use [docker-compose.dev.yml](../docker-compose.dev.yml), which builds the image from the repo, bind-mounts the code, and provides MySQL + Redis:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d --build
+docker compose -f docker-compose.dev.yml exec hub npm run build   # after JS/CSS changes
+```
+
+Frontend assets are built into the published image at build time; in the dev stack they are built on first start (or via `npm run build` on the host / inside the container).
+
+
 
 ## Demo environment
 
@@ -110,7 +133,7 @@ docker compose up -d
 - **Service stuck offline**: check `HORIZON_HUB_STALE_SERVICE_MINUTES` / `HORIZON_HUB_DEAD_SERVICE_MINUTES` and that the scheduler runs.
 - **401/403 on job retry**: add the required `headers` to the service; Horizon Hub does not authenticate on its own.
 - **CSS/JS changes not showing**: ensure `npm run dev` or `npm run build` produced `public/build` assets.
-- **Tests fail on MySQL but pass on SQLite**: keep the test suite SQLite-only; the Docker stack uses MySQL by design.
+- **Tests fail on MySQL but pass on SQLite**: keep the test suite SQLite-only; the Docker image also runs on SQLite by default, with MySQL available via `DB_*` env overrides.
 
 ## Related documents
 
