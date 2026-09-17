@@ -32,8 +32,9 @@
         @class([
             'card group relative overflow-hidden transition-colors',
             'opacity-60' => ! $isEnabled,
+            'hover:border-gray-500/45 dark:hover:border-gray-400/50' => ! $isEnabled,
             'hover:border-emerald-500/45 dark:hover:border-emerald-400/50' => $isEnabled && $isOnline,
-            'hover:border-amber-500/45 dark:hover:border-amber-400/50' => ($isEnabled && $isStandBy) || ! $isEnabled,
+            'hover:border-amber-500/45 dark:hover:border-amber-400/50' => $isEnabled && $isStandBy,
             'hover:border-red-500/45 dark:hover:border-red-400/50' => $isEnabled && ! $isOnline && ! $isStandBy,
         ])
         data-stream-row-id="svc-{{ (int) $service->id }}"
@@ -43,8 +44,9 @@
         <div
             @class([
                 'absolute inset-x-0 top-0 h-1 bg-gradient-to-r to-transparent',
+                'from-gray-500/80 via-gray-400/60' => ! $isEnabled,
                 'from-emerald-500/80 via-emerald-400/60' => $isEnabled && $isOnline,
-                'from-amber-500/80 via-amber-400/60' => ($isEnabled && $isStandBy) || ! $isEnabled,
+                'from-amber-500/80 via-amber-400/60' => $isEnabled && $isStandBy,
                 'from-red-500/80 via-red-400/60' => $isEnabled && ! $isOnline && ! $isStandBy,
             ])
             data-service-enabled-accent="1"
@@ -57,8 +59,9 @@
                     <div
                         @class([
                             'flex size-11 shrink-0 items-center justify-center rounded-xl border',
+                            'border-gray-500/20 bg-gray-500/10 text-gray-700 dark:text-gray-300' => ! $isEnabled,
                             'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' => $isEnabled && $isOnline,
-                            'border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300' => ($isEnabled && $isStandBy) || ! $isEnabled,
+                            'border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300' => $isEnabled && $isStandBy,
                             'border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300' => $isEnabled && ! $isOnline && ! $isStandBy,
                         ])
                         data-service-enabled-icon="1"
@@ -95,8 +98,9 @@
                     <span
                         @class([
                             'shrink-0 text-[10px]',
+                            'badge-muted' => ! $isEnabled,
                             'badge-success' => $isEnabled && $isOnline,
-                            'badge-warning' => ($isEnabled && $isStandBy) || ! $isEnabled,
+                            'badge-warning' => $isEnabled && $isStandBy,
                             'badge-danger' => $isEnabled && ! $isOnline && ! $isStandBy,
                         ])
                         data-service-connectivity-badge="1"

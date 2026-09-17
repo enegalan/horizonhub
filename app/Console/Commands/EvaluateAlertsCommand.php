@@ -11,6 +11,8 @@ class EvaluateAlertsCommand extends Command
 
     protected $description = 'Evaluate Horizon Hub alert rules (worker offline, queue blocked, etc.)';
 
+    protected $timeout = 120;
+
     public function handle(AlertEngine $engine): int
     {
         $engine->evaluateScheduled();

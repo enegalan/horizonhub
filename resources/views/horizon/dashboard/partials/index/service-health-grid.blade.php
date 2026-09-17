@@ -5,18 +5,28 @@
 @forelse($services as $service)
     @php
         $svcSt = $service->status;
-        if ($svcSt === \App\Enums\ServiceStatus::Online) {
+        $isOnline = $svcSt === \App\Enums\ServiceStatus::Online;
+        $isStandBy = $svcSt === \App\Enums\ServiceStatus::StandBy;
+        $isEnabled = $service->enabled;
+
+        if ($isEnabled && $isOnline) {
             $svcDot = 'bg-emerald-500';
             $svcLabel = 'Online';
             $topBarClass = 'from-emerald-500/80 via-emerald-400/60 to-transparent';
             $hoverBorderClass = 'hover:border-emerald-500/45 dark:hover:border-emerald-400/50';
             $hoverChevronClass = 'group-hover:text-emerald-600 dark:group-hover:text-emerald-400';
-        } elseif ($svcSt === \App\Enums\ServiceStatus::StandBy) {
+        } elseif ($isEnabled && $isStandBy) {
             $svcDot = 'bg-amber-500';
             $svcLabel = 'Stand-by';
             $topBarClass = 'from-amber-500/80 via-amber-400/60 to-transparent';
             $hoverBorderClass = 'hover:border-amber-500/45 dark:hover:border-amber-400/50';
             $hoverChevronClass = 'group-hover:text-amber-600 dark:group-hover:text-amber-400';
+        } elseif (! $isEnabled) {
+            $svcDot = 'bg-gray-500';
+            $svcLabel = 'Disabled';
+            $topBarClass = 'from-gray-500/80 via-gray-400/60 to-transparent';
+            $hoverBorderClass = 'hover:border-gray-500/45 dark:hover:border-gray-400/50';
+            $hoverChevronClass = 'group-hover:text-gray-600 dark:group-hover:text-gray-400';
         } else {
             $svcDot = 'bg-red-500';
             $svcLabel = $service->hasTimeoutAdvice() ? 'Timed Out' : 'Offline';

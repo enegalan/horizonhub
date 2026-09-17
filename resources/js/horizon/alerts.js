@@ -33,23 +33,23 @@ export function horizonAlertsList() {
                 window.__horizonAlertsListEvaluationClickListenerAttached = true;
                 window.__horizonAlertsListEvaluationClickListener = function (e) {
                     var instance = window.__horizonAlertsListEvaluationInstance;
-                    if (!instance) return;
+                    if (!instance || !e.target || !e.target.closest) return;
 
-                    var evaluateAllBtn = e.target && e.target.closest ? e.target.closest('[data-alert-evaluate-all-button="1"]') : null;
+                    var evaluateAllBtn = e.target.closest('[data-alert-evaluate-all-button="1"]');
                     if (evaluateAllBtn) {
                         e.preventDefault();
                         instance.private__handleEvaluateAllClick(evaluateAllBtn);
                         return;
                     }
 
-                    var evalBtn = e.target && e.target.closest ? e.target.closest('[data-alert-evaluate-button="1"]') : null;
+                    var evalBtn = e.target.closest('[data-alert-evaluate-button="1"]');
                     if (evalBtn) {
                         e.preventDefault();
                         instance.private__handleEvaluateAlertClick(evalBtn);
                         return;
                     }
 
-                    var enabledToggleBtn = e.target && e.target.closest ? e.target.closest('[data-alert-enabled-toggle="1"]') : null;
+                    var enabledToggleBtn = e.target.closest('[data-alert-enabled-toggle="1"]');
                     if (enabledToggleBtn) {
                         e.preventDefault();
                         instance.private__handleEnabledToggleClick(enabledToggleBtn);
