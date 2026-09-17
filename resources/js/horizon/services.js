@@ -196,104 +196,8 @@ export function horizonServicesList() {
             if (!articleEl) return;
 
             var connectivity = articleEl.getAttribute('data-service-connectivity') || 'offline';
-            var hoverBorderClasses = [
-                'hover:border-emerald-500/45',
-                'dark:hover:border-emerald-400/50',
-                'hover:border-amber-500/45',
-                'dark:hover:border-amber-400/50',
-                'hover:border-red-500/45',
-                'dark:hover:border-red-400/50',
-                'hover:border-gray-500/45',
-                'dark:hover:border-gray-400/50',
-            ];
-            articleEl.classList.remove.apply(articleEl.classList, hoverBorderClasses);
-            if (!enabled) {
-                articleEl.classList.add('hover:border-gray-500/45', 'dark:hover:border-gray-400/50');
-            } else if (connectivity === 'stand_by') {
-                articleEl.classList.add('hover:border-amber-500/45', 'dark:hover:border-amber-400/50');
-            } else if (connectivity === 'online') {
-                articleEl.classList.add('hover:border-emerald-500/45', 'dark:hover:border-emerald-400/50');
-            } else {
-                articleEl.classList.add('hover:border-red-500/45', 'dark:hover:border-red-400/50');
-            }
-
-            var accentEl = articleEl.querySelector('[data-service-enabled-accent="1"]');
-            if (accentEl) {
-                accentEl.classList.remove(
-                    'from-emerald-500/80',
-                    'via-emerald-400/60',
-                    'from-amber-500/80',
-                    'via-amber-400/60',
-                    'from-red-500/80',
-                    'via-red-400/60',
-                    'from-gray-500/80',
-                    'via-gray-400/60'
-                );
-                if (!enabled) {
-                    accentEl.classList.add('from-gray-500/80', 'via-gray-400/60');
-                } else if (connectivity === 'online') {
-                    accentEl.classList.add('from-emerald-500/80', 'via-emerald-400/60');
-                } else if (connectivity === 'stand_by') {
-                    accentEl.classList.add('from-amber-500/80', 'via-amber-400/60');
-                } else {
-                    accentEl.classList.add('from-red-500/80', 'via-red-400/60');
-                }
-            }
-
-            var iconEl = articleEl.querySelector('[data-service-enabled-icon="1"]');
-            if (iconEl) {
-                iconEl.classList.remove(
-                    'border-emerald-500/20',
-                    'bg-emerald-500/10',
-                    'text-emerald-700',
-                    'dark:text-emerald-300',
-                    'border-amber-500/20',
-                    'bg-amber-500/10',
-                    'text-amber-700',
-                    'dark:text-amber-300',
-                    'border-red-500/20',
-                    'bg-red-500/10',
-                    'text-red-700',
-                    'dark:text-red-300',
-                    'border-gray-500/20',
-                    'bg-gray-500/10',
-                    'text-gray-700',
-                    'dark:text-gray-300'
-                );
-                if (!enabled) {
-                    iconEl.classList.add(
-                        'border-gray-500/20',
-                        'bg-gray-500/10',
-                        'text-gray-700',
-                        'dark:text-gray-300'
-                    );
-                } else {
-                    if (connectivity === 'online') {
-                        iconEl.classList.add(
-                            'border-emerald-500/20',
-                            'bg-emerald-500/10',
-                            'text-emerald-700',
-                            'dark:text-emerald-300'
-                        );
-                    } else if (connectivity === 'stand_by') {
-                        iconEl.classList.add(
-                            'border-amber-500/20',
-                            'bg-amber-500/10',
-                            'text-amber-700',
-                            'dark:text-amber-300'
-                        );
-                    } else {
-                        iconEl.classList.add(
-                            'border-red-500/20',
-                            'bg-red-500/10',
-                            'text-red-700',
-                            'dark:text-red-300'
-                        );
-                    }
-                }
-            }
-
-            articleEl.classList.toggle('opacity-60', !enabled);
+            articleEl.classList.toggle('service-card--enabled', !!enabled);
+            articleEl.classList.toggle('service-card--disabled', !enabled);
 
             var toggleBtn = articleEl.querySelector('[data-service-enabled-toggle="1"]');
             if (toggleBtn) {
@@ -305,25 +209,18 @@ export function horizonServicesList() {
 
             var badgeEl = articleEl.querySelector('[data-service-enabled-badge="1"]');
             if (badgeEl) {
-                badgeEl.classList.remove('badge-success', 'badge-danger');
-                badgeEl.classList.add(enabled ? 'badge-success' : 'badge-danger');
                 badgeEl.textContent = enabled ? 'On' : 'Off';
             }
 
             var connectivityBadgeEl = articleEl.querySelector('[data-service-connectivity-badge="1"]');
             if (connectivityBadgeEl) {
-                connectivityBadgeEl.classList.remove('badge-success', 'badge-warning', 'badge-danger', 'badge-muted');
                 if (!enabled) {
-                    connectivityBadgeEl.classList.add('badge-muted');
                     connectivityBadgeEl.textContent = 'Disabled';
                 } else if (connectivity === 'online') {
-                    connectivityBadgeEl.classList.add('badge-success');
                     connectivityBadgeEl.textContent = 'Online';
                 } else if (connectivity === 'stand_by') {
-                    connectivityBadgeEl.classList.add('badge-warning');
                     connectivityBadgeEl.textContent = 'Stand-by';
                 } else {
-                    connectivityBadgeEl.classList.add('badge-danger');
                     connectivityBadgeEl.textContent = 'Offline';
                 }
             }

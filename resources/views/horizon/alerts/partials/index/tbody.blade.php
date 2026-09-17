@@ -39,19 +39,15 @@
     @endphp
     <article
         @class([
-            'card group relative overflow-hidden transition-colors',
-            'hover:border-emerald-500/45 dark:hover:border-emerald-400/50' => $alert->enabled,
-            'hover:border-amber-500/45 dark:hover:border-amber-400/50' => ! $alert->enabled,
+            'card alert-card group relative overflow-hidden transition-colors',
+            'alert-card--enabled' => $alert->enabled,
+            'alert-card--disabled' => ! $alert->enabled,
         ])
         data-stream-row-id="alt-{{ (int) $alert->id }}"
         data-horizon-stream-sig="{{ $streamSig }}"
     >
         <div
-            @class([
-                'absolute inset-x-0 top-0 h-1',
-                'bg-gradient-to-r from-emerald-500/80 via-emerald-400/60 to-transparent' => $alert->enabled,
-                'bg-gradient-to-r from-amber-500/80 via-amber-400/60 to-transparent' => ! $alert->enabled,
-            ])
+            class="absolute inset-x-0 top-0 h-1"
             data-alert-enabled-accent="1"
             aria-hidden="true"
         ></div>
@@ -60,11 +56,7 @@
             <div class="flex items-start justify-between gap-3" data-stream-preserve-client>
                 <div class="flex min-w-0 items-start gap-3">
                     <div
-                        @class([
-                            'flex size-11 shrink-0 items-center justify-center rounded-xl border',
-                            'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' => $alert->enabled,
-                            'border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300' => ! $alert->enabled,
-                        ])
+                        class="flex size-11 shrink-0 items-center justify-center rounded-xl border"
                         data-alert-enabled-icon="1"
                     >
                         <x-icons.bell class="size-5" />
@@ -88,7 +80,7 @@
                     title="{{ $alert->enabled ? 'Disable alert' : 'Enable alert' }}"
                 >
                     <span
-                        class="{{ $alert->enabled ? 'badge-success' : 'badge-danger' }}"
+                        class="badge"
                         data-alert-enabled-badge="1"
                     >
                         {{ $alert->enabled ? 'On' : 'Off' }}

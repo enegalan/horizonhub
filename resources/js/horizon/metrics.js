@@ -51,7 +51,7 @@ function getAxisTooltipViewportOptions() {
     return {
         confine: true,
         enterable: true,
-        extraCssText: 'max-width:min(96vw, 440px);max-height:min(55vh, 400px);overflow:auto;padding:8px 10px;',
+        className: 'horizon-chart-tooltip',
     };
 }
 
