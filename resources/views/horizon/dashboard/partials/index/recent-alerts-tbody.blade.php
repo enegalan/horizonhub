@@ -11,9 +11,9 @@
                 <span class="text-muted-foreground">#{{ (int) $log->alert_id }}</span>
             @endif
         </td>
-        <td class="px-4 py-2.5 text-sm text-muted-foreground" data-column-id="service">
+        <td class="px-4 py-2.5 text-sm text-muted-foreground truncate" data-column-id="service">
             @if($log->service)
-                <a href="{{ route('horizon.services.show', $log->service) }}" class="link" data-turbo-action="replace">{{ $log->service->name }}</a>
+                <a href="{{ route('horizon.services.show', $log->service) }}" class="link" data-turbo-action="replace" title="{{ $log->service->name }}">{{ $log->service->name }}</a>
             @else
                 –
             @endif

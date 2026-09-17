@@ -1,9 +1,11 @@
 /**
+ * Delete confirm component.
+ *
  * @param {'Service'|'Provider'|'Alert'} entityKey
  * @param {{ listMode?: boolean }} [options]
  * @returns {Record<string, unknown>}
  */
-export function horizonDeleteConfirm(entityKey, options = {}) {
+export function deleteConfirm(entityKey, options = {}) {
     const listMode = options.listMode !== false;
 
     return {

@@ -33,7 +33,7 @@
         @if($showServiceColumn)
             <td class="px-4 py-2.5 text-sm font-medium text-foreground truncate max-w-[180px]" data-column-id="service">
                 @if($job->service)
-                    <a href="{{ route('horizon.services.show', $job->service) }}" class="link" data-turbo-action="replace">{{ $job->service->name }}</a>
+                    <a href="{{ route('horizon.services.show', $job->service) }}" class="link" data-turbo-action="replace" title="{{ $job->service->name }}">{{ $job->service->name }}</a>
                 @else
                     –
                 @endif

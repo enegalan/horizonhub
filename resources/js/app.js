@@ -1,39 +1,27 @@
 import './bootstrap';
 import './components/resizable-table';
 import './components/form-drawer';
-import * as echarts from 'echarts';
-import * as Turbo from '@hotwired/turbo';
 import { horizonJobsPage, horizonJobDetail, horizonJobRowRetry, initJsonTrees } from './horizon/jobs';
 import { horizonAlertsList, horizonAlertDetail, renderAlertDetailCharts } from './horizon/alerts';
-import { horizonDeleteConfirm } from './horizon/delete-confirm';
 import { horizonServiceForm, horizonServicesList } from './horizon/services';
 import { horizonMetricsPage, renderMetricsCharts } from './horizon/metrics';
 import { initTurboStream } from './lib/sse';
-import { createHttpHelpers } from './lib/http';
 import { formatDatetimeElements } from './lib/datetime-format';
 import { getTurboStreamTargetElement, renderTurboStreamWithGuards } from './lib/stream-guard';
+import { deleteConfirm } from './components/delete-confirm';
 import { mountToaster } from './components/toaster';
 import { registerInputDatePicker } from './components/input-date-picker';
 import { initTheme } from './components/theme';
 import Alpine from 'alpinejs';
-import moment from 'moment';
-
-window.Turbo = Turbo;
-window.echarts = echarts;
 
 registerInputDatePicker(Alpine);
-
-if (!window.horizon) window.horizon = {};
-window.horizon.http = createHttpHelpers();
-
-if (!window.moment) window.moment = moment;
 
 window.horizonJobsPage = horizonJobsPage;
 window.horizonJobDetail = horizonJobDetail;
 window.horizonJobRowRetry = horizonJobRowRetry;
 window.horizonAlertsList = horizonAlertsList;
 window.horizonAlertDetail = horizonAlertDetail;
-window.horizonDeleteConfirm = horizonDeleteConfirm;
+window.deleteConfirm = deleteConfirm;
 window.horizonServiceForm = horizonServiceForm;
 window.horizonServicesList = horizonServicesList;
 window.horizonMetricsPage = horizonMetricsPage;
@@ -51,17 +39,17 @@ document.addEventListener('turbo:load', function () {
     queueMicrotask(function () {
         Alpine.initTree(document.body);
     });
-    schedule(function () {
+    setTimeout(function () {
         formatDatetimeElements();
-    });
+    }, 0);
     mountToaster();
 });
 
 onDocumentReady(function () {
     mountToaster();
-    schedule(function () {
+    setTimeout(function () {
         formatDatetimeElements();
-    });
+    }, 0);
     initTurboStream();
 });
 
@@ -71,7 +59,7 @@ document.addEventListener('turbo:before-stream-render', function (e) {
         if (!streamElement || !streamElement.getAttribute || (typeof document !== 'undefined' && document.visibilityState !== 'visible')) return;
         var outcome = renderTurboStreamWithGuards(streamElement, original);
         var syncRoot = getTurboStreamTargetElement(streamElement);
-        schedule(function () {
+        setTimeout(function () {
             formatDatetimeElements(syncRoot);
             if (outcome === 'rendered') {
                 if (syncRoot && typeof window.horizonSyncResizableTablesUnderRoot === 'function') {
@@ -83,22 +71,13 @@ document.addEventListener('turbo:before-stream-render', function (e) {
             initJsonTrees();
             renderMetricsCharts();
             renderAlertDetailCharts();
-        });
+        }, 0);
     };
 });
 
 window.addEventListener('apply-theme', function () {
     window.horizonHubTheme.applyTheme();
 });
-
-/**
- * Schedule a callback.
- * @param {function} callback
- * @returns {void}
- */
-function schedule(callback) {
-    setTimeout(callback, 0);
-}
 
 /**
  * Initialize the document.

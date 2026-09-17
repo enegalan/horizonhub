@@ -1,20 +1,18 @@
 /**
- * Shared ECharts axis tooltip options: stay in viewport and allow scroll when content is tall.
- * @returns {object}
- */
-export function getAxisTooltipViewportOptions() {
-    return {
-        confine: true,
-        enterable: true,
-        extraCssText: 'max-width:min(96vw, 440px);max-height:min(55vh, 400px);overflow:auto;padding:8px 10px;',
-    };
-}
-
-/**
  * Get the chart colors.
  * @returns {object}
  */
 export function getChartColors() {
+    /**
+     * Get the HSL value of a CSS variable.
+     * @param {string} varName
+     * @returns {string}
+     */
+    function getCssHsl(varName) {
+        var val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+        if (!val) return null;
+        return 'hsl(' + val.replace(/\s+/g, ', ') + ')';
+    }
     return {
         axis: getCssHsl('--muted-foreground'),
         processed: getCssHsl('--primary'),
@@ -61,78 +59,12 @@ export function applyChartOptions(el, options) {
     if (previousLegendSelected) {
         mergeLegendSelectedIntoOptions(options, previousLegendSelected);
     }
-    if (existing) {
-        existing.setOption(options, { notMerge: true });
-        existing.resize();
-    } else {
-        var chart = window.echarts.init(el);
-        chart.setOption(options);
-        chart.resize();
+    if (!existing) {
+        existing = window.echarts.init(el);
     }
+    existing.setOption(options, { notMerge: true });
+    existing.resize();
     bindChartResize(el);
-}
-
-/**
- * ECharts options for "jobs per hour (last 24 hours)" line chart (completed vs failed).
- * @param {{ xAxis?: string[], completed?: number[], failed?: number[] }} jobsVolumeLast24h
- * @param {ReturnType<typeof getChartColors>} c
- * @returns {object}
- */
-export function buildJobsVolumeLast24hOptions(jobsVolumeLast24h, c) {
-    return {
-        animation: false,
-        color: [c.processed, c.failed],
-        tooltip: Object.assign({}, getAxisTooltipViewportOptions(), { trigger: 'axis' }),
-        legend: {
-            data: ['Completed', 'Failed'],
-            bottom: 0,
-            textStyle: { color: c.axis, fontSize: 10 },
-        },
-        grid: { left: 8, right: 16, top: 16, bottom: 36, containLabel: true },
-        xAxis: {
-            type: 'category',
-            data: jobsVolumeLast24h.xAxis || [],
-            axisLine: { lineStyle: { color: c.axis } },
-            axisLabel: { color: c.axis, fontSize: 10 },
-        },
-        yAxis: {
-            type: 'value',
-            name: 'Jobs',
-            minInterval: 1,
-            axisLine: { show: false },
-            splitLine: { lineStyle: { color: c.axis, opacity: 0.3 } },
-            axisLabel: { color: c.axis, fontSize: 10 },
-        },
-        series: [
-            {
-                type: 'line',
-                name: 'Completed',
-                data: jobsVolumeLast24h.completed || [],
-                smooth: false,
-                showSymbol: false,
-                lineStyle: { width: 2 },
-            },
-            {
-                type: 'line',
-                name: 'Failed',
-                data: jobsVolumeLast24h.failed || [],
-                smooth: false,
-                showSymbol: false,
-                lineStyle: { width: 2 },
-            },
-        ],
-    };
-}
-
-/**
- * Get the HSL value of a CSS variable.
- * @param {string} varName
- * @returns {string}
- */
-function getCssHsl(varName) {
-    var val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-    if (!val) return null;
-    return 'hsl(' + val.replace(/\s+/g, ', ') + ')';
 }
 
 /**

@@ -35,9 +35,9 @@
     @endphp
     <tr class="transition-colors hover:bg-muted/30" data-stream-row-id="{{ $rowKey }}">
         @if($includeServiceColumn)
-            <td class="px-4 py-2.5 text-sm text-muted-foreground break-all" data-column-id="service">
+            <td class="px-4 py-2.5 text-sm text-muted-foreground truncate" data-column-id="service">
                 @if($serviceId > 0)
-                    <a href="{{ route('horizon.services.show', ['service' => $serviceId]) }}" class="link" data-turbo-action="replace">{{ $serviceName }}</a>
+                    <a href="{{ route('horizon.services.show', ['service' => $serviceId]) }}" class="link" data-turbo-action="replace" title="{{ $serviceName }}">{{ $serviceName }}</a>
                 @else
                     {{ $serviceName }}
                 @endif

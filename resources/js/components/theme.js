@@ -1,4 +1,4 @@
-var THEME_KEY = 'horizonhub_theme';
+const THEME_KEY = 'horizonhub_theme';
 
 /**
  * Initialize theme functionality.

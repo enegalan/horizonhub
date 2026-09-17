@@ -43,7 +43,7 @@
                             }
                         }
                     @endphp
-                    <dd class="mt-0.5 text-foreground">
+                    <dd class="mt-0.5 text-foreground truncate" title="{{ \implode(', ', $serviceNames) }}">
                         @if(\count($serviceNames) > 0)
                             {{ \implode(', ', $serviceNames) }}
                         @else
@@ -171,13 +171,14 @@
                             @forelse($logs as $log)
                                 <tr class="transition-colors hover:bg-muted/30">
                                     <td class="px-4 py-2.5 text-xs text-muted-foreground" data-column-id="sent_at">{{ $log->sent_at->format('Y-m-d H:i:s') }}</td>
-                                    <td class="px-4 py-2.5 text-sm text-foreground" data-column-id="service">
+                                    <td class="px-4 py-2.5 text-sm text-foreground truncate" data-column-id="service">
                                         @if($log->service)
                                             <a
                                                 href="{{ route('horizon.services.show', $log->service) }}"
                                                 class="link"
                                                 data-turbo-frame="_top"
                                                 data-turbo-action="replace"
+                                                title="{{ $log->service->name }}"
                                             >{{ $log->service->name }}</a>
                                         @else
                                             –
@@ -264,7 +265,7 @@
                             </div>
                             <div>
                                 <dt class="label-muted">Service</dt>
-                                <dd class="text-foreground" x-text="deliveryLog ? deliveryLog.service_name : '–'"></dd>
+                                <dd class="text-foreground truncate" x-text="deliveryLog ? deliveryLog.service_name : '–'" x-bind:title="deliveryLog ? deliveryLog.service_name : ''"></dd>
                             </div>
                             <div>
                                 <dt class="label-muted">Events</dt>

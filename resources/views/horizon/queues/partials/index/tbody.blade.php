@@ -6,9 +6,9 @@
 @else
 @forelse($queues as $row)
     <tr class="transition-colors hover:bg-muted/30" data-stream-row-id="q-{{ (int) ($row->service?->id ?? 0) }}-{{ rawurlencode((string) $row->queue) }}">
-        <td class="px-4 py-2.5 text-sm font-medium text-foreground" data-column-id="service">
+        <td class="px-4 py-2.5 text-sm font-medium text-foreground truncate" data-column-id="service">
             @if($row->service)
-                <a href="{{ route('horizon.services.show', $row->service) }}" class="link" data-turbo-action="replace">{{ $row->service->name }}</a>
+                <a href="{{ route('horizon.services.show', $row->service) }}" class="link" data-turbo-action="replace" title="{{ $row->service->name }}">{{ $row->service->name }}</a>
             @else
                 –
             @endif

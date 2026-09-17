@@ -1,4 +1,4 @@
-import { getChartColors, applyChartOptions } from '../charts/metrics-charts';
+import { getChartColors, applyChartOptions } from '../charts/charts';
 import { parseJsonFromElement } from '../lib/parse';
 import { isHotReloadEnabled } from '../lib/sse';
 
@@ -6,7 +6,7 @@ import { isHotReloadEnabled } from '../lib/sse';
  * Alert detail charts.
  * @type {object}
  */
-var ALERT_DETAIL_CHARTS = [
+const ALERT_DETAIL_CHARTS = [
     { key: 'chart24h', id: 'alert-detail-chart-24h' },
     { key: 'chart7d', id: 'alert-detail-chart-7d' },
     { key: 'chart30d', id: 'alert-detail-chart-30d' }
@@ -33,23 +33,23 @@ export function horizonAlertsList() {
                 window.__horizonAlertsListEvaluationClickListenerAttached = true;
                 window.__horizonAlertsListEvaluationClickListener = function (e) {
                     var instance = window.__horizonAlertsListEvaluationInstance;
-                    if (!instance) return;
+                    if (!instance || !e.target || !e.target.closest) return;
 
-                    var evaluateAllBtn = e.target && e.target.closest ? e.target.closest('[data-alert-evaluate-all-button="1"]') : null;
+                    var evaluateAllBtn = e.target.closest('[data-alert-evaluate-all-button="1"]');
                     if (evaluateAllBtn) {
                         e.preventDefault();
                         instance.private__handleEvaluateAllClick(evaluateAllBtn);
                         return;
                     }
 
-                    var evalBtn = e.target && e.target.closest ? e.target.closest('[data-alert-evaluate-button="1"]') : null;
+                    var evalBtn = e.target.closest('[data-alert-evaluate-button="1"]');
                     if (evalBtn) {
                         e.preventDefault();
                         instance.private__handleEvaluateAlertClick(evalBtn);
                         return;
                     }
 
-                    var enabledToggleBtn = e.target && e.target.closest ? e.target.closest('[data-alert-enabled-toggle="1"]') : null;
+                    var enabledToggleBtn = e.target.closest('[data-alert-enabled-toggle="1"]');
                     if (enabledToggleBtn) {
                         e.preventDefault();
                         instance.private__handleEnabledToggleClick(enabledToggleBtn);
@@ -528,18 +528,14 @@ export function renderAlertDetailCharts() {
     if (typeof window.echarts === 'undefined') return;
     var data = parseJsonFromElement('alert-detail-chart-data-json');
     var ready = data && typeof data === 'object' && !Array.isArray(data) && data.chart24h && data.chart24h.xAxis && data.chart24h.xAxis.length;
-    var loader24h = document.getElementById('alert-detail-loader-chart-24h');
-    if (loader24h) {
-        loader24h.style.display = !ready ? 'flex' : 'none';
-    }
-    var loader7d = document.getElementById('alert-detail-loader-chart-7d');
-    if (loader7d) {
-        loader7d.style.display = !ready ? 'flex' : 'none';
-    }
-    var loader30d = document.getElementById('alert-detail-loader-chart-30d');
-    if (loader30d) {
-        loader30d.style.display = !ready ? 'flex' : 'none';
-    }
+    var loaderPrefix = 'alert-detail-loader-';
+    var chartPrefix = 'alert-detail-chart-';
+    ALERT_DETAIL_CHARTS.forEach(function (item) {
+        var loader = document.getElementById(loaderPrefix + item.id.substring(chartPrefix.length));
+        if (loader) {
+            loader.style.display = !ready ? 'flex' : 'none';
+        }
+    });
     if (!data || !ready) return;
 
     var c = getChartColors();

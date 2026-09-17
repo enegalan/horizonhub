@@ -168,17 +168,15 @@ export function horizonServicesList() {
         init() {
             var self = this;
 
+            window.__horizonServicesListToggleInstance = self;
+            // Attach the document click listener only once to avoid duplicate toasts.
             if (!window.__horizonServicesListToggleClickListenerAttached) {
                 window.__horizonServicesListToggleClickListenerAttached = true;
                 window.__horizonServicesListToggleClickListener = function (e) {
                     var instance = window.__horizonServicesListToggleInstance;
-                    if (!instance || typeof instance.private__handleEnabledToggleClick !== 'function') {
-                        return;
-                    }
+                    if (!instance || !e.target || !e.target.closest) return;
 
-                    var enabledToggleBtn = e.target && e.target.closest
-                        ? e.target.closest('[data-service-enabled-toggle="1"]')
-                        : null;
+                    var enabledToggleBtn = e.target.closest('[data-service-enabled-toggle="1"]');
                     if (enabledToggleBtn) {
                         e.preventDefault();
                         instance.private__handleEnabledToggleClick(enabledToggleBtn);
@@ -186,8 +184,6 @@ export function horizonServicesList() {
                 };
                 document.addEventListener('click', window.__horizonServicesListToggleClickListener);
             }
-
-            window.__horizonServicesListToggleInstance = self;
         },
 
         /**
@@ -207,9 +203,13 @@ export function horizonServicesList() {
                 'dark:hover:border-amber-400/50',
                 'hover:border-red-500/45',
                 'dark:hover:border-red-400/50',
+                'hover:border-gray-500/45',
+                'dark:hover:border-gray-400/50',
             ];
             articleEl.classList.remove.apply(articleEl.classList, hoverBorderClasses);
-            if (!enabled || connectivity === 'stand_by') {
+            if (!enabled) {
+                articleEl.classList.add('hover:border-gray-500/45', 'dark:hover:border-gray-400/50');
+            } else if (connectivity === 'stand_by') {
                 articleEl.classList.add('hover:border-amber-500/45', 'dark:hover:border-amber-400/50');
             } else if (connectivity === 'online') {
                 articleEl.classList.add('hover:border-emerald-500/45', 'dark:hover:border-emerald-400/50');
@@ -225,18 +225,18 @@ export function horizonServicesList() {
                     'from-amber-500/80',
                     'via-amber-400/60',
                     'from-red-500/80',
-                    'via-red-400/60'
+                    'via-red-400/60',
+                    'from-gray-500/80',
+                    'via-gray-400/60'
                 );
-                if (enabled) {
-                    if (connectivity === 'online') {
-                        accentEl.classList.add('from-emerald-500/80', 'via-emerald-400/60');
-                    } else if (connectivity === 'stand_by') {
-                        accentEl.classList.add('from-amber-500/80', 'via-amber-400/60');
-                    } else {
-                        accentEl.classList.add('from-red-500/80', 'via-red-400/60');
-                    }
-                } else {
+                if (!enabled) {
+                    accentEl.classList.add('from-gray-500/80', 'via-gray-400/60');
+                } else if (connectivity === 'online') {
+                    accentEl.classList.add('from-emerald-500/80', 'via-emerald-400/60');
+                } else if (connectivity === 'stand_by') {
                     accentEl.classList.add('from-amber-500/80', 'via-amber-400/60');
+                } else {
+                    accentEl.classList.add('from-red-500/80', 'via-red-400/60');
                 }
             }
 
@@ -254,14 +254,18 @@ export function horizonServicesList() {
                     'border-red-500/20',
                     'bg-red-500/10',
                     'text-red-700',
-                    'dark:text-red-300'
+                    'dark:text-red-300',
+                    'border-gray-500/20',
+                    'bg-gray-500/10',
+                    'text-gray-700',
+                    'dark:text-gray-300'
                 );
                 if (!enabled) {
                     iconEl.classList.add(
-                        'border-amber-500/20',
-                        'bg-amber-500/10',
-                        'text-amber-700',
-                        'dark:text-amber-300'
+                        'border-gray-500/20',
+                        'bg-gray-500/10',
+                        'text-gray-700',
+                        'dark:text-gray-300'
                     );
                 } else {
                     if (connectivity === 'online') {
@@ -308,9 +312,9 @@ export function horizonServicesList() {
 
             var connectivityBadgeEl = articleEl.querySelector('[data-service-connectivity-badge="1"]');
             if (connectivityBadgeEl) {
-                connectivityBadgeEl.classList.remove('badge-success', 'badge-warning', 'badge-danger');
+                connectivityBadgeEl.classList.remove('badge-success', 'badge-warning', 'badge-danger', 'badge-muted');
                 if (!enabled) {
-                    connectivityBadgeEl.classList.add('badge-warning');
+                    connectivityBadgeEl.classList.add('badge-muted');
                     connectivityBadgeEl.textContent = 'Disabled';
                 } else if (connectivity === 'online') {
                     connectivityBadgeEl.classList.add('badge-success');

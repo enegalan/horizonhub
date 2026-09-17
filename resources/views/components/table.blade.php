@@ -22,7 +22,7 @@
         $bodyBag = $bodyBag->merge(['data-turbo-stream-patch-children' => 'true']);
     }
     $bodyBag = $bodyBag->class('divide-y divide-border');
-    $tableClasses = trim("min-w-full overflow-hidden $tableClass");
+    $tableClasses = trim("min-w-full w-full overflow-hidden $tableClass");
 @endphp
 
 @if($wrap)
