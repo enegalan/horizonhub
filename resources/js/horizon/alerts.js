@@ -155,74 +155,8 @@ export function horizonAlertsList() {
         private__applyAlertEnabledState(articleEl, enabled) {
             if (!articleEl) return;
 
-            var hoverBorderClasses = [
-                'hover:border-emerald-500/45',
-                'dark:hover:border-emerald-400/50',
-                'hover:border-amber-500/45',
-                'dark:hover:border-amber-400/50',
-            ];
-            articleEl.classList.remove.apply(articleEl.classList, hoverBorderClasses);
-            if (enabled) {
-                articleEl.classList.add('hover:border-emerald-500/45', 'dark:hover:border-emerald-400/50');
-            } else {
-                articleEl.classList.add('hover:border-amber-500/45', 'dark:hover:border-amber-400/50');
-            }
-
-            var accentEl = articleEl.querySelector('[data-alert-enabled-accent="1"]');
-            if (accentEl) {
-                accentEl.classList.remove(
-                    'bg-gradient-to-r',
-                    'from-emerald-500/80',
-                    'via-emerald-400/60',
-                    'to-transparent',
-                    'from-amber-500/80',
-                    'via-amber-400/60'
-                );
-                if (enabled) {
-                    accentEl.classList.add(
-                        'bg-gradient-to-r',
-                        'from-emerald-500/80',
-                        'via-emerald-400/60',
-                        'to-transparent'
-                    );
-                } else {
-                    accentEl.classList.add(
-                        'bg-gradient-to-r',
-                        'from-amber-500/80',
-                        'via-amber-400/60',
-                        'to-transparent'
-                    );
-                }
-            }
-
-            var iconEl = articleEl.querySelector('[data-alert-enabled-icon="1"]');
-            if (iconEl) {
-                iconEl.classList.remove(
-                    'border-emerald-500/20',
-                    'bg-emerald-500/10',
-                    'text-emerald-700',
-                    'dark:text-emerald-300',
-                    'border-amber-500/20',
-                    'bg-amber-500/10',
-                    'text-amber-700',
-                    'dark:text-amber-300'
-                );
-                if (enabled) {
-                    iconEl.classList.add(
-                        'border-emerald-500/20',
-                        'bg-emerald-500/10',
-                        'text-emerald-700',
-                        'dark:text-emerald-300'
-                    );
-                } else {
-                    iconEl.classList.add(
-                        'border-amber-500/20',
-                        'bg-amber-500/10',
-                        'text-amber-700',
-                        'dark:text-amber-300'
-                    );
-                }
-            }
+            articleEl.classList.toggle('alert-card--enabled', !!enabled);
+            articleEl.classList.toggle('alert-card--disabled', !enabled);
 
             var toggleBtn = articleEl.querySelector('[data-alert-enabled-toggle="1"]');
             if (toggleBtn) {
@@ -234,8 +168,6 @@ export function horizonAlertsList() {
 
             var badgeEl = articleEl.querySelector('[data-alert-enabled-badge="1"]');
             if (badgeEl) {
-                badgeEl.classList.remove('badge-success', 'badge-danger');
-                badgeEl.classList.add(enabled ? 'badge-success' : 'badge-danger');
                 badgeEl.textContent = enabled ? 'On' : 'Off';
             }
 

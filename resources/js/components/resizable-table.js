@@ -14,12 +14,6 @@ import { parseJson } from '../lib/parse';
     var MIN_WIDTH = 60;
 
     /**
-     * Resize handle width.
-     * @type {number}
-     */
-    var RESIZE_HANDLE_WIDTH = 8;
-
-    /**
      * Initted attribute.
      * @type {string}
      */
@@ -252,8 +246,8 @@ import { parseJson } from '../lib/parse';
 
         el = document.createElement('div');
         el.id = id;
+        el.className = 'horizon-drag-overlay';
         el.setAttribute('aria-hidden', 'true');
-        el.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;border-radius:4px;transition:opacity 0.1s;display:none;box-sizing:border-box;';
         document.body.appendChild(el);
         return el;
     }
@@ -270,8 +264,7 @@ import { parseJson } from '../lib/parse';
         overlay.style.top = r.top + 'px';
         overlay.style.width = r.width + 'px';
         overlay.style.height = r.height + 'px';
-        overlay.style.display = 'block';
-        overlay.style.opacity = '1';
+        overlay.classList.add('horizon-drag-overlay--visible');
     }
 
     /**
@@ -280,7 +273,7 @@ import { parseJson } from '../lib/parse';
      */
     function hideDragOverlay() {
         var el = document.getElementById('horizon-drag-overlay');
-        if (el) el.style.display = 'none';
+        if (el) el.classList.remove('horizon-drag-overlay--visible');
     }
 
     /**
@@ -300,13 +293,11 @@ import { parseJson } from '../lib/parse';
             if (existing) return;
 
             var handle = document.createElement('span');
-            handle.className = 'horizon-resize-handle absolute right-0 top-0 bottom-0 cursor-col-resize bg-transparent';
-            handle.style.cssText = 'width:' + RESIZE_HANDLE_WIDTH + 'px;';
+            handle.className = 'horizon-resize-handle';
             handle.title = 'Resize column';
 
             var line = document.createElement('span');
-            line.className = 'absolute top-0 bottom-0 w-px bg-border';
-            line.style.cssText = 'right:' + (RESIZE_HANDLE_WIDTH / 2 - 0.5) + 'px;';
+            line.className = 'horizon-resize-handle-line';
             handle.appendChild(line);
 
             th.appendChild(handle);
@@ -328,8 +319,7 @@ import { parseJson } from '../lib/parse';
                 function onUp() {
                     document.removeEventListener('mousemove', onMove);
                     document.removeEventListener('mouseup', onUp);
-                    document.body.style.cursor = '';
-                    document.body.style.userSelect = '';
+                    document.body.classList.remove('horizon-resizing');
                     th.removeAttribute('data-horizon-resizing');
                     th.draggable = true;
                     saveState(storageKey, state.order, state.widths);
@@ -338,8 +328,7 @@ import { parseJson } from '../lib/parse';
 
                 document.addEventListener('mousemove', onMove);
                 document.addEventListener('mouseup', onUp);
-                document.body.style.cursor = 'col-resize';
-                document.body.style.userSelect = 'none';
+                document.body.classList.add('horizon-resizing');
             });
         });
     }
@@ -358,14 +347,12 @@ import { parseJson } from '../lib/parse';
         theadRow.querySelectorAll('th[data-column-id]').forEach(th => {
             if (th.hasAttribute('data-column-fixed')) {
                 th.removeAttribute('draggable');
-                th.style.cursor = '';
-                th.classList.remove('select-none');
+                th.classList.remove('select-none', 'cursor-move');
                 return;
             }
 
             th.setAttribute('draggable', 'true');
-            th.style.cursor = 'move';
-            th.classList.add('select-none');
+            th.classList.add('select-none', 'cursor-move');
 
             th.addEventListener('dragstart', e => {
                 if (th.getAttribute('data-horizon-resizing') === '1') {
@@ -380,9 +367,8 @@ import { parseJson } from '../lib/parse';
                 th.classList.add('opacity-50');
 
                 var dragImage = th.cloneNode(true);
-                dragImage.style.cssText = 'position:absolute;left:-9999px;top:0;padding: 8px 4px;' +
-                    'background:hsl(var(--card) / 0.92);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);' +
-                    'box-shadow:0 4px 20px rgba(0,0,0,0.12);border-radius:6px;border:1px solid hsl(var(--border));pointer-events:none;';
+                dragImage.style.cssText = '';
+                dragImage.classList.add('horizon-drag-image');
                 document.body.appendChild(dragImage);
                 e.dataTransfer.setDragImage(dragImage, e.offsetX, e.offsetY);
                 setTimeout(() => {
