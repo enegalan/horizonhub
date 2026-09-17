@@ -1,4 +1,5 @@
 import Lightpickr from 'lightpickr';
+import { parseFailedAtRange } from '../lib/parse';
 
 /**
  * Register Alpine directive for datepicker.
@@ -22,14 +23,9 @@ export function registerInputDatePicker(Alpine) {
         };
 
         queueMicrotask(function () {
-            var rangeBounds =
+            var range =
                 raw && isRange
-                    ? raw
-                        .split(/\s*(?:\s+to\s+|–|—)\s*/i)
-                        .map(function (s) {
-                            return s.trim();
-                        })
-                        .filter(Boolean)
+                    ? parseFailedAtRange(raw)
                     : null;
 
             var options = {
@@ -49,14 +45,14 @@ export function registerInputDatePicker(Alpine) {
 
             if (raw && !isRange) {
                 options.selectedDates = [raw];
-            } else if (rangeBounds && rangeBounds.length >= 2) {
-                options.selectedDates = [[rangeBounds[0], rangeBounds[1]]];
+            } else if (range && range.dateFrom && range.dateTo) {
+                options.selectedDates = [[range.dateFrom, range.dateTo]];
             }
 
             dp = new Lightpickr(el, options);
 
-            if (rangeBounds && rangeBounds.length === 1) {
-                dp.selectDate(rangeBounds[0]);
+            if (range && range.dateFrom && !range.dateTo) {
+                dp.selectDate(range.dateFrom);
             }
 
             if (raw) {

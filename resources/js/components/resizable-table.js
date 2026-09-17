@@ -436,17 +436,12 @@ import { parseJson } from '../lib/parse';
         var columnIds = getColumnIds(table);
         if (columnIds.length === 0) return;
 
-        var state = loadState(storageKey, columnIds);
-        table.style.tableLayout = 'fixed';
-
-        if (table.hasAttribute(INITTED_ATTR)) {
-            if (window.horizonTableInteracting) return;
-
-            applyState(table, state);
-            setupResize(table, storageKey, state);
-            setupReorder(table, storageKey, state);
+        if (table.hasAttribute(INITTED_ATTR) && window.horizonTableInteracting) {
             return;
         }
+
+        var state = loadState(storageKey, columnIds);
+        table.style.tableLayout = 'fixed';
 
         applyState(table, state);
         setupResize(table, storageKey, state);

@@ -60,9 +60,10 @@ function getAxisTooltipViewportOptions() {
  * @returns {void}
  */
 export function renderMetricsCharts() {
-    initMetricsCharts();
     var data = parseJsonFromElement('metrics-chart-data');
     var loaded = data && typeof data === 'object' && !Array.isArray(data);
+
+    initMetricsCharts(data);
 
     setMetricsChartPanelState(
         document.getElementById('metrics-loader-jobs-volume-chart'),
@@ -92,11 +93,11 @@ export function renderMetricsCharts() {
 
 /**
  * Initialize the metrics charts.
+ * @param {object|null} data
  * @returns {void}
  */
-function initMetricsCharts() {
+function initMetricsCharts(data) {
     if (typeof window.echarts === 'undefined') return;
-    var data = parseJsonFromElement('metrics-chart-data');
     if (!data) return;
     var c = getChartColors();
 

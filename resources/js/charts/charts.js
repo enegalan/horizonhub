@@ -59,14 +59,11 @@ export function applyChartOptions(el, options) {
     if (previousLegendSelected) {
         mergeLegendSelectedIntoOptions(options, previousLegendSelected);
     }
-    if (existing) {
-        existing.setOption(options, { notMerge: true });
-        existing.resize();
-    } else {
-        var chart = window.echarts.init(el);
-        chart.setOption(options);
-        chart.resize();
+    if (!existing) {
+        existing = window.echarts.init(el);
     }
+    existing.setOption(options, { notMerge: true });
+    existing.resize();
     bindChartResize(el);
 }
 
