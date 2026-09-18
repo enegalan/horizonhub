@@ -23,6 +23,7 @@
 </tr>
 @foreach($workloadRows as $row)
     @php
+        // TODO: Refactor
         $queue = (string) (is_object($row) ? ($row->queue ?? '') : ($row['queue'] ?? ''));
         $jobs = (int) (is_object($row) ? ($row->jobs ?? 0) : ($row['jobs'] ?? 0));
         $processes = is_object($row) ? ($row->processes ?? null) : ($row['processes'] ?? null);

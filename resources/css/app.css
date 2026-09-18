@@ -351,7 +351,7 @@
     @apply hidden;
 }
 
-.horizon-drag-overlay {
+#horizon-drag-overlay {
     position: fixed;
     pointer-events: none;
     z-index: 9999;
@@ -383,11 +383,6 @@
     bottom: 0;
     width: 1px;
     background: hsl(var(--border));
-}
-
-body.horizon-resizing {
-    cursor: col-resize;
-    user-select: none;
 }
 
 .horizon-drag-image {
