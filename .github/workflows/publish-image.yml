@@ -2,11 +2,17 @@ name: Publish Docker image
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: publish-docker
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -15,6 +21,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -28,15 +37,22 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels)
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: enegalan/horizonhub
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest
+      - name: Compute version tags
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            NEXT_VERSION="${{ github.ref_name }}"
+          else
+            LATEST=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)
+            if [ -z "$LATEST" ]; then
+              NEXT_VERSION="v1.0.0"
+            else
+              # Increment by 0.0.5 with decimal carry:
+              NEXT_VERSION=$(echo "$LATEST" | sed 's/^v//' | awk -F. '{p=$3+5; m=$2; M=$1; if(p>=10){p=p-10; m=m+1;} if(m>=10){m=m-10; M=M+1;} printf "v%d.%d.%d\n", M, m, p}')
+            fi
+          fi
+          echo "version=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build and push image
         uses: docker/build-push-action@v6
@@ -44,7 +60,19 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            enegalan/horizonhub:latest
+            enegalan/horizonhub:${{ steps.version.outputs.version }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/enegalan/horizonhub
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Tag the merge and push it
+        if: github.ref_type == 'branch'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "${{ steps.version.outputs.version }}"
+          git push origin "${{ steps.version.outputs.version }}"

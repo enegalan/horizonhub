@@ -215,7 +215,7 @@ See [DEVELOPMENT.md — Running the application](DEVELOPMENT.md#running-the-appl
 - **docker-compose.yml**: complete published stack — hub (prebuilt image from Docker Hub) + MySQL 8.0 + Redis 7, with `storage` and `mysql_data` volumes.
 - **Published image** (`FROM enegalan/horizonhub:latest`): the image runs standalone on an embedded SQLite fallback, no external MySQL or Redis — see the [README quick test](../README.md).
 - **docker-compose.dev.yml**: development stack — builds from source, bind-mounts the repo, and runs MySQL + Redis (see [DEVELOPMENT.md — Docker / compose](DEVELOPMENT.md#docker--compose)).
-- **Docker Hub**: `.github/workflows/publish-image.yml` builds a multi-architecture image (`linux/amd64`, `linux/arm64`) and pushes `latest` plus semver tags whenever a `v*` tag is pushed.
+- **Docker Hub / auto versioning** (`.github/workflows/publish-image.yml`): on every merge to `main`, the workflow computes the next version by incrementing the highest existing `v*` tag by `0.0.5` with decimal carry (`v1.0.0 → v1.0.5 → v1.1.0 → v1.1.5 → ...`, starting at `v1.0.0`), pushes that `v<version>` tag automatically, and publishes the multi-architecture image (`linux/amd64`, `linux/arm64`) tagged `latest` and `<version>`. Manually pushed `v*` tags publish the same tags for that release.
 - **demo/**: a separate compose stack that also runs three fake Horizon apps; usage in [DEVELOPMENT.md — Demo environment](DEVELOPMENT.md#demo-environment).
 - **GitHub Actions** (`.github/workflows/ci.yml`) enforces the verification commands documented in [DEVELOPMENT.md — CI](DEVELOPMENT.md#ci).
 
