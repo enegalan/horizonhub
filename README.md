@@ -40,16 +40,22 @@ Prefer your own databases? Point the `DB_*` (MySQL) and `REDIS_*` variables at y
 
 ## Quick test (zero-config: no MySQL/Redis)
 
-For a quick test or a simplified deploy without external services, extend the published image with a **minimal Dockerfile** — it runs standalone on the embedded SQLite fallback (`APP_KEY` is generated automatically on first boot). For real workloads prefer the full MySQL + Redis stack above.
+For a quick test or a simplified deploy without external services, extend the published image with a **minimal Dockerfile** — it runs standalone on the embedded SQLite fallback. Generate a stable `APP_KEY` once and reuse it via an ignored `.env` file. For real workloads prefer the full MySQL + Redis stack above.
 
 ```dockerfile
 FROM enegalan/horizonhub:latest
 ```
 
 ```bash
+echo "APP_KEY=$(openssl rand -base64 32)" > .env
 docker build -t my-hub .
-docker run -d -p 80:80 -v horizonhub_storage:/var/www/html/storage my-hub
+docker run -d -p 80:80 --env-file .env \
+  -v horizonhub_storage:/var/www/html/storage \
+  -v horizonhub_sqlite:/var/www/html/database \
+  my-hub
 ```
+
+The SQLite database persists in the `horizonhub_sqlite` volume; keep the same `APP_KEY` across recreations so encrypted data stays readable.
 
 ## Configuration
 

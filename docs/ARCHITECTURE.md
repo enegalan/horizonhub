@@ -211,7 +211,7 @@ See [DEVELOPMENT.md — Running the application](DEVELOPMENT.md#running-the-appl
 
 ## Deployment
 
-- **Dockerfile**: `php:8.4-fpm-alpine` with nginx and PHP extensions; frontend assets are built at image build time. The entrypoint runs migrations, caches config, then starts `queue:work` and `schedule:work` alongside php-fpm and nginx. With no env overrides it falls back to an embedded SQLite/database-driver setup so the image works with zero configuration; MySQL + Redis are used as soon as the `DB_*`/`REDIS_*`/`CACHE_STORE`/`SESSION_DRIVER` vars are provided (as the compose stack does).
+- **Dockerfile**: `php:8.4-fpm-alpine` with nginx and PHP extensions; frontend assets are built at image build time. The entrypoint runs migrations, caches config, then starts `queue:work` and `schedule:work` alongside php-fpm and nginx. With no env overrides it falls back to an embedded SQLite/database-driver setup so the image works with no database configuration; a stable `APP_KEY` must still be provided via env (the entrypoint refuses to boot without it). MySQL + Redis are used as soon as the `DB_*`/`REDIS_*`/`CACHE_STORE`/`SESSION_DRIVER` vars are provided (as the compose stack does).
 - **docker-compose.yml**: complete published stack — hub (prebuilt image from Docker Hub) + MySQL 8.0 + Redis 7, with `storage` and `mysql_data` volumes.
 - **Published image** (`FROM enegalan/horizonhub:latest`): the image runs standalone on an embedded SQLite fallback, no external MySQL or Redis — see the [README quick test](../README.md).
 - **docker-compose.dev.yml**: development stack — builds from source, bind-mounts the repo, and runs MySQL + Redis (see [DEVELOPMENT.md — Docker / compose](DEVELOPMENT.md#docker--compose)).

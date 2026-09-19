@@ -96,16 +96,21 @@ docker compose up -d
 
 See the [README.md](../README.md) quick start. Hub runs on port 80; the image and entrypoint behavior are described in [ARCHITECTURE.md — Deployment](ARCHITECTURE.md#deployment).
 
-**2. Zero-config single container (fallback):** the image also runs standalone on the embedded SQLite fallback with no external services — just `FROM enegalan/horizonhub:latest` and run:
+**2. Zero-config single container (fallback):** the published image also runs standalone on the embedded SQLite fallback with no external services — no source checkout or local Dockerfile needed:
 
 ```bash
-docker build -t my-hub .
-docker run -d -p 80:80 -v horizonhub_storage:/var/www/html/storage my-hub
+echo "APP_KEY=$(openssl rand -base64 32)" > .env  # generate once, reuse it
+docker run -d -p 80:80 --env-file .env \
+  -v horizonhub_storage:/var/www/html/storage \
+  -v horizonhub_sqlite:/var/www/html/database \
+  enegalan/horizonhub:latest
 ```
 
-**3. Development from source:** use [docker-compose.dev.yml](../docker-compose.dev.yml), which builds the image from the repo, bind-mounts the code, and provides MySQL + Redis:
+**3. Development from source:** use [docker-compose.dev.yml](../docker-compose.dev.yml), which builds the image from the repo, bind-mounts the code, and provides MySQL + Redis. It requires `APP_KEY` and `DB_PASSWORD` via your shell or the project `.env`:
 
 ```bash
+echo "APP_KEY=$(openssl rand -base64 32)" > .env
+echo "DB_PASSWORD=$(openssl rand -base64 24 | tr '+/' '-_')" >> .env
 docker compose -f docker-compose.dev.yml up -d --build
 docker compose -f docker-compose.dev.yml exec hub npm run build   # after JS/CSS changes
 ```

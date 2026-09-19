@@ -14,7 +14,8 @@ chmod -R 775 storage bootstrap/cache
 [ -d public/build ] || npm run build
 
 if [ -z "$APP_KEY" ]; then
-    APP_KEY=$(php artisan key:generate --force --show)
+    echo "ERROR: APP_KEY is required. Add APP_KEY=... to your project .env file (generate one with: php artisan key:generate --force --show)." >&2
+    exit 1
 fi
 export APP_KEY
 
