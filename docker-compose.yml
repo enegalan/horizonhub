@@ -6,6 +6,7 @@ services:
     ports:
       - "80:80"
     environment:
+      - APP_NAME="Horizon Hub"
       - APP_ENV=production
       - APP_DEBUG=false
       - APP_URL=http://localhost
