@@ -37,7 +37,7 @@ The main UI lives under `/horizon` (root `/` redirects there). Sidebar sections:
 | Services  | `/horizon/services`  | Register and manage Horizon endpoints                                |
 | Metrics   | `/horizon/metrics`   | Charts and tables for throughput, failures, runtimes, queue wait     |
 | Alerts    | `/horizon/alerts`    | Alert rules, evaluation, delivery history                            |
-| Providers | `/horizon/providers` | Slack, Discord, and email notification destinations                            |
+| Providers | `/horizon/providers` | Slack, Discord, and email notification destinations                  |
 
 ## Integration requirements
 
@@ -61,7 +61,7 @@ Custom paths can be adjusted in config if a deployment uses non-default Horizon 
 
 ### Horizon Hub deployment
 
-- **PHP 8.4+**, **Laravel 13**, database (MySQL 8 or SQLite), **Redis** (cache/sessions as configured).
+- **PHP 8.4+**, **Laravel 13**, **MySQL 8** + **Redis** recommended, as they handle concurrent writes from the SSE (multistreaming) streams and the queue/scheduler workers optimally; **SQLite** is available as a zero-config fallback for quick tests (via `DB_CONNECTION=sqlite`).
 - **Scheduler** must run Laravel's scheduler so these commands execute every minute (`routes/console.php`):
   - `hh:evaluate-alerts` — evaluate enabled alert rules
   - `hh:mark-stale-services-offline` — update service/supervisor staleness
@@ -144,7 +144,7 @@ Do not suggest rejected alternatives unless a documented reopen trigger is met o
 | Backend         | PHP 8.4+, Laravel 13                                    |
 | Frontend        | Hotwired Turbo (turbo-laravel), Alpine.js, Tailwind CSS |
 | Testing / style | PHPUnit 12, Laravel Pint                                |
-| Data            | MySQL or SQLite; Redis                                  |
+| Data            | MySQL 8 + Redis (recommended); SQLite fallback          |
 
 Repository agent instructions: [AGENTS.md](../AGENTS.md).
 
@@ -188,12 +188,12 @@ Web UI: `routes/web.php`. SSE: `routes/streams.php`.
 
 ## Related documentation
 
-| Document                  | Audience                                    |
-|---------------------------|---------------------------------------------|
-| [README.md](../README.md) | Install, requirements, quick start          |
-| [GUIDE.md](GUIDE.md) | End-user manual for all features                 |
+| Document                  | Audience                                                    |
+|---------------------------|-------------------------------------------------------------|
+| [README.md](../README.md) | Install, requirements, quick start                          |
+| [GUIDE.md](GUIDE.md) | End-user manual for all features                                 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Internal architecture and data flow for developers |
-| [CONVENTIONS.md](CONVENTIONS.md) | Coding and testing conventions |
-| [DEVELOPMENT.md](DEVELOPMENT.md) | Local setup and development workflow |
-| [decisions/](decisions/) | Accepted and rejected architecture decisions |
-| [AGENTS.md](../AGENTS.md) | Coding and testing conventions for agents   |
+| [CONVENTIONS.md](CONVENTIONS.md) | Coding and testing conventions                       |
+| [DEVELOPMENT.md](DEVELOPMENT.md) | Local setup and development workflow                 |
+| [decisions/](decisions/) | Accepted and rejected architecture decisions                 |
+| [AGENTS.md](../AGENTS.md) | Coding and testing conventions for agents                   |

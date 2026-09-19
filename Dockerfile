@@ -17,8 +17,11 @@ WORKDIR /var/www/html
 COPY composer.json composer.lock* ./
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
 
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
 COPY . .
-RUN composer dump-autoload --optimize
+RUN composer dump-autoload --optimize && npm run build && rm -rf node_modules
 
 COPY nginx/default.conf /etc/nginx/http.d/default.conf
 RUN rm -f /etc/nginx/http.d/default.conf.bak 2>/dev/null; true

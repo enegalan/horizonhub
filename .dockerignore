@@ -11,4 +11,8 @@ storage/framework/cache/*
 storage/framework/sessions/*
 storage/framework/views/*
 npm-debug.log
+database.sqlite
+database/*.sqlite
+database/*.sqlite-shm
+database/*.sqlite-wal
 .DS_Store
