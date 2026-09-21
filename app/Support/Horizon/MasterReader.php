@@ -47,8 +47,7 @@ final class MasterReader
      *     processes: int|null,
      *     balancing: string,
      *     apiStatus: string,
-     *     queueNames: list<string>,
-     *     lastHeartbeatAt: mixed
+     *     queueNames: list<string>
      * }>
      */
     public static function supervisorsFromMastersPayload(array $mastersData): array
@@ -108,7 +107,6 @@ final class MasterReader
                 'balancing' => $balancing,
                 'apiStatus' => isset($supervisor['status']) ? (string) $supervisor['status'] : '',
                 'queueNames' => QueueNameNormalizer::normalizeListFromOptions($options),
-                'lastHeartbeatAt' => $supervisor['last_heartbeat_at'] ?? ($supervisor['lastSeen'] ?? null),
             ];
         }
 

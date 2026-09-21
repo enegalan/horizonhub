@@ -166,7 +166,7 @@ class AlertRulesTest extends TestCase
             if ($request->url() === 'https://example.test/horizon/api/masters') {
                 return Http::response([[
                     'supervisors' => [
-                        ['last_heartbeat_at' => now()->subHour()->toIso8601String()],
+                        ['name' => 'svc-b:supervisor-1', 'status' => 'inactive'],
                     ],
                 ]], 200);
             }
@@ -202,6 +202,9 @@ class AlertRulesTest extends TestCase
         $this->assertFalse($queueBlocked->evaluateWithTriggeringJobs($queueAlert, $service->id)['triggered']);
 
         $supervisor = new SupervisorOffline;
+        $this->assertFalse($supervisor->evaluateWithTriggeringJobs($supAlert, $service->id)['triggered']);
+
+        $this->travel(16)->minutes();
         $this->assertTrue($supervisor->evaluateWithTriggeringJobs($supAlert, $service->id)['triggered']);
 
         $offline = new HorizonOffline;
