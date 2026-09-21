@@ -125,15 +125,10 @@ final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
             return [];
         }
 
-        // TO-DEPURATE: data or workload?
-        $data = $payload['data'] ?? $payload['workload'] ?? null;
+        $data = $payload['workload'] ?? null;
 
-        if (empty($data) || ! \is_array($data)) {
-            if (isset($payload[0]) && \is_array($payload[0]) && isset($payload[0]['name'])) {
-                $data = $payload;
-            } else {
-                return [];
-            }
+        if (! \is_array($data) || empty($data)) {
+            return [];
         }
 
         $rows = [];
@@ -155,8 +150,7 @@ final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
                 continue;
             }
 
-            // TO-DEPURATE: length, size, pending, jobs?
-            $jobs = $row['length'] ?? $row['size'] ?? $row['pending'] ?? $row['jobs'] ?? 0;
+            $jobs = (int) ($row['length'] ?? 0);
 
             $processes = null;
 
