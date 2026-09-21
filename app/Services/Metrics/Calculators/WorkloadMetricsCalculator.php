@@ -119,8 +119,7 @@ final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
      */
     public function getWorkloadForService(Service $service): array
     {
-        $response = HorizonClientApiService::getWorkload($service);
-        $payload = ClientResponse::data($response);
+        $payload = ClientResponse::data(HorizonClientApiService::getWorkload($service));
 
         if (empty($payload)) {
             return [];
