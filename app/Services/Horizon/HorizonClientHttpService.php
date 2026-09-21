@@ -73,7 +73,7 @@ class HorizonClientHttpService
                     $lock = HorizonClientCacheService::requestPathFillLock($service, $path);
 
                     try {
-                        $lock->block((int) config('horizonhub.api_timeout'));
+                        $lock->block(config('horizonhub.api_timeout'));
                     } catch (LockTimeoutException) {
                         $lock = null;
 
@@ -322,16 +322,16 @@ class HorizonClientHttpService
      */
     private static function private__newHorizonPendingRequest(string $httpMethod, ?Service $service = null): PendingRequest
     {
-        $request = Http::timeout((int) config('horizonhub.api_timeout'));
+        $request = Http::timeout(config('horizonhub.api_timeout'));
 
         $connectTimeout = config('horizonhub.horizon_http_connect_timeout');
 
-        if ($connectTimeout !== null && (float) $connectTimeout > 0) {
-            $request->connectTimeout((float) $connectTimeout);
+        if ($connectTimeout !== null && $connectTimeout > 0) {
+            $request->connectTimeout($connectTimeout);
         }
 
         $retryConfig = config('horizonhub.horizon_http_retry');
-        $retryTimes = (int) max(1, $retryConfig['times']);
+        $retryTimes = $retryConfig['times'];
         $retryOnStatus = $retryConfig['retry_on_status'];
 
         if ($httpMethod === 'get' && $retryTimes > 1) {

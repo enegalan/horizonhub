@@ -159,7 +159,7 @@ final class PathBuilder
     {
         return \http_build_query([
             'starting_at' => 0,
-            'limit' => (int) config('horizonhub.horizon_api_job_list_page_size'),
+            'limit' => config('horizonhub.horizon_api_job_list_page_size'),
             ...$overrides,
         ]);
     }

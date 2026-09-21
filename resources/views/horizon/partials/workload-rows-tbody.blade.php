@@ -27,8 +27,8 @@
         $jobs = $row['jobs'];
         $processes = $row['processes'] ?? null;
         $wait = $row['wait'] ?? null;
-        $serviceId = $row['service_id'];
-        $serviceName = $row['service'];
+        $serviceId = (int) ($row['service_id'] ?? 0);
+        $serviceName = $row['service'] ?? '';
         $rowKey = "$rowIdPrefix-" . ($includeServiceColumn ? "$serviceId-" : '') . rawurlencode($queue);
     @endphp
     <tr class="transition-colors hover:bg-muted/30" data-stream-row-id="{{ $rowKey }}">

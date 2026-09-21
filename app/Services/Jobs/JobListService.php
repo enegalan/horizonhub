@@ -52,7 +52,7 @@ class JobListService
             $pageProcessing,
             $pageProcessed,
             $pageFailed,
-            (int) config('horizonhub.jobs_per_page'),
+            config('horizonhub.jobs_per_page'),
             $request->url(),
             $request->query(),
         );

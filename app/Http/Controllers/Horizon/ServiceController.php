@@ -132,7 +132,7 @@ class ServiceController extends Controller
         if (\str_contains(\strtolower((string) $message), 'timed out')) {
             $message .= \sprintf(
                 ' Consider raising HORIZON_HUB_API_TIMEOUT (currently %ds) if this service is legitimately slow.',
-                (int) config('horizonhub.api_timeout'),
+                config('horizonhub.api_timeout'),
             );
 
             return redirect()

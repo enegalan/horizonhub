@@ -191,7 +191,7 @@ trait BuildsServiceStreams
                 $pageProcessing,
                 $pageProcessed,
                 $pageFailed,
-                (int) config('horizonhub.jobs_per_page'),
+                config('horizonhub.jobs_per_page'),
                 $request->url(),
                 $request->query(),
             );
@@ -206,7 +206,7 @@ trait BuildsServiceStreams
             $emptyPaginator = static fn (int $page, string $pageName): LengthAwarePaginator => new LengthAwarePaginator(
                 [],
                 0,
-                (int) config('horizonhub.jobs_per_page'),
+                config('horizonhub.jobs_per_page'),
                 $page,
                 [
                     'path' => $path,
