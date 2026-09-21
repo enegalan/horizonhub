@@ -2,7 +2,6 @@
 
 namespace App\Support\Horizon;
 
-// TODO: Simplify checks, it's certain that data is an array and not null.
 final class StatsReader
 {
     /**
