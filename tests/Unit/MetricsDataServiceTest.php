@@ -289,7 +289,7 @@ class MetricsDataServiceTest extends TestCase
         Http::fake(function ($request) {
             if (\str_contains($request->url(), '/workload')) {
                 return Http::response([
-                    'data' => [
+                    'workload' => [
                         ['name' => 'redis.default', 'length' => 7, 'processes' => 2, 'wait' => 1.5],
                     ],
                 ], 200);
@@ -389,34 +389,12 @@ class MetricsDataServiceTest extends TestCase
         ]));
     }
 
-    public function test_get_workload_for_service_accepts_numeric_indexed_rows(): void
-    {
-        Http::fake([
-            'https://metrics-d.test/horizon/api/workload' => Http::response([
-                ['name' => 'alpha', 'size' => 4],
-            ], 200),
-        ]);
-
-        $service = Service::create([
-            'name' => 'svc-d',
-            'base_url' => 'https://metrics-d.test',
-            'status' => 'online',
-        ]);
-
-        $metrics = $this->private__makeMetricsDataService();
-        $rows = $metrics->getWorkloadForService($service);
-
-        $this->assertCount(1, $rows);
-        $this->assertSame('alpha', $rows[0]['queue']);
-        $this->assertSame(4, $rows[0]['jobs']);
-    }
-
-    public function test_get_workload_for_service_maps_nested_data_payload(): void
+    public function test_get_workload_for_service_maps_nested_workload_payload(): void
     {
         Http::fake(function ($request) {
             if (\str_contains($request->url(), '/workload')) {
                 return Http::response([
-                    'data' => [
+                    'workload' => [
                         ['name' => 'redis.default', 'length' => 7, 'processes' => 2, 'wait' => 1.5],
                     ],
                 ], 200);

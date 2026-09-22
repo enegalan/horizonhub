@@ -5,19 +5,73 @@ import { parseJson } from '../lib/parse';
      * Storage prefix.
      * @type {string}
      */
-    var STORAGE_PREFIX = 'horizon_table_';
+    const STORAGE_PREFIX = 'horizon_table_';
 
     /**
-     * Minimum width.
-     * @type {number}
+     * Horizon drag overlay ID.
+     * @type {string}
      */
-    var MIN_WIDTH = 60;
+    const HORIZON_DRAG_OVERLAY_ID = 'horizon-drag-overlay';
+
+    /**
+     * Horizon drag overlay visible class.
+     * @type {string}
+     */
+    const HORIZON_DRAG_OVERLAY_VISIBLE_CLASS = 'horizon-drag-overlay--visible';
+
+    /**
+     * Horizon resize handle line class.
+     * @type {string}
+     */
+    const HORIZON_RESIZE_HANDLE_LINE_CLASS = 'horizon-resize-handle-line';
+
+    /**
+     * Horizon resize handle class.
+     * @type {string}
+     */
+    const HORIZON_RESIZE_HANDLE_CLASS = 'horizon-resize-handle';
+
+    /**
+     * Empty state pinned class.
+     * @type {string}
+     */
+    const HORIZON_EMPTY_PINNED_CLASS = 'horizon-empty-state-pinned';
 
     /**
      * Initted attribute.
      * @type {string}
      */
-    var INITTED_ATTR = 'data-resizable-initted';
+    const INITTED_ATTR = 'data-resizable-initted';
+
+    /**
+     * Column IDs attribute.
+     * @type {string}
+     */
+    const COLUMN_IDS_ATTR = 'data-column-ids';
+
+    /**
+     * Column ID attribute.
+     * @type {string}
+     */
+    const COLUMN_ID_ATTR = 'data-column-id';
+
+    /**
+     * Column min width attribute.
+     * @type {string}
+     */
+    const COLUMN_MIN_WIDTH_ATTR = 'data-horizon-min-width';
+
+    /**
+     * Column max width attribute.
+     * @type {string}
+     */
+    const COLUMN_MAX_WIDTH_ATTR = 'data-horizon-max-width';
+
+    /**
+     * Horizon resizing attribute.
+     * @type {string}
+     */
+    const HORIZON_RESIZING_ATTR = 'data-horizon-resizing';
 
     /**
      * Interacting flag.
@@ -69,8 +123,70 @@ import { parseJson } from '../lib/parse';
      * @returns {string[]}
      */
     function getColumnIds(table) {
-        var raw = table.getAttribute('data-column-ids');
-        return raw ? raw.split(',').map(s => s.trim()) : [];
+        return table.getAttribute(COLUMN_IDS_ATTR)?.split(',').map(s => s.trim()) || [];
+    }
+
+    /**
+     * Read a stylesheet-assigned width bound (min/max) and cache it on the element
+     * so it survives inline overwrites. 0 means no bound.
+     * @param {HTMLElement} th
+     * @param {string} attr
+     * @param {string} cssProp 'minWidth' | 'maxWidth'
+     * @returns {number}
+     */
+    function getColumnWidthBound(th, attr, cssProp) {
+        var cached = th.getAttribute(attr);
+        if (cached) {
+            var cachedValue = parseFloat(cached);
+            return isFinite(cachedValue) ? cachedValue : 0;
+        }
+        var css = window.getComputedStyle(th)[cssProp];
+        var parsed = css ? parseFloat(css) : NaN;
+        var bound = isFinite(parsed) && parsed > 0 ? parsed : 0;
+        if (bound > 0) {
+            th.setAttribute(attr, String(bound));
+        }
+        return bound;
+    }
+
+    /**
+     * Clamp a column width within the stylesheet min-width/max-width.
+     * Columns without an assigned bound in the stylesheet are not constrained.
+     * @param {HTMLElement} th
+     * @param {number} w
+     * @returns {number}
+     */
+    function clampColumnWidth(th, w) {
+        if (typeof w !== 'number' || !isFinite(w)) {
+            return w;
+        }
+        var min = getColumnWidthBound(th, COLUMN_MIN_WIDTH_ATTR, 'minWidth');
+        var max = getColumnWidthBound(th, COLUMN_MAX_WIDTH_ATTR, 'maxWidth');
+        if (min > 0 && max > 0 && min > max) {
+            min = max;
+        }
+        if (max > 0 && w > max) {
+            return max;
+        }
+        if (min > 0 && w < min) {
+            return min;
+        }
+        return w;
+    }
+
+    /**
+     * Resolve the inline width/max-width strings for a column.
+     * @param {HTMLElement} th
+     * @param {number|undefined} w
+     * @returns {{ width: string, maxWidth: string }}
+     */
+    function getColumnStyleWidths(th, w) {
+        var resolved = typeof w === 'number' && isFinite(w) ? clampColumnWidth(th, w) : null;
+        var max = getColumnWidthBound(th, COLUMN_MAX_WIDTH_ATTR, 'maxWidth');
+        return {
+            width: resolved === null ? '' : resolved + 'px',
+            maxWidth: max > 0 ? max + 'px' : ''
+        };
     }
 
     /**
@@ -83,16 +199,11 @@ import { parseJson } from '../lib/parse';
         if (current.length !== desired.length) {
             return false;
         }
-        for (let i = 0; i < current.length; i++) {
-            if (current[i] !== desired[i]) {
-                return false;
-            }
-        }
-        return true;
+        return current.every((element, index) => element === desired[index]);
     }
 
     /**
-     * Direct th/td children carrying data-column-id.
+     * Direct th/td children carrying COLUMN_ID_ATTR.
      * @param {HTMLTableRowElement} row
      * @param {string} tag 'TH' | 'TD'
      * @returns {HTMLElement[]}
@@ -101,8 +212,8 @@ import { parseJson } from '../lib/parse';
         var want = String(tag).toUpperCase();
         var out = [];
         for (let c = row.firstElementChild; c; c = c.nextElementSibling) {
-            var tn = c.tagName ? c.tagName.toUpperCase() : '';
-            if (tn === want && c.hasAttribute('data-column-id')) {
+            var tn = c.tagName?.toUpperCase() || '';
+            if (tn === want && c.hasAttribute(COLUMN_ID_ATTR)) {
                 out.push(c);
             }
         }
@@ -121,11 +232,11 @@ import { parseJson } from '../lib/parse';
             return true;
         }
         var thsById = {};
-        theadRow.querySelectorAll('th[data-column-id]').forEach(function (th) {
-            thsById[th.getAttribute('data-column-id')] = th;
+        theadRow.querySelectorAll('th[' + COLUMN_ID_ATTR + ']').forEach(th => {
+            thsById[th.getAttribute(COLUMN_ID_ATTR)] = th;
         });
         var expectedOrder = [];
-        state.order.forEach(function (colId) {
+        state.order.forEach(colId => {
             if (thsById[colId]) {
                 expectedOrder.push(colId);
             }
@@ -134,35 +245,26 @@ import { parseJson } from '../lib/parse';
         if (currentHead.length !== expectedOrder.length) {
             return false;
         }
-        for (let i = 0; i < expectedOrder.length; i++) {
-            if (currentHead[i].getAttribute('data-column-id') !== expectedOrder[i]) {
-                return false;
-            }
+        if (currentHead.some((element, index) => element.getAttribute(COLUMN_ID_ATTR) !== expectedOrder[index])) {
+            return false;
         }
-        for (let i = 0; i < expectedOrder.length; i++) {
-            var colId = expectedOrder[i];
+        if (expectedOrder.some(colId => {
             var th = thsById[colId];
-            var w = state.widths[colId];
-            var widthStr = typeof w === 'number' && isFinite(w) ? w + 'px' : '';
-            if (th.style.width !== widthStr || th.style.maxWidth !== widthStr) {
-                return false;
-            }
+            if (!th) return true;
+            var widths = getColumnStyleWidths(th, state.widths[colId]);
+            return th.style.width !== widths.width || th.style.maxWidth !== widths.maxWidth;
+        })) {
+            return false;
         }
         var columnOrder = expectedOrder.slice();
-        var bodyRows = table.querySelectorAll('tbody tr');
-        for (let r = 0; r < bodyRows.length; r++) {
-            var tr = bodyRows[r];
-            var cur = getDirectColumnCells(tr, 'TD').map(function (td) {
-                return td.getAttribute('data-column-id');
-            });
+        if (Array.from(table.querySelectorAll('tbody tr')).some(tr => {
+            var cur = getDirectColumnCells(tr, 'TD').map(td => td.getAttribute(COLUMN_ID_ATTR));
             if (cur.length !== columnOrder.length) {
-                return false;
+                return true;
             }
-            for (let c = 0; c < columnOrder.length; c++) {
-                if (cur[c] !== columnOrder[c]) {
-                    return false;
-                }
-            }
+            return columnOrder.some((colId, index) => cur[index] !== colId);
+        })) {
+            return false;
         }
         return true;
     }
@@ -182,8 +284,8 @@ import { parseJson } from '../lib/parse';
         if (!theadRow) return;
 
         var thsById = {};
-        theadRow.querySelectorAll('th[data-column-id]').forEach(th => {
-            thsById[th.getAttribute('data-column-id')] = th;
+        theadRow.querySelectorAll('th[' + COLUMN_ID_ATTR + ']').forEach(th => {
+            thsById[th.getAttribute(COLUMN_ID_ATTR)] = th;
         });
 
         var desiredHeadCells = [];
@@ -203,21 +305,21 @@ import { parseJson } from '../lib/parse';
         state.order.forEach(colId => {
             var th = thsById[colId];
             if (!th) return;
-            var w = state.widths[colId];
-            var widthStr = typeof w === 'number' && isFinite(w) ? w + 'px' : '';
-            if (th.style.width !== widthStr || th.style.maxWidth !== widthStr) {
-                th.style.width = th.style.maxWidth = widthStr;
+            var widths = getColumnStyleWidths(th, state.widths[colId]);
+            if (th.style.width !== widths.width || th.style.maxWidth !== widths.maxWidth) {
+                th.style.width = widths.width;
+                th.style.maxWidth = widths.maxWidth;
             }
         });
 
         var columnOrder = getDirectColumnCells(theadRow, 'TH').map(function (th) {
-            return th.getAttribute('data-column-id');
+            return th.getAttribute(COLUMN_ID_ATTR);
         });
 
         bodyRows.forEach(tr => {
             var cellsById = {};
             getDirectColumnCells(tr, 'TD').forEach(td => {
-                cellsById[td.getAttribute('data-column-id')] = td;
+                cellsById[td.getAttribute(COLUMN_ID_ATTR)] = td;
             });
             var desiredBodyCells = [];
             columnOrder.forEach(function (colId) {
@@ -240,13 +342,11 @@ import { parseJson } from '../lib/parse';
      * @returns {HTMLElement}
      */
     function getDragOverlay() {
-        var id = 'horizon-drag-overlay';
-        var el = document.getElementById(id);
+        var el = document.getElementById(HORIZON_DRAG_OVERLAY_ID);
         if (el) return el;
 
         el = document.createElement('div');
-        el.id = id;
-        el.className = 'horizon-drag-overlay';
+        el.id = HORIZON_DRAG_OVERLAY_ID;
         el.setAttribute('aria-hidden', 'true');
         document.body.appendChild(el);
         return el;
@@ -264,7 +364,7 @@ import { parseJson } from '../lib/parse';
         overlay.style.top = r.top + 'px';
         overlay.style.width = r.width + 'px';
         overlay.style.height = r.height + 'px';
-        overlay.classList.add('horizon-drag-overlay--visible');
+        overlay.classList.add(HORIZON_DRAG_OVERLAY_VISIBLE_CLASS);
     }
 
     /**
@@ -272,8 +372,8 @@ import { parseJson } from '../lib/parse';
      * @returns {void}
      */
     function hideDragOverlay() {
-        var el = document.getElementById('horizon-drag-overlay');
-        if (el) el.classList.remove('horizon-drag-overlay--visible');
+        var el = document.getElementById(HORIZON_DRAG_OVERLAY_ID);
+        if (el) el.classList.remove(HORIZON_DRAG_OVERLAY_VISIBLE_CLASS);
     }
 
     /**
@@ -287,17 +387,16 @@ import { parseJson } from '../lib/parse';
         var theadRow = table.querySelector('thead tr');
         if (!theadRow) return;
 
-        theadRow.querySelectorAll('th[data-column-id]').forEach(th => {
-            var colId = th.getAttribute('data-column-id');
-            var existing = th.querySelector('.horizon-resize-handle');
+        theadRow.querySelectorAll('th[' + COLUMN_ID_ATTR + ']').forEach(th => {
+            var colId = th.getAttribute(COLUMN_ID_ATTR);
+            var existing = th.querySelector('.' + HORIZON_RESIZE_HANDLE_CLASS);
             if (existing) return;
 
             var handle = document.createElement('span');
-            handle.className = 'horizon-resize-handle';
-            handle.title = 'Resize column';
+            handle.className = HORIZON_RESIZE_HANDLE_CLASS;
 
             var line = document.createElement('span');
-            line.className = 'horizon-resize-handle-line';
+            line.className = HORIZON_RESIZE_HANDLE_LINE_CLASS;
             handle.appendChild(line);
 
             th.appendChild(handle);
@@ -305,22 +404,23 @@ import { parseJson } from '../lib/parse';
             handle.addEventListener('mousedown', e => {
                 e.preventDefault();
                 window.horizonTableInteracting = true;
-                th.setAttribute('data-horizon-resizing', '1');
+                th.setAttribute(HORIZON_RESIZING_ATTR, '1');
                 th.draggable = false;
                 var startX = e.clientX;
                 var startWidth = th.offsetWidth;
 
                 function onMove(eMove) {
-                    var w = Math.max(MIN_WIDTH, startWidth + (eMove.clientX - startX));
+                    var w = clampColumnWidth(th, startWidth + (eMove.clientX - startX));
                     state.widths[colId] = w;
-                    th.style.width = th.style.maxWidth = w + 'px';
+                    var widths = getColumnStyleWidths(th, w);
+                    th.style.width = widths.width;
+                    th.style.maxWidth = widths.maxWidth;
                 }
 
                 function onUp() {
                     document.removeEventListener('mousemove', onMove);
                     document.removeEventListener('mouseup', onUp);
-                    document.body.classList.remove('horizon-resizing');
-                    th.removeAttribute('data-horizon-resizing');
+                    th.removeAttribute(HORIZON_RESIZING_ATTR);
                     th.draggable = true;
                     saveState(storageKey, state.order, state.widths);
                     window.horizonTableInteracting = false;
@@ -328,7 +428,6 @@ import { parseJson } from '../lib/parse';
 
                 document.addEventListener('mousemove', onMove);
                 document.addEventListener('mouseup', onUp);
-                document.body.classList.add('horizon-resizing');
             });
         });
     }
@@ -344,7 +443,7 @@ import { parseJson } from '../lib/parse';
         var theadRow = table.querySelector('thead tr');
         if (!theadRow) return;
 
-        theadRow.querySelectorAll('th[data-column-id]').forEach(th => {
+        theadRow.querySelectorAll('th[' + COLUMN_ID_ATTR + ']').forEach(th => {
             if (th.hasAttribute('data-column-fixed')) {
                 th.removeAttribute('draggable');
                 th.classList.remove('select-none', 'cursor-move');
@@ -355,13 +454,13 @@ import { parseJson } from '../lib/parse';
             th.classList.add('select-none', 'cursor-move');
 
             th.addEventListener('dragstart', e => {
-                if (th.getAttribute('data-horizon-resizing') === '1') {
+                if (th.getAttribute(HORIZON_RESIZING_ATTR) === '1') {
                     e.preventDefault();
                     return;
                 }
                 window.horizonTableInteracting = true;
                 e.dataTransfer.effectAllowed = 'move';
-                var colId = th.getAttribute('data-column-id');
+                var colId = th.getAttribute(COLUMN_ID_ATTR);
                 e.dataTransfer.setData('text/plain', colId);
                 table.setAttribute('data-drag-source-id', colId);
                 th.classList.add('opacity-50');
@@ -384,7 +483,7 @@ import { parseJson } from '../lib/parse';
 
             th.addEventListener('dragover', e => {
                 if (!table.getAttribute('data-drag-source-id')) return;
-                if (th.getAttribute('data-column-id') === table.getAttribute('data-drag-source-id')) return;
+                if (th.getAttribute(COLUMN_ID_ATTR) === table.getAttribute('data-drag-source-id')) return;
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
             });
@@ -392,7 +491,7 @@ import { parseJson } from '../lib/parse';
             th.addEventListener('drop', e => {
                 e.preventDefault();
                 var sourceId = e.dataTransfer.getData('text/plain');
-                var targetId = th.getAttribute('data-column-id');
+                var targetId = th.getAttribute(COLUMN_ID_ATTR);
                 if (!sourceId || sourceId === targetId) return;
 
                 var order = state.order.slice();
@@ -408,6 +507,88 @@ import { parseJson } from '../lib/parse';
                 saveState(storageKey, state.order, state.widths);
             });
         });
+    }
+
+    /**
+     * Apply layout styles that decouple each column from the others.
+     * The table width is driven by its columns (max-content) but never drops
+     * below the container width (min-width 100%), so there is never an empty
+     * gap when the column widths sum to less than the container.
+     * @param {HTMLElement} table
+     * @returns {void}
+     */
+    function applyTableLayoutStyles(table) {
+        table.style.tableLayout = 'fixed';
+        table.style.width = 'max-content';
+        table.style.minWidth = '100%';
+    }
+
+    /**
+     * Fill missing stored widths with the column's current rendered width so
+     * every column gets an explicit width (keeps them independent).
+     * @param {HTMLElement} table
+     * @param {object} state
+     * @returns {boolean} Whether any width was added.
+     */
+    function normalizeStateWidths(table, state) {
+        var changed = false;
+        var theadRow = table.querySelector('thead tr');
+        if (!theadRow) return false;
+        theadRow.querySelectorAll('th[' + COLUMN_ID_ATTR + ']').forEach(th => {
+            var colId = th.getAttribute(COLUMN_ID_ATTR);
+            if (Object.prototype.hasOwnProperty.call(state.widths, colId)) return;
+            var w = th.offsetWidth;
+            if (w > 0) {
+                state.widths[colId] = w;
+                changed = true;
+            }
+        });
+        return changed;
+    }
+
+    /**
+     * Keep the empty state message inside the scrollable viewport. An empty
+     * table is usually narrower than the sum of its column widths, so a
+     * message centered across the whole (wide) table scrolls out of view.
+     * The empty state is sized to the visible width and pinned with sticky
+     * positioning; column layout (resize/reorder) stays untouched. The
+     * table's `overflow-hidden` would otherwise become the sticky scroll
+     * container, so it is disabled only while pinned and restored once data
+     * rows appear.
+     * @param {HTMLTableElement} table
+     * @returns {void}
+     */
+    function applyEmptyStatePinning(table) {
+        var wrapper = table.parentElement;
+        if (!wrapper || !wrapper.classList.contains('table-scroll')) return;
+
+        var emptyState = table.querySelector('tbody .empty-state');
+        if (!emptyState) return;
+
+        if (table.querySelector('tbody > tr > td + td')) {
+            emptyState.classList.remove(HORIZON_EMPTY_PINNED_CLASS);
+            emptyState.style.width = '';
+            table.style.overflow = '';
+            return;
+        }
+
+        emptyState.classList.add(HORIZON_EMPTY_PINNED_CLASS);
+        emptyState.style.width = wrapper.clientWidth + 'px';
+        table.style.overflow = 'visible';
+    }
+
+    /**
+     * Re-measure pinned empty states when the viewport width changes.
+     * @returns {void}
+     */
+    function refreshEmptyStatePinning() {
+        document.querySelectorAll('table[data-resizable-table]').forEach(applyEmptyStatePinning);
+    }
+
+    if (!window._horizonEmptyStateRefreshBound) {
+        window._horizonEmptyStateRefreshBound = true;
+        window.addEventListener('resize', refreshEmptyStatePinning);
+        window.addEventListener('sidebar-open-changed', refreshEmptyStatePinning);
     }
 
     /**
@@ -427,12 +608,17 @@ import { parseJson } from '../lib/parse';
         }
 
         var state = loadState(storageKey, columnIds);
-        table.style.tableLayout = 'fixed';
+        applyTableLayoutStyles(table);
+        if (normalizeStateWidths(table, state)) {
+            saveState(storageKey, state.order, state.widths);
+        }
 
         applyState(table, state);
         setupResize(table, storageKey, state);
         setupReorder(table, storageKey, state);
         table.setAttribute(INITTED_ATTR, '1');
+
+        applyEmptyStatePinning(table);
     }
 
     /**
@@ -449,7 +635,13 @@ import { parseJson } from '../lib/parse';
         if (columnIds.length === 0) return;
 
         var state = loadState(storageKey, columnIds);
+        applyTableLayoutStyles(table);
+        if (normalizeStateWidths(table, state)) {
+            saveState(storageKey, state.order, state.widths);
+        }
         applyState(table, state);
+
+        applyEmptyStatePinning(table);
     }
 
     /**
@@ -524,7 +716,7 @@ import { parseJson } from '../lib/parse';
 
         window._horizonDragOverDelegated = true;
         document.body.addEventListener('dragover', e => {
-            var target = e.target.closest('th[data-column-id]');
+            var target = e.target.closest('th[' + COLUMN_ID_ATTR + ']');
             if (!target) {
                 hideDragOverlay();
                 return;
@@ -540,7 +732,7 @@ import { parseJson } from '../lib/parse';
             }
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
-            if (target.getAttribute('data-column-id') !== table.getAttribute('data-drag-source-id')) {
+            if (target.getAttribute(COLUMN_ID_ATTR) !== table.getAttribute('data-drag-source-id')) {
                 showOverlayOver(target);
             } else {
                 hideDragOverlay();

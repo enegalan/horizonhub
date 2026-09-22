@@ -27,7 +27,7 @@ final class HorizonOffline extends AbstractAlertRuleStrategy
     }
 
     /**
-     * Evaluate the rule and return whether it triggered plus triggering job UUIDs (if applicable).
+     * Evaluate the rule and return whether it triggered plus triggering job UUIDs.
      *
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */

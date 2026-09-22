@@ -15,8 +15,8 @@ final class JobsPaginator
      */
     public static function fetchAllPages(callable $pageFetcher): array
     {
-        $maxPages = (int) config('horizonhub.max_horizon_pages');
-        $jobsPerRequest = (int) config('horizonhub.horizon_api_job_list_page_size');
+        $maxPages = config('horizonhub.max_horizon_pages');
+        $jobsPerRequest = config('horizonhub.horizon_api_job_list_page_size');
         $accumulated = [];
         $startingAt = -1;
 
@@ -57,8 +57,8 @@ final class JobsPaginator
         $jobs = [];
         $startingAt = -1;
         $page = 0;
-        $jobsPerRequest = (int) config('horizonhub.horizon_api_job_list_page_size');
-        $maxPages = (int) config('horizonhub.max_horizon_pages');
+        $jobsPerRequest = config('horizonhub.horizon_api_job_list_page_size');
+        $maxPages = config('horizonhub.max_horizon_pages');
 
         while ($page < $maxPages) {
             $batch = ClientResponse::data($pageFetcher([

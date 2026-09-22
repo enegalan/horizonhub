@@ -120,7 +120,7 @@ abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMeta
         }
 
         $events = [];
-        $previewLines = (int) config('horizonhub.failed_job_exception_preview_lines');
+        $previewLines = config('horizonhub.failed_job_exception_preview_lines');
 
         foreach ($enrichedEvents as $index => $event) {
             $jobUuid = ! empty($event['job_uuid']) ? (string) $event['job_uuid'] : null;
@@ -172,7 +172,7 @@ abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMeta
             'serviceName' => $serviceName,
             'serviceUrl' => $serviceId > 0 ? \route('horizon.services.show', ['service' => $serviceId], absolute: true) : null,
             'alertUrl' => \route('horizon.alerts.show', ['alert' => $alert], absolute: true),
-            'appName' => (string) config('app.name'),
+            'appName' => config('app.name'),
             'totalEventCount' => \count($events),
             'hasJobDetails' => $hasJobDetails,
             'detectedAt' => $detectedAt,

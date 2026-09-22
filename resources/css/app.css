@@ -308,6 +308,10 @@
     .empty-state-description {
         @apply text-xs text-muted-foreground mb-3 max-w-[280px];
     }
+    .horizon-empty-state-pinned {
+        position: sticky;
+        left: 0;
+    }
     .skeleton {
         --skeleton-show-delay: 250ms;
         --skeleton-delay: 0ms;
@@ -351,7 +355,7 @@
     @apply hidden;
 }
 
-.horizon-drag-overlay {
+#horizon-drag-overlay {
     position: fixed;
     pointer-events: none;
     z-index: 9999;
@@ -383,11 +387,6 @@
     bottom: 0;
     width: 1px;
     background: hsl(var(--border));
-}
-
-body.horizon-resizing {
-    cursor: col-resize;
-    user-select: none;
 }
 
 .horizon-drag-image {

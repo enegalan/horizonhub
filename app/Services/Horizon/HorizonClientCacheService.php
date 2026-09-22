@@ -23,14 +23,14 @@ class HorizonClientCacheService
      */
     public static function acquireServiceRequestSlot(Service $service): bool
     {
-        $maxConcurrent = (int) config('horizonhub.horizon_http_max_concurrent_requests_per_service');
+        $maxConcurrent = config('horizonhub.horizon_http_max_concurrent_requests_per_service');
 
         if ($maxConcurrent <= 0) {
             return true;
         }
 
         $key = self::serviceRequestSlotCacheKey($service);
-        $waitBudgetMs = (int) config('horizonhub.horizon_http_concurrent_request_wait_ms');
+        $waitBudgetMs = config('horizonhub.horizon_http_concurrent_request_wait_ms');
         $deadline = \microtime(true) + ($waitBudgetMs / 1000);
 
         while (true) {
@@ -115,7 +115,7 @@ class HorizonClientCacheService
      */
     public static function putFailureCooldown(Service $service): void
     {
-        $seconds = (int) config('horizonhub.horizon_http_failure_cooldown_seconds');
+        $seconds = config('horizonhub.horizon_http_failure_cooldown_seconds');
 
         if ($seconds > 0) {
             Cache::put(self::failureCooldownCacheKey($service), true, \now()->addSeconds($seconds));
@@ -131,7 +131,7 @@ class HorizonClientCacheService
      */
     public static function putRequestPathCache(Service $service, string $path, array $result): void
     {
-        $ttl = (float) config('horizonhub.hot_reload_interval');
+        $ttl = config('horizonhub.hot_reload_interval');
 
         if ($ttl > 0) {
             Cache::put(self::requestPathCacheKey($service, $path), $result, \now()->addSeconds($ttl));
@@ -145,7 +145,7 @@ class HorizonClientCacheService
      */
     public static function putTimeoutAdvice(Service $service): void
     {
-        $seconds = (int) config('horizonhub.horizon_http_failure_cooldown_seconds');
+        $seconds = config('horizonhub.horizon_http_failure_cooldown_seconds');
 
         if ($seconds > 0) {
             Cache::put(self::timeoutAdviceCacheKey($service), true, \now()->addSeconds($seconds));
@@ -224,8 +224,8 @@ class HorizonClientCacheService
      */
     private static function private__requestLockSeconds(): int
     {
-        $timeout = (int) config('horizonhub.api_timeout');
-        $retryTimes = max(1, (int) config('horizonhub.horizon_http_retry.times'));
+        $timeout = config('horizonhub.api_timeout');
+        $retryTimes = config('horizonhub.horizon_http_retry.times');
 
         $baseSeconds = max($timeout, $timeout * $retryTimes);
 

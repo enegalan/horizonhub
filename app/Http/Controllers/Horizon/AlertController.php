@@ -127,7 +127,7 @@ class AlertController extends Controller
     {
         $statusFilter = (string) $request->query('status', '');
         $serviceFilter = $request->query('service_id');
-        $perPage = (int) max(1, $request->query('per_page', config('horizonhub.jobs_per_page')));
+        $perPage = max(1, $request->query('per_page', config('horizonhub.jobs_per_page')));
 
         $logsQuery = $alert->alertLogs()
             ->with('service')

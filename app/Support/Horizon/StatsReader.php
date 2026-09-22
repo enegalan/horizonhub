@@ -2,10 +2,11 @@
 
 namespace App\Support\Horizon;
 
-// TODO: Simplify checks, it's certain that data is an array and not null.
 final class StatsReader
 {
     /**
+     * Get the number of failed jobs.
+     *
      * @param array<string, mixed>|null $data
      */
     public static function failedJobs(?array $data): int
@@ -14,6 +15,8 @@ final class StatsReader
     }
 
     /**
+     * Get the number of jobs past minute.
+     *
      * @param array<string, mixed>|null $data
      */
     public static function jobsPastMinute(?array $data): int
@@ -39,6 +42,8 @@ final class StatsReader
     }
 
     /**
+     * Get the maximum wait time in seconds.
+     *
      * @param array<string, mixed>|null $data
      */
     public static function maxWaitTimeSeconds(?array $data): ?float
@@ -69,6 +74,8 @@ final class StatsReader
     }
 
     /**
+     * Get the number of processes.
+     *
      * @param array<string, mixed>|null $data
      */
     public static function processes(?array $data): ?int
@@ -81,6 +88,8 @@ final class StatsReader
     }
 
     /**
+     * Get the queue with the maximum runtime.
+     *
      * @param array<string, mixed>|null $data
      */
     public static function queueWithMaxRuntime(?array $data): ?string
@@ -93,6 +102,8 @@ final class StatsReader
     }
 
     /**
+     * Get the queue with the maximum throughput.
+     *
      * @param array<string, mixed>|null $data
      */
     public static function queueWithMaxThroughput(?array $data): ?string
@@ -105,6 +116,8 @@ final class StatsReader
     }
 
     /**
+     * Get the number of recent jobs.
+     *
      * @param array<string, mixed>|null $data
      */
     public static function recentJobs(?array $data): int
@@ -113,6 +126,8 @@ final class StatsReader
     }
 
     /**
+     * Get the status.
+     *
      * @param array<string, mixed>|null $data
      */
     public static function status(?array $data): ?string

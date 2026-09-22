@@ -14,8 +14,8 @@ class MarkStaleServicesOfflineCommand extends Command
 
     public function handle(): int
     {
-        $stale_minutes = (int) config('horizonhub.stale_service_minutes');
-        $dead_minutes = (int) config('horizonhub.dead_service_minutes');
+        $stale_minutes = config('horizonhub.stale_service_minutes');
+        $dead_minutes = config('horizonhub.dead_service_minutes');
         $stale_threshold = \now()->subMinutes($stale_minutes);
         $dead_threshold = \now()->subMinutes($dead_minutes);
 

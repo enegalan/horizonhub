@@ -3,15 +3,21 @@
 namespace App\Services\Alerts\Rules\Strategies;
 
 use App\Enums\AlertRuleType;
+use App\Enums\HorizonStatus;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientApiService;
 use App\Support\Horizon\ClientResponse;
 use App\Support\Horizon\MasterReader;
-use App\Support\Jobs\JobRuntime;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 final class SupervisorOffline extends AbstractAlertRuleStrategy
 {
+    private const CACHE_KEY_PREFIX = 'supervisor_offline_since:';
+
+    private const CACHE_TTL_MARGIN_MINUTES = 60;
+
     /**
      * Get the type.
      */
@@ -21,6 +27,8 @@ final class SupervisorOffline extends AbstractAlertRuleStrategy
     }
 
     /**
+     * Evaluate the rule and return whether it triggered plus triggering job UUIDs.
+     *
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
     public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
@@ -37,22 +45,41 @@ final class SupervisorOffline extends AbstractAlertRuleStrategy
             return $this->notTriggered();
         }
 
-        $staleAt = \now()->subMinutes($alert->getThresholdMinutes());
+        $cacheTtlSeconds = ($alert->getThresholdMinutes() + self::CACHE_TTL_MARGIN_MINUTES) * 60;
+        $triggered = false;
 
         foreach (MasterReader::eachSupervisor($mastersData) as $supervisor) {
-            // TO-DEPURATE: last_heartbeat_at or lastSeen?
-            $lastSeen = JobRuntime::parseJobTimestamp(
-                $supervisor['last_heartbeat_at'] ?? ($supervisor['lastSeen'] ?? null),
-            );
+            $identity = isset($supervisor['name']) && (string) $supervisor['name'] !== ''
+            ? (string) $supervisor['name']
+            : 'unnamed';
 
-            if ($lastSeen !== null && $lastSeen->lt($staleAt)) {
-                return [
-                    'triggered' => true,
-                    'job_uuids' => [],
-                ];
+            $cacheKey = self::CACHE_KEY_PREFIX . $serviceId . ':' . $identity;
+
+            if (! isset($supervisor['status']) || (string) $supervisor['status'] !== HorizonStatus::Inactive->value) {
+                Cache::forget($cacheKey);
+
+                continue;
+            }
+
+            $offlineSinceTimestamp = Cache::get($cacheKey);
+
+            if (! \is_numeric($offlineSinceTimestamp)) {
+                Cache::put($cacheKey, \now()->getTimestamp(), $cacheTtlSeconds);
+
+                continue;
+            }
+
+            if (\now()->gte(Carbon::createFromTimestamp((int) $offlineSinceTimestamp)
+                ->addMinutes($alert->getThresholdMinutes()))) {
+                $triggered = true;
+
+                break;
             }
         }
 
-        return $this->notTriggered();
+        return [
+            'triggered' => $triggered,
+            'job_uuids' => [],
+        ];
     }
 }

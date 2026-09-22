@@ -59,8 +59,7 @@ final class JobsThroughputMetricsCalculator extends AbstractMetricsCalculator
 
         /** @var Service $service */
         foreach ($services as $service) {
-            $data = ClientResponse::data(HorizonClientApiService::getStats($service));
-            $summary = StatsReader::summary($data);
+            $summary = StatsReader::summary(ClientResponse::data(HorizonClientApiService::getStats($service)));
             $minute += $summary['jobsPastMinute'];
             $hour += $summary['recentJobs'];
             $failed += $summary['failedJobs'];

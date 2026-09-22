@@ -177,20 +177,9 @@ trait BuildsServiceStreams
                 $supervisorGroups = $supervisorGroups->sortKeys();
             }
 
-            $workloadQueues = collect();
-
-            foreach ($this->metrics->getWorkloadForService($service) as $row) {
-                $workloadQueues->push((object) [
-                    'queue' => $row['queue'],
-                    'jobs' => $row['jobs'],
-                    'processes' => $row['processes'],
-                    'wait' => $row['wait'],
-                ]);
-            }
-
             $data['supervisorGroups'] = $supervisorGroups;
             $data['supervisors'] = $supervisors;
-            $data['workloadQueues'] = $workloadQueues->values();
+            $data['workloadQueues'] = \collect($this->metrics->getWorkloadForService($service));
 
             $pageProcessing = max(1, (int) $request->query('page_processing', 1));
             $pageProcessed = max(1, (int) $request->query('page_processed', 1));
@@ -202,7 +191,7 @@ trait BuildsServiceStreams
                 $pageProcessing,
                 $pageProcessed,
                 $pageFailed,
-                (int) config('horizonhub.jobs_per_page'),
+                config('horizonhub.jobs_per_page'),
                 $request->url(),
                 $request->query(),
             );
@@ -217,7 +206,7 @@ trait BuildsServiceStreams
             $emptyPaginator = static fn (int $page, string $pageName): LengthAwarePaginator => new LengthAwarePaginator(
                 [],
                 0,
-                (int) config('horizonhub.jobs_per_page'),
+                config('horizonhub.jobs_per_page'),
                 $page,
                 [
                     'path' => $path,

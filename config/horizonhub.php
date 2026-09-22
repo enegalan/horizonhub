@@ -96,7 +96,7 @@ return [
     |
     */
     'horizon_http_retry' => [
-        'times' => (int) env('HORIZON_HUB_HTTP_RETRY_TIMES', 3),
+        'times' => max(1, (int) env('HORIZON_HUB_HTTP_RETRY_TIMES', 3)),
         'sleep_ms' => (int) env('HORIZON_HUB_HTTP_RETRY_SLEEP_MS', 100),
         'retry_on_status' => [429, 502, 503, 504],
     ],

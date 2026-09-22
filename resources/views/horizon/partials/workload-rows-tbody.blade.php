@@ -23,15 +23,13 @@
 </tr>
 @foreach($workloadRows as $row)
     @php
-        $queue = (string) (is_object($row) ? ($row->queue ?? '') : ($row['queue'] ?? ''));
-        $jobs = (int) (is_object($row) ? ($row->jobs ?? 0) : ($row['jobs'] ?? 0));
-        $processes = is_object($row) ? ($row->processes ?? null) : ($row['processes'] ?? null);
-        $wait = is_object($row) ? ($row->wait ?? null) : ($row['wait'] ?? null);
-        $serviceId = (int) (is_object($row) ? ($row->service_id ?? 0) : ($row['service_id'] ?? 0));
-        $serviceName = is_object($row) ? ($row->service ?? '') : ($row['service'] ?? '');
-        $rowKey = $includeServiceColumn
-            ? $rowIdPrefix . '-' . $serviceId . '-' . rawurlencode($queue)
-            : $rowIdPrefix . '-' . rawurlencode($queue);
+        $queue = $row['queue'];
+        $jobs = $row['jobs'];
+        $processes = $row['processes'] ?? null;
+        $wait = $row['wait'] ?? null;
+        $serviceId = (int) ($row['service_id'] ?? 0);
+        $serviceName = $row['service'] ?? '';
+        $rowKey = "$rowIdPrefix-" . ($includeServiceColumn ? "$serviceId-" : '') . rawurlencode($queue);
     @endphp
     <tr class="transition-colors hover:bg-muted/30" data-stream-row-id="{{ $rowKey }}">
         @if($includeServiceColumn)

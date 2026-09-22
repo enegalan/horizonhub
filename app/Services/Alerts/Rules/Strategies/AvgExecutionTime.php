@@ -29,7 +29,7 @@ final class AvgExecutionTime extends AbstractAlertRuleStrategy
     }
 
     /**
-     * Evaluate the rule and return whether it triggered plus triggering job UUIDs (if applicable).
+     * Evaluate the rule and return whether it triggered plus triggering job UUIDs.
      *
      * @param Alert $alert The alert.
      * @param int $serviceId The service ID.

@@ -53,7 +53,7 @@ abstract class StreamController extends Controller
      */
     protected function runStream(callable $turboStreamCallback): StreamedResponse
     {
-        $intervalSeconds = (float) config('horizonhub.hot_reload_interval');
+        $intervalSeconds = config('horizonhub.hot_reload_interval');
         $intervalMicroseconds = (int) ($intervalSeconds * 1_000_000);
 
         return \response()->stream(function () use ($intervalMicroseconds, $turboStreamCallback): void {
