@@ -308,6 +308,10 @@
     .empty-state-description {
         @apply text-xs text-muted-foreground mb-3 max-w-[280px];
     }
+    .horizon-empty-state-pinned {
+        position: sticky;
+        left: 0;
+    }
     .skeleton {
         --skeleton-show-delay: 250ms;
         --skeleton-delay: 0ms;

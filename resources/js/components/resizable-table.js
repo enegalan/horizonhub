@@ -32,6 +32,12 @@ import { parseJson } from '../lib/parse';
     const HORIZON_RESIZE_HANDLE_CLASS = 'horizon-resize-handle';
 
     /**
+     * Empty state pinned class.
+     * @type {string}
+     */
+    const HORIZON_EMPTY_PINNED_CLASS = 'horizon-empty-state-pinned';
+
+    /**
      * Initted attribute.
      * @type {string}
      */
@@ -541,6 +547,51 @@ import { parseJson } from '../lib/parse';
     }
 
     /**
+     * Keep the empty state message inside the scrollable viewport. An empty
+     * table is usually narrower than the sum of its column widths, so a
+     * message centered across the whole (wide) table scrolls out of view.
+     * The empty state is sized to the visible width and pinned with sticky
+     * positioning; column layout (resize/reorder) stays untouched. The
+     * table's `overflow-hidden` would otherwise become the sticky scroll
+     * container, so it is disabled only while pinned and restored once data
+     * rows appear.
+     * @param {HTMLTableElement} table
+     * @returns {void}
+     */
+    function applyEmptyStatePinning(table) {
+        var wrapper = table.parentElement;
+        if (!wrapper || !wrapper.classList.contains('table-scroll')) return;
+
+        var emptyState = table.querySelector('tbody .empty-state');
+        if (!emptyState) return;
+
+        if (table.querySelector('tbody > tr > td + td')) {
+            emptyState.classList.remove(HORIZON_EMPTY_PINNED_CLASS);
+            emptyState.style.width = '';
+            table.style.overflow = '';
+            return;
+        }
+
+        emptyState.classList.add(HORIZON_EMPTY_PINNED_CLASS);
+        emptyState.style.width = wrapper.clientWidth + 'px';
+        table.style.overflow = 'visible';
+    }
+
+    /**
+     * Re-measure pinned empty states when the viewport width changes.
+     * @returns {void}
+     */
+    function refreshEmptyStatePinning() {
+        document.querySelectorAll('table[data-resizable-table]').forEach(applyEmptyStatePinning);
+    }
+
+    if (!window._horizonEmptyStateRefreshBound) {
+        window._horizonEmptyStateRefreshBound = true;
+        window.addEventListener('resize', refreshEmptyStatePinning);
+        window.addEventListener('sidebar-open-changed', refreshEmptyStatePinning);
+    }
+
+    /**
      * Initialize the table.
      * @param {HTMLElement} table
      * @returns {void}
@@ -566,6 +617,8 @@ import { parseJson } from '../lib/parse';
         setupResize(table, storageKey, state);
         setupReorder(table, storageKey, state);
         table.setAttribute(INITTED_ATTR, '1');
+
+        applyEmptyStatePinning(table);
     }
 
     /**
@@ -587,6 +640,8 @@ import { parseJson } from '../lib/parse';
             saveState(storageKey, state.order, state.widths);
         }
         applyState(table, state);
+
+        applyEmptyStatePinning(table);
     }
 
     /**
