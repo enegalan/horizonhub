@@ -257,4 +257,58 @@ class AlertRulesTest extends TestCase
         $this->assertInstanceOf(FailureCount::class, $registry->resolve(FailureCount::type()));
         $this->assertInstanceOf(NullRule::class, $registry->resolve('unknown-rule'));
     }
+
+    public function test_supervisor_offline_tracks_each_supervisor_independently_across_a_switch(): void
+    {
+        Cache::flush();
+
+        $service = Service::create([
+            'name' => 'svc-sup-switch',
+            'base_url' => 'https://example.test',
+            'status' => 'online',
+        ]);
+        $alert = Alert::create([
+            'name' => 'sup-switch',
+            'rule_type' => SupervisorOffline::type(),
+            'threshold' => ['minutes' => 15],
+            'enabled' => true,
+        ]);
+
+        $mastersCalls = 0;
+
+        Http::fake(function ($request) use (&$mastersCalls) {
+            if ($request->url() === 'https://example.test/horizon/api/masters') {
+                $mastersCalls++;
+                $firstResponse = $mastersCalls === 1;
+
+                return Http::response([[
+                    'supervisors' => [
+                        ['name' => 'svc-sup-switch:supervisor-1', 'status' => $firstResponse ? 'inactive' : 'active'],
+                        ['name' => 'svc-sup-switch:supervisor-2', 'status' => $firstResponse ? 'active' : 'inactive'],
+                    ],
+                ]], 200);
+            }
+
+            return Http::response('unexpected', 500);
+        });
+
+        $strategy = new SupervisorOffline;
+
+        $firstKey = 'supervisor_offline_since:' . $service->id . ':svc-sup-switch:supervisor-1';
+        $secondKey = 'supervisor_offline_since:' . $service->id . ':svc-sup-switch:supervisor-2';
+
+        $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, $service->id)['triggered']);
+        $this->assertNotNull(Cache::get($firstKey));
+
+        $this->travel(10)->minutes();
+        $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, $service->id)['triggered']);
+        $this->assertNull(Cache::get($firstKey));
+        $this->assertNotNull(Cache::get($secondKey));
+
+        $this->travel(5)->minutes();
+        $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, $service->id)['triggered']);
+
+        $this->travel(10)->minutes();
+        $this->assertTrue($strategy->evaluateWithTriggeringJobs($alert, $service->id)['triggered']);
+    }
 }

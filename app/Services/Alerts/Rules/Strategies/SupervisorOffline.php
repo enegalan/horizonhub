@@ -45,36 +45,40 @@ final class SupervisorOffline extends AbstractAlertRuleStrategy
             return $this->notTriggered();
         }
 
-        $hasInactiveSupervisor = false;
+        $cacheTtlSeconds = ($alert->getThresholdMinutes() + self::CACHE_TTL_MARGIN_MINUTES) * 60;
+        $triggered = false;
 
         foreach (MasterReader::eachSupervisor($mastersData) as $supervisor) {
-            if (isset($supervisor['status']) && (string) $supervisor['status'] === HorizonStatus::Inactive->value) {
-                $hasInactiveSupervisor = true;
+            $identity = isset($supervisor['name']) && (string) $supervisor['name'] !== ''
+            ? (string) $supervisor['name']
+            : 'unnamed';
+
+            $cacheKey = self::CACHE_KEY_PREFIX . $serviceId . ':' . $identity;
+
+            if (! isset($supervisor['status']) || (string) $supervisor['status'] !== HorizonStatus::Inactive->value) {
+                Cache::forget($cacheKey);
+
+                continue;
+            }
+
+            $offlineSinceTimestamp = Cache::get($cacheKey);
+
+            if (! \is_numeric($offlineSinceTimestamp)) {
+                Cache::put($cacheKey, \now()->getTimestamp(), $cacheTtlSeconds);
+
+                continue;
+            }
+
+            if (\now()->gte(Carbon::createFromTimestamp((int) $offlineSinceTimestamp)
+                ->addMinutes($alert->getThresholdMinutes()))) {
+                $triggered = true;
 
                 break;
             }
         }
 
-        $cacheKey = self::CACHE_KEY_PREFIX . $serviceId;
-
-        if (! $hasInactiveSupervisor) {
-            Cache::forget($cacheKey);
-
-            return $this->notTriggered();
-        }
-
-        $offlineSinceTimestamp = Cache::get($cacheKey);
-
-        if (! \is_numeric($offlineSinceTimestamp)) {
-            $cacheTtlSeconds = ($alert->getThresholdMinutes() + self::CACHE_TTL_MARGIN_MINUTES) * 60;
-            Cache::put($cacheKey, \now()->getTimestamp(), $cacheTtlSeconds);
-
-            return $this->notTriggered();
-        }
-
         return [
-            'triggered' => \now()->gte(Carbon::createFromTimestamp($offlineSinceTimestamp)
-                ->addMinutes($alert->getThresholdMinutes())),
+            'triggered' => $triggered,
             'job_uuids' => [],
         ];
     }
