@@ -4,9 +4,9 @@
 @endphp
 @forelse($recentAlertLogs as $log)
     <tr class="transition-colors hover:bg-muted/30" data-stream-row-id="al-{{ (int) $log->id }}">
-        <td class="px-4 py-2.5 text-sm" data-column-id="name">
+        <td class="px-4 py-2.5 text-sm truncate" data-column-id="name">
             @if($log->alert)
-                <a href="{{ route('horizon.alerts.show', $log->alert) }}" class="link" data-turbo-action="replace">{{ $log->alert->name }}</a>
+                <a href="{{ route('horizon.alerts.show', $log->alert) }}" class="link" data-turbo-action="replace" title="{{ $log->alert->name }}">{{ $log->alert->name }}</a>
             @else
                 <span class="text-muted-foreground">#{{ (int) $log->alert_id }}</span>
             @endif
