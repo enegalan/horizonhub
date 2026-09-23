@@ -421,7 +421,7 @@ class MetricsDataServiceTest extends TestCase
 
     public function test_get_workload_for_service_returns_empty_when_api_fails(): void
     {
-        \config()->set('horizonhub.horizon_http_retry', [
+        \config()->set('horizonhub.http.retry', [
             'times' => 1,
             'sleep_ms' => 0,
             'retry_on_status' => [],

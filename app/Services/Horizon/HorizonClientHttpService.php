@@ -5,6 +5,7 @@ namespace App\Services\Horizon;
 use App\Enums\ServiceStatus;
 use App\Models\Service;
 use App\Support\Http\HttpRetryBackoff;
+use App\Support\Http\TlsClientRequestOptions;
 use App\Support\PathBuilder;
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Exception\GuzzleException;
@@ -73,7 +74,7 @@ class HorizonClientHttpService
                     $lock = HorizonClientCacheService::requestPathFillLock($service, $path);
 
                     try {
-                        $lock->block(config('horizonhub.api_timeout'));
+                        $lock->block(config('horizonhub.http.api_timeout'));
                     } catch (LockTimeoutException) {
                         $lock = null;
 
@@ -192,7 +193,7 @@ class HorizonClientHttpService
             }
 
             // If the response is not authorized, put the service in cooldown.
-            if (! \in_array($result['status'], config('horizonhub.horizon_http_auth_statuses'), true)) {
+            if (! \in_array($result['status'], config('horizonhub.http.auth_statuses'), true)) {
                 HorizonClientCacheService::putFailureCooldown($service);
             }
 
@@ -322,17 +323,16 @@ class HorizonClientHttpService
      */
     private static function private__newHorizonPendingRequest(string $httpMethod, ?Service $service = null): PendingRequest
     {
-        $request = Http::timeout(config('horizonhub.api_timeout'));
+        $request = Http::timeout(config('horizonhub.http.api_timeout'));
 
-        $connectTimeout = config('horizonhub.horizon_http_connect_timeout');
+        $connectTimeout = config('horizonhub.http.connect_timeout');
 
         if ($connectTimeout !== null && $connectTimeout > 0) {
             $request->connectTimeout($connectTimeout);
         }
 
-        $retryConfig = config('horizonhub.horizon_http_retry');
-        $retryTimes = $retryConfig['times'];
-        $retryOnStatus = $retryConfig['retry_on_status'];
+        $retryTimes = config('horizonhub.http.retry.times');
+        $retryOnStatus = config('horizonhub.http.retry.retry_on_status');
 
         if ($httpMethod === 'get' && $retryTimes > 1) {
             $request = $request->retry(
@@ -373,6 +373,12 @@ class HorizonClientHttpService
             }
 
             $request = $request->withHeaders($headers);
+
+            $tlsOptions = TlsClientRequestOptions::forService($service);
+
+            if ($tlsOptions !== []) {
+                $request = $request->withOptions($tlsOptions);
+            }
         }
 
         return $request;

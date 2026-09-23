@@ -6,9 +6,11 @@ import { isHotReloadEnabled } from '../lib/sse';
  * @param {Array<{name: string, value: string}>} initialHeaders
  * @param {string[]} initialTags
  * @param {string[]} existingTags
+ * @param {string} initialTlsClientMode
+ * @param {{certName: string|null, keyName: string|null}} initialTlsFiles
  * @returns {object}
  */
-export function horizonServiceForm(initialHeaders, initialTags, existingTags) {
+export function horizonServiceForm(initialHeaders, initialTags, existingTags, initialTlsClientMode, initialTlsFiles) {
     // Normalize tag value to lowercase and remove whitespace
     function normalizeTag(value) {
         return (value || '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -17,6 +19,10 @@ export function horizonServiceForm(initialHeaders, initialTags, existingTags) {
     var headers = Array.isArray(initialHeaders) ? initialHeaders : [];
     var tags = Array.isArray(initialTags) ? initialTags.map(normalizeTag).filter(Boolean) : [];
     var knownTags = Array.isArray(existingTags) ? existingTags.map(normalizeTag).filter(Boolean) : [];
+    var tlsClientMode = initialTlsClientMode || '';
+    var tlsFiles = initialTlsFiles && typeof initialTlsFiles === 'object' ? initialTlsFiles : {};
+    var tlsCertName = tlsFiles.certName || '';
+    var tlsKeyName = tlsFiles.keyName || '';
 
     if (headers.length === 0) {
         headers.push({ name: '', value: '' });
@@ -26,6 +32,14 @@ export function horizonServiceForm(initialHeaders, initialTags, existingTags) {
         headers: headers,
         tags: tags,
         existingTags: knownTags,
+        tlsClientMode: tlsClientMode,
+        tlsCertName: tlsCertName,
+        tlsKeyName: tlsKeyName,
+        tlsCertOnFile: tlsCertName !== '',
+        tlsKeyOnFile: tlsKeyName !== '',
+        tlsRemoveCert: false,
+        tlsRemoveKey: false,
+        showTlsPassphrase: false,
         tagInput: '',
         tagSuggestionsOpen: false,
         tagSuggestionHighlight: -1,
@@ -43,6 +57,16 @@ export function horizonServiceForm(initialHeaders, initialTags, existingTags) {
             }
 
             return available.slice(0, this.tagSuggestionsLimit);
+        },
+
+        removeTlsCert() {
+            this.tlsCertOnFile = false;
+            this.tlsRemoveCert = true;
+        },
+
+        removeTlsKey() {
+            this.tlsKeyOnFile = false;
+            this.tlsRemoveKey = true;
         },
 
         openTagSuggestions() {

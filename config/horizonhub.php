@@ -10,10 +10,10 @@ return [
     | HTTP API.
     |
     | Base paths:
-    | - dashboard: the base path where Horizon's dashboard is exposed.
     | - api: the base path where Horizon's API is exposed.
     |
     | Relative paths:
+    | - dashboard: the relative path where Horizon's dashboard is exposed.
     | - retry: the relative path for retrying a failed job; the "{id}"
     |   placeholder will be replaced with the job UUID.
     | - ping: the relative path used to test connectivity with Horizon
@@ -30,8 +30,8 @@ return [
     | - masters: the relative path to list Horizon masters.
     */
     'horizon_paths' => [
-        'dashboard' => '/horizon',
         'api' => '/horizon/api',
+        'dashboard' => '/horizon',
         'retry' => '/jobs/retry/{id}',
         'ping' => '/stats',
         'workload' => '/workload',
@@ -60,93 +60,38 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Timeout
+    | HTTP Configuration
     |--------------------------------------------------------------------------
     |
-    | The timeout in seconds for the Horizon HTTP API.
+    | Configuration for HTTP requests to Horizon services.
+    |
+    | api_timeout: The timeout in seconds for the Horizon HTTP API.
+    | connect_timeout: Optional connect timeout in seconds for outbound Horizon HTTP calls. Null or zero disables an explicit connect timeout (Guzzle default applies).
+    | retry: The retry configuration for the Horizon HTTP API.
+    |   times: Total attempts (1 = no retry).
+    |   sleep_ms: Base backoff in milliseconds (exponential).
+    |   retry_on_status: HTTP status codes to retry after a response is received.
+    | auth_statuses: HTTP status codes that represent auth/session/CSRF failures from Horizon. These statuses can trigger a dashboard-session retry flow and are excluded from failure cooldown in order to prevent performing the mentioned flow.
+    | failure_cooldown_seconds: Temporary cooldown for HTTP calls to services that are currently unreachable or timing out.
+    | max_concurrent_requests_per_service: Maximum number of concurrent outbound HTTP requests allowed per upstream Horizon service. When the limit is reached, subsequent requests wait (bounded by `concurrent_request_wait_ms`) before being rejected with a 503. Set to 0 to disable the limit.
+    | concurrent_request_wait_ms: Maximum time in milliseconds to wait for a concurrency slot to become available before rejecting the request with a 503.
     |
     */
-    'api_timeout' => (int) env('HORIZON_HUB_API_TIMEOUT', 10),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Horizon HTTP connect timeout
-    |--------------------------------------------------------------------------
-    |
-    | Optional connect timeout in seconds for outbound Horizon HTTP calls.
-    | Null or zero disables an explicit connect timeout (Guzzle default applies).
-    |
-    */
-    'horizon_http_connect_timeout' => \is_numeric(env('HORIZON_HUB_HTTP_CONNECT_TIMEOUT', 0))
-        ? (float) env('HORIZON_HUB_HTTP_CONNECT_TIMEOUT', 0)
-        : 0,
-
-    /*
-    |--------------------------------------------------------------------------
-    | Horizon HTTP retry (GET only)
-    |--------------------------------------------------------------------------
-    |
-    | Retries apply only to safe GET requests (API reads and dashboard bootstrap).
-    | POST/DELETE (e.g. job retry) are not retried here; session flow still handles 419.
-    | Connection/timeouts (ConnectionException) are never retried.
-    |
-    | times: total attempts (1 = no retry).
-    | sleep_ms: base backoff in milliseconds (exponential).
-    | retry_on_status: HTTP status codes to retry after a response is received.
-    |
-    */
-    'horizon_http_retry' => [
-        'times' => max(1, (int) env('HORIZON_HUB_HTTP_RETRY_TIMES', 3)),
-        'sleep_ms' => (int) env('HORIZON_HUB_HTTP_RETRY_SLEEP_MS', 100),
-        'retry_on_status' => [429, 502, 503, 504],
+    'http' => [
+        'api_timeout' => (int) env('HORIZON_HUB_API_TIMEOUT', 10),
+        'connect_timeout' => \is_numeric(env('HORIZON_HUB_HTTP_CONNECT_TIMEOUT', 0))
+            ? (float) env('HORIZON_HUB_HTTP_CONNECT_TIMEOUT', 0)
+            : 0,
+        'retry' => [
+            'times' => max(1, (int) env('HORIZON_HUB_HTTP_RETRY_TIMES', 3)),
+            'sleep_ms' => (int) env('HORIZON_HUB_HTTP_RETRY_SLEEP_MS', 100),
+            'retry_on_status' => [429, 502, 503, 504],
+        ],
+        'auth_statuses' => [401, 403, 419],
+        'failure_cooldown_seconds' => (int) env('HORIZON_HUB_HTTP_FAILURE_COOLDOWN_SECONDS', 60),
+        'max_concurrent_requests_per_service' => (int) env('HORIZON_HUB_HTTP_MAX_CONCURRENT_PER_SERVICE', 4),
+        'concurrent_request_wait_ms' => (int) env('HORIZON_HUB_HTTP_CONCURRENT_REQUEST_WAIT_MS', 2000),
     ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Horizon HTTP auth/session code statuses
-    |--------------------------------------------------------------------------
-    |
-    | HTTP status codes that represent auth/session/CSRF failures from Horizon.
-    | These statuses can trigger a dashboard-session retry flow and are
-    | excluded from failure cooldown in order to prevent performing the mentioned flow.
-    |
-    */
-    'horizon_http_auth_statuses' => [401, 403, 419],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Horizon HTTP failure cooldown
-    |--------------------------------------------------------------------------
-    |
-    | Temporary cooldown for HTTP calls to services that are
-    | currently unreachable or timing out.
-    |
-    */
-    'horizon_http_failure_cooldown_seconds' => (int) env('HORIZON_HUB_HTTP_FAILURE_COOLDOWN_SECONDS', 60),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Horizon HTTP concurrency limit per service
-    |--------------------------------------------------------------------------
-    |
-    | Maximum number of concurrent outbound HTTP requests allowed per upstream
-    | Horizon service. When the limit is reached, subsequent requests wait
-    | (bounded by `horizon_http_concurrent_request_wait_ms`) before being
-    | rejected with a 503. Set to 0 to disable the limit.
-    |
-    */
-    'horizon_http_max_concurrent_requests_per_service' => (int) env('HORIZON_HUB_HTTP_MAX_CONCURRENT_PER_SERVICE', 4),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Horizon HTTP concurrent request wait budget
-    |--------------------------------------------------------------------------
-    |
-    | Maximum time in milliseconds to wait for a concurrency slot to become
-    | available before rejecting the request with a 503.
-    |
-    */
-    'horizon_http_concurrent_request_wait_ms' => (int) env('HORIZON_HUB_HTTP_CONCURRENT_REQUEST_WAIT_MS', 2000),
 
     /*
     |--------------------------------------------------------------------------
@@ -251,4 +196,24 @@ return [
     |
     */
     'failed_job_exception_preview_lines' => (int) env('HORIZON_HUB_FAILED_JOB_EXCEPTION_PREVIEW_LINES', 5),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Top N Queues
+    |--------------------------------------------------------------------------
+    |
+    | The number of top queues to return in the metrics dashboard.
+    |
+    */
+    'top_n_queues' => (int) env('HORIZON_HUB_TOP_N_QUEUES', 12),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Recent Alert Logs
+    |--------------------------------------------------------------------------
+    |
+    | The number of recent alert logs to return in the metrics dashboard.
+    |
+    */
+    'recent_alert_logs' => (int) env('HORIZON_HUB_RECENT_ALERT_LOGS', 5),
 ];

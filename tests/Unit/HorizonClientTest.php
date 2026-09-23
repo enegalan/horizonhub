@@ -33,7 +33,7 @@ class HorizonClientTest extends TestCase
 
         \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
         \config()->set('horizonhub.horizon_paths.ping', '/stats');
-        \config()->set('horizonhub.horizon_http_max_concurrent_requests_per_service', 0);
+        \config()->set('horizonhub.http.max_concurrent_requests_per_service', 0);
 
         $service = Service::create([
             'name' => 'svc-concurrency-disabled',
@@ -147,9 +147,9 @@ class HorizonClientTest extends TestCase
 
         \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
         \config()->set('horizonhub.horizon_paths.ping', '/stats');
-        \config()->set('horizonhub.horizon_http_failure_cooldown_seconds', 60);
-        \config()->set('horizonhub.horizon_http_auth_statuses', [401, 403, 419]);
-        \config()->set('horizonhub.horizon_http_retry', [
+        \config()->set('horizonhub.http.failure_cooldown_seconds', 60);
+        \config()->set('horizonhub.http.auth_statuses', [401, 403, 419]);
+        \config()->set('horizonhub.http.retry', [
             'times' => 1,
             'sleep_ms' => 0,
             'retry_on_status' => [429, 502, 503, 504],
@@ -182,14 +182,14 @@ class HorizonClientTest extends TestCase
             throw new ConnectionException('upstream timeout');
         });
 
-        \config()->set('horizonhub.horizon_http_retry', [
+        \config()->set('horizonhub.http.retry', [
             'times' => 3,
             'sleep_ms' => 0,
             'retry_on_status' => [429, 502, 503, 504],
         ]);
         \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
         \config()->set('horizonhub.horizon_paths.stats', '/stats');
-        \config()->set('horizonhub.horizon_http_failure_cooldown_seconds', 0);
+        \config()->set('horizonhub.http.failure_cooldown_seconds', 0);
 
         $service = Service::create([
             'name' => 'svc-no-conn-retry',
@@ -237,7 +237,7 @@ class HorizonClientTest extends TestCase
             return Http::response(['data' => ['jobs' => []]], 200);
         });
 
-        \config()->set('horizonhub.horizon_http_retry', [
+        \config()->set('horizonhub.http.retry', [
             'times' => 3,
             'sleep_ms' => 0,
             'retry_on_status' => [429, 502, 503, 504],
@@ -264,7 +264,7 @@ class HorizonClientTest extends TestCase
             '*' => Http::response('Rate limited by upstream', 429, ['Content-Type' => 'text/plain']),
         ]);
 
-        \config()->set('horizonhub.horizon_http_retry', [
+        \config()->set('horizonhub.http.retry', [
             'times' => 1,
             'sleep_ms' => 100,
             'retry_on_status' => [429, 502, 503, 504],
@@ -347,7 +347,7 @@ class HorizonClientTest extends TestCase
             'https://service-fill-lock.test/horizon/api/stats' => Http::response(['jobsPerMinute' => 1], 200),
         ]);
 
-        \config()->set('horizonhub.api_timeout', 1);
+        \config()->set('horizonhub.http.api_timeout', 1);
         \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
         \config()->set('horizonhub.horizon_paths.ping', '/stats');
 
@@ -380,8 +380,8 @@ class HorizonClientTest extends TestCase
 
         \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
         \config()->set('horizonhub.horizon_paths.ping', '/stats');
-        \config()->set('horizonhub.horizon_http_max_concurrent_requests_per_service', 1);
-        \config()->set('horizonhub.horizon_http_concurrent_request_wait_ms', 50);
+        \config()->set('horizonhub.http.max_concurrent_requests_per_service', 1);
+        \config()->set('horizonhub.http.concurrent_request_wait_ms', 50);
 
         $service = Service::create([
             'name' => 'svc-concurrency-limit',
@@ -460,7 +460,7 @@ class HorizonClientTest extends TestCase
 
         \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
         \config()->set('horizonhub.horizon_paths.ping', '/stats');
-        \config()->set('horizonhub.horizon_http_failure_cooldown_seconds', 60);
+        \config()->set('horizonhub.http.failure_cooldown_seconds', 60);
 
         $service = Service::create([
             'name' => 'svc-timeout-advice',
@@ -506,7 +506,7 @@ class HorizonClientTest extends TestCase
         \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
         \config()->set('horizonhub.horizon_paths.workload', '/workload');
         \config()->set('horizonhub.horizon_paths.dashboard', '/horizon');
-        \config()->set('horizonhub.horizon_http_auth_statuses', [401, 403, 419]);
+        \config()->set('horizonhub.http.auth_statuses', [401, 403, 419]);
 
         $service = Service::create([
             'name' => 'svc-workload-unauthorized',
@@ -534,8 +534,8 @@ class HorizonClientTest extends TestCase
 
         \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
         \config()->set('horizonhub.horizon_paths.ping', '/stats');
-        \config()->set('horizonhub.horizon_http_failure_cooldown_seconds', 60);
-        \config()->set('horizonhub.horizon_http_retry', [
+        \config()->set('horizonhub.http.failure_cooldown_seconds', 60);
+        \config()->set('horizonhub.http.retry', [
             'times' => 1,
             'sleep_ms' => 0,
             'retry_on_status' => [429, 502, 503, 504],

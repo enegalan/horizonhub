@@ -311,7 +311,7 @@ class TurboStreamSseTest extends TestCase
             'status' => 'online',
         ]);
 
-        \config()->set('horizonhub.horizon_http_retry', ['times' => 1, 'sleep_ms' => 0, 'retry_on_status' => []]);
+        \config()->set('horizonhub.http.retry', ['times' => 1, 'sleep_ms' => 0, 'retry_on_status' => []]);
 
         Http::fake([
             '*/horizon/api/jobs/*' => Http::response(['message' => 'not found'], 404),

@@ -22,7 +22,7 @@ class JobServiceResolverServiceTest extends TestCase
 
     public function test_resolve_caches_service_id_after_first_match(): void
     {
-        config()->set('horizonhub.horizon_http_retry', ['times' => 1, 'sleep_ms' => 0, 'retry_on_status' => []]);
+        config()->set('horizonhub.http.retry', ['times' => 1, 'sleep_ms' => 0, 'retry_on_status' => []]);
 
         Service::create(['name' => 'alpha', 'base_url' => 'https://alpha.test', 'status' => 'online']);
         $second = Service::create(['name' => 'beta', 'base_url' => 'https://beta.test', 'status' => 'online']);
@@ -57,7 +57,7 @@ class JobServiceResolverServiceTest extends TestCase
 
     public function test_resolve_returns_null_when_no_service_has_job(): void
     {
-        config()->set('horizonhub.horizon_http_retry', ['times' => 1, 'sleep_ms' => 0, 'retry_on_status' => []]);
+        config()->set('horizonhub.http.retry', ['times' => 1, 'sleep_ms' => 0, 'retry_on_status' => []]);
 
         Service::create(['name' => 'alpha', 'base_url' => 'https://alpha.test', 'status' => 'online']);
 

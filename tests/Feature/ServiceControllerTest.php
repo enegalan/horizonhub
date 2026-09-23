@@ -6,10 +6,13 @@ use App\Enums\ServiceStatus;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientCacheService;
 use App\Support\FormDrawer;
+use App\Support\Services\ServiceTlsClientStorage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ServiceControllerTest extends TestCase
@@ -25,7 +28,7 @@ class ServiceControllerTest extends TestCase
             'status' => 'offline',
         ]);
 
-        \config()->set('horizonhub.horizon_http_retry', ['times' => 1, 'sleep_ms' => 0, 'retry_on_status' => []]);
+        \config()->set('horizonhub.http.retry', ['times' => 1, 'sleep_ms' => 0, 'retry_on_status' => []]);
 
         Http::fake([
             'https://svc-a-updated.test/horizon/api/stats' => Http::sequence()
@@ -151,6 +154,108 @@ class ServiceControllerTest extends TestCase
         ]);
     }
 
+    public function test_store_and_update_persist_pem_tls_client_settings(): void
+    {
+        Storage::fake(ServiceTlsClientStorage::DISK);
+
+        $this->post(route('horizon.services.store'), [
+            'name' => 'svc-tls-pem',
+            'base_url' => 'https://svc-tls-pem.test/',
+            'tls_client_mode' => 'pem',
+            'tls_client_cert' => UploadedFile::fake()->create('client.crt', 10, 'application/x-x509-ca-cert'),
+            'tls_client_key' => UploadedFile::fake()->create('client.key', 10, 'application/x-pem-file'),
+            'tls_client_passphrase' => 'pem-secret',
+        ])->assertRedirect(route('horizon.services.index'));
+
+        $service = Service::where('name', 'svc-tls-pem')->firstOrFail();
+
+        $this->assertSame('pem', $service->tls_client_mode?->value);
+        $this->assertSame('service-tls/' . $service->id . '/client.crt', $service->tls_client_cert_path);
+        $this->assertSame('service-tls/' . $service->id . '/client.key', $service->tls_client_key_path);
+        $this->assertSame('pem-secret', $service->tls_client_passphrase);
+        Storage::disk(ServiceTlsClientStorage::DISK)->assertExists($service->tls_client_cert_path);
+        Storage::disk(ServiceTlsClientStorage::DISK)->assertExists($service->tls_client_key_path);
+
+        $this->put(route('horizon.services.update', ['service' => $service]), [
+            'name' => 'svc-tls-pem',
+            'base_url' => 'https://svc-tls-pem.test/',
+            'tls_client_mode' => 'pem',
+            'tls_client_passphrase' => '',
+        ])->assertRedirect(route('horizon.services.index'));
+
+        $service->refresh();
+        $this->assertSame('pem-secret', $service->tls_client_passphrase);
+        $this->assertSame('service-tls/' . $service->id . '/client.crt', $service->tls_client_cert_path);
+    }
+
+    public function test_update_rejects_tls_cert_upload_without_removing_existing_file(): void
+    {
+        Storage::fake(ServiceTlsClientStorage::DISK);
+
+        $service = Service::create([
+            'name' => 'svc-tls-replace-guard',
+            'base_url' => 'https://svc-tls-replace-guard.test',
+            'status' => 'online',
+            'tls_client_mode' => 'pem',
+            'tls_client_cert_path' => 'service-tls/1/client.crt',
+            'tls_client_key_path' => 'service-tls/1/client.key',
+        ]);
+
+        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.crt', 'cert');
+        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.key', 'key');
+        $service->update([
+            'tls_client_cert_path' => 'service-tls/' . $service->id . '/client.crt',
+            'tls_client_key_path' => 'service-tls/' . $service->id . '/client.key',
+        ]);
+
+        $this->from(route('horizon.services.edit', $service))
+            ->put(route('horizon.services.update', ['service' => $service]), [
+                'name' => 'svc-tls-replace-guard',
+                'base_url' => 'https://svc-tls-replace-guard.test/',
+                'tls_client_mode' => 'pem',
+                'tls_client_cert' => UploadedFile::fake()->create('client.crt', 10, 'application/x-x509-ca-cert'),
+                'tls_client_remove_cert' => '0',
+                'tls_client_remove_key' => '0',
+            ])
+            ->assertRedirect(route('horizon.services.edit', $service))
+            ->assertSessionHasErrors(['tls_client_cert']);
+    }
+
+    public function test_update_replaces_tls_cert_after_explicit_remove(): void
+    {
+        Storage::fake(ServiceTlsClientStorage::DISK);
+
+        $service = Service::create([
+            'name' => 'svc-tls-replace-ok',
+            'base_url' => 'https://svc-tls-replace-ok.test',
+            'status' => 'online',
+            'tls_client_mode' => 'pem',
+        ]);
+
+        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.crt', 'old-cert');
+        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.key', 'old-key');
+        $service->update([
+            'tls_client_cert_path' => 'service-tls/' . $service->id . '/client.crt',
+            'tls_client_key_path' => 'service-tls/' . $service->id . '/client.key',
+        ]);
+
+        $this->put(route('horizon.services.update', ['service' => $service]), [
+            'name' => 'svc-tls-replace-ok',
+            'base_url' => 'https://svc-tls-replace-ok.test/',
+            'tls_client_mode' => 'pem',
+            'tls_client_cert' => UploadedFile::fake()->create('client.crt', 10, 'application/x-x509-ca-cert'),
+            'tls_client_key' => UploadedFile::fake()->create('client.key', 10, 'application/x-pem-file'),
+            'tls_client_remove_cert' => '1',
+            'tls_client_remove_key' => '1',
+        ])->assertRedirect(route('horizon.services.index'));
+
+        $service->refresh();
+        $this->assertSame('service-tls/' . $service->id . '/client.crt', $service->tls_client_cert_path);
+        $this->assertSame('service-tls/' . $service->id . '/client.key', $service->tls_client_key_path);
+        Storage::disk(ServiceTlsClientStorage::DISK)->assertExists($service->tls_client_cert_path);
+        Storage::disk(ServiceTlsClientStorage::DISK)->assertExists($service->tls_client_key_path);
+    }
+
     public function test_store_ignores_header_row_with_only_whitespace_in_name_and_value(): void
     {
         $this->post(route('horizon.services.store'), [
@@ -169,6 +274,67 @@ class ServiceControllerTest extends TestCase
             'service_id' => $service->id,
             'name' => 'Authorization',
         ]);
+    }
+
+    public function test_store_persists_p12_tls_client_settings(): void
+    {
+        Storage::fake(ServiceTlsClientStorage::DISK);
+
+        $dir = \sys_get_temp_dir() . '/hh-feat-p12-' . \bin2hex(\random_bytes(4));
+        \mkdir($dir, 0700);
+        $cert = $dir . '/cert.pem';
+        $key = $dir . '/key.pem';
+        $p12 = $dir . '/client.p12';
+
+        try {
+            $req = \proc_open([
+                'openssl', 'req', '-x509', '-newkey', 'rsa:2048',
+                '-keyout', $key, '-out', $cert, '-days', '1', '-nodes',
+                '-subj', '/CN=horizonhub-feature',
+            ], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+
+            if (! \is_resource($req) || \proc_close($req) !== 0) {
+                $this->markTestSkipped('openssl req failed');
+            }
+
+            $export = \proc_open([
+                'openssl', 'pkcs12', '-export',
+                '-in', $cert, '-inkey', $key, '-out', $p12,
+                '-passout', 'pass:p12-secret',
+            ], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+
+            if (! \is_resource($export) || \proc_close($export) !== 0) {
+                $this->markTestSkipped('openssl pkcs12 export failed');
+            }
+
+            $this->post(route('horizon.services.store'), [
+                'name' => 'svc-tls-p12',
+                'base_url' => 'https://svc-tls-p12.test/',
+                'tls_client_mode' => 'p12',
+                'tls_client_cert' => new UploadedFile($p12, 'client.p12', 'application/x-pkcs12', null, true),
+                'tls_client_passphrase' => 'p12-secret',
+            ])->assertRedirect(route('horizon.services.index'));
+
+            $service = Service::where('name', 'svc-tls-p12')->firstOrFail();
+
+            $this->assertSame('p12', $service->tls_client_mode?->value);
+            $this->assertSame('service-tls/' . $service->id . '/client.p12', $service->tls_client_cert_path);
+            $this->assertNull($service->tls_client_key_path);
+            $this->assertSame('p12-secret', $service->tls_client_passphrase);
+            Storage::disk(ServiceTlsClientStorage::DISK)->assertExists($service->tls_client_cert_path);
+            Storage::disk(ServiceTlsClientStorage::DISK)->assertExists(
+                ServiceTlsClientStorage::directory($service) . '/' . ServiceTlsClientStorage::EXTRACTED_CERT_NAME,
+            );
+        } finally {
+            foreach ([$p12, $cert, $key] as $file) {
+                if (\is_file($file)) {
+                    @\unlink($file);
+                }
+            }
+            if (\is_dir($dir)) {
+                @\rmdir($dir);
+            }
+        }
     }
 
     public function test_store_rejects_duplicate_header_names(): void
@@ -204,6 +370,20 @@ class ServiceControllerTest extends TestCase
         $this->assertDatabaseMissing('services', ['name' => 'svc-ws-header']);
     }
 
+    public function test_store_rejects_pem_mode_without_uploaded_files(): void
+    {
+        $this->from(route('horizon.services.create'))
+            ->post(route('horizon.services.store'), [
+                'name' => 'svc-tls-missing',
+                'base_url' => 'https://svc-tls-missing.test/',
+                'tls_client_mode' => 'pem',
+            ])
+            ->assertRedirect(route('horizon.services.create'))
+            ->assertSessionHasErrors(['tls_client_cert', 'tls_client_key']);
+
+        $this->assertDatabaseMissing('services', ['name' => 'svc-tls-missing']);
+    }
+
     public function test_store_rejects_reserved_header_names(): void
     {
         $this->from(route('horizon.services.create'))
@@ -228,8 +408,8 @@ class ServiceControllerTest extends TestCase
             'status' => 'online',
         ]);
 
-        \config()->set('horizonhub.api_timeout', 10);
-        \config()->set('horizonhub.horizon_http_retry', ['times' => 1, 'sleep_ms' => 0, 'retry_on_status' => []]);
+        \config()->set('horizonhub.http.api_timeout', 10);
+        \config()->set('horizonhub.http.retry', ['times' => 1, 'sleep_ms' => 0, 'retry_on_status' => []]);
 
         Http::fake(fn () => throw new ConnectionException('cURL error 28: Operation timed out after 10001 milliseconds with 0 bytes received'));
 
@@ -244,5 +424,36 @@ class ServiceControllerTest extends TestCase
 
         $service->refresh();
         $this->assertSame(ServiceStatus::Offline, $service->status);
+    }
+
+    public function test_update_clears_tls_client_settings_when_mode_is_none(): void
+    {
+        Storage::fake(ServiceTlsClientStorage::DISK);
+
+        $service = Service::create([
+            'name' => 'svc-tls-clear',
+            'base_url' => 'https://svc-tls-clear.test',
+            'status' => 'online',
+            'tls_client_mode' => 'pem',
+            'tls_client_cert_path' => 'service-tls/1/client.crt',
+            'tls_client_key_path' => 'service-tls/1/client.key',
+            'tls_client_passphrase' => 'keep-me',
+        ]);
+
+        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.crt', 'cert');
+        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.key', 'key');
+
+        $this->put(route('horizon.services.update', ['service' => $service]), [
+            'name' => 'svc-tls-clear',
+            'base_url' => 'https://svc-tls-clear.test/',
+            'tls_client_mode' => '',
+        ])->assertRedirect(route('horizon.services.index'));
+
+        $service->refresh();
+        $this->assertNull($service->tls_client_mode);
+        $this->assertNull($service->tls_client_cert_path);
+        $this->assertNull($service->tls_client_key_path);
+        $this->assertNull($service->tls_client_passphrase);
+        Storage::disk(ServiceTlsClientStorage::DISK)->assertMissing('service-tls/' . $service->id);
     }
 }

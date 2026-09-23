@@ -20,13 +20,17 @@
         }
 
         $tagsForForm = $isEdit ? $service->tags : [];
+        $tlsFilesForForm = [
+            'certName' => filled($service->tls_client_cert_path) ? \basename((string) $service->tls_client_cert_path) : '',
+            'keyName' => filled($service->tls_client_key_path) ? \basename((string) $service->tls_client_key_path) : '',
+        ];
     @endphp
 
     <div
         class="space-y-6"
-        x-data="window.horizonServiceForm({!! \Illuminate\Support\Js::from($headersForForm) !!}, {!! \Illuminate\Support\Js::from($tagsForForm) !!}, {!! \Illuminate\Support\Js::from($existingTags ?? []) !!})"
+        x-data="window.horizonServiceForm({!! \Illuminate\Support\Js::from($headersForForm) !!}, {!! \Illuminate\Support\Js::from($tagsForForm) !!}, {!! \Illuminate\Support\Js::from($existingTags ?? []) !!}, {!! \Illuminate\Support\Js::from(old('tls_client_mode', $service->tls_client_mode?->value ?? '')) !!}, {!! \Illuminate\Support\Js::from($tlsFilesForForm) !!})"
     >
-        <form method="POST" action="{{ $action }}" class="space-y-6" data-turbo-frame="form-drawer">
+        <form method="POST" action="{{ $action }}" enctype="multipart/form-data" class="space-y-6" data-turbo-frame="form-drawer">
             @csrf
             @if($isEdit)
                 @method('PUT')
@@ -202,6 +206,127 @@
                             @endforeach
                         </ul>
                     @endif
+                </div>
+            </div>
+
+            <div class="card overflow-hidden">
+                <div class="border-b border-border px-5 py-4 sm:px-6">
+                    <h3 class="text-sm font-semibold text-foreground">Client TLS (mTLS)</h3>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Optional. Upload a client certificate when the upstream Horizon API requires mTLS. Files are stored privately on the Horizon Hub server.
+                    </p>
+                </div>
+                <div class="space-y-4 px-5 py-5 sm:px-6">
+                    <div class="space-y-2">
+                        <x-input-label for="tls_client_mode">Mode</x-input-label>
+                        <x-select
+                            id="tls_client_mode"
+                            name="tls_client_mode"
+                            class="w-full"
+                            :searchable="false"
+                            @change="tlsClientMode = $event.target.value"
+                        >
+                            <option value="" @selected(old('tls_client_mode', $service->tls_client_mode?->value ?? '') === '')>None</option>
+                            @foreach (\App\Enums\TlsClientMode::options() as $value => $label)
+                                <option value="{{ $value }}" @selected(old('tls_client_mode', $service->tls_client_mode?->value ?? '') === $value)>{{ $label }}</option>
+                            @endforeach
+                        </x-select>
+                        @error('tls_client_mode') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="space-y-2" x-show="tlsClientMode === 'pem' || tlsClientMode === 'p12'" x-cloak>
+                        <x-input-label for="tls_client_cert">
+                            <span x-show="tlsClientMode === 'pem'">Certificate (.crt / .pem)</span>
+                            <span x-show="tlsClientMode === 'p12'">PKCS#12 (.p12 / .pfx)</span>
+                        </x-input-label>
+                        <input type="hidden" name="tls_client_remove_cert" x-bind:value="tlsRemoveCert ? '1' : '0'" />
+                        <div
+                            x-show="tlsCertOnFile"
+                            class="flex items-center gap-2 bg-background rounded-md border border-border px-3 py-1"
+                        >
+                            <code class="min-w-0 flex-1 truncate font-mono text-xs text-foreground" x-text="tlsCertName" x-bind:title="tlsCertName"></code>
+                            <x-button
+                                type="button"
+                                variant="ghost"
+                                class="h-8 shrink-0 px-2 text-destructive hover:text-destructive"
+                                @click="removeTlsCert()"
+                                aria-label="Remove certificate"
+                                title="Remove certificate"
+                            >
+                                <x-icons.trash class="size-4" />
+                            </x-button>
+                        </div>
+                        <input
+                            id="tls_client_cert"
+                            type="file"
+                            name="tls_client_cert"
+                            x-show="!tlsCertOnFile"
+                            class="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground shadow-sm file:mr-3 file:rounded file:border-0 file:bg-muted file:px-2 file:py-0.5 file:text-xs file:font-medium"
+                        />
+                        <p class="text-xs text-muted-foreground" x-show="tlsCertOnFile" x-cloak>
+                            Remove the current file before uploading a replacement.
+                        </p>
+                        @error('tls_client_cert') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="space-y-2" x-show="tlsClientMode === 'pem'" x-cloak>
+                        <x-input-label for="tls_client_key">Private key (.key / .pem)</x-input-label>
+                        <input type="hidden" name="tls_client_remove_key" x-bind:value="tlsRemoveKey ? '1' : '0'" />
+                        <div
+                            x-show="tlsKeyOnFile"
+                            class="flex items-center gap-2 bg-background rounded-md border border-border px-3 py-1"
+                        >
+                            <code class="min-w-0 flex-1 truncate font-mono text-xs text-foreground" x-text="tlsKeyName" x-bind:title="tlsKeyName"></code>
+                            <x-button
+                                type="button"
+                                variant="ghost"
+                                class="h-8 shrink-0 px-2 text-destructive hover:text-destructive"
+                                @click="removeTlsKey()"
+                                aria-label="Remove private key"
+                                title="Remove private key"
+                            >
+                                <x-icons.trash class="size-4" />
+                            </x-button>
+                        </div>
+                        <input
+                            id="tls_client_key"
+                            type="file"
+                            name="tls_client_key"
+                            x-show="!tlsKeyOnFile"
+                            class="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground shadow-sm file:mr-3 file:rounded file:border-0 file:bg-muted file:px-2 file:py-0.5 file:text-xs file:font-medium"
+                        />
+                        <p class="text-xs text-muted-foreground" x-show="tlsKeyOnFile" x-cloak>
+                            Remove the current file before uploading a replacement.
+                        </p>
+                        @error('tls_client_key') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="space-y-2" x-show="tlsClientMode === 'pem' || tlsClientMode === 'p12'" x-cloak>
+                        <x-input-label for="tls_client_passphrase">Passphrase (optional)</x-input-label>
+                        <div class="relative">
+                            <x-text-input
+                                id="tls_client_passphrase"
+                                type="password"
+                                name="tls_client_passphrase"
+                                value=""
+                                class="w-full pr-10 font-mono text-sm"
+                                autocomplete="new-password"
+                                x-bind:type="showTlsPassphrase ? 'text' : 'password'"
+                                placeholder="{{ ! blank($service->getAttributes()['tls_client_passphrase'] ?? null) ? 'Leave blank to keep current passphrase' : 'Optional' }}"
+                            />
+                            <button
+                                type="button"
+                                class="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+                                @click="showTlsPassphrase = !showTlsPassphrase"
+                                x-bind:aria-label="showTlsPassphrase ? 'Hide passphrase' : 'Show passphrase'"
+                                x-bind:title="showTlsPassphrase ? 'Hide passphrase' : 'Show passphrase'"
+                            >
+                                <x-icons.eye class="size-4" x-show="!showTlsPassphrase" x-cloak />
+                                <x-icons.eye-slash class="size-4" x-show="showTlsPassphrase" x-cloak />
+                            </button>
+                        </div>
+                        @error('tls_client_passphrase') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
+                    </div>
                 </div>
             </div>
 

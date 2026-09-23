@@ -56,7 +56,7 @@ trait BuildsDashboardStreams
         }
 
         $recentAlertLogs = $recentAlertLogsQuery
-            ->limit(5) // TODO: make this configurable
+            ->limit(config('horizonhub.recent_alert_logs'))
             ->get();
 
         return $this->buildStreams([

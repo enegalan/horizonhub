@@ -11,13 +11,6 @@ use Illuminate\Database\Eloquent\Collection;
 abstract class AbstractMetricsCalculator
 {
     /**
-     * The number of top queues to return.
-     *
-     * @var int
-     */
-    public const TOP_N_QUEUES = 12; // TODO: make this configurable.
-
-    /**
      * The jobs window fetcher.
      */
     protected JobsWindowFetcherService $jobsWindowFetcher;

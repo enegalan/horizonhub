@@ -297,7 +297,7 @@ class MetricsDataService
     }
 
     /**
-     * Build wait-by-queue bar chart data from workload rows (top 12 queues by max wait).
+     * Build wait-by-queue bar chart data from workload rows.
      *
      * @param array<int, array<string, mixed>> $workloadRows
      *
@@ -332,7 +332,8 @@ class MetricsDataService
             return null;
         }
         \arsort($waits, \SORT_NUMERIC);
-        $top = \array_slice($waits, 0, AbstractMetricsCalculator::TOP_N_QUEUES, true);
+        // TO-TEST: What if we remove this truncation?
+        $top = \array_slice($waits, 0, config('horizonhub.top_n_queues'), true);
         $queues = \array_keys($top);
         $wait = \array_values($top);
 

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ServiceStatus;
+use App\Enums\TlsClientMode;
 use App\Models\Concerns\Enablable;
 use App\Services\Horizon\HorizonClientApiService;
 use App\Services\Horizon\HorizonClientCacheService;
@@ -26,6 +27,10 @@ use Illuminate\Validation\ValidationException;
  * @property string $base_url
  * @property string $public_url
  * @property string|null $horizon_status
+ * @property TlsClientMode|null $tls_client_mode
+ * @property string|null $tls_client_cert_path
+ * @property string|null $tls_client_key_path
+ * @property string|null $tls_client_passphrase
  */
 class Service extends Model
 {
@@ -54,6 +59,8 @@ class Service extends Model
         'last_seen_at' => 'datetime',
         'tags' => 'array',
         'status' => ServiceStatus::class,
+        'tls_client_mode' => TlsClientMode::class,
+        'tls_client_passphrase' => 'encrypted',
     ];
 
     /**
@@ -69,6 +76,19 @@ class Service extends Model
         'enabled',
         'last_seen_at',
         'tags',
+        'tls_client_mode',
+        'tls_client_cert_path',
+        'tls_client_key_path',
+        'tls_client_passphrase',
+    ];
+
+    /**
+     * Attributes hidden from array / JSON serialization.
+     *
+     * @var list<string>
+     */
+    protected $hidden = [
+        'tls_client_passphrase',
     ];
 
     /**

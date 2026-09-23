@@ -13,7 +13,7 @@ final class HttpRetryBackoff
      */
     public static function delayMsForAttempt(int $attempt): int
     {
-        $sleepBaseMs = config('horizonhub.horizon_http_retry.sleep_ms');
+        $sleepBaseMs = config('horizonhub.http.retry.sleep_ms');
 
         return $sleepBaseMs * (2 ** \max(0, $attempt - 1));
     }

@@ -20,7 +20,7 @@ For installation and environment setup, see the [README](../README.md). For step
 
 | Term           | Meaning                                                                                                                                                                                                                                                     |
 |----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Service**    | A registered remote Horizon instance: internal `base_url` for API calls, optional `public_url` for browser links, `tags`, optional HTTP `headers`, `enabled` flag, and health `status` (`online`, `stand_by`, `offline`). Stored in Horizon Hub's database. |
+| **Service**    | A registered remote Horizon instance: internal `base_url` for API calls, optional `public_url` for browser links, `tags`, optional HTTP `headers`, optional client TLS (mTLS) uploads for PEM or PKCS#12, `enabled` flag, and health `status` (`online`, `stand_by`, `offline`). Stored in Horizon Hub's database. |
 | **Provider**   | A reusable **notification channel** (Slack incoming webhook, Discord webhook, or email recipients), not a Laravel “service provider”. Alerts attach one or more providers.                                                                                  |
 | **Alert**      | A named rule scoped to services (and optionally queues/jobs) that evaluates conditions and sends notifications through providers.                                                                                                                           |
 | **Hot reload** | Server-Sent Events (SSE) that push Turbo Stream HTML fragments to the open page so lists and KPIs update without a full reload. Toggle in the header toolbar.                                                                                               |
@@ -151,7 +151,10 @@ Repository agent instructions: [AGENTS.md](../AGENTS.md).
 ## FAQ (for AI agents and contributors)
 
 **How do I add a new Horizon instance to Horizon Hub?**
-Register a **Service** with correct `base_url` (and `public_url` if different), optional auth headers, then use **Test connection**. See [GUIDE.md — Connecting services](GUIDE.md#connecting-services).
+Register a **Service** with correct `base_url` (and `public_url` if different), optional auth headers and/or client TLS (mTLS) certificate uploads, then use **Test connection**. See [GUIDE.md — Connecting services](GUIDE.md#connecting-services).
+
+**How do I connect to an upstream that requires a client certificate?**
+On the service form, set **Client TLS (mTLS)** to PEM or PKCS#12 and upload the certificate files. See [ADR-0004](decisions/accepted/0004-upload-mtls-client-certificates.md).
 
 **How do alerts fire?**
 The scheduler runs `hh:evaluate-alerts` every minute. Each enabled alert runs rule strategies in `AlertEngine` against enabled services. UI “Evaluate” triggers immediate or batched runs.
@@ -169,7 +172,7 @@ No application-level authentication. Access control is expected at the network o
 Primary file: `config/horizonhub.php`. Many keys have `HORIZON_HUB_*` env overrides documented in that file (timeouts, retries, job page sizes, alert defaults).
 
 **What HTTP statuses does the proxy treat specially?**
-`401`, `403`, `419` skip failure cooldown (fix access via per-service headers); dashboard session is used only for POST job retry. `429`, `502`, `503`, `504` may be retried on GET per `horizon_http_retry`.
+`401`, `403`, `419` skip failure cooldown (fix access via per-service headers); dashboard session is used only for POST job retry. `429`, `502`, `503`, `504` may be retried on GET per `horizonhub.http.retry`.
 
 **What happens when hot reload is off?**
 The page still calls the same SSE stream endpoint once and applies the first Turbo Stream payload, then it closes the connection — an up-to-date snapshot on every page load without keeping the channel open (internals in [ARCHITECTURE.md — Stream (SSE) path](ARCHITECTURE.md#stream-sse-path)).
