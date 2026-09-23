@@ -9,6 +9,7 @@ use App\Support\Services\ServiceTlsClientStorage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class ServiceTlsClientStorageTest extends TestCase
@@ -92,6 +93,29 @@ class ServiceTlsClientStorageTest extends TestCase
 
         $this->assertNull($paths['tls_client_cert_path']);
         Storage::disk(ServiceTlsClientStorage::DISK)->assertMissing('service-tls/' . $service->id);
+    }
+
+    public function test_sync_p12_preserves_old_key_when_extraction_fails(): void
+    {
+        $service = Service::create([
+            'name' => 'svc-tls-p12-keep-key',
+            'base_url' => 'https://svc-tls-p12-keep-key.test',
+            'status' => 'online',
+            'tls_client_mode' => TlsClientMode::P12->value,
+            'tls_client_passphrase' => 'wrong-secret',
+        ]);
+        $service->update([
+            'tls_client_cert_path' => 'service-tls/' . $service->id . '/client.p12',
+            'tls_client_key_path' => 'service-tls/' . $service->id . '/client.key',
+        ]);
+
+        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.p12', 'not-a-p12');
+        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.key', 'old-key');
+
+        $this->expectException(ValidationException::class);
+        ServiceTlsClientStorage::sync($service, TlsClientMode::P12->value, passphrase: 'wrong-secret');
+
+        Storage::disk(ServiceTlsClientStorage::DISK)->assertExists('service-tls/' . $service->id . '/client.key');
     }
 
     public function test_sync_stores_pem_and_forget_clears_directory(): void

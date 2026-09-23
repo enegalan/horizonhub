@@ -206,7 +206,7 @@ return [
     | High values can impact the visual clarity and performance.
     |
     */
-    'top_n_queues' => (int) env('HORIZON_HUB_TOP_N_QUEUES', 12),
+    'top_n_queues' => max(1, (int) env('HORIZON_HUB_TOP_N_QUEUES', 12)),
 
     /*
     |--------------------------------------------------------------------------
@@ -216,5 +216,5 @@ return [
     | The number of recent alert logs to return in the metrics dashboard.
     |
     */
-    'recent_alert_logs' => (int) env('HORIZON_HUB_RECENT_ALERT_LOGS', 5),
+    'recent_alert_logs' => max(1, (int) env('HORIZON_HUB_RECENT_ALERT_LOGS', 5)),
 ];

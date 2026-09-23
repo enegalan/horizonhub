@@ -141,21 +141,21 @@
             var measuredHeight = this.$refs.panel && this.$refs.panel.offsetHeight > 0 ? this.$refs.panel.offsetHeight : cssMax;
             var placeAbove = spaceBelow < measuredHeight && spaceAbove > spaceBelow;
             var available = placeAbove ? spaceAbove : spaceBelow;
-            var maxHeight = Math.max({{ $panelMinHeight }}, Math.min(cssMax, available || cssMax));
+            var maxHeight = Math.min(Math.max({{ $panelMinHeight }}, available), cssMax, available);
             var width = Math.min(Math.max(rect.width, {{ $panelMinWidth }}), Math.min({{ $panelMaxWidth }}, window.innerWidth - (pad * 2)));
             var left = Math.min(Math.max(pad, rect.left), window.innerWidth - width - pad);
             var top;
+            var bottom;
 
             if (placeAbove) {
-                var panelHeight = this.$refs.panel && this.$refs.panel.offsetHeight > 0
-                    ? Math.min(this.$refs.panel.offsetHeight, maxHeight)
-                    : maxHeight;
-                top = Math.max(pad, rect.top - gap - panelHeight);
+                top = 'auto';
+                bottom = Math.max(pad, window.innerHeight - rect.top + gap);
             } else {
                 top = rect.bottom + gap;
+                bottom = 'auto';
             }
 
-            this.anchor = { top: top, left: left, width: width, maxHeight: maxHeight };
+            this.anchor = { top: top, bottom: bottom, left: left, width: width, maxHeight: maxHeight };
         },
         bindReposition() {
             if (this._repositionHandler) return;
@@ -233,7 +233,7 @@
             x-transition:leave="transition ease-in duration-75"
             x-transition:leave-start="opacity-100 scale-100"
             x-transition:leave-end="opacity-0 scale-95"
-            x-bind:style="{ top: anchor.top + 'px', left: anchor.left + 'px', width: anchor.width + 'px', maxHeight: anchor.maxHeight + 'px' }"
+            x-bind:style="{ top: anchor.top === 'auto' ? 'auto' : anchor.top + 'px', bottom: anchor.bottom === 'auto' ? 'auto' : anchor.bottom + 'px', left: anchor.left + 'px', width: anchor.width + 'px', maxHeight: anchor.maxHeight + 'px' }"
             class="fixed z-[70] flex max-w-[min(24rem,calc(100vw_-_2rem))] flex-col overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md"
             role="listbox"
         >

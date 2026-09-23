@@ -19,6 +19,42 @@ class ServiceControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const PEM_CERTIFICATE = <<<'PEM'
+-----BEGIN CERTIFICATE-----
+MIICEDCCAXmgAwIBAgIUZuS8mee4ajv0TcbZCxo+raHhGQowDQYJKoZIhvcNAQEL
+BQAwGjEYMBYGA1UEAwwPaG9yaXpvbmh1Yi10ZXN0MB4XDTI2MDkyMzIyMDEzNloX
+DTI3MDkyMzIyMDEzNlowGjEYMBYGA1UEAwwPaG9yaXpvbmh1Yi10ZXN0MIGfMA0G
+CSqGSIb3DQEBAQUAA4GNADCBiQKBgQDn/z1p1Ox9AvTJsIEtk0y2OoAZBevAXKjg
+pYv53kw7f6LAyNTv/kyZQpLKAcrgFPwcixW+O4w9Lhv8uBrS3wUlfdiT/S80dQNN
+iQz6bHvLZ8TtIPYUYZEQ1SvayRbQsyFOE7shmDUG+ms8tZmH4XZa87GDLITEw96A
+ez2BvRHpfwIDAQABo1MwUTAdBgNVHQ4EFgQUkk2VPyDrVBc/PmVHpM2BRNBjYOkw
+HwYDVR0jBBgwFoAUkk2VPyDrVBc/PmVHpM2BRNBjYOkwDwYDVR0TAQH/BAUwAwEB
+/zANBgkqhkiG9w0BAQsFAAOBgQBXQ3Z8O7txJbh45I7lQV1JBbtLr65mQq4cdL3t
+b/mxlEEdvUybCby02IVPqH0S1ts0i9Gts1LnIvtDLLdPLLfqTIG2X0mTUHeXWxLU
+/d9dQVn4g73SITBqVBaJdo80p0TXfG1b6IAnlOZpQa6ig5VWnywuPDuNOcgopOi4
+EG12mQ==
+-----END CERTIFICATE-----
+PEM;
+
+    private const PEM_PRIVATE_KEY = <<<'PEM'
+-----BEGIN PRIVATE KEY-----
+MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAOf/PWnU7H0C9Mmw
+gS2TTLY6gBkF68BcqOCli/neTDt/osDI1O/+TJlCksoByuAU/ByLFb47jD0uG/y4
+GtLfBSV92JP9LzR1A02JDPpse8tnxO0g9hRhkRDVK9rJFtCzIU4TuyGYNQb6azy1
+mYfhdlrzsYMshMTD3oB7PYG9Eel/AgMBAAECgYEAhcRqCMe4xCwcMN8Q3NJ9/OSm
+T8dWM8g5p65Mk3pVwkjJ8xbZkLe0Ovpj4Q4/iA0RgPPBSbrUFcKsaH9PGB93uxlU
+SmGQjg6ad8jj/tIAsMp0SKFnexuqkG131tN66ucZBN2qGkkGaLWufTEPtFg3ylqB
+uxGbao1Rvqiq/93So2ECQQD15/UoNJCDuuD3r0b8zs/hNTBTnjvF05d2BdjxoDa5
+3gDrS59yi6sO8KbvQczKk7S43XKrhsmhrpUX36TRFlR1AkEA8YUfWQmZ8ue/VMZw
+U6HMiuPUnD1k/BBsEOnD3zOf8uUwOcIvuB/gWY7/dlCKSRIpq1dKxS6tDsFpaDuw
+JkE3owJAeOQnPzPQVCKclMfj00dtJV97ubAR3KiwToKDbA6CuQ+uTf7ojWyilP60
+Yu1rW7AP6c5coHzsRYNJoun84hnjPQJACbQIe2JIXhrzc+t5DdMdTaMzoodQ7FOY
+k+FgbjI7xd1xX5CurB4TvGVjXBSGScNCC1E5fsyORV595qMnQ5IxMwJBAILqHapH
+1pG64GFctKjHlqieELyJ44mgcSYaItNQ4l5NCBJoJKr6xwtOmokrgj+8k1hvLNvO
+2Q8K/KWnAuoWwsk=
+-----END PRIVATE KEY-----
+PEM;
+
     public function test_index_edit_show_store_update_destroy_and_connection_paths(): void
     {
         $service = Service::create([
@@ -162,8 +198,8 @@ class ServiceControllerTest extends TestCase
             'name' => 'svc-tls-pem',
             'base_url' => 'https://svc-tls-pem.test/',
             'tls_client_mode' => 'pem',
-            'tls_client_cert' => UploadedFile::fake()->create('client.crt', 10, 'application/x-x509-ca-cert'),
-            'tls_client_key' => UploadedFile::fake()->create('client.key', 10, 'application/x-pem-file'),
+            'tls_client_cert' => UploadedFile::fake()->createWithContent('client.crt', self::PEM_CERTIFICATE),
+            'tls_client_key' => UploadedFile::fake()->createWithContent('client.key', self::PEM_PRIVATE_KEY),
             'tls_client_passphrase' => 'pem-secret',
         ])->assertRedirect(route('horizon.services.index'));
 
@@ -445,8 +481,8 @@ class ServiceControllerTest extends TestCase
             'name' => 'svc-tls-replace-ok',
             'base_url' => 'https://svc-tls-replace-ok.test/',
             'tls_client_mode' => 'pem',
-            'tls_client_cert' => UploadedFile::fake()->create('client.crt', 10, 'application/x-x509-ca-cert'),
-            'tls_client_key' => UploadedFile::fake()->create('client.key', 10, 'application/x-pem-file'),
+            'tls_client_cert' => UploadedFile::fake()->createWithContent('client.crt', self::PEM_CERTIFICATE),
+            'tls_client_key' => UploadedFile::fake()->createWithContent('client.key', self::PEM_PRIVATE_KEY),
             'tls_client_remove_cert' => '1',
             'tls_client_remove_key' => '1',
         ])->assertRedirect(route('horizon.services.index'));
@@ -456,5 +492,66 @@ class ServiceControllerTest extends TestCase
         $this->assertSame('service-tls/' . $service->id . '/client.key', $service->tls_client_key_path);
         Storage::disk(ServiceTlsClientStorage::DISK)->assertExists($service->tls_client_cert_path);
         Storage::disk(ServiceTlsClientStorage::DISK)->assertExists($service->tls_client_key_path);
+    }
+
+    public function test_update_requires_fresh_p12_upload_when_mode_changes_from_pem(): void
+    {
+        Storage::fake(ServiceTlsClientStorage::DISK);
+
+        $service = Service::create([
+            'name' => 'svc-tls-mode-switch',
+            'base_url' => 'https://svc-tls-mode-switch.test',
+            'status' => 'online',
+            'tls_client_mode' => 'pem',
+        ]);
+        $service->update([
+            'tls_client_cert_path' => 'service-tls/' . $service->id . '/client.crt',
+            'tls_client_key_path' => 'service-tls/' . $service->id . '/client.key',
+        ]);
+
+        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.crt', 'cert');
+        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.key', 'key');
+
+        $this->from(route('horizon.services.edit', $service))
+            ->put(route('horizon.services.update', ['service' => $service]), [
+                'name' => 'svc-tls-mode-switch',
+                'base_url' => 'https://svc-tls-mode-switch.test/',
+                'tls_client_mode' => 'p12',
+            ])
+            ->assertRedirect(route('horizon.services.edit', $service))
+            ->assertSessionHasErrors(['tls_client_cert']);
+
+        $service->refresh();
+        $this->assertSame('pem', $service->tls_client_mode?->value);
+    }
+
+    public function test_update_requires_fresh_pem_uploads_when_mode_changes_from_p12(): void
+    {
+        Storage::fake(ServiceTlsClientStorage::DISK);
+
+        $service = Service::create([
+            'name' => 'svc-tls-mode-switch-2',
+            'base_url' => 'https://svc-tls-mode-switch-2.test',
+            'status' => 'online',
+            'tls_client_mode' => 'p12',
+            'tls_client_passphrase' => 'p12-secret',
+        ]);
+        $service->update([
+            'tls_client_cert_path' => 'service-tls/' . $service->id . '/client.p12',
+        ]);
+
+        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.p12', 'p12');
+
+        $this->from(route('horizon.services.edit', $service))
+            ->put(route('horizon.services.update', ['service' => $service]), [
+                'name' => 'svc-tls-mode-switch-2',
+                'base_url' => 'https://svc-tls-mode-switch-2.test/',
+                'tls_client_mode' => 'pem',
+            ])
+            ->assertRedirect(route('horizon.services.edit', $service))
+            ->assertSessionHasErrors(['tls_client_cert', 'tls_client_key']);
+
+        $service->refresh();
+        $this->assertSame('p12', $service->tls_client_mode?->value);
     }
 }

@@ -99,23 +99,27 @@ class ServiceController extends Controller
     {
         $validated = $request->validated();
 
-        $service = Service::create([
-            ...$this->private__attributesFromValidated($validated),
-            'status' => ServiceStatus::Offline->value,
-            'enabled' => true,
-        ]);
+        \DB::transaction(function () use ($validated, $request) {
+            $service = Service::create([
+                ...$this->private__attributesFromValidated($validated),
+                'status' => ServiceStatus::Offline->value,
+                'enabled' => true,
+            ]);
 
-        $service->update(ServiceTlsClientStorage::sync(
-            $service,
-            $service->tls_client_mode?->value,
-            $request->file('tls_client_cert'),
-            $request->file('tls_client_key'),
-            $service->tls_client_passphrase,
-            $request->boolean('tls_client_remove_cert'),
-            $request->boolean('tls_client_remove_key'),
-        ));
+            $service->update(ServiceTlsClientStorage::sync(
+                $service,
+                $service->tls_client_mode?->value,
+                $request->file('tls_client_cert'),
+                $request->file('tls_client_key'),
+                $service->tls_client_passphrase,
+                $request->boolean('tls_client_remove_cert'),
+                $request->boolean('tls_client_remove_key'),
+            ));
 
-        $this->private__storeHeaders($service, $validated['headers'] ?? []);
+            $this->private__storeHeaders($service, $validated['headers'] ?? []);
+
+            return $service;
+        });
 
         return $this->redirectToRoute('horizon.services.index', FlashStatus::success('Service created.'));
     }
@@ -180,21 +184,23 @@ class ServiceController extends Controller
         $validated = $request->validated();
         $attributes = $this->private__attributesFromValidated($validated, $service);
 
-        $service->fill($attributes);
-        $service->save();
+        \DB::transaction(function () use ($service, $attributes, $request, $validated) {
+            $service->fill($attributes);
+            $service->save();
 
-        $service->update(ServiceTlsClientStorage::sync(
-            $service,
-            $service->tls_client_mode?->value,
-            $request->file('tls_client_cert'),
-            $request->file('tls_client_key'),
-            $service->tls_client_passphrase,
-            $request->boolean('tls_client_remove_cert'),
-            $request->boolean('tls_client_remove_key'),
-        ));
+            $service->update(ServiceTlsClientStorage::sync(
+                $service,
+                $service->tls_client_mode?->value,
+                $request->file('tls_client_cert'),
+                $request->file('tls_client_key'),
+                $service->tls_client_passphrase,
+                $request->boolean('tls_client_remove_cert'),
+                $request->boolean('tls_client_remove_key'),
+            ));
 
-        $service->headers()->delete();
-        $this->private__storeHeaders($service, $validated['headers'] ?? []);
+            $service->headers()->delete();
+            $this->private__storeHeaders($service, $validated['headers'] ?? []);
+        });
 
         HorizonClientCacheService::forgetFailureCooldown($service);
 

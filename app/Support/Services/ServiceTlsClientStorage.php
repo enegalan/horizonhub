@@ -206,10 +206,7 @@ class ServiceTlsClientStorage
                 $keyPath = "$directory/$name";
             }
         } else {
-            // Remove the key if it is being removed and no new key is provided.
-            if ($keyPath !== null) {
-                $disk->delete($keyPath);
-            }
+            $oldKeyPath = $keyPath;
             $keyPath = null;
 
             // Extract the certificate/key from the PKCS#12 file.
@@ -232,6 +229,12 @@ class ServiceTlsClientStorage
                         'tls_client_passphrase' => 'Check the PKCS#12 passphrase.',
                     ]);
                 }
+
+                if ($oldKeyPath !== null) {
+                    $disk->delete($oldKeyPath);
+                }
+            } elseif ($oldKeyPath !== null) {
+                $disk->delete($oldKeyPath);
             }
         }
 

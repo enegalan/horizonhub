@@ -16,14 +16,19 @@ class UpsertServiceRequest extends HorizonRequest
     private const HEADER_NAME_PATTERN = '/^[!#$%&\'*+.^_`|~0-9A-Za-z-]+$/';
 
     /**
-     * The extensions for a valid TLS certificate.
-     */
-    private const TLS_CERT_EXTENSIONS = ['crt', 'pem', 'cer', 'p12', 'pfx'];
-
-    /**
      * The extensions for a valid TLS key.
      */
     private const TLS_KEY_EXTENSIONS = ['key', 'pem'];
+
+    /**
+     * The extensions for a valid PKCS#12 certificate.
+     */
+    private const TLS_P12_CERT_EXTENSIONS = ['p12', 'pfx'];
+
+    /**
+     * The extensions for a valid PEM certificate.
+     */
+    private const TLS_PEM_CERT_EXTENSIONS = ['crt', 'pem', 'cer'];
 
     /**
      * @return array<string, mixed>
@@ -167,8 +172,16 @@ class UpsertServiceRequest extends HorizonRequest
         $existing = $this->route('service');
         $removeCert = $this->boolean('tls_client_remove_cert');
         $removeKey = $this->boolean('tls_client_remove_key');
-        $hasCert = $existing !== null && filled($existing->tls_client_cert_path) && ! $removeCert;
-        $hasKey = $existing !== null && filled($existing->tls_client_key_path) && ! $removeKey;
+        $existingMode = $existing?->tls_client_mode?->value;
+        $requestedMode = $mode;
+        $hasCert = $existing !== null
+            && filled($existing->tls_client_cert_path)
+            && ! $removeCert
+            && $existingMode === $requestedMode;
+        $hasKey = $existing !== null
+            && filled($existing->tls_client_key_path)
+            && ! $removeKey
+            && $existingMode === $requestedMode;
         $certFile = $this->file('tls_client_cert');
         $keyFile = $this->file('tls_client_key');
 
@@ -188,12 +201,22 @@ class UpsertServiceRequest extends HorizonRequest
 
         if ($certFile !== null) {
             $extension = \strtolower((string) $certFile->getClientOriginalExtension());
+            $allowedExtensions = $mode === TlsClientMode::P12->value
+                ? self::TLS_P12_CERT_EXTENSIONS
+                : self::TLS_PEM_CERT_EXTENSIONS;
 
-            if (! \in_array($extension, self::TLS_CERT_EXTENSIONS, true)) {
-                $validator->errors()->add(
-                    'tls_client_cert',
-                    'The certificate must be a .crt, .pem, .cer, .p12, or .pfx file.',
-                );
+            if (! \in_array($extension, $allowedExtensions, true)) {
+                if ($mode === TlsClientMode::P12->value) {
+                    $validator->errors()->add(
+                        'tls_client_cert',
+                        'The certificate must be a .p12 or .pfx file.',
+                    );
+                } else {
+                    $validator->errors()->add(
+                        'tls_client_cert',
+                        'The certificate must be a .crt, .pem, or .cer file.',
+                    );
+                }
             }
         }
 
@@ -205,6 +228,28 @@ class UpsertServiceRequest extends HorizonRequest
                     'tls_client_key',
                     'The private key must be a .key or .pem file.',
                 );
+            }
+
+            $contents = $keyFile->get();
+
+            if (! \is_string($contents) || $contents === '') {
+                $validator->errors()->add('tls_client_key', 'The private key file is empty.');
+            } elseif (\strpos($contents, 'BEGIN PRIVATE KEY') === false
+                && \strpos($contents, 'BEGIN RSA PRIVATE KEY') === false
+                && \strpos($contents, 'BEGIN EC PRIVATE KEY') === false
+                && \strpos($contents, 'BEGIN ENCRYPTED PRIVATE KEY') === false
+            ) {
+                $validator->errors()->add('tls_client_key', 'The private key file does not contain valid PEM private key data.');
+            }
+        }
+
+        if ($certFile !== null && $mode === TlsClientMode::Pem->value) {
+            $contents = $certFile->get();
+
+            if (! \is_string($contents) || $contents === '') {
+                $validator->errors()->add('tls_client_cert', 'The certificate file is empty.');
+            } elseif (\strpos($contents, 'BEGIN CERTIFICATE') === false) {
+                $validator->errors()->add('tls_client_cert', 'The certificate file does not contain valid PEM certificate data.');
             }
         }
 
