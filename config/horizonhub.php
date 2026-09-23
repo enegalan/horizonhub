@@ -203,6 +203,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | The number of top queues to return in the metrics dashboard.
+    | High values can impact the visual clarity and performance.
     |
     */
     'top_n_queues' => (int) env('HORIZON_HUB_TOP_N_QUEUES', 12),

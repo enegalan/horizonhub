@@ -331,7 +331,6 @@ class MetricsDataService
             return null;
         }
         \arsort($waits, \SORT_NUMERIC);
-        // TO-TEST: What if we remove this truncation?
         $top = \array_slice($waits, 0, config('horizonhub.top_n_queues'), true);
         $queues = \array_keys($top);
         $wait = \array_values($top);
