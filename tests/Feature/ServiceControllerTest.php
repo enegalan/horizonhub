@@ -492,6 +492,8 @@ PEM;
         $this->assertSame('service-tls/' . $service->id . '/client.key', $service->tls_client_key_path);
         Storage::disk(ServiceTlsClientStorage::DISK)->assertExists($service->tls_client_cert_path);
         Storage::disk(ServiceTlsClientStorage::DISK)->assertExists($service->tls_client_key_path);
+        $this->assertSame(self::PEM_CERTIFICATE, Storage::disk(ServiceTlsClientStorage::DISK)->get($service->tls_client_cert_path));
+        $this->assertSame(self::PEM_PRIVATE_KEY, Storage::disk(ServiceTlsClientStorage::DISK)->get($service->tls_client_key_path));
     }
 
     public function test_update_requires_fresh_p12_upload_when_mode_changes_from_pem(): void

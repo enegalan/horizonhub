@@ -95,6 +95,41 @@ class ServiceTlsClientStorageTest extends TestCase
         Storage::disk(ServiceTlsClientStorage::DISK)->assertMissing('service-tls/' . $service->id);
     }
 
+    public function test_sync_p12_failed_extraction_retains_previous_pem_files(): void
+    {
+        $service = Service::create([
+            'name' => 'svc-tls-p12-keep-cert',
+            'base_url' => 'https://svc-tls-p12-keep-cert.test',
+            'status' => 'online',
+            'tls_client_mode' => TlsClientMode::Pem->value,
+        ]);
+        $service->update([
+            'tls_client_cert_path' => 'service-tls/' . $service->id . '/client.crt',
+            'tls_client_key_path' => 'service-tls/' . $service->id . '/client.key',
+        ]);
+
+        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.crt', 'old-cert');
+        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.key', 'old-key');
+
+        try {
+            ServiceTlsClientStorage::sync(
+                $service,
+                TlsClientMode::P12->value,
+                UploadedFile::fake()->create('client.p12', 1),
+                passphrase: 'wrong-secret',
+            );
+            $this->fail('Expected a ValidationException.');
+        } catch (ValidationException) {
+            // Expected.
+        }
+
+        Storage::disk(ServiceTlsClientStorage::DISK)->assertExists('service-tls/' . $service->id . '/client.crt');
+        Storage::disk(ServiceTlsClientStorage::DISK)->assertExists('service-tls/' . $service->id . '/client.key');
+        Storage::disk(ServiceTlsClientStorage::DISK)->assertMissing('service-tls/' . $service->id . '/client.p12');
+        Storage::disk(ServiceTlsClientStorage::DISK)->assertMissing('service-tls/' . $service->id . '/extracted.crt');
+        Storage::disk(ServiceTlsClientStorage::DISK)->assertMissing('service-tls/' . $service->id . '/extracted.key');
+    }
+
     public function test_sync_p12_preserves_old_key_when_extraction_fails(): void
     {
         $service = Service::create([
@@ -112,8 +147,12 @@ class ServiceTlsClientStorageTest extends TestCase
         Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.p12', 'not-a-p12');
         Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.key', 'old-key');
 
-        $this->expectException(ValidationException::class);
-        ServiceTlsClientStorage::sync($service, TlsClientMode::P12->value, passphrase: 'wrong-secret');
+        try {
+            ServiceTlsClientStorage::sync($service, TlsClientMode::P12->value, passphrase: 'wrong-secret');
+            $this->fail('Expected a ValidationException.');
+        } catch (ValidationException) {
+            // Expected.
+        }
 
         Storage::disk(ServiceTlsClientStorage::DISK)->assertExists('service-tls/' . $service->id . '/client.key');
     }

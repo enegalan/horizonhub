@@ -171,15 +171,17 @@ class ServiceTlsClientStorage
         }
 
         // Upload the new certificate if it is provided.
+        $oldCertPath = null;
+
         if ($cert !== null) {
             $name = self::private__safeFileName(
                 $cert,
                 $mode === TlsClientMode::P12->value ? 'client.p12' : 'client.crt',
             );
 
-            // Delete the old certificate if it is being replaced.
+            // Retain the previous certificate until the new one is stored/extracted.
             if ($certPath !== null && $certPath !== "$directory/$name") {
-                $disk->delete($certPath);
+                $oldCertPath = $certPath;
             }
 
             // Delete the extracted certificate/key files.
@@ -205,6 +207,11 @@ class ServiceTlsClientStorage
                 $disk->putFileAs($directory, $key, $name);
                 $keyPath = "$directory/$name";
             }
+
+            // The new PEM certificate is stored; remove the previous one.
+            if ($oldCertPath !== null) {
+                $disk->delete($oldCertPath);
+            }
         } else {
             $oldKeyPath = $keyPath;
             $keyPath = null;
@@ -218,7 +225,7 @@ class ServiceTlsClientStorage
                 try {
                     self::private__ensurePemFromP12($service, $passphrase ?? $service->tls_client_passphrase);
                 } catch (RuntimeException $e) {
-                    // Delete the certificate/key files if the extraction failed.
+                    // Delete the new certificate/key files if the extraction failed.
                     if ($cert !== null) {
                         $disk->delete($certPath);
                         $disk->delete([self::extractedCertDirectory($service), self::extractedKeyDirectory($service)]);
@@ -228,6 +235,11 @@ class ServiceTlsClientStorage
                         'tls_client_cert' => $e->getMessage(),
                         'tls_client_passphrase' => 'Check the PKCS#12 passphrase.',
                     ]);
+                }
+
+                // Extraction succeeded; remove the previous certificate and key.
+                if ($oldCertPath !== null) {
+                    $disk->delete($oldCertPath);
                 }
 
                 if ($oldKeyPath !== null) {
