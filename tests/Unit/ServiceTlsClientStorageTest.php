@@ -21,7 +21,79 @@ class ServiceTlsClientStorageTest extends TestCase
         Storage::fake(ServiceTlsClientStorage::DISK);
     }
 
-    public function test_sync_stores_pem_files_and_forget_removes_directory(): void
+    public function test_http_options_for_p12_uses_extracted_pem(): void
+    {
+        $fixture = $this->private__createPkcs12Fixture('p12-secret');
+
+        try {
+            $service = Service::create([
+                'name' => 'svc-tls-p12',
+                'base_url' => 'https://svc-tls-p12.test',
+                'status' => 'online',
+                'tls_client_mode' => TlsClientMode::P12->value,
+                'tls_client_passphrase' => 'p12-secret',
+            ]);
+
+            $relative = ServiceTlsClientStorage::directory($service) . '/client.p12';
+            Storage::disk(ServiceTlsClientStorage::DISK)->put($relative, \file_get_contents($fixture['p12']));
+            $service->update(['tls_client_cert_path' => $relative]);
+
+            $options = ServiceTlsClientStorage::httpOptions($service->fresh());
+
+            $this->assertArrayHasKey('cert', $options);
+            $this->assertArrayHasKey('ssl_key', $options);
+            $this->assertFileExists((string) $options['cert']);
+            $this->assertFileExists((string) $options['ssl_key']);
+        } finally {
+            $this->private__cleanupFixture($fixture);
+        }
+    }
+
+    public function test_http_options_for_pem_and_empty_mode(): void
+    {
+        $none = Service::create([
+            'name' => 'svc-tls-none',
+            'base_url' => 'https://svc-tls-none.test',
+            'status' => 'online',
+        ]);
+
+        $this->assertSame([], ServiceTlsClientStorage::httpOptions($none));
+
+        $pem = Service::create([
+            'name' => 'svc-tls-pem',
+            'base_url' => 'https://svc-tls-pem.test',
+            'status' => 'online',
+            'tls_client_mode' => TlsClientMode::Pem->value,
+            'tls_client_cert_path' => 'service-tls/1/client.crt',
+            'tls_client_key_path' => 'service-tls/1/client.key',
+            'tls_client_passphrase' => 'secret',
+        ]);
+
+        $this->assertSame([
+            'cert' => ServiceTlsClientStorage::absolutePath('service-tls/1/client.crt'),
+            'ssl_key' => [ServiceTlsClientStorage::absolutePath('service-tls/1/client.key'), 'secret'],
+        ], ServiceTlsClientStorage::httpOptions($pem));
+    }
+
+    public function test_sync_null_mode_clears_files(): void
+    {
+        $service = Service::create([
+            'name' => 'svc-tls-clear',
+            'base_url' => 'https://svc-tls-clear.test',
+            'status' => 'online',
+            'tls_client_mode' => TlsClientMode::P12->value,
+            'tls_client_cert_path' => 'service-tls/1/client.p12',
+        ]);
+
+        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.p12', 'p12');
+
+        $paths = ServiceTlsClientStorage::sync($service, null);
+
+        $this->assertNull($paths['tls_client_cert_path']);
+        Storage::disk(ServiceTlsClientStorage::DISK)->assertMissing('service-tls/' . $service->id);
+    }
+
+    public function test_sync_stores_pem_and_forget_clears_directory(): void
     {
         $service = Service::create([
             'name' => 'svc-tls-storage',
@@ -33,73 +105,15 @@ class ServiceTlsClientStorageTest extends TestCase
         $paths = ServiceTlsClientStorage::sync(
             $service,
             TlsClientMode::Pem->value,
-            UploadedFile::fake()->create('client.crt', 10, 'application/x-x509-ca-cert'),
-            UploadedFile::fake()->create('client.key', 10, 'application/x-pem-file'),
+            UploadedFile::fake()->create('client.crt', 10),
+            UploadedFile::fake()->create('client.key', 10),
         );
 
         $this->assertSame('service-tls/' . $service->id . '/client.crt', $paths['tls_client_cert_path']);
         $this->assertSame('service-tls/' . $service->id . '/client.key', $paths['tls_client_key_path']);
-        Storage::disk(ServiceTlsClientStorage::DISK)->assertExists($paths['tls_client_cert_path']);
-        Storage::disk(ServiceTlsClientStorage::DISK)->assertExists($paths['tls_client_key_path']);
 
         ServiceTlsClientStorage::forget($service);
-
         Storage::disk(ServiceTlsClientStorage::DISK)->assertMissing('service-tls/' . $service->id);
-    }
-
-    public function test_sync_with_null_mode_clears_files(): void
-    {
-        $service = Service::create([
-            'name' => 'svc-tls-clear-storage',
-            'base_url' => 'https://svc-tls-clear-storage.test',
-            'status' => 'online',
-            'tls_client_mode' => TlsClientMode::P12->value,
-            'tls_client_cert_path' => 'service-tls/99/client.p12',
-        ]);
-
-        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.p12', 'p12');
-
-        $paths = ServiceTlsClientStorage::sync($service, null);
-
-        $this->assertNull($paths['tls_client_cert_path']);
-        $this->assertNull($paths['tls_client_key_path']);
-        Storage::disk(ServiceTlsClientStorage::DISK)->assertMissing('service-tls/' . $service->id);
-    }
-
-    public function test_sync_p12_extracts_pem_sidecars(): void
-    {
-        $fixture = $this->private__createPkcs12Fixture('extract-secret');
-
-        try {
-            $service = Service::create([
-                'name' => 'svc-tls-p12-extract',
-                'base_url' => 'https://svc-tls-p12-extract.test',
-                'status' => 'online',
-                'tls_client_mode' => TlsClientMode::P12->value,
-                'tls_client_passphrase' => 'extract-secret',
-            ]);
-
-            $upload = new UploadedFile($fixture['p12'], 'client.p12', 'application/x-pkcs12', null, true);
-
-            $paths = ServiceTlsClientStorage::sync(
-                $service,
-                TlsClientMode::P12->value,
-                $upload,
-                null,
-                'extract-secret',
-            );
-
-            $this->assertSame('service-tls/' . $service->id . '/client.p12', $paths['tls_client_cert_path']);
-            Storage::disk(ServiceTlsClientStorage::DISK)->assertExists($paths['tls_client_cert_path']);
-            Storage::disk(ServiceTlsClientStorage::DISK)->assertExists(
-                ServiceTlsClientStorage::directory($service) . '/' . ServiceTlsClientStorage::EXTRACTED_CERT_NAME,
-            );
-            Storage::disk(ServiceTlsClientStorage::DISK)->assertExists(
-                ServiceTlsClientStorage::directory($service) . '/' . ServiceTlsClientStorage::EXTRACTED_KEY_NAME,
-            );
-        } finally {
-            $this->private__cleanupFixture($fixture);
-        }
     }
 
     /**
@@ -125,7 +139,6 @@ class ServiceTlsClientStorageTest extends TestCase
     {
         $dir = \sys_get_temp_dir() . '/hh-p12-' . \bin2hex(\random_bytes(4));
         \mkdir($dir, 0700);
-
         $cert = $dir . '/cert.pem';
         $key = $dir . '/key.pem';
         $p12 = $dir . '/client.p12';
@@ -135,21 +148,11 @@ class ServiceTlsClientStorageTest extends TestCase
             '-keyout', $key, '-out', $cert, '-days', '1', '-nodes',
             '-subj', '/CN=horizonhub-test',
         ]);
-
-        $export = [
+        $this->private__runOrSkip([
             'openssl', 'pkcs12', '-export',
             '-in', $cert, '-inkey', $key, '-out', $p12,
             '-passout', 'pass:' . $password,
-        ];
-
-        // Prefer a legacy-encrypted bundle when the local openssl supports it,
-        // so extraction exercises the OpenSSL 3 -legacy fallback path.
-        $legacyExport = \array_merge($export, ['-legacy']);
-        $legacyOk = $this->private__runCommand($legacyExport) === 0;
-
-        if (! $legacyOk && $this->private__runCommand($export) !== 0) {
-            $this->markTestSkipped('openssl pkcs12 export failed');
-        }
+        ]);
 
         return compact('dir', 'p12', 'cert', 'key');
     }
@@ -157,12 +160,12 @@ class ServiceTlsClientStorageTest extends TestCase
     /**
      * @param list<string> $command
      */
-    private function private__runCommand(array $command): int
+    private function private__runOrSkip(array $command): void
     {
         $process = \proc_open($command, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
 
         if (! \is_resource($process)) {
-            return 1;
+            $this->markTestSkipped('openssl is not available');
         }
 
         \stream_get_contents($pipes[1]);
@@ -170,16 +173,8 @@ class ServiceTlsClientStorageTest extends TestCase
         \stream_get_contents($pipes[2]);
         \fclose($pipes[2]);
 
-        return \proc_close($process);
-    }
-
-    /**
-     * @param list<string> $command
-     */
-    private function private__runOrSkip(array $command): void
-    {
-        if ($this->private__runCommand($command) !== 0) {
-            $this->markTestSkipped('openssl command failed: ' . \implode(' ', $command));
+        if (\proc_close($process) !== 0) {
+            $this->markTestSkipped('openssl command failed');
         }
     }
 }

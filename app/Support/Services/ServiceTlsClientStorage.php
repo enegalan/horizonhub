@@ -5,6 +5,7 @@ namespace App\Support\Services;
 use App\Enums\TlsClientMode;
 use App\Models\Service;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
@@ -13,86 +14,92 @@ class ServiceTlsClientStorage
 {
     public const DISK = 'local';
 
-    public const EXTRACTED_CERT_NAME = 'extracted.crt';
+    private const EXTRACTED_CERT = 'extracted.crt';
 
-    public const EXTRACTED_KEY_NAME = 'extracted.key';
+    private const EXTRACTED_KEY = 'extracted.key';
 
-    /**
-     * Resolve a stored relative path to an absolute filesystem path.
-     */
     public static function absolutePath(?string $relativePath): ?string
     {
-        if (blank($relativePath)) {
-            return null;
-        }
-
-        return Storage::disk(self::DISK)->path($relativePath);
+        return blank($relativePath) ? null : Storage::disk(self::DISK)->path($relativePath);
     }
 
-    /**
-     * Relative directory for a service's TLS client files.
-     */
     public static function directory(Service $service): string
     {
         return 'service-tls/' . $service->id;
     }
 
     /**
-     * Ensure a PKCS#12 bundle is extracted to PEM files readable by OpenSSL 3 / Guzzle.
-     *
-     * @return array{cert: string, key: string} Absolute paths to extracted PEM files.
+     * @return array{cert: string, key: string}
      */
     public static function ensurePemFromP12(Service $service, ?string $passphrase = null): array
     {
-        $p12Relative = $service->tls_client_cert_path;
-        $p12Absolute = self::absolutePath($p12Relative);
+        $p12 = self::absolutePath($service->tls_client_cert_path);
 
-        if (blank($p12Absolute) || ! \is_readable($p12Absolute)) {
+        if (blank($p12) || ! \is_readable($p12)) {
             throw new RuntimeException('PKCS#12 file is missing or not readable.');
         }
 
-        $directory = self::directory($service);
-        $certRelative = $directory . '/' . self::EXTRACTED_CERT_NAME;
-        $keyRelative = $directory . '/' . self::EXTRACTED_KEY_NAME;
-        $certAbsolute = self::absolutePath($certRelative);
-        $keyAbsolute = self::absolutePath($keyRelative);
+        $dir = self::directory($service);
+        $cert = self::absolutePath($dir . '/' . self::EXTRACTED_CERT);
+        $key = self::absolutePath($dir . '/' . self::EXTRACTED_KEY);
 
-        $needsExtract = ! \is_readable((string) $certAbsolute)
-            || ! \is_readable((string) $keyAbsolute)
-            || \filemtime((string) $certAbsolute) < \filemtime($p12Absolute)
-            || \filemtime((string) $keyAbsolute) < \filemtime($p12Absolute);
-
-        if ($needsExtract) {
-            self::private__extractPemFromP12(
-                $p12Absolute,
-                (string) $certAbsolute,
-                (string) $keyAbsolute,
+        if (! \is_readable((string) $cert) || ! \is_readable((string) $key)) {
+            self::private__extractPem(
+                $p12,
+                (string) $cert,
+                (string) $key,
                 (string) ($passphrase ?? $service->tls_client_passphrase ?? ''),
             );
         }
 
-        return [
-            'cert' => (string) $certAbsolute,
-            'key' => (string) $keyAbsolute,
-        ];
+        return ['cert' => (string) $cert, 'key' => (string) $key];
     }
 
-    /**
-     * Delete all stored TLS client files for a service.
-     */
     public static function forget(Service $service): void
     {
-        $disk = Storage::disk(self::DISK);
         $directory = self::directory($service);
 
-        if ($disk->exists($directory)) {
-            $disk->deleteDirectory($directory);
+        if (Storage::disk(self::DISK)->exists($directory)) {
+            Storage::disk(self::DISK)->deleteDirectory($directory);
         }
     }
 
     /**
-     * Store or replace uploaded TLS client files and return DB path attributes.
-     *
+     * @return array<string, mixed>
+     */
+    public static function httpOptions(Service $service): array
+    {
+        $mode = $service->tls_client_mode;
+
+        if ($mode === null) {
+            return [];
+        }
+
+        if ($mode === TlsClientMode::P12) {
+            $pem = self::ensurePemFromP12($service);
+
+            return [
+                'cert' => $pem['cert'],
+                'ssl_key' => $pem['key'],
+            ];
+        }
+
+        $cert = self::absolutePath($service->tls_client_cert_path);
+        $key = self::absolutePath($service->tls_client_key_path);
+
+        if (blank($cert) || blank($key)) {
+            return [];
+        }
+
+        $passphrase = $service->tls_client_passphrase;
+
+        return [
+            'cert' => $cert,
+            'ssl_key' => blank($passphrase) ? $key : [$key, (string) $passphrase],
+        ];
+    }
+
+    /**
      * @return array{tls_client_cert_path: string|null, tls_client_key_path: string|null}
      */
     public static function sync(
@@ -107,10 +114,7 @@ class ServiceTlsClientStorage
         if (blank($mode)) {
             self::forget($service);
 
-            return [
-                'tls_client_cert_path' => null,
-                'tls_client_key_path' => null,
-            ];
+            return ['tls_client_cert_path' => null, 'tls_client_key_path' => null];
         }
 
         $disk = Storage::disk(self::DISK);
@@ -122,11 +126,7 @@ class ServiceTlsClientStorage
             if ($certPath !== null) {
                 $disk->delete($certPath);
             }
-
-            $disk->delete([
-                $directory . '/' . self::EXTRACTED_CERT_NAME,
-                $directory . '/' . self::EXTRACTED_KEY_NAME,
-            ]);
+            $disk->delete([$directory . '/' . self::EXTRACTED_CERT, $directory . '/' . self::EXTRACTED_KEY]);
             $certPath = null;
         }
 
@@ -136,41 +136,35 @@ class ServiceTlsClientStorage
         }
 
         if ($cert !== null) {
-            $certName = $mode === TlsClientMode::P12->value
-                ? self::private__safeFileName($cert, 'client.p12', ['p12', 'pfx'])
-                : self::private__safeFileName($cert, 'client.crt', ['crt', 'pem', 'cer']);
-            $newCertPath = $directory . '/' . $certName;
+            $name = self::private__safeFileName(
+                $cert,
+                $mode === TlsClientMode::P12->value ? 'client.p12' : 'client.crt',
+            );
 
-            if ($certPath !== null && $certPath !== $newCertPath) {
+            if ($certPath !== null && $certPath !== $directory . '/' . $name) {
                 $disk->delete($certPath);
             }
 
-            $disk->delete([
-                $directory . '/' . self::EXTRACTED_CERT_NAME,
-                $directory . '/' . self::EXTRACTED_KEY_NAME,
-            ]);
-
-            $disk->putFileAs($directory, $cert, $certName);
-            $certPath = $newCertPath;
+            $disk->delete([$directory . '/' . self::EXTRACTED_CERT, $directory . '/' . self::EXTRACTED_KEY]);
+            $disk->putFileAs($directory, $cert, $name);
+            $certPath = $directory . '/' . $name;
         }
 
         if ($mode === TlsClientMode::Pem->value) {
             if ($key !== null) {
-                $keyName = self::private__safeFileName($key, 'client.key', ['key', 'pem']);
-                $newKeyPath = $directory . '/' . $keyName;
+                $name = self::private__safeFileName($key, 'client.key');
 
-                if ($keyPath !== null && $keyPath !== $newKeyPath) {
+                if ($keyPath !== null && $keyPath !== $directory . '/' . $name) {
                     $disk->delete($keyPath);
                 }
 
-                $disk->putFileAs($directory, $key, $keyName);
-                $keyPath = $newKeyPath;
+                $disk->putFileAs($directory, $key, $name);
+                $keyPath = $directory . '/' . $name;
             }
         } else {
             if ($keyPath !== null) {
                 $disk->delete($keyPath);
             }
-
             $keyPath = null;
 
             if ($certPath !== null) {
@@ -181,10 +175,7 @@ class ServiceTlsClientStorage
                 } catch (RuntimeException $e) {
                     if ($cert !== null) {
                         $disk->delete($certPath);
-                        $disk->delete([
-                            $directory . '/' . self::EXTRACTED_CERT_NAME,
-                            $directory . '/' . self::EXTRACTED_KEY_NAME,
-                        ]);
+                        $disk->delete([$directory . '/' . self::EXTRACTED_CERT, $directory . '/' . self::EXTRACTED_KEY]);
                     }
 
                     throw ValidationException::withMessages([
@@ -201,153 +192,66 @@ class ServiceTlsClientStorage
         ];
     }
 
-    /**
-     * Extract PEM certificate and unencrypted private key from a PKCS#12 file.
-     */
-    private static function private__extractPemFromP12(
-        string $p12AbsolutePath,
-        string $certAbsolutePath,
-        string $keyAbsolutePath,
+    private static function private__extractPem(
+        string $p12,
+        string $certOut,
+        string $keyOut,
         string $passphrase,
     ): void {
-        $certDir = \dirname($certAbsolutePath);
+        $dir = \dirname($certOut);
 
-        if (! \is_dir($certDir) && ! \mkdir($certDir, 0700, true) && ! \is_dir($certDir)) {
+        if (! \is_dir($dir) && ! \mkdir($dir, 0700, true) && ! \is_dir($dir)) {
             throw new RuntimeException('Unable to create TLS storage directory.');
         }
 
-        $certOk = self::private__runPkcs12Export(
-            $p12AbsolutePath,
-            $certAbsolutePath,
-            ['-clcerts', '-nokeys'],
-            $passphrase,
-        );
+        $ok = self::private__opensslExport($p12, $certOut, ['-clcerts', '-nokeys'], $passphrase)
+            && self::private__opensslExport($p12, $keyOut, ['-nocerts', '-nodes'], $passphrase);
 
-        $keyOk = $certOk && self::private__runPkcs12Export(
-            $p12AbsolutePath,
-            $keyAbsolutePath,
-            ['-nocerts', '-nodes'],
-            $passphrase,
-        );
-
-        if (! $certOk || ! $keyOk || ! \is_readable($certAbsolutePath) || ! \is_readable($keyAbsolutePath)) {
-            @\unlink($certAbsolutePath);
-            @\unlink($keyAbsolutePath);
+        if (! $ok) {
+            @\unlink($certOut);
+            @\unlink($keyOut);
 
             throw new RuntimeException(
-                'Could not parse PKCS#12 file. Check the passphrase, or re-export the bundle with a modern cipher (OpenSSL 3 rejects some legacy PKCS#12 algorithms).',
+                'Could not parse PKCS#12 file. Check the passphrase, or re-export with a modern cipher (OpenSSL 3 rejects some legacy PKCS#12 algorithms).',
             );
         }
 
-        @\chmod($certAbsolutePath, 0600);
-        @\chmod($keyAbsolutePath, 0600);
+        @\chmod($certOut, 0600);
+        @\chmod($keyOut, 0600);
     }
 
     /**
-     * @return array<string, string>
+     * @param list<string> $args
      */
-    private static function private__processEnvWithPassphrase(string $passphrase): array
-    {
-        $env = \getenv();
-
-        if (! \is_array($env)) {
-            $env = [];
-        }
-
-        $normalized = [];
-
-        foreach ($env as $key => $value) {
-            if (\is_string($key) && \is_string($value)) {
-                $normalized[$key] = $value;
-            }
-        }
-
-        $normalized['HORIZONHUB_PKCS12_PASS'] = $passphrase;
-
-        return $normalized;
-    }
-
-    /**
-     * Run openssl pkcs12 export, retrying with -legacy for OpenSSL 3.
-     *
-     * @param list<string> $extraArgs
-     */
-    private static function private__runPkcs12Export(
-        string $p12AbsolutePath,
-        string $outAbsolutePath,
-        array $extraArgs,
+    private static function private__opensslExport(
+        string $p12,
+        string $out,
+        array $args,
         string $passphrase,
     ): bool {
-        $attempts = [
-            [],
-            ['-legacy'],
-        ];
+        foreach ([[], ['-legacy']] as $legacy) {
+            $result = Process::env(['HORIZONHUB_PKCS12_PASS' => $passphrase])->run(\array_merge(
+                ['openssl', 'pkcs12', '-in', $p12, '-out', $out, '-passin', 'env:HORIZONHUB_PKCS12_PASS'],
+                $args,
+                $legacy,
+            ));
 
-        foreach ($attempts as $legacyArgs) {
-            $command = \array_merge(
-                ['openssl', 'pkcs12', '-in', $p12AbsolutePath, '-out', $outAbsolutePath, '-passin', 'env:HORIZONHUB_PKCS12_PASS'],
-                $extraArgs,
-                $legacyArgs,
-            );
-
-            $descriptorSpec = [
-                0 => ['pipe', 'r'],
-                1 => ['pipe', 'w'],
-                2 => ['pipe', 'w'],
-            ];
-
-            $process = \proc_open(
-                $command,
-                $descriptorSpec,
-                $pipes,
-                null,
-                self::private__processEnvWithPassphrase($passphrase),
-            );
-
-            if (! \is_resource($process)) {
-                continue;
-            }
-
-            \fclose($pipes[0]);
-            \stream_get_contents($pipes[1]);
-            \fclose($pipes[1]);
-            \stream_get_contents($pipes[2]);
-            \fclose($pipes[2]);
-
-            $exitCode = \proc_close($process);
-
-            if ($exitCode === 0 && \is_readable($outAbsolutePath) && \filesize($outAbsolutePath) > 0) {
+            if ($result->successful() && \is_readable($out) && \filesize($out) > 0) {
                 return true;
             }
 
-            @\unlink($outAbsolutePath);
+            @\unlink($out);
         }
 
         return false;
     }
 
-    /**
-     * Build a safe on-disk file name from the uploaded original name.
-     *
-     * @param list<string> $allowedExtensions
-     */
-    private static function private__safeFileName(UploadedFile $file, string $fallback, array $allowedExtensions): string
+    private static function private__safeFileName(UploadedFile $file, string $fallback): string
     {
-        $original = \basename($file->getClientOriginalName());
-        $extension = \strtolower((string) \pathinfo($original, \PATHINFO_EXTENSION));
+        $name = \basename($file->getClientOriginalName());
+        $name = \preg_replace('/[^\w.\-]+/u', '-', $name) ?? '';
+        $name = \trim($name, '.-_');
 
-        if (! \in_array($extension, $allowedExtensions, true)) {
-            $extension = \strtolower((string) \pathinfo($fallback, \PATHINFO_EXTENSION));
-        }
-
-        $stem = (string) \pathinfo($original, \PATHINFO_FILENAME);
-        $stem = \preg_replace('/[^\w.\-]+/u', '-', $stem) ?? '';
-        $stem = \trim($stem, '.-_');
-
-        if ($stem === '') {
-            $stem = (string) \pathinfo($fallback, \PATHINFO_FILENAME);
-        }
-
-        return $stem . '.' . $extension;
+        return $name !== '' ? $name : $fallback;
     }
 }

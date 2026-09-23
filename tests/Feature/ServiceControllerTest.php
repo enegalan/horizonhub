@@ -323,7 +323,7 @@ class ServiceControllerTest extends TestCase
             $this->assertSame('p12-secret', $service->tls_client_passphrase);
             Storage::disk(ServiceTlsClientStorage::DISK)->assertExists($service->tls_client_cert_path);
             Storage::disk(ServiceTlsClientStorage::DISK)->assertExists(
-                ServiceTlsClientStorage::directory($service) . '/' . ServiceTlsClientStorage::EXTRACTED_CERT_NAME,
+                ServiceTlsClientStorage::directory($service).'/extracted.crt',
             );
         } finally {
             foreach ([$p12, $cert, $key] as $file) {

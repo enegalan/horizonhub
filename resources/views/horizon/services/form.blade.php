@@ -263,9 +263,6 @@
                             x-show="!tlsCertOnFile"
                             class="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground shadow-sm file:mr-3 file:rounded file:border-0 file:bg-muted file:px-2 file:py-0.5 file:text-xs file:font-medium"
                         />
-                        <p class="text-xs text-muted-foreground" x-show="tlsCertOnFile" x-cloak>
-                            Remove the current file before uploading a replacement.
-                        </p>
                         @error('tls_client_cert') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
 
@@ -295,9 +292,6 @@
                             x-show="!tlsKeyOnFile"
                             class="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground shadow-sm file:mr-3 file:rounded file:border-0 file:bg-muted file:px-2 file:py-0.5 file:text-xs file:font-medium"
                         />
-                        <p class="text-xs text-muted-foreground" x-show="tlsKeyOnFile" x-cloak>
-                            Remove the current file before uploading a replacement.
-                        </p>
                         @error('tls_client_key') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
 

@@ -5,8 +5,8 @@ namespace App\Services\Horizon;
 use App\Enums\ServiceStatus;
 use App\Models\Service;
 use App\Support\Http\HttpRetryBackoff;
-use App\Support\Http\TlsClientRequestOptions;
 use App\Support\PathBuilder;
+use App\Support\Services\ServiceTlsClientStorage;
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Contracts\Cache\LockTimeoutException;
@@ -374,7 +374,7 @@ class HorizonClientHttpService
 
             $request = $request->withHeaders($headers);
 
-            $tlsOptions = TlsClientRequestOptions::forService($service);
+            $tlsOptions = ServiceTlsClientStorage::httpOptions($service);
 
             if ($tlsOptions !== []) {
                 $request = $request->withOptions($tlsOptions);

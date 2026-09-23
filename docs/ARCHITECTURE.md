@@ -131,7 +131,7 @@ See `resources/js/lib/sse.js` for the exact sequencing.
 
 ## Horizon integration
 
-- `HorizonClientHttpService` performs the actual HTTP calls against `base_url + /horizon/api`, applying the per-service headers, optional mTLS client certificate options (`TlsClientRequestOptions` via uploaded private storage), and timeouts from `config/horizonhub.php`.
+- `HorizonClientHttpService` performs the actual HTTP calls against `base_url + /horizon/api`, applying the per-service headers, optional mTLS options (`ServiceTlsClientStorage::httpOptions`), and timeouts from `config/horizonhub.php`.
 - `HorizonClientApiService` is the façade used across the app: workload, job lists, retry, metrics, masters, and stats.
 - Readers in `app/Support/Horizon` (e.g. `MasterReader`, `StatsReader`) normalize API responses into `ClientResponse` objects; each response records its service id, so collectors can associate data back to the service.
 
