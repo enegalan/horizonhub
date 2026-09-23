@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Enums\TlsClientMode;
 use App\Models\Service;
+use App\Support\PathBuilder;
 use App\Support\Services\ServiceTlsClientStorage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -70,8 +71,8 @@ class ServiceTlsClientStorageTest extends TestCase
         ]);
 
         $this->assertSame([
-            'cert' => ServiceTlsClientStorage::absolutePath('service-tls/1/client.crt'),
-            'ssl_key' => [ServiceTlsClientStorage::absolutePath('service-tls/1/client.key'), 'secret'],
+            'cert' => PathBuilder::absolutePath('service-tls/1/client.crt', ServiceTlsClientStorage::DISK),
+            'ssl_key' => [PathBuilder::absolutePath('service-tls/1/client.key', ServiceTlsClientStorage::DISK), 'secret'],
         ], ServiceTlsClientStorage::httpOptions($pem));
     }
 

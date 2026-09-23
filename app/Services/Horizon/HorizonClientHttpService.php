@@ -366,19 +366,14 @@ class HorizonClientHttpService
 
         // Add the service headers to the request.
         if ($service !== null) {
-            $headers = [];
+            $request = $request->withHeaders($service->getHeaders());
 
-            foreach ($service->headers as $header) {
-                $headers[$header->name] = $header->value ?? '';
-            }
+            // TODO: feature: add HTTP options per service.
+            $options = [
+                ...ServiceTlsClientStorage::httpOptions($service),
+            ];
 
-            $request = $request->withHeaders($headers);
-
-            $tlsOptions = ServiceTlsClientStorage::httpOptions($service);
-
-            if ($tlsOptions !== []) {
-                $request = $request->withOptions($tlsOptions);
-            }
+            $request = $request->withOptions($options);
         }
 
         return $request;

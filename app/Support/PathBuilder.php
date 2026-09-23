@@ -3,9 +3,23 @@
 namespace App\Support;
 
 use App\Models\Service;
+use Illuminate\Support\Facades\Storage;
 
 final class PathBuilder
 {
+    /**
+     * Get the absolute path of a relative path.
+     *
+     * @param string|null $relativePath The relative path.
+     * @param string|null $disk The disk.
+     *
+     * @return string|null The absolute path.
+     */
+    public static function absolutePath(?string $relativePath, ?string $disk = null): ?string
+    {
+        return blank($relativePath) ? null : Storage::disk($disk)->path($relativePath);
+    }
+
     /**
      * Build the API URL.
      *

@@ -160,6 +160,22 @@ class Service extends Model
     }
 
     /**
+     * Get the HTTP headers for the service.
+     *
+     * @return array<string, string>
+     */
+    public function getHeaders(): array
+    {
+        $headers = [];
+
+        foreach ($this->headers as $header) {
+            $headers[$header->name] = $header->value ?? '';
+        }
+
+        return $headers;
+    }
+
+    /**
      * Check whether the upstream API recently timed out and the timeout
      * configuration should be reviewed.
      *

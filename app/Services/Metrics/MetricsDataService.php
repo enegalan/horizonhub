@@ -5,7 +5,6 @@ namespace App\Services\Metrics;
 use App\Enums\ServiceStatus;
 use App\Models\Service;
 use App\Services\Jobs\JobsWindowFetcherService;
-use App\Services\Metrics\Calculators\AbstractMetricsCalculator;
 use App\Services\Metrics\Calculators\FailureMetricsCalculator;
 use App\Services\Metrics\Calculators\JobsThroughputMetricsCalculator;
 use App\Services\Metrics\Calculators\JobsVolumeLast24hCalculator;
