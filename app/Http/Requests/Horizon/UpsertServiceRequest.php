@@ -10,10 +10,19 @@ use Illuminate\Validation\Validator;
 
 class UpsertServiceRequest extends HorizonRequest
 {
+    /**
+     * The pattern for a valid header name.
+     */
     private const HEADER_NAME_PATTERN = '/^[!#$%&\'*+.^_`|~0-9A-Za-z-]+$/';
 
+    /**
+     * The extensions for a valid TLS certificate.
+     */
     private const TLS_CERT_EXTENSIONS = ['crt', 'pem', 'cer', 'p12', 'pfx'];
 
+    /**
+     * The extensions for a valid TLS key.
+     */
     private const TLS_KEY_EXTENSIONS = ['key', 'pem'];
 
     /**
@@ -47,6 +56,11 @@ class UpsertServiceRequest extends HorizonRequest
         ];
     }
 
+    /**
+     * Validate the request.
+     *
+     * @param Validator $validator The validator.
+     */
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
@@ -55,6 +69,9 @@ class UpsertServiceRequest extends HorizonRequest
         });
     }
 
+    /**
+     * Prepare the request for validation.
+     */
     protected function prepareForValidation(): void
     {
         $tags = $this->input('tags', null);
@@ -76,6 +93,11 @@ class UpsertServiceRequest extends HorizonRequest
         }
     }
 
+    /**
+     * Validate the headers.
+     *
+     * @param Validator $validator The validator.
+     */
     private function private__validateHeaders(Validator $validator): void
     {
         $headers = $this->input('headers');
@@ -129,6 +151,11 @@ class UpsertServiceRequest extends HorizonRequest
         }
     }
 
+    /**
+     * Validate the TLS client.
+     *
+     * @param Validator $validator The validator.
+     */
     private function private__validateTlsClient(Validator $validator): void
     {
         $mode = $this->input('tls_client_mode');
@@ -137,7 +164,6 @@ class UpsertServiceRequest extends HorizonRequest
             return;
         }
 
-        /** @var Service|null $existing */
         $existing = $this->route('service');
         $removeCert = $this->boolean('tls_client_remove_cert');
         $removeKey = $this->boolean('tls_client_remove_key');
