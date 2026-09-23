@@ -15,13 +15,19 @@
     $domId = $attributes->get('id');
     $extraAttrs = $attributes->except(['class', 'id', 'labelledBy', 'aria-labelledby', 'ariaLabel', 'aria-label', 'searchable']);
     $searchable = (bool) $searchable;
+    $panelMaxHeight = 288;
+    $panelMinHeight = 96;
+    $panelGap = 4;
+    $panelPad = 8;
+    $panelMinWidth = 192;
+    $panelMaxWidth = 384;
 @endphp
 <div
     class="relative min-w-0 max-w-full {{ $wrapperClass }}"
     {{ $extraAttrs }}
     x-data="{
         open: false,
-        anchor: { top: 0, left: 0, width: 0, maxHeight: 288 },
+        anchor: { top: 0, left: 0, width: 0, maxHeight: {{ $panelMaxHeight }} },
         _repositionHandler: null,
         submitOnChange: {{ $submitOnChange ? 'true' : 'false' }},
         fieldName: {{ json_encode($name.'[]') }},
@@ -125,26 +131,24 @@
             var trigger = this.$refs.trigger;
             if (!trigger) return;
 
-            var panel = this.$refs.panel;
             var rect = trigger.getBoundingClientRect();
-            var gap = 4;
-            var pad = 8;
-            var viewportH = window.innerHeight;
-            var viewportW = window.innerWidth;
-            var spaceBelow = Math.max(0, viewportH - rect.bottom - gap - pad);
+            const gap = {{ $panelGap }};
+            const pad = {{ $panelPad }};
+
+            var spaceBelow = Math.max(0, window.innerHeight - rect.bottom - gap - pad);
             var spaceAbove = Math.max(0, rect.top - gap - pad);
-            var cssMax = Math.min(288, viewportH * 0.5);
-            var measuredHeight = panel && panel.offsetHeight > 0 ? panel.offsetHeight : cssMax;
+            var cssMax = Math.min({{ $panelMaxHeight }}, window.innerHeight * 0.5);
+            var measuredHeight = this.$refs.panel && this.$refs.panel.offsetHeight > 0 ? this.$refs.panel.offsetHeight : cssMax;
             var placeAbove = spaceBelow < measuredHeight && spaceAbove > spaceBelow;
             var available = placeAbove ? spaceAbove : spaceBelow;
-            var maxHeight = Math.max(96, Math.min(cssMax, available || cssMax));
-            var width = Math.min(Math.max(rect.width, 192), Math.min(384, viewportW - (pad * 2)));
-            var left = Math.min(Math.max(pad, rect.left), viewportW - width - pad);
+            var maxHeight = Math.max({{ $panelMinHeight }}, Math.min(cssMax, available || cssMax));
+            var width = Math.min(Math.max(rect.width, {{ $panelMinWidth }}), Math.min({{ $panelMaxWidth }}, window.innerWidth - (pad * 2)));
+            var left = Math.min(Math.max(pad, rect.left), window.innerWidth - width - pad);
             var top;
 
             if (placeAbove) {
-                var panelHeight = panel && panel.offsetHeight > 0
-                    ? Math.min(panel.offsetHeight, maxHeight)
+                var panelHeight = this.$refs.panel && this.$refs.panel.offsetHeight > 0
+                    ? Math.min(this.$refs.panel.offsetHeight, maxHeight)
                     : maxHeight;
                 top = Math.max(pad, rect.top - gap - panelHeight);
             } else {

@@ -4,11 +4,17 @@
     $wrapperClass = $attributes->get('class', '');
     $selectAttrs = $attributes->except(['class', 'searchable']);
     $searchable = (bool) $searchable;
+    $panelMaxHeight = 288;
+    $panelMinHeight = 96;
+    $panelGap = 4;
+    $panelPad = 8;
+    $panelMinWidth = 192;
+    $panelMaxWidth = 384;
 @endphp
 <div class="relative min-w-0 max-w-full {{ $wrapperClass }}"
     x-data="{
         open: false,
-        anchor: { top: 0, left: 0, width: 0, maxHeight: 288 },
+        anchor: { top: 0, left: 0, width: 0, maxHeight: {{ $panelMaxHeight }} },
         _repositionHandler: null,
         selectedValue: '',
         searchable: {{ $searchable ? 'true' : 'false' }},
@@ -79,18 +85,18 @@
 
             var panel = this.$refs.panel;
             var rect = trigger.getBoundingClientRect();
-            var gap = 4;
-            var pad = 8;
+            var gap = {{ $panelGap }};
+            var pad = {{ $panelPad }};
             var viewportH = window.innerHeight;
             var viewportW = window.innerWidth;
             var spaceBelow = Math.max(0, viewportH - rect.bottom - gap - pad);
             var spaceAbove = Math.max(0, rect.top - gap - pad);
-            var cssMax = Math.min(288, viewportH * 0.5);
+            var cssMax = Math.min({{ $panelMaxHeight }}, viewportH * 0.5);
             var measuredHeight = panel && panel.offsetHeight > 0 ? panel.offsetHeight : cssMax;
             var placeAbove = spaceBelow < measuredHeight && spaceAbove > spaceBelow;
             var available = placeAbove ? spaceAbove : spaceBelow;
-            var maxHeight = Math.max(96, Math.min(cssMax, available || cssMax));
-            var width = Math.min(Math.max(rect.width, 192), Math.min(384, viewportW - (pad * 2)));
+            var maxHeight = Math.max({{ $panelMinHeight }}, Math.min(cssMax, available || cssMax));
+            var width = Math.min(Math.max(rect.width, {{ $panelMinWidth }}), Math.min({{ $panelMaxWidth }}, viewportW - (pad * 2)));
             var left = Math.min(Math.max(pad, rect.left), viewportW - width - pad);
             var top;
 
