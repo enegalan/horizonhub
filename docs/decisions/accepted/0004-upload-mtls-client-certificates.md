@@ -23,10 +23,3 @@ Support optional per-service client TLS via UI upload. Files live on the private
 
 - `storage/app/private/service-tls` must persist across deploys.
 - `openssl` must be available in the Hub runtime.
-
-## Reopen triggers
-
-This decision can be revisited only if at least one condition is met:
-
-- Shared/object storage is required for multi-instance Hub deployments.
-- A vault/KMS approach is mandated by security policy.
