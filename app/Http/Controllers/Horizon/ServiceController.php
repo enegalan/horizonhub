@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Horizon;
 
 use App\Enums\ServiceStatus;
+use App\Enums\TlsClientMode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Horizon\UpsertServiceRequest;
 use App\Models\Service;
@@ -10,6 +11,7 @@ use App\Services\Horizon\HorizonClientApiService;
 use App\Services\Horizon\HorizonClientCacheService;
 use App\Services\Services\ServiceFilterService;
 use App\Support\FlashStatus;
+use App\Support\Services\ServiceTlsClientStorage;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -34,6 +36,7 @@ class ServiceController extends Controller
      */
     public function destroy(Service $service): RedirectResponse
     {
+        ServiceTlsClientStorage::forget($service);
         $service->delete();
 
         return $this->redirectToRoute('horizon.services.index', FlashStatus::success('Service deleted.'));
@@ -96,13 +99,27 @@ class ServiceController extends Controller
     {
         $validated = $request->validated();
 
-        $service = Service::create([
-            ...$this->private__attributesFromValidated($validated),
-            'status' => ServiceStatus::Offline->value,
-            'enabled' => true,
-        ]);
+        \DB::transaction(function () use ($validated, $request) {
+            $service = Service::create([
+                ...$this->private__attributesFromValidated($validated),
+                'status' => ServiceStatus::Offline->value,
+                'enabled' => true,
+            ]);
 
-        $this->private__storeHeaders($service, $validated['headers'] ?? []);
+            $service->update(ServiceTlsClientStorage::sync(
+                $service,
+                $service->tls_client_mode?->value,
+                $request->file('tls_client_cert'),
+                $request->file('tls_client_key'),
+                $service->tls_client_passphrase,
+                $request->boolean('tls_client_remove_cert'),
+                $request->boolean('tls_client_remove_key'),
+            ));
+
+            $this->private__storeHeaders($service, $validated['headers'] ?? []);
+
+            return $service;
+        });
 
         return $this->redirectToRoute('horizon.services.index', FlashStatus::success('Service created.'));
     }
@@ -132,7 +149,7 @@ class ServiceController extends Controller
         if (\str_contains(\strtolower((string) $message), 'timed out')) {
             $message .= \sprintf(
                 ' Consider raising HORIZON_HUB_API_TIMEOUT (currently %ds) if this service is legitimately slow.',
-                config('horizonhub.api_timeout'),
+                config('horizonhub.http.api_timeout'),
             );
 
             return redirect()
@@ -165,11 +182,25 @@ class ServiceController extends Controller
     public function update(UpsertServiceRequest $request, Service $service): RedirectResponse
     {
         $validated = $request->validated();
+        $attributes = $this->private__attributesFromValidated($validated, $service);
 
-        $service->update($this->private__attributesFromValidated($validated));
+        \DB::transaction(function () use ($service, $attributes, $request, $validated) {
+            $service->fill($attributes);
+            $service->save();
 
-        $service->headers()->delete();
-        $this->private__storeHeaders($service, $validated['headers'] ?? []);
+            $service->update(ServiceTlsClientStorage::sync(
+                $service,
+                $service->tls_client_mode?->value,
+                $request->file('tls_client_cert'),
+                $request->file('tls_client_key'),
+                $service->tls_client_passphrase,
+                $request->boolean('tls_client_remove_cert'),
+                $request->boolean('tls_client_remove_key'),
+            ));
+
+            $service->headers()->delete();
+            $this->private__storeHeaders($service, $validated['headers'] ?? []);
+        });
 
         HorizonClientCacheService::forgetFailureCooldown($service);
 
@@ -180,17 +211,42 @@ class ServiceController extends Controller
      * Build the service attributes from validated input.
      *
      * @param array<string, mixed> $validated The validated input.
+     * @param Service|null $existing The existing service when updating.
      *
-     * @return array{name: string, base_url: string, public_url: string|null, tags: list<string>}
+     * @return array<string, mixed>
      */
-    private function private__attributesFromValidated(array $validated): array
+    private function private__attributesFromValidated(array $validated, ?Service $existing = null): array
     {
-        return [
+        $mode = $validated['tls_client_mode'] ?? null;
+
+        if ($mode instanceof TlsClientMode) {
+            $mode = $mode->value;
+        }
+
+        if (blank($mode)) {
+            $mode = null;
+        }
+
+        $attributes = [
             'name' => $validated['name'],
             'base_url' => $validated['base_url'],
             'public_url' => $validated['public_url'] ?? null,
             'tags' => $validated['tags'] ?? [],
+            'tls_client_mode' => $mode,
+            'tls_client_passphrase' => null,
         ];
+
+        if ($mode !== null) {
+            $passphrase = $validated['tls_client_passphrase'] ?? null;
+
+            if (! blank($passphrase)) {
+                $attributes['tls_client_passphrase'] = $passphrase;
+            } elseif ($existing !== null) {
+                $attributes['tls_client_passphrase'] = $existing->tls_client_passphrase;
+            }
+        }
+
+        return $attributes;
     }
 
     /**

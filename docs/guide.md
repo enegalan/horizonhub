@@ -80,6 +80,7 @@ Services are the foundation of Horizon Hub. Every monitoring view, metric, and a
 | **Public URL** (optional)   | URL used when you open the native Horizon dashboard in a browser. If empty, Base URL is used.                                               |
 | **Tags**                    | Optional labels for filtering Jobs, Queues, and Metrics.                                                                                    |
 | **HTTP headers** (optional) | Name/value pairs sent with API requests (e.g. API keys, basic auth). Reserved names such as `host` and `connection` cannot be set manually. |
+| **Client TLS (mTLS)** (optional) | When the upstream requires a client certificate: choose **PEM (cert + key)** or **PKCS#12 (.p12)** and upload the files from the UI. Passphrase is optional; leave blank on edit to keep the current one. On edit, existing files show their file name with a delete control — remove them before uploading replacements. |
 
 1. Save the service.
 
@@ -90,7 +91,7 @@ Services are the foundation of Horizon Hub. Every monitoring view, metric, and a
 | **Test connection** | Confirms Horizon Hub can reach Horizon's API endpoint.                              |
 | **Toggle enabled**  | Disable polling without deleting the service (useful during maintenance).           |
 | **Open Horizon**    | Opens the remote Horizon Dashboard UI in a new tab using the configured Public URL. |
-| **Edit**            | Update URLs, tags, or headers.                                                      |
+| **Edit**            | Update URLs, tags, headers, or client TLS settings.                                 |
 | **Delete**          | Removes the service from Horizon Hub (remote Horizon is unaffected).                |
 
 ### Service detail page
@@ -325,7 +326,7 @@ Turn hot reload off if you prefer a static page or need to reduce background tra
 
 | Symptom                              | Things to check                                                                                                                                                 |
 |--------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Test connection fails**            | Base URL reachable from Horizon Hub; correct path prefix; firewall; TLS; custom headers; remote Horizon auth (401/403/419 HTTP codes).                          |
+| **Test connection fails**            | Base URL reachable from Horizon Hub; correct path prefix; firewall; TLS/mTLS client certificate upload; custom headers; remote Horizon auth (401/403/419 HTTP codes). |
 | **No jobs or metrics for a service** | Service **enabled**; status online; Base URL correct; Scheduler and queue workers running on Horizon Hub itself.                                                |
 | **Service stuck offline**            | Remote Horizon down; wrong URL; prolonged API errors; wait for next `hh:mark-stale-services-offline` cycle or test connection after fix.                        |
 | **Alerts never fire**                | Alert and service both **enabled**; rule thresholds realistic; providers attached; Scheduler running `hh:evaluate-alerts`; mail config for email providers.     |

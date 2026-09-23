@@ -4,11 +4,17 @@
     $wrapperClass = $attributes->get('class', '');
     $selectAttrs = $attributes->except(['class', 'searchable']);
     $searchable = (bool) $searchable;
+    $panelMaxHeight = 288;
+    $panelMinHeight = 96;
+    $panelGap = 4;
+    $panelPad = 8;
+    $panelMinWidth = 192;
+    $panelMaxWidth = 384;
 @endphp
 <div class="relative min-w-0 max-w-full {{ $wrapperClass }}"
     x-data="{
         open: false,
-        anchor: { top: 0, left: 0, width: 0 },
+        anchor: { top: 0, left: 0, width: 0, maxHeight: {{ $panelMaxHeight }} },
         _repositionHandler: null,
         selectedValue: '',
         searchable: {{ $searchable ? 'true' : 'false' }},
@@ -46,6 +52,9 @@
             this.$nextTick(function () {
                 self.updateAnchor();
                 self.bindReposition();
+                self.$nextTick(function () {
+                    self.updateAnchor();
+                });
                 if (self.searchable && self.$refs.searchInput) {
                     self.$refs.searchInput.focus();
                 }
@@ -73,8 +82,34 @@
         updateAnchor() {
             var trigger = this.$refs.trigger;
             if (!trigger) return;
+
+            var panel = this.$refs.panel;
             var rect = trigger.getBoundingClientRect();
-            this.anchor = { top: rect.bottom + 4, left: rect.left, width: rect.width };
+            var gap = {{ $panelGap }};
+            var pad = {{ $panelPad }};
+            var viewportH = window.innerHeight;
+            var viewportW = window.innerWidth;
+            var spaceBelow = Math.max(0, viewportH - rect.bottom - gap - pad);
+            var spaceAbove = Math.max(0, rect.top - gap - pad);
+            var cssMax = Math.min({{ $panelMaxHeight }}, viewportH * 0.5);
+            var measuredHeight = panel && panel.offsetHeight > 0 ? panel.offsetHeight : cssMax;
+            var placeAbove = spaceBelow < measuredHeight && spaceAbove > spaceBelow;
+            var available = placeAbove ? spaceAbove : spaceBelow;
+            var maxHeight = Math.min(Math.max({{ $panelMinHeight }}, available), cssMax, available);
+            var width = Math.min(Math.max(rect.width, {{ $panelMinWidth }}), Math.min({{ $panelMaxWidth }}, viewportW - (pad * 2)));
+            var left = Math.min(Math.max(pad, rect.left), viewportW - width - pad);
+            var top;
+            var bottom;
+
+            if (placeAbove) {
+                top = 'auto';
+                bottom = Math.max(pad, viewportH - rect.top + gap);
+            } else {
+                top = rect.bottom + gap;
+                bottom = 'auto';
+            }
+
+            this.anchor = { top: top, bottom: bottom, left: left, width: width, maxHeight: maxHeight };
         },
         bindReposition() {
             if (this._repositionHandler) return;
@@ -141,8 +176,8 @@
             x-transition:leave="transition ease-in duration-75"
             x-transition:leave-start="opacity-100 scale-100"
             x-transition:leave-end="opacity-0 scale-95"
-            x-bind:style="{ top: anchor.top + 'px', left: anchor.left + 'px', width: Math.max(anchor.width, 192) + 'px' }"
-            class="fixed z-[70] flex max-h-[min(18rem,50vh)] max-w-[min(24rem,calc(100vw_-_2rem))] flex-col overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md"
+            x-bind:style="{ top: anchor.top === 'auto' ? 'auto' : anchor.top + 'px', bottom: anchor.bottom === 'auto' ? 'auto' : anchor.bottom + 'px', left: anchor.left + 'px', width: anchor.width + 'px', maxHeight: anchor.maxHeight + 'px' }"
+            class="fixed z-[70] flex max-w-[min(24rem,calc(100vw_-_2rem))] flex-col overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md"
             role="listbox">
         <div x-show="searchable && dataOptions.length > 0" class="shrink-0 border-b border-border p-2" @click.stop>
             <input

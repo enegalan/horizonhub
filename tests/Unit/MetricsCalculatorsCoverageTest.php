@@ -86,10 +86,10 @@ class MetricsCalculatorsCoverageTest extends TestCase
         Http::fake(function ($request) use ($serviceA) {
             if (\str_contains($request->url(), '/workload')) {
                 if (\str_contains($request->url(), $serviceA->base_url)) {
-                    return Http::response(['workload' => [['name' => 'redis.default', 'length' => 3, 'processes' => 1, 'wait' => 0.4]]], 200);
+                    return Http::response([['name' => 'default', 'length' => 3, 'processes' => 1, 'wait' => 0.4]], 200);
                 }
 
-                return Http::response(['workload' => []], 200);
+                return Http::response([], 200);
             }
 
             if (\str_contains($request->url(), '/masters')) {

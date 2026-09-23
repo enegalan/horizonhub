@@ -21,10 +21,6 @@ final class RuntimeMetricsCalculator extends AbstractMetricsCalculator
 
         $services = Service::getServices($serviceIds);
 
-        if ($services->isEmpty()) {
-            return ['points' => []];
-        }
-
         $points = [];
 
         /** @var Service $service */

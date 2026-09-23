@@ -18,14 +18,6 @@ final class FailureMetricsCalculator extends AbstractMetricsCalculator
         $sinceTimestamp = \now()->subDay()->startOfDay()->getTimestamp();
         $services = Service::getServices($serviceIds);
 
-        if ($services->isEmpty()) {
-            return [
-                'rate' => 0.0,
-                'processed' => 0,
-                'failed' => 0,
-            ];
-        }
-
         $processed = 0;
         $failed = 0;
 

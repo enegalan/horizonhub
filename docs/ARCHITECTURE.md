@@ -109,7 +109,7 @@ POST/GET action routes (create, update, retry, evaluate, toggle) perform a servi
 
 ### Job retry path
 
-Horizon Hub retries jobs by reading a job's service and build from its ID, then POSTing to that service's Horizon retry endpoint (`config/horizonhub.php` → `horizon_paths.retry`). The proxy always uses the service's stored `headers`, and the dashboard session is used only for POST actions.
+Horizon Hub retries jobs by reading a job's service and build from its ID, then POSTing to that service's Horizon retry endpoint (`config/horizonhub.php` → `horizon_paths.retry`). The proxy always uses the service's stored `headers` and optional client TLS (mTLS) settings, and the dashboard session is used only for POST actions.
 
 ### Stream (SSE) path
 
@@ -131,7 +131,7 @@ See `resources/js/lib/sse.js` for the exact sequencing.
 
 ## Horizon integration
 
-- `HorizonClientHttpService` performs the actual HTTP calls against `base_url + /horizon/api`, applying the per-service headers and timeouts from `config/horizonhub.php`.
+- `HorizonClientHttpService` performs the actual HTTP calls against `base_url + /horizon/api`, applying the per-service headers, optional mTLS options (`ServiceTlsClientStorage::httpOptions`), and timeouts from `config/horizonhub.php`.
 - `HorizonClientApiService` is the façade used across the app: workload, job lists, retry, metrics, masters, and stats.
 - Readers in `app/Support/Horizon` (e.g. `MasterReader`, `StatsReader`) normalize API responses into `ClientResponse` objects; each response records its service id, so collectors can associate data back to the service.
 
@@ -139,7 +139,7 @@ See `resources/js/lib/sse.js` for the exact sequencing.
 
 ### Resilience
 
-- GET requests apply the configured retry policy for `429`, `502`, `503`, `504` (`horizon_http_retry`), with backoff from `Support\Http\HttpRetryBackoff`.
+- GET requests apply the configured retry policy for `429`, `502`, `503`, `504` (`horizonhub.http.retry`), with backoff from `Support\Http\HttpRetryBackoff`.
 - Responses with status `401`, `403`, or `419` skip the failure cooldown, so fixing the service `headers` takes effect immediately; other failures set the service status to `unreachable` with a cooldown (`failure_cooldown_seconds`).
 - Per-service concurrency is limited (`concurrent_requests`, `request_wait_microseconds`).
 

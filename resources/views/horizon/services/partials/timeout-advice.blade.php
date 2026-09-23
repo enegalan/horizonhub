@@ -5,7 +5,7 @@
             Upstream Horizon API is timing out
         </p>
         <p class="mt-1 text-xs">
-            This service did not respond within the configured <code class="rounded bg-amber-500/10 px-1 py-0.5 font-mono text-xs">HORIZON_HUB_API_TIMEOUT</code> ({{ config('horizonhub.api_timeout') }}s).
+            This service did not respond within the configured <code class="rounded bg-amber-500/10 px-1 py-0.5 font-mono text-xs">HORIZON_HUB_API_TIMEOUT</code> ({{ config('horizonhub.http.api_timeout') }}s).
             If it is legitimately slow, raise that value in your environment so polling does not keep failing.
         </p>
     </div>

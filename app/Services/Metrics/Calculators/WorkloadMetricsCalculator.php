@@ -29,10 +29,6 @@ final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
     {
         $services = Service::getServices($serviceIds);
 
-        if ($services->isEmpty()) {
-            return [];
-        }
-
         $result = [];
 
         /** @var Service $service */
@@ -85,10 +81,6 @@ final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
     {
         $services = Service::getServices($serviceIds, true);
 
-        if ($services->isEmpty()) {
-            return [];
-        }
-
         $result = [];
 
         /** @var Service $service */
@@ -121,36 +113,24 @@ final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
     {
         $payload = ClientResponse::data(HorizonClientApiService::getWorkload($service));
 
-        if (empty($payload)) {
-            return [];
-        }
-
-        $data = $payload['workload'] ?? null;
-
-        if (! \is_array($data) || empty($data)) {
+        if (! \is_array($payload) || empty($payload)) {
             return [];
         }
 
         $rows = [];
 
-        foreach ($data as $row) {
+        foreach ($payload as $row) {
             if (! \is_array($row)) {
                 continue;
             }
 
-            $queueName = '';
+            $queueName = (string) ($row['name'] ?? '');
 
-            if (! empty($row['name'])) {
-                $queueName = (string) $row['name'];
-            }
-
-            $queueName = QueueNameNormalizer::normalize($queueName) ?? $queueName;
-
-            if (empty($queueName)) {
+            if ($queueName === '') {
                 continue;
             }
 
-            $jobs = (int) ($row['length'] ?? 0);
+            $queueName = QueueNameNormalizer::normalize($queueName) ?? $queueName;
 
             $processes = null;
 
@@ -166,7 +146,7 @@ final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
 
             $rows[] = [
                 'queue' => $queueName,
-                'jobs' => $jobs,
+                'jobs' => (int) ($row['length'] ?? 0),
                 'processes' => $processes,
                 'wait' => $wait,
             ];

@@ -82,7 +82,7 @@
                 </div>
 
                 <div class="card min-w-0 overflow-hidden p-4">
-                    <h3 class="text-section-title text-foreground mb-2">Queue wait by queue (max wait, top 12)</h3>
+                    <h3 class="text-section-title text-foreground mb-2">Queue wait by queue (max wait, top {{ config('horizonhub.top_n_queues') }})</h3>
                     <div class="chart-panel">
                         <div id="metrics-loader-service-chart" class="absolute inset-0 flex items-center justify-center bg-muted/30 rounded" style="{{ empty($defer) ? 'display:none;' : '' }}">
                             <x-loader class="size-8 text-muted-foreground" />
