@@ -63,10 +63,8 @@ final class AvgExecutionTime extends AbstractAlertRuleStrategy
             return $this->notTriggered();
         }
 
-        $triggered = (float) $durations->average() >= $alert->getThresholdSeconds();
-
         return [
-            'triggered' => $triggered,
+            'triggered' => (float) $durations->average() >= $alert->getThresholdSeconds(),
             'job_uuids' => [],
         ];
     }
