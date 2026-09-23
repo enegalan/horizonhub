@@ -24,29 +24,7 @@ trait BuildsDashboardStreams
             $service->withHorizonStats();
         }
 
-        $onlineCount = 0;
-        $anyOffline = false;
-        $anyStandBy = false;
-
         $enabledServices = $services->where('enabled', true);
-
-        foreach ($enabledServices as $service) {
-            if ($service->status === ServiceStatus::Online) {
-                $onlineCount++;
-            }
-
-            if ($service->status === ServiceStatus::Offline) {
-                $anyOffline = true;
-            }
-
-            if ($service->status === ServiceStatus::StandBy) {
-                $anyStandBy = true;
-            }
-        }
-
-        $servicesHealthDotClass = $enabledServices->isEmpty() ? 'bg-slate-400' :
-            ($anyOffline ? 'bg-orange-500' :
-                ($anyStandBy ? 'bg-amber-500' : 'bg-emerald-500'));
 
         $recentAlertLogsQuery = AlertLog::with(['alert', 'service'])
             ->orderByDesc('sent_at');
@@ -64,9 +42,10 @@ trait BuildsDashboardStreams
             ['update', 'dashboard-value-jobs-hour', e($metrics['jobsPastHour'] ?? '—'), null],
             ['update', 'dashboard-value-failed-seven', e($metrics['failedPastSevenDays'] ?? '—'), null],
             ['update', 'dashboard-services-kpi-inner', \view('horizon.dashboard.partials.index.kpi-services-online', [
-                'servicesHealthDotClass' => $servicesHealthDotClass,
-                'servicesOnlineCount' => $onlineCount,
-                'servicesTotal' => $enabledServices->count(),
+                'servicesCount' => $enabledServices->count(),
+                'offlineCount' => $enabledServices->where('status', ServiceStatus::Offline)->count(),
+                'standByCount' => $enabledServices->where('status', ServiceStatus::StandBy)->count(),
+                'onlineCount' => $enabledServices->where('status', ServiceStatus::Online)->count(),
             ])->render(), 'morph'],
             ['update', 'dashboard-service-health-grid', \view('horizon.dashboard.partials.index.service-health-grid', ['services' => $services])->render(), 'morph'],
             ['update', 'dashboard-recent-alerts-body', \view('horizon.dashboard.partials.index.recent-alerts-tbody', ['recentAlertLogs' => $recentAlertLogs])->render(), 'morph'],

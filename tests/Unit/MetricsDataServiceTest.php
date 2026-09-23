@@ -289,9 +289,7 @@ class MetricsDataServiceTest extends TestCase
         Http::fake(function ($request) {
             if (\str_contains($request->url(), '/workload')) {
                 return Http::response([
-                    'workload' => [
-                        ['name' => 'redis.default', 'length' => 7, 'processes' => 2, 'wait' => 1.5],
-                    ],
+                    ['name' => 'redis.default', 'length' => 7, 'processes' => 2, 'wait' => 1.5],
                 ], 200);
             }
 
@@ -389,14 +387,12 @@ class MetricsDataServiceTest extends TestCase
         ]));
     }
 
-    public function test_get_workload_for_service_maps_nested_workload_payload(): void
+    public function test_get_workload_for_service_maps_top_level_list_payload(): void
     {
         Http::fake(function ($request) {
             if (\str_contains($request->url(), '/workload')) {
                 return Http::response([
-                    'workload' => [
-                        ['name' => 'redis.default', 'length' => 7, 'processes' => 2, 'wait' => 1.5],
-                    ],
+                    ['name' => 'default', 'length' => 7, 'processes' => 2, 'wait' => 1.5],
                 ], 200);
             }
 

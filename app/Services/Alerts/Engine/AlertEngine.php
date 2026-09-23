@@ -43,14 +43,8 @@ class AlertEngine
      */
     public function dispatch(Alert $alert, array $events, AlertLog $log): void
     {
-        $providers = $alert->notificationProviders;
-
-        if ($providers->isEmpty()) {
-            return;
-        }
-
         /** @var NotificationProvider $provider */
-        foreach ($providers as $provider) {
+        foreach ($alert->notificationProviders as $provider) {
             try {
                 $notifierClass = $provider->notifierClass();
 
