@@ -242,7 +242,10 @@
         @apply pointer-events-none cursor-wait;
     }
     .btn-loadable[data-loading] .btn-label {
-        visibility: hidden;
+        color: transparent;
+    }
+    .btn-loadable[data-loading] .btn-label .badge {
+        border-color: transparent;
     }
     .btn-loadable[data-loading] .btn-spinner {
         @apply absolute inset-0 inline-flex items-center justify-center;

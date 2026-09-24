@@ -6,7 +6,7 @@
  * Form-drawer links are handled the same way until their frame loads.
  */
 
-const LOADING_SELECTOR = '.btn-loadable[data-loading]';
+const FRAME_LINK_SELECTOR = 'a.btn-loadable[data-turbo-frame]';
 
 /**
  * Set loading when form submission starts
@@ -27,23 +27,41 @@ document.addEventListener('turbo:submit-end', function (event) {
 });
 
 /**
- * Set loading when button is clicked
+ * Set loading when Turbo follows a frame link. `turbo:click` only fires for
+ * clicks Turbo will intercept, so modifier-clicks (new tab, etc.) are ignored.
+ * An already-loading link cancels the navigation to avoid a duplicate request.
  * @param {CustomEvent} event
  * @returns {void}
  */
-document.addEventListener('click', function (event) {
-    setLoading(event.target?.closest('.btn-loadable[data-turbo-frame]'), true);
+document.addEventListener('turbo:click', function (event) {
+    const link = event.target?.closest?.(FRAME_LINK_SELECTOR);
+    if (!link) return;
+
+    if (link.hasAttribute('data-loading')) {
+        event.preventDefault();
+        event.detail?.originalEvent?.preventDefault();
+        return;
+    }
+
+    setLoading(link, true);
 });
 
 /**
- * Remove loading when frame loads, missing, or fetch request error
- * @param {string} name
+ * Clear only the frame links whose request just finished.
+ * @param {CustomEvent} event
  * @returns {void}
  */
-['turbo:frame-load', 'turbo:frame-missing', 'turbo:fetch-request-error'].forEach(function (name) {
-    document.addEventListener(name, () => document.querySelectorAll(LOADING_SELECTOR).forEach(function (el) {
+function clearFrameLoading(event) {
+    const frameId = event.target?.id;
+    if (!frameId) return;
+
+    document.querySelectorAll('a.btn-loadable[data-loading][data-turbo-frame="' + CSS.escape(frameId) + '"]').forEach(function (el) {
         setLoading(el, false);
-    }));
+    });
+}
+
+['turbo:frame-load', 'turbo:frame-missing', 'turbo:fetch-request-error'].forEach(function (name) {
+    document.addEventListener(name, clearFrameLoading);
 });
 
 /**
@@ -54,5 +72,12 @@ document.addEventListener('click', function (event) {
  */
 export function setLoading(el, isLoading) {
     if (!el || !el.classList || !el.classList.contains('btn-loadable')) return;
-    isLoading ? el.setAttribute('data-loading', '') : el.removeAttribute('data-loading');
+
+    if (isLoading) {
+        el.setAttribute('data-loading', '');
+        el.setAttribute('aria-busy', 'true');
+    } else {
+        el.removeAttribute('data-loading');
+        el.removeAttribute('aria-busy');
+    }
 }
