@@ -27,23 +27,28 @@ document.addEventListener('turbo:submit-end', function (event) {
 });
 
 /**
+ * Cancel repeat activation in the capture phase, before Turbo handles the
+ * click. Cancelling from `turbo:click` is not enough: the frame redirector
+ * navigates on `turbo:click` without checking `defaultPrevented`.
+ * @param {MouseEvent} event
+ * @returns {void}
+ */
+document.addEventListener('click', function (event) {
+    const link = event.target?.closest?.(FRAME_LINK_SELECTOR);
+    if (link?.hasAttribute('data-loading')) {
+        event.preventDefault();
+    }
+}, true);
+
+/**
  * Set loading when Turbo follows a frame link. `turbo:click` only fires for
  * clicks Turbo will intercept, so modifier-clicks (new tab, etc.) are ignored.
- * An already-loading link cancels the navigation to avoid a duplicate request.
  * @param {CustomEvent} event
  * @returns {void}
  */
 document.addEventListener('turbo:click', function (event) {
     const link = event.target?.closest?.(FRAME_LINK_SELECTOR);
-    if (!link) return;
-
-    if (link.hasAttribute('data-loading')) {
-        event.preventDefault();
-        event.detail?.originalEvent?.preventDefault();
-        return;
-    }
-
-    setLoading(link, true);
+    if (link) setLoading(link, true);
 });
 
 /**
