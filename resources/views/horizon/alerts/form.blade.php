@@ -114,7 +114,7 @@
                     <h3 class="text-sm font-semibold text-foreground">Rule</h3>
                     <p class="mt-1 text-sm text-muted-foreground">Scope the alert to services, queues, and jobs, then set the trigger threshold.</p>
                 </div>
-                <div class="space-y-5 px-5 py-5 sm:px-6">
+                <div class="space-y-4 px-5 py-5 sm:px-6">
                     <div class="space-y-2">
                         <x-input-label for="name">Name (optional)</x-input-label>
                         <x-text-input
@@ -299,7 +299,7 @@
                     <h3 class="text-sm font-semibold text-foreground">Notifications</h3>
                     <p class="mt-1 text-sm text-muted-foreground">Control delivery throttling and choose which providers receive this alert.</p>
                 </div>
-                <div class="space-y-5 px-5 py-5 sm:px-6">
+                <div class="space-y-4 px-5 py-5 sm:px-6">
                     <div class="space-y-2 rounded-xl border border-border/70 bg-muted/20 px-4 py-4">
                         <x-input-label for="email_interval_minutes">Minutes between notifications (throttle)</x-input-label>
                         <x-text-input

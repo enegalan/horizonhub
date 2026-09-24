@@ -19,7 +19,7 @@
                     <h3 class="text-sm font-semibold text-foreground">Channel</h3>
                     <p class="mt-1 text-sm text-muted-foreground">Choose where alert notifications should be delivered.</p>
                 </div>
-                <div class="grid gap-3 px-5 py-5 sm:grid-cols-3 sm:px-2">
+                <div class="grid gap-3 px-5 py-5 sm:grid-cols-3 sm:px-6">
                     @foreach(\App\Models\NotificationProvider::getProviders() as $type => $class)
                         @php
                             $meta = (new \App\Models\NotificationProvider(['type' => $type]))->meta();
@@ -58,7 +58,7 @@
                     <h3 class="text-sm font-semibold text-foreground">Details</h3>
                     <p class="mt-1 text-sm text-muted-foreground">Use a name your team will recognize when attaching this provider to alerts.</p>
                 </div>
-                <div class="space-y-5 px-5 py-5 sm:px-6">
+                <div class="space-y-4 px-5 py-5 sm:px-6">
                     <div class="space-y-2">
                         <x-input-label for="name">Name</x-input-label>
                         <x-text-input
