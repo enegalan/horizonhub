@@ -62,8 +62,9 @@
                     </div>
                 </div>
                 <div class="flex shrink-0 flex-col items-end gap-1.5">
-                    <button
+                    <x-button
                         type="button"
+                        variant="none"
                         class="service-enabled-toggle flex rounded-md transition-opacity hover:opacity-80 disabled:cursor-wait disabled:opacity-60"
                         data-service-enabled-toggle="1"
                         data-service-id="{{ (int) $service->id }}"
@@ -79,7 +80,7 @@
                         >
                             {{ $isEnabled ? 'On' : 'Off' }}
                         </span>
-                    </button>
+                    </x-button>
                     <span
                         class="shrink-0 text-[10px]"
                         data-service-connectivity-badge="1"

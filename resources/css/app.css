@@ -218,16 +218,37 @@
         @apply absolute inset-0 h-full min-w-0 w-full max-w-full;
     }
     .btn-primary {
-        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:hover:bg-primary;
+        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60;
     }
     .btn-ghost {
-        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-4 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:hover:bg-transparent;
+        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-4 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:hover:bg-transparent disabled:cursor-not-allowed disabled:opacity-60;
     }
     .btn-danger {
-        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-4 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:hover:bg-transparent;
+        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-4 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:hover:bg-transparent disabled:cursor-not-allowed disabled:opacity-60;
     }
     .btn-secondary {
-        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-input bg-background px-4 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:hover:bg-background;
+        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-input bg-background px-4 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:hover:bg-background disabled:cursor-not-allowed disabled:opacity-60;
+    }
+    .btn-loadable {
+        @apply relative;
+    }
+    .btn-loadable .btn-label {
+        display: contents;
+    }
+    .btn-loadable .btn-spinner {
+        display: none;
+    }
+    .btn-loadable[data-loading] {
+        @apply pointer-events-none cursor-wait;
+    }
+    .btn-loadable[data-loading] .btn-label {
+        color: transparent;
+    }
+    .btn-loadable[data-loading] .btn-label .badge {
+        border-color: transparent;
+    }
+    .btn-loadable[data-loading] .btn-spinner {
+        @apply absolute inset-0 inline-flex items-center justify-center;
     }
     .badge {
         @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors;

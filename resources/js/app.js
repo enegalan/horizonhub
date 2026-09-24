@@ -1,6 +1,7 @@
 import './bootstrap';
 import './components/resizable-table';
 import './components/form-drawer';
+import './components/loading-button';
 import { horizonJobsPage, horizonJobDetail, horizonJobRowRetry, initJsonTrees } from './horizon/jobs';
 import { horizonAlertsList, horizonAlertDetail, renderAlertDetailCharts } from './horizon/alerts';
 import { horizonServiceForm, horizonServicesList } from './horizon/services';

@@ -1,6 +1,7 @@
 import { getChartColors, applyChartOptions } from '../charts/charts';
 import { parseJsonFromElement } from '../lib/parse';
 import { isHotReloadEnabled } from '../lib/sse';
+import { setLoading } from '../components/loading-button';
 
 /**
  * Alert detail charts.
@@ -19,6 +20,7 @@ const ALERT_DETAIL_CHARTS = [
 export function horizonAlertsList() {
     return {
         bulkEvaluationInProgress: false,
+        togglingAlerts: [],
 
         /**
          * Initialize the alerts list.
@@ -187,15 +189,15 @@ export function horizonAlertsList() {
          */
         private__handleEnabledToggleClick(btnEl) {
             var self = this;
-            if (!window.horizon || !window.horizon.http || !btnEl) return;
-            if (btnEl.disabled || btnEl.getAttribute('data-alert-enabled-toggle-running') === '1') return;
+            if (!window.horizon || !window.horizon.http) return;
+            if (btnEl.disabled || self.togglingAlerts.includes(btnEl)) return;
 
             var url = btnEl.getAttribute('data-alert-enabled-toggle-url');
             var articleEl = btnEl.closest('[data-stream-row-id]');
             if (!url || !articleEl) return;
 
-            btnEl.setAttribute('data-alert-enabled-toggle-running', '1');
-            btnEl.disabled = true;
+            self.togglingAlerts.push(btnEl);
+            setLoading(btnEl, true);
 
             window.horizon.http.post(url, {}).then(function (data) {
                 var enabled = !!(data && data.enabled);
@@ -205,8 +207,8 @@ export function horizonAlertsList() {
                 }
             }).catch(function () {
             }).finally(function () {
-                btnEl.removeAttribute('data-alert-enabled-toggle-running');
-                btnEl.disabled = false;
+                setLoading(btnEl, false);
+                self.togglingAlerts = self.togglingAlerts.filter(el => el !== btnEl);
             });
         },
 

@@ -11,17 +11,20 @@
         default => 'btn-primary',
     };
     $type = $attributes->get('type', $type);
-@endphp
-
-@php
-    $classes = $attributes->get('class', '');
-    $mergedClass = trim("$variantClasses $classes");
     $disabled = $attributes->get('disabled', false);
-    $attributes = $attributes->except('disabled')->merge(['type' => $type, 'class' => $mergedClass]);
-    if ($disabled) {
-        $attributes = $attributes->merge(['disabled' => true]);
-    }
+    $defaultClasses = 'btn-loadable';
+
+    $attributes = $attributes
+        ->except('disabled')
+        ->merge([
+            'type' => $type,
+            'class' => trim("$variantClasses $defaultClasses"),
+            ...($disabled ? ['disabled' => true] : []),
+        ]);
 @endphp
 <button {{ $attributes }}>
-    {{ $slot }}
+    <span class="btn-label">{{ $slot }}</span>
+    <span class="btn-spinner" aria-hidden="true">
+        <x-loader />
+    </span>
 </button>
