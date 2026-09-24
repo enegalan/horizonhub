@@ -33,6 +33,10 @@
             left = Math.max(edge, Math.min(left, window.innerWidth - width - edge));
             this.anchor = { top: rect.bottom + gap, left: left, width: width };
         },
+        selectParentControl() {
+            var control = this.$refs.trigger.closest('label')?.querySelector('input');
+            control?.click();
+        },
         bindReposition() {
             if (this._repositionHandler) {
                 return;
@@ -57,13 +61,14 @@
     @mouseleave="hide()"
     @focusin="show()"
     @focusout="hide()"
-    @click.stop
 >
     <button
         type="button"
         x-ref="trigger"
         class="inline-flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         aria-label="{{ $text }}"
+        no-ring
+        @click="selectParentControl()"
     >
         <x-icons.information-circle class="size-4" />
     </button>

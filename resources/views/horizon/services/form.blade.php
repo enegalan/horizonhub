@@ -41,7 +41,7 @@
                     <h3 class="text-sm font-semibold text-foreground">Connection details</h3>
                     <p class="mt-1 text-sm text-muted-foreground">Keep the internal base URL accurate so metrics and events continue to sync.</p>
                 </div>
-                <div class="space-y-5 px-5 py-5 sm:px-6">
+                <div class="space-y-4 px-5 py-5 sm:px-6">
                     <div class="space-y-2">
                         <x-input-label>Name</x-input-label>
                         <x-text-input type="text" name="name" value="{{ $service->name }}" class="w-full" />
@@ -73,7 +73,7 @@
                         Group services for filters.
                     </p>
                 </div>
-                <div class="space-y-4 px-5 py-5 sm:px-6">
+                <div class="flex flex-wrap gap-4 px-5 py-5 sm:px-6">
                     <div class="flex max-h-36 flex-wrap gap-2 overflow-y-auto rounded-md" x-show="tags.length > 0">
                         <template x-for="(tag, index) in tags" :key="'tag-' + index">
                             <span class="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs text-foreground">
@@ -85,7 +85,7 @@
                             </span>
                         </template>
                     </div>
-                    <div class="flex flex-wrap items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2 w-full">
                         <div class="relative min-w-0 flex-1 space-y-2" @click.outside="closeTagSuggestions()">
                             <x-input-label for="service-tag-input">Add tag</x-input-label>
                             <div class="flex items-center gap-2">
@@ -146,11 +146,11 @@
                         Optional headers sent on every HTTP request to this service's Horizon API.
                     </p>
                 </div>
-                <div class="space-y-4 px-5 py-5 sm:px-6">
+                <div class="flex flex-wrap gap-4 px-5 py-5 sm:px-6">
                     <template x-for="(header, index) in headers" :key="'hdr-' + index">
-                        <div class="grid gap-3 sm:grid-cols-2 sm:items-start">
+                        <div class="w-full grid gap-3 sm:grid-cols-2 sm:items-start">
                             <div class="space-y-2">
-                                <label class="text-sm font-medium text-foreground" x-bind:for="'header-name-' + index">Name</label>
+                                <label class="block text-sm font-medium leading-none text-muted-foreground peer-disabled:opacity-70" x-bind:for="'header-name-' + index">Name</label>
                                 <input
                                     type="text"
                                     class="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm font-mono text-foreground shadow-sm"
@@ -161,7 +161,7 @@
                                 />
                             </div>
                             <div class="space-y-2">
-                                <label class="text-sm font-medium text-foreground" x-bind:for="'header-value-' + index">Value (optional)</label>
+                                <label class="block text-sm font-medium leading-none text-muted-foreground peer-disabled:opacity-70" x-bind:for="'header-value-' + index">Value (optional)</label>
                                 <div class="flex gap-2">
                                     <input
                                         type="text"
