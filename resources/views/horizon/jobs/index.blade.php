@@ -171,7 +171,12 @@
                                     />
                                 </div>
                                 <div class="flex items-end sm:col-span-2 sm:justify-end lg:col-span-1 lg:justify-start">
-                                    <x-button type="submit" class="h-9 w-full shrink-0 whitespace-nowrap sm:w-auto">
+                                    <x-button
+                                        type="submit"
+                                        class="h-9 w-full shrink-0 whitespace-nowrap sm:w-auto"
+                                        x-bind:disabled="retryLoadingJobs"
+                                        x-bind:data-loading="retryLoadingJobs ? 'true' : null"
+                                    >
                                         <x-icons.magnifying-glass class="size-4 shrink-0" />
                                         Search
                                     </x-button>

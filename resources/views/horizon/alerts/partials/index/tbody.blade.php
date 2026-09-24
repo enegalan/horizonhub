@@ -68,8 +68,9 @@
                         <p class="mt-1 font-mono text-xs text-muted-foreground">{{ $alert->rule_type?->value }}</p>
                     </div>
                 </div>
-                <button
+                <x-button
                     type="button"
+                    variant="none"
                     class="alert-enabled-toggle flex shrink-0 rounded-md transition-opacity hover:opacity-80 disabled:cursor-wait disabled:opacity-60"
                     data-alert-enabled-toggle="1"
                     data-alert-id="{{ (int) $alert->id }}"
@@ -85,7 +86,7 @@
                     >
                         {{ $alert->enabled ? 'On' : 'Off' }}
                     </span>
-                </button>
+                </x-button>
             </div>
 
             <div class="mt-4 space-y-2 rounded-lg border border-border/70 bg-muted/20 px-3 py-2.5">

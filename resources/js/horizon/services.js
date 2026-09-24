@@ -1,4 +1,5 @@
 import { isHotReloadEnabled } from '../lib/sse';
+import { setLoading } from '../components/loading-button';
 
 /**
  * Service create/edit form.
@@ -189,6 +190,7 @@ export function horizonServiceForm(initialHeaders, initialTags, existingTags, in
  */
 export function horizonServicesList() {
     return {
+        togglingServices: [],
         init() {
             var self = this;
 
@@ -257,15 +259,15 @@ export function horizonServicesList() {
          */
         private__handleEnabledToggleClick(btnEl) {
             var self = this;
-            if (!window.horizon || !window.horizon.http || !btnEl) return;
-            if (btnEl.disabled || btnEl.getAttribute('data-service-enabled-toggle-running') === '1') return;
+            if (!window.horizon || !window.horizon.http) return;
+            if (btnEl.disabled || self.togglingServices.includes(btnEl)) return;
 
             var url = btnEl.getAttribute('data-service-enabled-toggle-url');
             var articleEl = btnEl.closest('[data-stream-row-id]');
             if (!url || !articleEl) return;
 
-            btnEl.setAttribute('data-service-enabled-toggle-running', '1');
-            btnEl.disabled = true;
+            self.togglingServices.push(btnEl);
+            setLoading(btnEl, true);
 
             window.horizon.http.post(url, {}).then(function (data) {
                 var enabled = !!(data && data.enabled);
@@ -275,8 +277,8 @@ export function horizonServicesList() {
                 }
             }).catch(function () {
             }).finally(function () {
-                btnEl.removeAttribute('data-service-enabled-toggle-running');
-                btnEl.disabled = false;
+                self.togglingServices = self.togglingServices.filter(el => el !== btnEl);
+                setLoading(btnEl, false);
             });
         },
     };
