@@ -284,7 +284,7 @@
         @apply pl-3;
     }
     .horizon-json-line {
-        @apply flex
+        @apply flex;
     }
     .horizon-json-toggle {
         @apply rounded-sm px-0.5 font-mono;
