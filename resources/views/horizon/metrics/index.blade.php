@@ -118,7 +118,7 @@
             </div>
 
             <div class="card">
-                <div class="flex items-center justify-between gap-2 xºxºpx-4 py-3">
+                <div class="flex items-center justify-between gap-2 px-4 py-3">
                     <h3 class="text-section-title text-foreground">Supervisors</h3>
                     <p id="metrics-supervisors-summary" class="text-xs text-muted-foreground">{{ $supervisorsSummary ?? '' }}</p>
                 </div>
