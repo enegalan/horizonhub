@@ -59,7 +59,7 @@
 
             <div class="grid gap-3 border-b border-border px-5 py-4 sm:grid-cols-3 sm:px-6">
                 <div
-                    id="turbo-horizon-alert-stats"
+                    id="horizon-alert-stats"
                     class="contents"
                     data-turbo-stream-patch-children="true"
                 >
@@ -73,7 +73,7 @@
 
             <div class="px-5 py-5 sm:px-6">
                 <div
-                    id="turbo-tbody-horizon-alerts-list"
+                    id="tbody-horizon-alerts-list"
                     class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
                     data-turbo-stream-patch-children="true"
                 >

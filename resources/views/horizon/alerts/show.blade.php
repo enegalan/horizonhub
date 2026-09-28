@@ -156,7 +156,7 @@
                     </form>
                 </div>
                 <x-table
-                    resizable-key="horizon-alert-detail-logs"
+                    id="horizon-alert-detail-logs"
                 >
                     <x-slot:head>
                         <x-table.th column="sent_at">Sent at</x-table.th>

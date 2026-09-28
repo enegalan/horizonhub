@@ -138,8 +138,8 @@ class TurboStreamSseTest extends TestCase
         $result = $this->private__invokeStreamBuilder('buildAlerts', '');
 
         $this->assertNotNull($result);
-        $this->assertStringContainsString('target="turbo-horizon-alert-stats" method="morph"', $result);
-        $this->assertStringContainsString('target="turbo-tbody-horizon-alerts-list" method="morph"', $result);
+        $this->assertStringContainsString('target="horizon-alert-stats" method="morph"', $result);
+        $this->assertStringContainsString('target="tbody-horizon-alerts-list" method="morph"', $result);
         $this->assertStringContainsString('action="update"', $result);
         $this->assertStringContainsString('alpha-service', $result);
         $this->assertStringContainsString('enabled-alert', $result);
@@ -235,7 +235,7 @@ class TurboStreamSseTest extends TestCase
         $this->assertMatchesRegularExpression('/dashboard-value-services-online.*?1\s*\/\s*3/s', $result);
         $this->assertStringContainsString('dash-alert', $result);
         $this->assertStringContainsString('online-svc', $result);
-        $this->assertStringContainsString('target="turbo-tbody-horizon-dashboard-workload" method="morph"', $result);
+        $this->assertStringContainsString('target="tbody-horizon-dashboard-workload" method="morph"', $result);
 
         Http::assertSentCount(3);
     }
@@ -247,8 +247,8 @@ class TurboStreamSseTest extends TestCase
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="dashboard-value-jobs-minute"', $result);
         $this->assertStringContainsString('target="dashboard-service-health-grid" method="morph"', $result);
-        $this->assertStringContainsString('target="turbo-tbody-horizon-dashboard-alerts" method="morph"', $result);
-        $this->assertStringContainsString('target="turbo-tbody-horizon-dashboard-workload" method="morph"', $result);
+        $this->assertStringContainsString('target="tbody-horizon-dashboard-alerts" method="morph"', $result);
+        $this->assertStringContainsString('target="tbody-horizon-dashboard-workload" method="morph"', $result);
     }
 
     public function test_build_dashboard_streams_uses_neutral_health_dot_when_no_services_exist(): void
@@ -327,7 +327,7 @@ class TurboStreamSseTest extends TestCase
         $result = $this->private__invokeStreamBuilder('buildJobsIndex', '');
 
         $this->assertNotNull($result);
-        $this->assertStringContainsString('target="turbo-tbody-horizon-job-list-processing" method="morph"', $result);
+        $this->assertStringContainsString('target="tbody-horizon-job-list-processing" method="morph"', $result);
         $this->assertStringContainsString('target="job-count-horizon-job-list-processing"', $result);
         $this->assertStringContainsString('target="job-pagination-horizon-job-list-processing"', $result);
         $this->assertStringContainsString('action="update"', $result);
@@ -339,7 +339,7 @@ class TurboStreamSseTest extends TestCase
         $result = $this->private__invokeStreamBuilder('buildJobsIndex', 'search=abc');
 
         $this->assertNotNull($result);
-        $this->assertStringContainsString('target="turbo-tbody-horizon-job-list-failed"', $result);
+        $this->assertStringContainsString('target="tbody-horizon-job-list-failed"', $result);
         $this->assertStringContainsString('target="job-pagination-horizon-job-list-processed"', $result);
     }
 
@@ -352,8 +352,8 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('target="metrics-value-jobs-hour"', $result);
         $this->assertStringContainsString('target="metrics-value-failed-seven"', $result);
         $this->assertStringContainsString('target="metrics-chart-data"', $result);
-        $this->assertStringContainsString('target="turbo-tbody-horizon-metrics-queues" method="morph"', $result);
-        $this->assertStringContainsString('target="turbo-tbody-horizon-metrics-supervisors" method="morph"', $result);
+        $this->assertStringContainsString('target="tbody-horizon-metrics-queues" method="morph"', $result);
+        $this->assertStringContainsString('target="tbody-horizon-metrics-supervisors" method="morph"', $result);
         $this->assertStringContainsString('action="update"', $result);
         $this->assertStringContainsString('action="replace"', $result);
     }
@@ -451,8 +451,8 @@ class TurboStreamSseTest extends TestCase
         $result = $this->private__invokeStreamBuilder('buildProviders', '');
 
         $this->assertNotNull($result);
-        $this->assertStringContainsString('target="turbo-horizon-provider-stats" method="morph"', $result);
-        $this->assertStringContainsString('target="turbo-tbody-horizon-provider-list" method="morph"', $result);
+        $this->assertStringContainsString('target="horizon-provider-stats" method="morph"', $result);
+        $this->assertStringContainsString('target="tbody-horizon-provider-list" method="morph"', $result);
         $this->assertStringContainsString('action="update"', $result);
         $this->assertStringContainsString('stream-provider', $result);
     }
@@ -468,8 +468,8 @@ class TurboStreamSseTest extends TestCase
         $result = $this->private__invokeStreamBuilder('buildQueues', '');
 
         $this->assertNotNull($result);
-        $this->assertStringContainsString('target="turbo-horizon-queue-stats" method="morph"', $result);
-        $this->assertStringContainsString('target="turbo-tbody-horizon-queue-list" method="morph"', $result);
+        $this->assertStringContainsString('target="horizon-queue-stats" method="morph"', $result);
+        $this->assertStringContainsString('target="tbody-horizon-queue-list" method="morph"', $result);
         $this->assertStringContainsString('action="update"', $result);
     }
 
@@ -485,7 +485,7 @@ class TurboStreamSseTest extends TestCase
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="service-show-stats-row-1"', $result);
-        $this->assertStringContainsString('target="turbo-tbody-horizon-service-queues" method="morph"', $result);
+        $this->assertStringContainsString('target="tbody-horizon-service-queues" method="morph"', $result);
         $this->assertStringContainsString('target="job-count-horizon-service-dashboard-jobs-processing"', $result);
     }
 
@@ -531,8 +531,8 @@ class TurboStreamSseTest extends TestCase
         $result = $this->private__invokeStreamBuilder('buildServices', '');
 
         $this->assertNotNull($result);
-        $this->assertStringContainsString('target="turbo-horizon-service-stats" method="morph"', $result);
-        $this->assertStringContainsString('target="turbo-tbody-horizon-service-list" method="morph"', $result);
+        $this->assertStringContainsString('target="horizon-service-stats" method="morph"', $result);
+        $this->assertStringContainsString('target="tbody-horizon-service-list" method="morph"', $result);
         $this->assertStringContainsString('action="update"', $result);
         $this->assertStringContainsString('data-horizon-stream-sig="', $result);
 
@@ -572,8 +572,8 @@ class TurboStreamSseTest extends TestCase
         $response->assertOk();
         $html = (string) $response->getContent();
         $this->assertStringContainsString('data-turbo-stream-patch-children="true"', $html);
-        $this->assertStringContainsString('id="turbo-horizon-provider-stats"', $html);
-        $this->assertStringContainsString('id="turbo-tbody-horizon-provider-list"', $html);
+        $this->assertStringContainsString('id="horizon-provider-stats"', $html);
+        $this->assertStringContainsString('id="tbody-horizon-provider-list"', $html);
     }
 
     public function test_services_index_marks_stream_patch_children_on_list_container(): void
@@ -589,8 +589,8 @@ class TurboStreamSseTest extends TestCase
         $response->assertOk();
         $html = (string) $response->getContent();
         $this->assertStringContainsString('data-turbo-stream-patch-children="true"', $html);
-        $this->assertStringContainsString('id="turbo-horizon-service-stats"', $html);
-        $this->assertStringContainsString('id="turbo-tbody-horizon-service-list"', $html);
+        $this->assertStringContainsString('id="horizon-service-stats"', $html);
+        $this->assertStringContainsString('id="tbody-horizon-service-list"', $html);
     }
 
     #[DataProvider('sseContentTypeRouteProvider')]

@@ -80,12 +80,12 @@
 
         <div class="grid gap-6 lg:grid-cols-2">
             <div class="card flex min-w-0 flex-col overflow-hidden">
-                <div class="flex items-center justify-between border-b border-border bg-muted/20 px-5 py-3 sm:px-6">
+                <div class="flex items-center justify-between bg-muted/20 px-5 py-3 sm:px-6">
                     <h3 class="text-section-title text-foreground">Recent alerts</h3>
                     <a href="{{ route('horizon.alerts.index') }}" class="link text-xs" data-turbo-action="replace">View all</a>
                 </div>
                 <x-table
-                    resizable-key="horizon-dashboard-alerts"
+                    id="horizon-dashboard-alerts"
                     stream-patch-children
                 >
                     <x-slot:head>
@@ -103,12 +103,12 @@
             </div>
 
             <div class="card flex min-w-0 flex-col overflow-hidden">
-                <div class="flex items-center justify-between border-b border-border bg-muted/20 px-5 py-3 sm:px-6">
+                <div class="flex items-center justify-between bg-muted/20 px-5 py-3 sm:px-6">
                     <h3 class="text-section-title text-foreground">Current workload</h3>
                     <a href="{{ route('horizon.queues.index') }}" class="link text-xs" data-turbo-action="replace">View queues</a>
                 </div>
                 <x-table
-                    resizable-key="horizon-dashboard-workload"
+                    id="horizon-dashboard-workload"
                     stream-patch-children
                 >
                     <x-slot:head>

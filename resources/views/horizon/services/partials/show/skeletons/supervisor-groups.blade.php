@@ -4,7 +4,7 @@
         <x-skeleton.text class="h-4 w-28" />
     </div>
     <x-table
-        resizable-key="horizon-service-supervisors"
+        id="horizon-service-supervisors"
     >
         <x-slot:head>
             <x-table.th column="supervisor" class="min-w-[160px]">Supervisor</x-table.th>

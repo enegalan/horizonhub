@@ -94,12 +94,12 @@
             </div>
 
             <div class="card">
-                <div class="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+                <div class="flex items-center justify-between gap-2 px-4 py-3">
                     <h3 class="text-section-title text-foreground">Current workload</h3>
                     <p id="metrics-workload-summary" class="text-xs text-muted-foreground">{{ $workloadSummary ?? '' }}</p>
                 </div>
                 <x-table
-                    resizable-key="horizon-metrics-queues"
+                    id="horizon-metrics-queues"
                     stream-patch-children
                 >
                     <x-slot:head>
@@ -118,12 +118,12 @@
             </div>
 
             <div class="card">
-                <div class="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+                <div class="flex items-center justify-between gap-2 xºxºpx-4 py-3">
                     <h3 class="text-section-title text-foreground">Supervisors</h3>
                     <p id="metrics-supervisors-summary" class="text-xs text-muted-foreground">{{ $supervisorsSummary ?? '' }}</p>
                 </div>
                 <x-table
-                    resizable-key="horizon-metrics-supervisors"
+                    id="horizon-metrics-supervisors"
                     stream-patch-children
                 >
                     <x-slot:head>

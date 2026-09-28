@@ -24,8 +24,8 @@ trait BuildsQueueStreams
         $tbodyHtml = \view('horizon.queues.partials.index.tbody', ['queues' => $queues])->render();
 
         return $this->buildStreams([
-            ['update', 'turbo-horizon-queue-stats', $statsHtml, 'morph'],
-            ['update', 'turbo-tbody-horizon-queue-list', $tbodyHtml, 'morph'],
+            ['update', 'horizon-queue-stats', $statsHtml, 'morph'],
+            ['update', 'tbody-horizon-queue-list', $tbodyHtml, 'morph'],
         ]);
     }
 }

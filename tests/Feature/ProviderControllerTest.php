@@ -19,7 +19,7 @@ class ProviderControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertViewHas('defer', true);
-        $response->assertSee('id="turbo-tbody-horizon-provider-list"', false);
+        $response->assertSee('id="tbody-horizon-provider-list"', false);
         $response->assertSee('id="providers-index-search"', false);
     }
 

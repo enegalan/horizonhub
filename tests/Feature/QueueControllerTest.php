@@ -24,7 +24,7 @@ class QueueControllerTest extends TestCase
         $response->assertViewHas('defer', true);
         $response->assertViewHas('selectedServiceIds', []);
         $response->assertSee('queue-svc', false);
-        $response->assertSee('id="turbo-tbody-horizon-queue-list"', false);
+        $response->assertSee('id="tbody-horizon-queue-list"', false);
     }
 
     public function test_index_restricts_service_ids_to_existing_services(): void

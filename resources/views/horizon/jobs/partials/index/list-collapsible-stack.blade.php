@@ -34,7 +34,7 @@
         'paginator' => $jobsProcessing,
         'showServiceColumn' => $showServiceColumn,
         'pageService' => $pageService,
-        'resizableKey' => "$resizablePrefix-processing",
+        'id' => "$resizablePrefix-processing",
         'bodyKey' => "$resizablePrefix-processing",
         'defer' => $defer,
     ])
@@ -43,7 +43,7 @@
         'paginator' => $jobsProcessed,
         'showServiceColumn' => $showServiceColumn,
         'pageService' => $pageService,
-        'resizableKey' => "$resizablePrefix-processed",
+        'id' => "$resizablePrefix-processed",
         'bodyKey' => "$resizablePrefix-processed",
         'defer' => $defer,
     ])
@@ -52,7 +52,7 @@
         'paginator' => $jobsFailed,
         'showServiceColumn' => $showServiceColumn,
         'pageService' => $pageService,
-        'resizableKey' => "$resizablePrefix-failed",
+        'id' => "$resizablePrefix-failed",
         'bodyKey' => "$resizablePrefix-failed",
         'defer' => $defer,
     ])

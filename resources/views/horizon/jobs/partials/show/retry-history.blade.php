@@ -13,7 +13,7 @@
     <div data-horizon-stream-sig="{{ $retryHistoryStreamSig }}">
         <dt class="label-muted mb-1">Retries history</dt>
         <x-table
-            resizable-key="horizon-job-retry-history"
+            id="horizon-job-retry-history"
         >
             <x-slot:head>
                 <x-table.th column="uuid">UUID</x-table.th>

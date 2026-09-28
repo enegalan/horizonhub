@@ -116,7 +116,7 @@
         </div>
 
         <div class="card mb-4">
-            <div class="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+            <div class="flex items-center justify-between gap-2 px-4 py-3">
                 <h3 class="text-section-title text-foreground">Current workload</h3>
                 <p id="service-show-workload-count" class="text-xs text-muted-foreground">
                     @if($workloadQueues->count() > 0)
@@ -125,7 +125,7 @@
                 </p>
             </div>
             <x-table
-                resizable-key="horizon-service-queues"
+                id="horizon-service-queues"
                 stream-patch-children
             >
                 <x-slot:head>

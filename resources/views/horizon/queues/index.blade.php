@@ -28,7 +28,7 @@
 
             <div class="grid gap-3 border-b border-border px-5 py-4 sm:grid-cols-2 sm:px-6">
                 <div
-                    id="turbo-horizon-queue-stats"
+                    id="horizon-queue-stats"
                     class="contents"
                     data-turbo-stream-patch-children="true"
                 >
@@ -48,13 +48,13 @@
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/20 px-5 py-3 sm:px-6">
+            <div class="flex flex-wrap items-center justify-between gap-2 bg-muted/20 px-5 py-3 sm:px-6">
                 <h3 class="text-section-title text-foreground">By queue</h3>
                 <a href="{{ route('horizon.metrics') }}" class="link text-xs" data-turbo-action="replace">Metrics</a>
             </div>
 
             <x-table
-                resizable-key="horizon-queue-list"
+                id="horizon-queue-list"
                 stream-patch-children
             >
                 <x-slot:head>

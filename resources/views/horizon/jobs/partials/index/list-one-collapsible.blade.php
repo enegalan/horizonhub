@@ -2,7 +2,7 @@
     /** @var \Illuminate\Pagination\LengthAwarePaginator $paginator */
     /** @var bool $showServiceColumn */
     /** @var \App\Models\Service|null $pageService */
-    /** @var string $resizableKey */
+    /** @var string $id */
     /** @var string $bodyKey */
     /** @var bool $defer */
     /** @var string $kind processing|processed|failed */
@@ -43,7 +43,7 @@
     </summary>
     <div class="pt-2">
         <x-table
-            resizable-key="{{ $resizableKey }}"
+            id="{{ $id }}"
             stream-patch-children
         >
             <x-slot:head>

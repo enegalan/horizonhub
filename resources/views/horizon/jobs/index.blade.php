@@ -229,7 +229,7 @@
                                 <div class="table-scroll">
                                 <x-table
                                     :wrap="false"
-                                    resizable-key="horizon-retry-modal-failed-jobs"
+                                    id="horizon-retry-modal-failed-jobs"
                                     table-class="text-sm"
                                     thead-class="sticky top-0 z-[1] bg-muted/80 backdrop-blur-sm"
                                 >

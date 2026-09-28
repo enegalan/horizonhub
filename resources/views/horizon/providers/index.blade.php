@@ -39,7 +39,7 @@
 
             <div class="grid gap-3 border-b border-border px-5 py-4 sm:grid-cols-4 sm:px-6">
                 <div
-                    id="turbo-horizon-provider-stats"
+                    id="horizon-provider-stats"
                     class="contents"
                     data-turbo-stream-patch-children="true"
                 >
@@ -53,7 +53,7 @@
 
             <div class="px-5 py-5 sm:px-6">
                 <div
-                    id="turbo-tbody-horizon-provider-list"
+                    id="tbody-horizon-provider-list"
                     class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
                     data-turbo-stream-patch-children="true"
                 >
