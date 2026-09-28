@@ -126,18 +126,13 @@
             </div>
             <x-table
                 resizable-key="horizon-service-queues"
-                column-ids="queue,jobs,processes,wait"
-                body-key="horizon-service-queues"
-                body-id="service-show-workload-body"
                 stream-patch-children
             >
                 <x-slot:head>
-                    <tr class="border-b border-border bg-muted/50">
-                        <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="queue">Queue</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="jobs">Jobs</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="processes">Processes</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="wait">Wait</th>
-                    </tr>
+                    <x-table.th column="queue" class="min-w-[100px]">Queue</x-table.th>
+                    <x-table.th column="jobs">Jobs</x-table.th>
+                    <x-table.th column="processes">Processes</x-table.th>
+                    <x-table.th column="wait">Wait</x-table.th>
                 </x-slot:head>
                 @if(!empty($defer))
                     <x-skeleton.table-rows rows="5" columns="4" />
@@ -178,7 +173,6 @@
                 'jobsFailed' => $jobsFailed,
                 'showServiceColumn' => false,
                 'pageService' => $service,
-                'columnIds' => 'uuid,queue,job,attempts,queued_at,delayed_until,processed,failed_at,runtime,actions',
                 'resizablePrefix' => 'horizon-service-dashboard-jobs',
                 'defer' => $defer ?? false,
             ])

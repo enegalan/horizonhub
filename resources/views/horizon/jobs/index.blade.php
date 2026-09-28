@@ -60,7 +60,6 @@
                 'jobsFailed' => $jobsFailed,
                 'showServiceColumn' => true,
                 'pageService' => null,
-                'columnIds' => 'uuid,service,queue,job,attempts,queued_at,delayed_until,processed,failed_at,runtime,actions',
                 'resizablePrefix' => 'horizon-job-list',
                 'defer' => $defer ?? false,
             ])
@@ -231,31 +230,22 @@
                                 <x-table
                                     :wrap="false"
                                     resizable-key="horizon-retry-modal-failed-jobs"
-                                    column-ids="select,service,queue,job,failed_at"
-                                    body-key="horizon-retry-modal-failed-jobs"
                                     table-class="text-sm"
                                     thead-class="sticky top-0 z-[1] bg-muted/80 backdrop-blur-sm"
                                 >
                                     <x-slot:head>
-                                        <tr class="border-b border-border">
-                                            <th
-                                                class="table-header w-10 cursor-pointer px-3 py-2.5 sm:px-4"
-                                                data-column-id="select"
-                                                data-column-fixed
-                                                @click="toggleAllFailedSelection()"
-                                            >
-                                                <div class="pointer-events-none flex justify-center">
-                                                    <x-checkbox
-                                                        x-bind:checked="selectedFailedJobs.length > 0"
-                                                        aria-label="Select all failed jobs matching filters"
-                                                    />
-                                                </div>
-                                            </th>
-                                            <th class="table-header hidden min-w-[88px] px-3 py-2.5 sm:table-cell sm:min-w-[100px] sm:px-4" data-column-id="service">Service</th>
-                                            <th class="table-header hidden min-w-[72px] px-3 py-2.5 md:table-cell md:min-w-[100px] md:px-4" data-column-id="queue">Queue</th>
-                                            <th class="table-header min-w-[120px] px-3 py-2.5 sm:px-4" data-column-id="job">Job</th>
-                                            <th class="table-header min-w-[96px] whitespace-nowrap px-3 py-2.5 sm:min-w-[100px] sm:px-4" data-column-id="failed_at">Failed at</th>
-                                        </tr>
+                                        <x-table.th column="select" class="w-10 cursor-pointer" padding="px-3 py-2.5 sm:px-4" data-column-fixed @click="toggleAllFailedSelection()">
+                                            <div class="pointer-events-none flex justify-center">
+                                                <x-checkbox
+                                                    x-bind:checked="selectedFailedJobs.length > 0"
+                                                    aria-label="Select all failed jobs matching filters"
+                                                />
+                                            </div>
+                                        </x-table.th>
+                                        <x-table.th column="service" class="hidden min-w-[88px] sm:table-cell sm:min-w-[100px]" padding="px-3 py-2.5 sm:px-4">Service</x-table.th>
+                                        <x-table.th column="queue" class="hidden min-w-[72px] md:table-cell md:min-w-[100px]" padding="px-3 py-2.5 md:px-4">Queue</x-table.th>
+                                        <x-table.th column="job" class="min-w-[120px]" padding="px-3 py-2.5 sm:px-4">Job</x-table.th>
+                                        <x-table.th column="failed_at" class="min-w-[96px] sm:min-w-[100px]" padding="px-3 py-2.5 sm:px-4">Failed at</x-table.th>
                                     </x-slot:head>
                                     <template x-if="!retryLoadingJobs && failedJobs.length === 0">
                                         <tr>

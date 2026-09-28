@@ -100,19 +100,14 @@
                 </div>
                 <x-table
                     resizable-key="horizon-metrics-queues"
-                    column-ids="service,queue,jobs,processes,wait"
-                    body-key="horizon-metrics-queues"
-                    body-id="metrics-workload-body"
                     stream-patch-children
                 >
                     <x-slot:head>
-                        <tr class="border-b border-border bg-muted/50">
-                            <th class="table-header px-4 py-2.5 min-w-[140px]" data-column-id="service">Service</th>
-                            <th class="table-header px-4 py-2.5 min-w-[120px]" data-column-id="queue">Queue</th>
-                            <th class="table-header px-4 py-2.5" data-column-id="jobs">Jobs</th>
-                            <th class="table-header px-4 py-2.5" data-column-id="processes">Processes</th>
-                            <th class="table-header px-4 py-2.5" data-column-id="wait">Wait</th>
-                        </tr>
+                        <x-table.th column="service" class="min-w-[140px]">Service</x-table.th>
+                        <x-table.th column="queue" class="min-w-[120px]">Queue</x-table.th>
+                        <x-table.th column="jobs">Jobs</x-table.th>
+                        <x-table.th column="processes">Processes</x-table.th>
+                        <x-table.th column="wait">Wait</x-table.th>
                     </x-slot:head>
                     @if(!empty($defer))
                         <x-skeleton.table-rows rows="5" columns="5" />
@@ -129,19 +124,14 @@
                 </div>
                 <x-table
                     resizable-key="horizon-metrics-supervisors"
-                    column-ids="service,supervisor,jobs,processes,status"
-                    body-key="horizon-metrics-supervisors"
-                    body-id="metrics-supervisors-body"
                     stream-patch-children
                 >
                     <x-slot:head>
-                        <tr class="border-b border-border bg-muted/50">
-                            <th class="table-header px-4 py-2.5 min-w-[140px]" data-column-id="service">Service</th>
-                            <th class="table-header px-4 py-2.5 min-w-[160px]" data-column-id="supervisor">Supervisor</th>
-                            <th class="table-header px-4 py-2.5 min-w-[80px]" data-column-id="jobs">Jobs</th>
-                            <th class="table-header px-4 py-2.5 min-w-[80px]" data-column-id="processes">Processes</th>
-                            <th class="table-header px-4 py-2.5 min-w-[80px]" data-column-id="status">Status</th>
-                        </tr>
+                        <x-table.th column="service" class="min-w-[140px]">Service</x-table.th>
+                        <x-table.th column="supervisor" class="min-w-[160px]">Supervisor</x-table.th>
+                        <x-table.th column="jobs" class="min-w-[80px]">Jobs</x-table.th>
+                        <x-table.th column="processes" class="min-w-[80px]">Processes</x-table.th>
+                        <x-table.th column="status" class="min-w-[80px]">Status</x-table.th>
                     </x-slot:head>
                     @if(!empty($defer))
                         <x-skeleton.table-rows rows="4" columns="5" />

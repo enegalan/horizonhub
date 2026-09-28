@@ -7,17 +7,13 @@
             </div>
             <x-table
                 resizable-key="horizon-service-supervisors-{{ \Illuminate\Support\Str::slug($groupName) }}"
-                column-ids="supervisor,connection,queues,processes,balancing"
-                body-key="horizon-service-supervisors-{{ \Illuminate\Support\Str::slug($groupName) }}"
             >
                 <x-slot:head>
-                    <tr class="border-b border-border bg-muted/50">
-                        <th class="table-header px-4 py-2.5 min-w-[160px]" data-column-id="supervisor">Supervisor</th>
-                        <th class="table-header px-4 py-2.5 min-w-[120px]" data-column-id="connection">Connection</th>
-                        <th class="table-header px-4 py-2.5 min-w-[160px]" data-column-id="queues">Queues</th>
-                        <th class="table-header px-4 py-2.5 min-w-[80px]" data-column-id="processes">Processes</th>
-                        <th class="table-header px-4 py-2.5 min-w-[120px]" data-column-id="balancing">Balancing</th>
-                    </tr>
+                    <x-table.th column="supervisor" class="min-w-[160px]">Supervisor</x-table.th>
+                    <x-table.th column="connection" class="min-w-[120px]">Connection</x-table.th>
+                    <x-table.th column="queues" class="min-w-[160px]">Queues</x-table.th>
+                    <x-table.th column="processes" class="min-w-[80px]">Processes</x-table.th>
+                    <x-table.th column="balancing" class="min-w-[120px]">Balancing</x-table.th>
                 </x-slot:head>
                 @foreach($groupSupervisors as $supervisor)
                     <tr class="transition-colors hover:bg-muted/30">

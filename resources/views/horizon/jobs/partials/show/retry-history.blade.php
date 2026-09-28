@@ -14,15 +14,11 @@
         <dt class="label-muted mb-1">Retries history</dt>
         <x-table
             resizable-key="horizon-job-retry-history"
-            column-ids="uuid,status,retried_at"
-            body-key="horizon-job-retry-history"
         >
             <x-slot:head>
-                <tr class="border-b border-border bg-muted/50">
-                    <th class="table-header px-4 py-2.5" data-column-id="uuid">UUID</th>
-                    <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="status">Status</th>
-                    <th class="table-header px-4 py-2.5 min-w-[100px]" data-column-id="retried_at">Retried at</th>
-                </tr>
+                <x-table.th column="uuid">UUID</x-table.th>
+                <x-table.th column="status" class="min-w-[100px]">Status</x-table.th>
+                <x-table.th column="retried_at" class="min-w-[100px]">Retried at</x-table.th>
             </x-slot:head>
             @foreach($retryHistory as $retryJob)
                 @php

@@ -235,7 +235,7 @@ class TurboStreamSseTest extends TestCase
         $this->assertMatchesRegularExpression('/dashboard-value-services-online.*?1\s*\/\s*3/s', $result);
         $this->assertStringContainsString('dash-alert', $result);
         $this->assertStringContainsString('online-svc', $result);
-        $this->assertStringContainsString('target="dashboard-workload-summary-body" method="morph"', $result);
+        $this->assertStringContainsString('target="turbo-tbody-horizon-dashboard-workload" method="morph"', $result);
 
         Http::assertSentCount(3);
     }
@@ -247,8 +247,8 @@ class TurboStreamSseTest extends TestCase
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="dashboard-value-jobs-minute"', $result);
         $this->assertStringContainsString('target="dashboard-service-health-grid" method="morph"', $result);
-        $this->assertStringContainsString('target="dashboard-recent-alerts-body" method="morph"', $result);
-        $this->assertStringContainsString('target="dashboard-workload-summary-body" method="morph"', $result);
+        $this->assertStringContainsString('target="turbo-tbody-horizon-dashboard-alerts" method="morph"', $result);
+        $this->assertStringContainsString('target="turbo-tbody-horizon-dashboard-workload" method="morph"', $result);
     }
 
     public function test_build_dashboard_streams_uses_neutral_health_dot_when_no_services_exist(): void
@@ -352,8 +352,8 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('target="metrics-value-jobs-hour"', $result);
         $this->assertStringContainsString('target="metrics-value-failed-seven"', $result);
         $this->assertStringContainsString('target="metrics-chart-data"', $result);
-        $this->assertStringContainsString('target="metrics-workload-body" method="morph"', $result);
-        $this->assertStringContainsString('target="metrics-supervisors-body" method="morph"', $result);
+        $this->assertStringContainsString('target="turbo-tbody-horizon-metrics-queues" method="morph"', $result);
+        $this->assertStringContainsString('target="turbo-tbody-horizon-metrics-supervisors" method="morph"', $result);
         $this->assertStringContainsString('action="update"', $result);
         $this->assertStringContainsString('action="replace"', $result);
     }
@@ -485,7 +485,7 @@ class TurboStreamSseTest extends TestCase
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="service-show-stats-row-1"', $result);
-        $this->assertStringContainsString('target="service-show-workload-body" method="morph"', $result);
+        $this->assertStringContainsString('target="turbo-tbody-horizon-service-queues" method="morph"', $result);
         $this->assertStringContainsString('target="job-count-horizon-service-dashboard-jobs-processing"', $result);
     }
 

@@ -157,16 +157,13 @@
                 </div>
                 <x-table
                     resizable-key="horizon-alert-detail-logs"
-                    column-ids="sent_at,service,events,status,actions"
                 >
                     <x-slot:head>
-                        <tr class="border-b border-border bg-muted/50">
-                            <th class="table-header px-4 py-2.5" data-column-id="sent_at">Sent at</th>
-                            <th class="table-header px-4 py-2.5" data-column-id="service">Service</th>
-                            <th class="table-header px-4 py-2.5" data-column-id="events">Events</th>
-                            <th class="table-header px-4 py-2.5" data-column-id="status">Status</th>
-                            <th class="table-header px-4 py-2.5 w-24" data-column-id="actions" data-sortable="false">Actions</th>
-                        </tr>
+                        <x-table.th column="sent_at">Sent at</x-table.th>
+                        <x-table.th column="service">Service</x-table.th>
+                        <x-table.th column="events">Events</x-table.th>
+                        <x-table.th column="status">Status</x-table.th>
+                        <x-table.th column="actions" class="w-24" data-sortable="false">Actions</x-table.th>
                     </x-slot:head>
                             @forelse($logs as $log)
                                 <tr class="transition-colors hover:bg-muted/30">
