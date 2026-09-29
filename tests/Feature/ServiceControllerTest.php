@@ -192,7 +192,7 @@ PEM;
 
     public function test_store_and_update_persist_pem_tls_client_settings(): void
     {
-        Storage::fake(ServiceTlsClientStorage::DISK);
+        Storage::fake(ServiceTlsClientStorage::disk());
 
         $this->post(route('horizon.services.store'), [
             'name' => 'svc-tls-pem',
@@ -209,8 +209,8 @@ PEM;
         $this->assertSame('service-tls/' . $service->id . '/client.crt', $service->tls_client_cert_path);
         $this->assertSame('service-tls/' . $service->id . '/client.key', $service->tls_client_key_path);
         $this->assertSame('pem-secret', $service->tls_client_passphrase);
-        Storage::disk(ServiceTlsClientStorage::DISK)->assertExists($service->tls_client_cert_path);
-        Storage::disk(ServiceTlsClientStorage::DISK)->assertExists($service->tls_client_key_path);
+        Storage::disk(ServiceTlsClientStorage::disk())->assertExists($service->tls_client_cert_path);
+        Storage::disk(ServiceTlsClientStorage::disk())->assertExists($service->tls_client_key_path);
 
         $this->put(route('horizon.services.update', ['service' => $service]), [
             'name' => 'svc-tls-pem',
@@ -246,7 +246,7 @@ PEM;
 
     public function test_store_persists_p12_tls_client_settings(): void
     {
-        Storage::fake(ServiceTlsClientStorage::DISK);
+        Storage::fake(ServiceTlsClientStorage::disk());
 
         $dir = \sys_get_temp_dir() . '/hh-feat-p12-' . \bin2hex(\random_bytes(4));
         \mkdir($dir, 0700);
@@ -289,8 +289,8 @@ PEM;
             $this->assertSame('service-tls/' . $service->id . '/client.p12', $service->tls_client_cert_path);
             $this->assertNull($service->tls_client_key_path);
             $this->assertSame('p12-secret', $service->tls_client_passphrase);
-            Storage::disk(ServiceTlsClientStorage::DISK)->assertExists($service->tls_client_cert_path);
-            Storage::disk(ServiceTlsClientStorage::DISK)->assertExists(
+            Storage::disk(ServiceTlsClientStorage::disk())->assertExists($service->tls_client_cert_path);
+            Storage::disk(ServiceTlsClientStorage::disk())->assertExists(
                 ServiceTlsClientStorage::directory($service) . '/extracted.crt',
             );
         } finally {
@@ -397,7 +397,7 @@ PEM;
 
     public function test_update_clears_tls_client_settings_when_mode_is_none(): void
     {
-        Storage::fake(ServiceTlsClientStorage::DISK);
+        Storage::fake(ServiceTlsClientStorage::disk());
 
         $service = Service::create([
             'name' => 'svc-tls-clear',
@@ -409,8 +409,8 @@ PEM;
             'tls_client_passphrase' => 'keep-me',
         ]);
 
-        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.crt', 'cert');
-        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.key', 'key');
+        Storage::disk(ServiceTlsClientStorage::disk())->put('service-tls/' . $service->id . '/client.crt', 'cert');
+        Storage::disk(ServiceTlsClientStorage::disk())->put('service-tls/' . $service->id . '/client.key', 'key');
 
         $this->put(route('horizon.services.update', ['service' => $service]), [
             'name' => 'svc-tls-clear',
@@ -423,12 +423,12 @@ PEM;
         $this->assertNull($service->tls_client_cert_path);
         $this->assertNull($service->tls_client_key_path);
         $this->assertNull($service->tls_client_passphrase);
-        Storage::disk(ServiceTlsClientStorage::DISK)->assertMissing('service-tls/' . $service->id);
+        Storage::disk(ServiceTlsClientStorage::disk())->assertMissing('service-tls/' . $service->id);
     }
 
     public function test_update_rejects_tls_cert_upload_without_removing_existing_file(): void
     {
-        Storage::fake(ServiceTlsClientStorage::DISK);
+        Storage::fake(ServiceTlsClientStorage::disk());
 
         $service = Service::create([
             'name' => 'svc-tls-replace-guard',
@@ -439,8 +439,8 @@ PEM;
             'tls_client_key_path' => 'service-tls/1/client.key',
         ]);
 
-        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.crt', 'cert');
-        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.key', 'key');
+        Storage::disk(ServiceTlsClientStorage::disk())->put('service-tls/' . $service->id . '/client.crt', 'cert');
+        Storage::disk(ServiceTlsClientStorage::disk())->put('service-tls/' . $service->id . '/client.key', 'key');
         $service->update([
             'tls_client_cert_path' => 'service-tls/' . $service->id . '/client.crt',
             'tls_client_key_path' => 'service-tls/' . $service->id . '/client.key',
@@ -461,7 +461,7 @@ PEM;
 
     public function test_update_replaces_tls_cert_after_explicit_remove(): void
     {
-        Storage::fake(ServiceTlsClientStorage::DISK);
+        Storage::fake(ServiceTlsClientStorage::disk());
 
         $service = Service::create([
             'name' => 'svc-tls-replace-ok',
@@ -470,8 +470,8 @@ PEM;
             'tls_client_mode' => 'pem',
         ]);
 
-        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.crt', 'old-cert');
-        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.key', 'old-key');
+        Storage::disk(ServiceTlsClientStorage::disk())->put('service-tls/' . $service->id . '/client.crt', 'old-cert');
+        Storage::disk(ServiceTlsClientStorage::disk())->put('service-tls/' . $service->id . '/client.key', 'old-key');
         $service->update([
             'tls_client_cert_path' => 'service-tls/' . $service->id . '/client.crt',
             'tls_client_key_path' => 'service-tls/' . $service->id . '/client.key',
@@ -490,15 +490,15 @@ PEM;
         $service->refresh();
         $this->assertSame('service-tls/' . $service->id . '/client.crt', $service->tls_client_cert_path);
         $this->assertSame('service-tls/' . $service->id . '/client.key', $service->tls_client_key_path);
-        Storage::disk(ServiceTlsClientStorage::DISK)->assertExists($service->tls_client_cert_path);
-        Storage::disk(ServiceTlsClientStorage::DISK)->assertExists($service->tls_client_key_path);
-        $this->assertSame(self::PEM_CERTIFICATE, Storage::disk(ServiceTlsClientStorage::DISK)->get($service->tls_client_cert_path));
-        $this->assertSame(self::PEM_PRIVATE_KEY, Storage::disk(ServiceTlsClientStorage::DISK)->get($service->tls_client_key_path));
+        Storage::disk(ServiceTlsClientStorage::disk())->assertExists($service->tls_client_cert_path);
+        Storage::disk(ServiceTlsClientStorage::disk())->assertExists($service->tls_client_key_path);
+        $this->assertSame(self::PEM_CERTIFICATE, Storage::disk(ServiceTlsClientStorage::disk())->get($service->tls_client_cert_path));
+        $this->assertSame(self::PEM_PRIVATE_KEY, Storage::disk(ServiceTlsClientStorage::disk())->get($service->tls_client_key_path));
     }
 
     public function test_update_requires_fresh_p12_upload_when_mode_changes_from_pem(): void
     {
-        Storage::fake(ServiceTlsClientStorage::DISK);
+        Storage::fake(ServiceTlsClientStorage::disk());
 
         $service = Service::create([
             'name' => 'svc-tls-mode-switch',
@@ -511,8 +511,8 @@ PEM;
             'tls_client_key_path' => 'service-tls/' . $service->id . '/client.key',
         ]);
 
-        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.crt', 'cert');
-        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.key', 'key');
+        Storage::disk(ServiceTlsClientStorage::disk())->put('service-tls/' . $service->id . '/client.crt', 'cert');
+        Storage::disk(ServiceTlsClientStorage::disk())->put('service-tls/' . $service->id . '/client.key', 'key');
 
         $this->from(route('horizon.services.edit', $service))
             ->put(route('horizon.services.update', ['service' => $service]), [
@@ -529,7 +529,7 @@ PEM;
 
     public function test_update_requires_fresh_pem_uploads_when_mode_changes_from_p12(): void
     {
-        Storage::fake(ServiceTlsClientStorage::DISK);
+        Storage::fake(ServiceTlsClientStorage::disk());
 
         $service = Service::create([
             'name' => 'svc-tls-mode-switch-2',
@@ -542,7 +542,7 @@ PEM;
             'tls_client_cert_path' => 'service-tls/' . $service->id . '/client.p12',
         ]);
 
-        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.p12', 'p12');
+        Storage::disk(ServiceTlsClientStorage::disk())->put('service-tls/' . $service->id . '/client.p12', 'p12');
 
         $this->from(route('horizon.services.edit', $service))
             ->put(route('horizon.services.update', ['service' => $service]), [

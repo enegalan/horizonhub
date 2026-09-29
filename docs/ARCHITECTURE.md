@@ -132,6 +132,7 @@ See `resources/js/lib/sse.js` for the exact sequencing.
 ## Horizon integration
 
 - `HorizonClientHttpService` performs the actual HTTP calls against `base_url + /horizon/api`, applying the per-service headers, optional mTLS options (`ServiceTlsClientStorage::httpOptions`), and timeouts from `config/horizonhub.php`.
+- `ServiceTlsClientStorage` stores uploaded client certificates on the private `local` disk (`storage/app/private`), using `horizonhub.tls.root` (default `service-tls`) for the root directory, with one `{root}/{service_id}/` subdirectory per service. The disk is pinned in `config/horizonhub.php` because mTLS needs real local filesystem paths; the root directory stays configurable via `HORIZON_HUB_TLS_ROOT`.
 - `HorizonClientApiService` is the façade used across the app: workload, job lists, retry, metrics, masters, and stats.
 - Readers in `app/Support/Horizon` (e.g. `MasterReader`, `StatsReader`) normalize API responses into `ClientResponse` objects; each response records its service id, so collectors can associate data back to the service.
 
@@ -172,6 +173,7 @@ The primary configuration file is `config/horizonhub.php`. It centralizes:
 
 - Horizon API paths and timeouts/retries
 - Reserved header names
+- Client TLS storage location
 - Failure cooldown and service staleness windows
 - Per-service concurrency limits
 - SSE hot reload interval

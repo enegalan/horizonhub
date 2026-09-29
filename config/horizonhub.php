@@ -95,6 +95,32 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Client TLS Storage
+    |--------------------------------------------------------------------------
+    |
+    | Where the per-service mTLS client certificates uploaded from the service
+    | form are stored.
+    |
+    | disk: The filesystem disk that holds the client certificates and keys.
+    | Not configurable: the paths are handed to Guzzle (cert/ssl_key), to the
+    | `openssl` subprocess and to is_readable(), so they must resolve to a real
+    | local filesystem path. Only the private local disk satisfies that; the
+    | public disk would expose private keys over HTTP and remote disks have no
+    | local path at all. Persist or encrypt storage/app/private instead.
+    | root: The directory on that disk under which one subdirectory per service
+    | is created.
+    | WARNING: Changing this value orphans the relative paths already persisted in
+    | `services.tls_client_cert_path` and `services.tls_client_key_path` in the database,
+    | so existing certificates must be re-uploaded.
+    |
+    */
+    'tls' => [
+        'disk' => 'local',
+        'root' => (string) trim(env('HORIZON_HUB_TLS_ROOT', 'service-tls'), '/'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Stale Service Minutes
     |--------------------------------------------------------------------------
     |
