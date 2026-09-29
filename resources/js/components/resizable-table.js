@@ -44,12 +44,6 @@ import { parseJson } from '../lib/parse';
     const INITTED_ATTR = 'data-resizable-initted';
 
     /**
-     * Column IDs attribute.
-     * @type {string}
-     */
-    const COLUMN_IDS_ATTR = 'data-column-ids';
-
-    /**
      * Column ID attribute.
      * @type {string}
      */
@@ -123,7 +117,11 @@ import { parseJson } from '../lib/parse';
      * @returns {string[]}
      */
     function getColumnIds(table) {
-        return table.getAttribute(COLUMN_IDS_ATTR)?.split(',').map(s => s.trim()) || [];
+        var theadRow = table.querySelector('thead tr');
+        if (!theadRow) {
+            return [];
+        }
+        return getDirectColumnCells(theadRow, 'TH').map(th => th.getAttribute(COLUMN_ID_ATTR));
     }
 
     /**

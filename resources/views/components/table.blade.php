@@ -1,8 +1,5 @@
 @props([
-    'resizableKey' => null,
-    'columnIds' => null,
-    'bodyKey' => null,
-    'bodyId' => null,
+    'id' => null,
     'tableClass' => '',
     'theadClass' => null,
     'wrap' => true,
@@ -12,11 +9,8 @@
 
 @php
     $bodyBag = $bodyAttributes ?? new \Illuminate\View\ComponentAttributeBag();
-    if (!empty($bodyId)) {
-        $bodyBag = $bodyBag->merge(['id' => $bodyId]);
-    }
-    if (!empty($bodyKey)) {
-        $bodyBag = $bodyBag->merge(['data-table-body' => $bodyKey]);
+    if (!empty($id)) {
+        $bodyBag = $bodyBag->merge(['id' => "tbody-$id"]);
     }
     if ($streamPatchChildren) {
         $bodyBag = $bodyBag->merge(['data-turbo-stream-patch-children' => 'true']);
@@ -29,18 +23,18 @@
 <div {{ $attributes->class('table-scroll') }}>
     <table
         class="{{ $tableClasses }}"
-        @if($resizableKey) data-resizable-table="{{ $resizableKey }}" @endif
-        @if($columnIds) data-column-ids="{{ $columnIds }}" @endif
+        @if($id) data-resizable-table="{{ $id }}" @endif
     >
 @else
     <table
         {{ $attributes->class($tableClasses) }}
-        @if($resizableKey) data-resizable-table="{{ $resizableKey }}" @endif
-        @if($columnIds) data-column-ids="{{ $columnIds }}" @endif
+        @if($id) data-resizable-table="{{ $id }}" @endif
     >
 @endif
         <thead @class([$theadClass => filled($theadClass)])>
-            {{ $head }}
+            <tr class="border-b border-t border-border bg-muted/50">
+                {{ $head }}
+            </tr>
         </thead>
         <tbody {{ $bodyBag }}>
             {{ $slot }}

@@ -1,4 +1,16 @@
 /**
+ * Attribute name for the last seen at.
+ * @type {string}
+ */
+export const LAST_SEEN_AT_ATTR = 'data-last-seen-at';
+
+/**
+ * Attribute name for the wait seconds.
+ * @type {string}
+ */
+export const WAIT_SECONDS_ATTR = 'data-wait-seconds';
+
+/**
  * Format datetime elements in the DOM.
  * @param {Element|null} root
  * @returns {void}
@@ -19,8 +31,8 @@ export function formatDatetimeElements(root) {
  * @returns {void}
  */
 function private__formatLastSeenElements(root) {
-    root.querySelectorAll('[data-last-seen-at]').forEach(function (el) {
-        var m = window.moment(el.getAttribute('data-last-seen-at'));
+    root.querySelectorAll('[' + LAST_SEEN_AT_ATTR + ']').forEach(function (el) {
+        var m = window.moment(el.getAttribute(LAST_SEEN_AT_ATTR));
         if (m.isValid()) {
             el.textContent = m.fromNow();
         }
@@ -33,8 +45,8 @@ function private__formatLastSeenElements(root) {
  * @returns {void}
  */
 function private__formatQueueWaitElements(root) {
-    root.querySelectorAll('[data-wait-seconds]').forEach(function (el) {
-        var raw = el.getAttribute('data-wait-seconds');
+    root.querySelectorAll('[' + WAIT_SECONDS_ATTR + ']').forEach(function (el) {
+        var raw = el.getAttribute(WAIT_SECONDS_ATTR);
         if (!raw) return;
 
         var seconds = parseFloat(raw);

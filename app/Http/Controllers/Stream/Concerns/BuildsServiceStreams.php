@@ -42,8 +42,8 @@ trait BuildsServiceStreams
         ];
 
         return $this->buildStreams([
-            ['update', 'turbo-horizon-service-stats', \view('horizon.services.partials.index.stats', ['serviceStats' => $serviceStats])->render(), 'morph'],
-            ['update', 'turbo-tbody-horizon-service-list', \view('horizon.services.partials.index.tbody', ['services' => $services])->render(), 'morph'],
+            ['update', 'horizon-service-stats', \view('horizon.services.partials.index.stats', ['serviceStats' => $serviceStats])->render(), 'morph'],
+            ['update', 'tbody-horizon-service-list', \view('horizon.services.partials.index.tbody', ['services' => $services])->render(), 'morph'],
         ]);
     }
 
@@ -70,7 +70,7 @@ trait BuildsServiceStreams
             ['update', 'service-show-stats-row-2', \view('horizon.services.partials.show.stats-row-2', $d)->render(), null],
             ['update', 'service-show-supervisors-panel', \view('horizon.services.partials.show.supervisors-panel', $d)->render(), null],
             ['update', 'service-show-workload-count', e($workloadCount > 0 ? "$workloadCount queue(s)" : ''), null],
-            ['update', 'service-show-workload-body', \view('horizon.services.partials.show.workload-tbody', ['workloadQueues' => $d['workloadQueues']])->render(), 'morph'],
+            ['update', 'tbody-horizon-service-queues', \view('horizon.services.partials.show.workload-tbody', ['workloadQueues' => $d['workloadQueues']])->render(), 'morph'],
             ['update', 'service-show-supervisor-groups', \view('horizon.services.partials.show.supervisor-groups', $d)->render(), 'morph'],
         ]);
 

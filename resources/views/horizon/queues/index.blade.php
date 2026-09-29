@@ -28,7 +28,7 @@
 
             <div class="grid gap-3 border-b border-border px-5 py-4 sm:grid-cols-2 sm:px-6">
                 <div
-                    id="turbo-horizon-queue-stats"
+                    id="horizon-queue-stats"
                     class="contents"
                     data-turbo-stream-patch-children="true"
                 >
@@ -48,24 +48,19 @@
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/20 px-5 py-3 sm:px-6">
+            <div class="flex flex-wrap items-center justify-between gap-2 bg-muted/20 px-5 py-3 sm:px-6">
                 <h3 class="text-section-title text-foreground">By queue</h3>
                 <a href="{{ route('horizon.metrics') }}" class="link text-xs" data-turbo-action="replace">Metrics</a>
             </div>
 
             <x-table
-                resizable-key="horizon-queue-list"
-                column-ids="service,queue,job_count"
-                body-key="horizon-queue-list"
-                body-id="turbo-tbody-horizon-queue-list"
+                id="horizon-queue-list"
                 stream-patch-children
             >
                 <x-slot:head>
-                    <tr class="border-b border-border bg-muted/50">
-                        <th class="table-header min-w-[120px] px-4 py-2.5" data-column-id="service">Service</th>
-                        <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="queue">Queue</th>
-                        <th class="table-header px-4 py-2.5" data-column-id="job_count">Pending jobs</th>
-                    </tr>
+                    <x-table.th column="service" class="min-w-[120px]">Service</x-table.th>
+                    <x-table.th column="queue" class="min-w-[100px]">Queue</x-table.th>
+                    <x-table.th column="job_count">Pending jobs</x-table.th>
                 </x-slot:head>
                 @include('horizon.queues.partials.index.tbody', [
                     'queues' => $queues,

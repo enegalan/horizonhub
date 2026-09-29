@@ -1,7 +1,6 @@
 @php
     /** @var bool $showServiceColumn */
     /** @var \App\Models\Service|null $pageService */
-    /** @var string $columnIds */
     /** @var string $resizablePrefix */
 @endphp
 <div
@@ -35,9 +34,8 @@
         'paginator' => $jobsProcessing,
         'showServiceColumn' => $showServiceColumn,
         'pageService' => $pageService,
-        'resizableKey' => "$resizablePrefix-processing",
+        'id' => "$resizablePrefix-processing",
         'bodyKey' => "$resizablePrefix-processing",
-        'columnIds' => $columnIds,
         'defer' => $defer,
     ])
     @include('horizon.jobs.partials.index.list-one-collapsible', [
@@ -45,9 +43,8 @@
         'paginator' => $jobsProcessed,
         'showServiceColumn' => $showServiceColumn,
         'pageService' => $pageService,
-        'resizableKey' => "$resizablePrefix-processed",
+        'id' => "$resizablePrefix-processed",
         'bodyKey' => "$resizablePrefix-processed",
-        'columnIds' => $columnIds,
         'defer' => $defer,
     ])
     @include('horizon.jobs.partials.index.list-one-collapsible', [
@@ -55,9 +52,8 @@
         'paginator' => $jobsFailed,
         'showServiceColumn' => $showServiceColumn,
         'pageService' => $pageService,
-        'resizableKey' => "$resizablePrefix-failed",
+        'id' => "$resizablePrefix-failed",
         'bodyKey' => "$resizablePrefix-failed",
-        'columnIds' => $columnIds,
         'defer' => $defer,
     ])
 </div>

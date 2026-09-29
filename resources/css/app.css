@@ -380,7 +380,6 @@
     position: fixed;
     pointer-events: none;
     z-index: 9999;
-    border-radius: 4px;
     transition: opacity 0.1s;
     display: none;
     box-sizing: border-box;

@@ -19,7 +19,7 @@ trait BuildsJobListSectionStreams
         foreach (['processing', 'processed', 'failed'] as $kind) {
             $paginator = $jobsIndex[$kind];
             $bodyKey = "$resizablePrefix-$kind";
-            $operations[] = ['update', "turbo-tbody-$bodyKey", \view('horizon.jobs.partials.index.list-tbody-rows', [
+            $operations[] = ['update', "tbody-$bodyKey", \view('horizon.jobs.partials.index.list-tbody-rows', [
                 'kind' => $kind,
                 'paginator' => $paginator,
                 'showServiceColumn' => $showServiceColumn,

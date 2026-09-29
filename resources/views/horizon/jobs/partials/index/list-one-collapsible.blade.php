@@ -2,9 +2,8 @@
     /** @var \Illuminate\Pagination\LengthAwarePaginator $paginator */
     /** @var bool $showServiceColumn */
     /** @var \App\Models\Service|null $pageService */
-    /** @var string $resizableKey */
+    /** @var string $id */
     /** @var string $bodyKey */
-    /** @var string $columnIds */
     /** @var bool $defer */
     /** @var string $kind processing|processed|failed */
     $sectionKey = $kind;
@@ -44,33 +43,28 @@
     </summary>
     <div class="pt-2">
         <x-table
-            resizable-key="{{ $resizableKey }}"
-            column-ids="{{ $columnIds }}"
-            body-key="{{ $bodyKey }}"
-            body-id="turbo-tbody-{{ $bodyKey }}"
+            id="{{ $id }}"
             stream-patch-children
         >
             <x-slot:head>
-                <tr class="border-b border-border bg-muted/50">
-                    <th class="table-header px-4 py-2.5" data-column-id="uuid">UUID</th>
-                    @if($showServiceColumn)
-                        <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="service">Service</th>
-                    @endif
-                    <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="queue">Queue</th>
-                    <th class="table-header px-4 py-2.5" data-column-id="job">Job</th>
-                    <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="attempts">Attempts</th>
-                    <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="queued_at">Queued at</th>
-                    @if($kind === 'processing')
-                        <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="delayed_until">Delayed until</th>
-                    @elseif($kind === 'processed')
-                        <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="processed">Processed</th>
-                        <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="runtime">Runtime</th>
-                    @elseif($kind === 'failed')
-                        <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="failed_at">Failed at</th>
-                        <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="runtime">Runtime</th>
-                    @endif
-                    <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="actions" data-column-fixed>Actions</th>
-                </tr>
+                <x-table.th column="uuid">UUID</x-table.th>
+                @if($showServiceColumn)
+                    <x-table.th column="service" class="min-w-[100px]">Service</x-table.th>
+                @endif
+                <x-table.th column="queue" class="min-w-[100px]">Queue</x-table.th>
+                <x-table.th column="job">Job</x-table.th>
+                <x-table.th column="attempts" class="min-w-[100px]">Attempts</x-table.th>
+                <x-table.th column="queued_at" class="min-w-[100px]">Queued at</x-table.th>
+                @if($kind === 'processing')
+                    <x-table.th column="delayed_until" class="min-w-[100px]">Delayed until</x-table.th>
+                @elseif($kind === 'processed')
+                    <x-table.th column="processed" class="min-w-[100px]">Processed</x-table.th>
+                    <x-table.th column="runtime" class="min-w-[100px]">Runtime</x-table.th>
+                @elseif($kind === 'failed')
+                    <x-table.th column="failed_at" class="min-w-[100px]">Failed at</x-table.th>
+                    <x-table.th column="runtime" class="min-w-[100px]">Runtime</x-table.th>
+                @endif
+                <x-table.th column="actions" class="min-w-[100px]" data-column-fixed>Actions</x-table.th>
             </x-slot:head>
             @include('horizon.jobs.partials.index.list-tbody-rows', [
                 'kind' => $kind,

@@ -80,24 +80,19 @@
 
         <div class="grid gap-6 lg:grid-cols-2">
             <div class="card flex min-w-0 flex-col overflow-hidden">
-                <div class="flex items-center justify-between border-b border-border bg-muted/20 px-5 py-3 sm:px-6">
+                <div class="flex items-center justify-between bg-muted/20 px-5 py-3 sm:px-6">
                     <h3 class="text-section-title text-foreground">Recent alerts</h3>
                     <a href="{{ route('horizon.alerts.index') }}" class="link text-xs" data-turbo-action="replace">View all</a>
                 </div>
                 <x-table
-                    resizable-key="horizon-dashboard-alerts"
-                    column-ids="name,service,status,sent"
-                    body-key="horizon-dashboard-alerts"
-                    body-id="dashboard-recent-alerts-body"
+                    id="horizon-dashboard-alerts"
                     stream-patch-children
                 >
                     <x-slot:head>
-                        <tr class="border-b border-border bg-muted/50">
-                            <th class="table-header min-w-[120px] px-4 py-2.5" data-column-id="name">Alert</th>
-                            <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="service">Service</th>
-                            <th class="table-header min-w-[80px] px-4 py-2.5" data-column-id="status">Status</th>
-                            <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="sent">Sent</th>
-                        </tr>
+                        <x-table.th column="name" class="min-w-[120px]">Alert</x-table.th>
+                        <x-table.th column="service" class="min-w-[100px]">Service</x-table.th>
+                        <x-table.th column="status" class="min-w-[80px]">Status</x-table.th>
+                        <x-table.th column="sent" class="min-w-[100px]">Sent</x-table.th>
                     </x-slot:head>
                     @if(!empty($defer))
                         <x-skeleton.table-rows rows="5" columns="4" />
@@ -108,25 +103,20 @@
             </div>
 
             <div class="card flex min-w-0 flex-col overflow-hidden">
-                <div class="flex items-center justify-between border-b border-border bg-muted/20 px-5 py-3 sm:px-6">
+                <div class="flex items-center justify-between bg-muted/20 px-5 py-3 sm:px-6">
                     <h3 class="text-section-title text-foreground">Current workload</h3>
                     <a href="{{ route('horizon.queues.index') }}" class="link text-xs" data-turbo-action="replace">View queues</a>
                 </div>
                 <x-table
-                    resizable-key="horizon-dashboard-workload"
-                    column-ids="service,queue,jobs,processes,wait"
-                    body-key="horizon-dashboard-workload"
-                    body-id="dashboard-workload-summary-body"
+                    id="horizon-dashboard-workload"
                     stream-patch-children
                 >
                     <x-slot:head>
-                        <tr class="border-b border-border bg-muted/50">
-                            <th class="table-header min-w-[120px] px-4 py-2.5" data-column-id="service">Service</th>
-                            <th class="table-header min-w-[100px] px-4 py-2.5" data-column-id="queue">Queue</th>
-                            <th class="table-header px-4 py-2.5" data-column-id="jobs">Jobs</th>
-                            <th class="table-header px-4 py-2.5" data-column-id="processes">Processes</th>
-                            <th class="table-header px-4 py-2.5" data-column-id="wait">Wait</th>
-                        </tr>
+                        <x-table.th column="service" class="min-w-[120px]">Service</x-table.th>
+                        <x-table.th column="queue" class="min-w-[100px]">Queue</x-table.th>
+                        <x-table.th column="jobs">Jobs</x-table.th>
+                        <x-table.th column="processes">Processes</x-table.th>
+                        <x-table.th column="wait">Wait</x-table.th>
                     </x-slot:head>
                     @if(!empty($defer))
                         <x-skeleton.table-rows rows="5" columns="5" />

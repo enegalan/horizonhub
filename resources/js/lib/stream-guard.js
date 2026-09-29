@@ -1,3 +1,5 @@
+import { LAST_SEEN_AT_ATTR, WAIT_SECONDS_ATTR } from "./datetime-format";
+
 /**
  * Turbo Stream guards for the Horizon Hub SSE pipeline.
  *
@@ -8,6 +10,36 @@
  *
  * Client flow: incremental row patch when opted-in → otherwise Turbo render (unchanged payloads omitted in PHP).
  */
+
+/**
+ * Attribute name for the stream signature.
+ * @type {string}
+ */
+const STREAM_SIG_ATTR = 'data-horizon-stream-sig';
+
+/**
+ * Attribute name for the stream patch children flag.
+ * @type {string}
+ */
+const STREAM_PATCH_CHILDREN_ATTR = 'data-turbo-stream-patch-children';
+
+/**
+ * Attribute name for the stream row id.
+ * @type {string}
+ */
+const STREAM_ROW_ID_ATTR = 'data-stream-row-id';
+
+/**
+ * Attribute name for the stream column id.
+ * @type {string}
+ */
+const STREAM_COLUMN_ID_ATTR = 'data-column-id';
+
+/**
+ * Attribute name for the stream preserve client flag.
+ * @type {string}
+ */
+const STREAM_PRESERVE_CLIENT_ATTR = 'data-stream-preserve-client';
 
 /**
  * DOM node addressed by a turbo-stream's `target` attribute.
@@ -32,56 +64,44 @@ export function getTurboStreamTargetElement(streamElement) {
  * @returns {'incremental-changed'|'incremental-unchanged'|'rendered'}
  */
 export function renderTurboStreamWithGuards(streamElement, originalRender) {
-    var patchOutcome = tryApplyIncrementalStreamPatch(streamElement);
-    if (patchOutcome === 'incremental-changed' || patchOutcome === 'incremental-unchanged') {
-        return patchOutcome;
+    var templateEl = streamElement.querySelector('template');
+    var targetEl = templateEl
+        ? getTurboStreamTargetElement(streamElement)
+        : null;
+    var patchable = !!targetEl
+        && String(streamElement.getAttribute('action') || '').toLowerCase() === 'update'
+        && String(streamElement.getAttribute('method') || '').toLowerCase() === 'morph'
+        && targetEl.hasAttribute(STREAM_PATCH_CHILDREN_ATTR);
+
+    if (patchable) {
+        var holder = document.createElement(String(targetEl.tagName).toUpperCase() || 'DIV');
+        holder.innerHTML = templateEl.innerHTML;
+
+        var incomingKeyed = collectDirectKeyed(holder, STREAM_ROW_ID_ATTR).list;
+        var existingKeyed = collectDirectKeyed(targetEl, STREAM_ROW_ID_ATTR).list;
+
+        if (rowIdsAreValidAndMatching(existingKeyed, incomingKeyed)) {
+            var anyChanged = false;
+            var existingByRowId = collectDirectKeyed(targetEl, STREAM_ROW_ID_ATTR).map;
+            var allMatched = true;
+            for (let r = 0; r < incomingKeyed.length; r++) {
+                var existingChild = existingByRowId.get(incomingKeyed[r].getAttribute(STREAM_ROW_ID_ATTR));
+                if (!existingChild) {
+                    allMatched = false;
+                    break;
+                }
+                if (mergeKeyedChild(existingChild, incomingKeyed[r])) {
+                    anyChanged = true;
+                }
+            }
+            if (allMatched) {
+                return anyChanged ? 'incremental-changed' : 'incremental-unchanged';
+            }
+        }
     }
+
     originalRender(streamElement);
     return 'rendered';
-}
-
-/**
- * Read the context of a turbo stream element.
- * @param {Element} streamElement
- * @returns {{ action: string, method: string, targetEl: Element, templateEl: HTMLTemplateElement }|null}
- */
-function readStreamContext(streamElement) {
-    var templateEl = streamElement.querySelector('template');
-    if (!templateEl || templateEl.tagName !== 'TEMPLATE') {
-        return null;
-    }
-    var targetEl = getTurboStreamTargetElement(streamElement);
-    if (!targetEl) {
-        return null;
-    }
-    return {
-        action: String(streamElement.getAttribute('action') || '').toLowerCase(),
-        method: String(streamElement.getAttribute('method') || '').toLowerCase(),
-        targetEl: targetEl,
-        templateEl: templateEl,
-    };
-}
-
-/**
- * Normalize markup for stream comparison.
- * @param {Element} el
- * @returns {string}
- */
-function streamSig(el) {
-    return String(el.getAttribute('data-horizon-stream-sig') || '');
-}
-
-/**
- * Create a container element for parsing a stream template.
- * @param {Element} el
- * @returns {Element}
- */
-function createParserContainerForElement(el) {
-    var tag = el.tagName ? String(el.tagName).toUpperCase() : 'DIV';
-    if (tag === 'TBODY' || tag === 'THEAD' || tag === 'TFOOT' || tag === 'UL' || tag === 'OL') {
-        return document.createElement(tag);
-    }
-    return document.createElement('DIV');
 }
 
 /**
@@ -95,7 +115,7 @@ function collectDirectKeyed(parent, keyAttr, isKeyedChild) {
     var list = [];
     var map = new Map();
     for (let i = 0; i < parent.children.length; i++) {
-        if (parent.children[i].nodeType !== 1 || (isKeyedChild && !isKeyedChild(parent.children[i])) || !parent.children[i].hasAttribute(keyAttr)) {
+        if (parent.children[i].nodeType !== 1 || isKeyedChild && !isKeyedChild(parent.children[i])) {
             continue;
         }
         var key = parent.children[i].getAttribute(keyAttr);
@@ -115,23 +135,28 @@ function collectDirectKeyed(parent, keyAttr, isKeyedChild) {
  * @returns {boolean}
  */
 function mergePreservedSubtree(existing, incoming) {
-    if (incoming.hasAttribute('data-stream-preserve-client') || existing.hasAttribute('data-stream-preserve-client')) {
+    if (!existing || !incoming) {
         return false;
     }
-    if (streamSig(incoming) !== '' && streamSig(incoming) === streamSig(existing)) {
+    if (incoming.hasAttribute(STREAM_PRESERVE_CLIENT_ATTR) || existing.hasAttribute(STREAM_PRESERVE_CLIENT_ATTR)) {
+        return false;
+    }
+    const incomingSig = incoming.getAttribute(STREAM_SIG_ATTR);
+    const existingSig = existing.getAttribute(STREAM_SIG_ATTR);
+    if (incomingSig !== '' && incomingSig === existingSig) {
         return false;
     }
 
     var staged = incoming.cloneNode(true); // Clone incoming to avoid modifying the original
-    var existingHosts = existing.querySelectorAll('[data-stream-preserve-client]');
-    var stagedHosts = staged.querySelectorAll('[data-stream-preserve-client]');
+    var existingHosts = existing.querySelectorAll('[' + STREAM_PRESERVE_CLIENT_ATTR + ']');
+    var stagedHosts = staged.querySelectorAll('[' + STREAM_PRESERVE_CLIENT_ATTR + ']');
     for (let i = 0; i < existingHosts.length; i++) {
         if (stagedHosts[i]) {
             stagedHosts[i].replaceWith(existingHosts[i].cloneNode(true));
         }
     }
 
-    var datetimeAttrs = ['data-last-seen-at', 'data-wait-seconds'];
+    var datetimeAttrs = [LAST_SEEN_AT_ATTR, WAIT_SECONDS_ATTR];
     for (let a = 0; a < datetimeAttrs.length; a++) {
         var existingNodes = existing.querySelectorAll('[' + datetimeAttrs[a] + ']');
         var stagedNodes = staged.querySelectorAll('[' + datetimeAttrs[a] + ']');
@@ -153,30 +178,6 @@ function mergePreservedSubtree(existing, incoming) {
 }
 
 /**
- * Merge pairs of direct children that share the same key attribute.
- * @param {Element} existingParent
- * @param {Element} incomingParent
- * @param {string} keyAttr
- * @returns {boolean}
- */
-function mergeDirectChildrenByKey(existingParent, incomingParent, keyAttr) {
-    function isDirectTableCellWithColumnId(node) {
-        var tn = node.tagName ? String(node.tagName).toUpperCase() : '';
-        return (tn === 'TD' || tn === 'TH') && node.hasAttribute('data-column-id');
-    }
-    var existingByKey = collectDirectKeyed(existingParent, keyAttr, isDirectTableCellWithColumnId).map;
-    var incomingList = collectDirectKeyed(incomingParent, keyAttr, isDirectTableCellWithColumnId).list;
-    var changed = false;
-    for (let i = 0; i < incomingList.length; i++) {
-        var existingChild = existingByKey.get(incomingList[i].getAttribute(keyAttr));
-        if (existingChild && mergePreservedSubtree(existingChild, incomingList[i])) {
-            changed = true;
-        }
-    }
-    return changed;
-}
-
-/**
  * Merge keyed child.
  * @param {Element} existingChild
  * @param {Element} incomingChild
@@ -185,7 +186,20 @@ function mergeDirectChildrenByKey(existingParent, incomingParent, keyAttr) {
 function mergeKeyedChild(existingChild, incomingChild) {
     var tag = existingChild.tagName ? String(existingChild.tagName).toUpperCase() : '';
     if (tag === 'TR' && String(incomingChild.tagName || '').toUpperCase() === 'TR') {
-        return mergeDirectChildrenByKey(existingChild, incomingChild, 'data-column-id');
+        function isDirectTableCellWithColumnId(node) {
+            var tn = node.tagName ? String(node.tagName).toUpperCase() : '';
+            return (tn === 'TD' || tn === 'TH') && node.hasAttribute(STREAM_COLUMN_ID_ATTR);
+        }
+        var existingByColumnId = collectDirectKeyed(existingChild, STREAM_COLUMN_ID_ATTR, isDirectTableCellWithColumnId).map;
+        var incomingCells = collectDirectKeyed(incomingChild, STREAM_COLUMN_ID_ATTR, isDirectTableCellWithColumnId).list;
+        var cellsChanged = false;
+        for (let i = 0; i < incomingCells.length; i++) {
+            var existingCell = existingByColumnId.get(incomingCells[i].getAttribute(STREAM_COLUMN_ID_ATTR));
+            if (mergePreservedSubtree(existingCell, incomingCells[i])) {
+                cellsChanged = true;
+            }
+        }
+        return cellsChanged;
     }
     return mergePreservedSubtree(existingChild, incomingChild);
 }
@@ -197,7 +211,7 @@ function mergeKeyedChild(existingChild, incomingChild) {
 function hasUniqueRowIds(keyedChildren) {
     var seen = new Set();
     for (let i = 0; i < keyedChildren.length; i++) {
-        var id = keyedChildren[i].getAttribute('data-stream-row-id');
+        var id = keyedChildren[i].getAttribute(STREAM_ROW_ID_ATTR);
         if (!id || seen.has(id)) {
             return false;
         }
@@ -220,50 +234,16 @@ function rowIdsAreValidAndMatching(existingKeyed, incomingKeyed) {
     }
     var incomingIds = new Set();
     for (let i = 0; i < incomingKeyed.length; i++) {
-        incomingIds.add(incomingKeyed[i].getAttribute('data-stream-row-id'));
+        var incomingId = incomingKeyed[i].getAttribute(STREAM_ROW_ID_ATTR);
+        if (incomingId !== existingKeyed[i].getAttribute(STREAM_ROW_ID_ATTR)) {
+            return false;
+        }
+        incomingIds.add(incomingId);
     }
     for (let j = 0; j < existingKeyed.length; j++) {
-        if (!incomingIds.has(existingKeyed[j].getAttribute('data-stream-row-id'))) {
+        if (!incomingIds.has(existingKeyed[j].getAttribute(STREAM_ROW_ID_ATTR))) {
             return false;
         }
     }
     return true;
-}
-
-/**
- * Try to apply an incremental stream patch to a stream element.
- * @param {Element} streamElement
- * @returns {false|'incremental-unchanged'|'incremental-changed'}
- */
-function tryApplyIncrementalStreamPatch(streamElement) {
-    var ctx = readStreamContext(streamElement);
-    if (!ctx || ctx.action !== 'update' || ctx.method !== 'morph') {
-        return false;
-    }
-    if (!ctx.targetEl.hasAttribute('data-turbo-stream-patch-children')) {
-        return false;
-    }
-
-    var holder = createParserContainerForElement(ctx.targetEl);
-    holder.innerHTML = ctx.templateEl.innerHTML;
-
-    var incomingKeyed = collectDirectKeyed(holder, 'data-stream-row-id').list;
-    var existingKeyed = collectDirectKeyed(ctx.targetEl, 'data-stream-row-id').list;
-    if (!rowIdsAreValidAndMatching(existingKeyed, incomingKeyed)) {
-        return false;
-    }
-
-    var anyChanged = false;
-    var existingByRowId = collectDirectKeyed(ctx.targetEl, 'data-stream-row-id').map;
-    for (let r = 0; r < incomingKeyed.length; r++) {
-        var existingChild = existingByRowId.get(incomingKeyed[r].getAttribute('data-stream-row-id'));
-        if (!existingChild) {
-            return false;
-        }
-        if (mergeKeyedChild(existingChild, incomingKeyed[r])) {
-            anyChanged = true;
-        }
-    }
-
-    return anyChanged ? 'incremental-changed' : 'incremental-unchanged';
 }
