@@ -1,3 +1,5 @@
+import { LAST_SEEN_AT_ATTR, WAIT_SECONDS_ATTR } from "./datetime-format";
+
 /**
  * Turbo Stream guards for the Horizon Hub SSE pipeline.
  *
@@ -8,8 +10,6 @@
  *
  * Client flow: incremental row patch when opted-in → otherwise Turbo render (unchanged payloads omitted in PHP).
  */
-
-import { LAST_SEEN_AT_ATTR, WAIT_SECONDS_ATTR } from "./datetime-format";
 
 /**
  * Attribute name for the stream signature.
