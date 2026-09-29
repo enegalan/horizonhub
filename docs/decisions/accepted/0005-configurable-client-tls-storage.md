@@ -1,7 +1,8 @@
 # ADR: Configurable client TLS storage location
 
 - ID: ADR-0005
-- Status: accepted
+- Status: superseded
+- Superseded by: ADR-0006
 - Date: 2026-09-29
 - Extends: ADR-0004
 
@@ -11,7 +12,7 @@ ADR-0004 hardcoded the client TLS storage to the `local` disk under `service-tls
 
 ## Decision
 
-Read the disk and root directory from `horizonhub.tls.disk` and `horizonhub.tls.root` (env `HORIZON_HUB_TLS_DISK` / `HORIZON_HUB_TLS_ROOT`), defaulting to the ADR-0004 values (`local` and `service-tls`). `ServiceTlsClientStorage::disk()` and `::root()` replace the former `DISK` and `DIRECTORY` constants; the per-service `{root}/{service_id}/` layout and everything else in ADR-0004 are unchanged.
+Superseded by ADR-0006 (fixed local disk; the disk is pinned to `local` because mTLS requires real local filesystem paths).
 
 ## Rationale
 

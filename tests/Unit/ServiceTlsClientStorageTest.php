@@ -23,33 +23,6 @@ class ServiceTlsClientStorageTest extends TestCase
         Storage::fake(ServiceTlsClientStorage::disk());
     }
 
-    public function test_configured_disk_and_root_are_used_for_stored_paths(): void
-    {
-        config(['horizonhub.tls.disk' => 'private-tls', 'horizonhub.tls.root' => 'certs']);
-        Storage::fake('private-tls');
-
-        $service = Service::create([
-            'name' => 'svc-tls-configured',
-            'base_url' => 'https://svc-tls-configured.test',
-            'status' => 'online',
-            'tls_client_mode' => TlsClientMode::Pem->value,
-        ]);
-
-        $paths = ServiceTlsClientStorage::sync(
-            $service,
-            TlsClientMode::Pem->value,
-            UploadedFile::fake()->create('client.crt', 10),
-            UploadedFile::fake()->create('client.key', 10),
-        );
-
-        $this->assertSame('private-tls', ServiceTlsClientStorage::disk());
-        $this->assertSame('certs', ServiceTlsClientStorage::root());
-        $this->assertSame('certs/' . $service->id . '/client.crt', $paths['tls_client_cert_path']);
-        $this->assertSame('certs/' . $service->id . '/client.key', $paths['tls_client_key_path']);
-        Storage::disk('private-tls')->assertExists($paths['tls_client_cert_path']);
-        Storage::disk('private-tls')->assertExists($paths['tls_client_key_path']);
-    }
-
     public function test_http_options_for_p12_uses_extracted_pem(): void
     {
         $fixture = $this->private__createPkcs12Fixture('p12-secret');
@@ -205,6 +178,32 @@ class ServiceTlsClientStorageTest extends TestCase
 
         ServiceTlsClientStorage::forget($service);
         Storage::disk(ServiceTlsClientStorage::disk())->assertMissing('service-tls/' . $service->id);
+    }
+
+    public function test_tls_disk_is_pinned_to_local_and_root_is_configurable(): void
+    {
+        config(['horizonhub.tls.root' => 'certs']);
+
+        $service = Service::create([
+            'name' => 'svc-tls-configured',
+            'base_url' => 'https://svc-tls-configured.test',
+            'status' => 'online',
+            'tls_client_mode' => TlsClientMode::Pem->value,
+        ]);
+
+        $paths = ServiceTlsClientStorage::sync(
+            $service,
+            TlsClientMode::Pem->value,
+            UploadedFile::fake()->create('client.crt', 10),
+            UploadedFile::fake()->create('client.key', 10),
+        );
+
+        $this->assertSame('local', ServiceTlsClientStorage::disk());
+        $this->assertSame('certs', ServiceTlsClientStorage::root());
+        $this->assertSame('certs/' . $service->id . '/client.crt', $paths['tls_client_cert_path']);
+        $this->assertSame('certs/' . $service->id . '/client.key', $paths['tls_client_key_path']);
+        Storage::disk(ServiceTlsClientStorage::disk())->assertExists($paths['tls_client_cert_path']);
+        Storage::disk(ServiceTlsClientStorage::disk())->assertExists($paths['tls_client_key_path']);
     }
 
     /**
