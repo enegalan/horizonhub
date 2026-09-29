@@ -20,7 +20,34 @@ class ServiceTlsClientStorageTest extends TestCase
     {
         parent::setUp();
 
-        Storage::fake(ServiceTlsClientStorage::DISK);
+        Storage::fake(ServiceTlsClientStorage::disk());
+    }
+
+    public function test_configured_disk_and_root_are_used_for_stored_paths(): void
+    {
+        config(['horizonhub.tls.disk' => 'private-tls', 'horizonhub.tls.root' => 'certs']);
+        Storage::fake('private-tls');
+
+        $service = Service::create([
+            'name' => 'svc-tls-configured',
+            'base_url' => 'https://svc-tls-configured.test',
+            'status' => 'online',
+            'tls_client_mode' => TlsClientMode::Pem->value,
+        ]);
+
+        $paths = ServiceTlsClientStorage::sync(
+            $service,
+            TlsClientMode::Pem->value,
+            UploadedFile::fake()->create('client.crt', 10),
+            UploadedFile::fake()->create('client.key', 10),
+        );
+
+        $this->assertSame('private-tls', ServiceTlsClientStorage::disk());
+        $this->assertSame('certs', ServiceTlsClientStorage::root());
+        $this->assertSame('certs/' . $service->id . '/client.crt', $paths['tls_client_cert_path']);
+        $this->assertSame('certs/' . $service->id . '/client.key', $paths['tls_client_key_path']);
+        Storage::disk('private-tls')->assertExists($paths['tls_client_cert_path']);
+        Storage::disk('private-tls')->assertExists($paths['tls_client_key_path']);
     }
 
     public function test_http_options_for_p12_uses_extracted_pem(): void
@@ -37,7 +64,7 @@ class ServiceTlsClientStorageTest extends TestCase
             ]);
 
             $relative = ServiceTlsClientStorage::directory($service) . '/client.p12';
-            Storage::disk(ServiceTlsClientStorage::DISK)->put($relative, \file_get_contents($fixture['p12']));
+            Storage::disk(ServiceTlsClientStorage::disk())->put($relative, \file_get_contents($fixture['p12']));
             $service->update(['tls_client_cert_path' => $relative]);
 
             $options = ServiceTlsClientStorage::httpOptions($service->fresh());
@@ -72,8 +99,8 @@ class ServiceTlsClientStorageTest extends TestCase
         ]);
 
         $this->assertSame([
-            'cert' => PathBuilder::absolutePath('service-tls/1/client.crt', ServiceTlsClientStorage::DISK),
-            'ssl_key' => [PathBuilder::absolutePath('service-tls/1/client.key', ServiceTlsClientStorage::DISK), 'secret'],
+            'cert' => PathBuilder::absolutePath('service-tls/1/client.crt', ServiceTlsClientStorage::disk()),
+            'ssl_key' => [PathBuilder::absolutePath('service-tls/1/client.key', ServiceTlsClientStorage::disk()), 'secret'],
         ], ServiceTlsClientStorage::httpOptions($pem));
     }
 
@@ -87,12 +114,12 @@ class ServiceTlsClientStorageTest extends TestCase
             'tls_client_cert_path' => 'service-tls/1/client.p12',
         ]);
 
-        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.p12', 'p12');
+        Storage::disk(ServiceTlsClientStorage::disk())->put('service-tls/' . $service->id . '/client.p12', 'p12');
 
         $paths = ServiceTlsClientStorage::sync($service, null);
 
         $this->assertNull($paths['tls_client_cert_path']);
-        Storage::disk(ServiceTlsClientStorage::DISK)->assertMissing('service-tls/' . $service->id);
+        Storage::disk(ServiceTlsClientStorage::disk())->assertMissing('service-tls/' . $service->id);
     }
 
     public function test_sync_p12_failed_extraction_retains_previous_pem_files(): void
@@ -108,8 +135,8 @@ class ServiceTlsClientStorageTest extends TestCase
             'tls_client_key_path' => 'service-tls/' . $service->id . '/client.key',
         ]);
 
-        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.crt', 'old-cert');
-        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.key', 'old-key');
+        Storage::disk(ServiceTlsClientStorage::disk())->put('service-tls/' . $service->id . '/client.crt', 'old-cert');
+        Storage::disk(ServiceTlsClientStorage::disk())->put('service-tls/' . $service->id . '/client.key', 'old-key');
 
         try {
             ServiceTlsClientStorage::sync(
@@ -123,11 +150,11 @@ class ServiceTlsClientStorageTest extends TestCase
             // Expected.
         }
 
-        Storage::disk(ServiceTlsClientStorage::DISK)->assertExists('service-tls/' . $service->id . '/client.crt');
-        Storage::disk(ServiceTlsClientStorage::DISK)->assertExists('service-tls/' . $service->id . '/client.key');
-        Storage::disk(ServiceTlsClientStorage::DISK)->assertMissing('service-tls/' . $service->id . '/client.p12');
-        Storage::disk(ServiceTlsClientStorage::DISK)->assertMissing('service-tls/' . $service->id . '/extracted.crt');
-        Storage::disk(ServiceTlsClientStorage::DISK)->assertMissing('service-tls/' . $service->id . '/extracted.key');
+        Storage::disk(ServiceTlsClientStorage::disk())->assertExists('service-tls/' . $service->id . '/client.crt');
+        Storage::disk(ServiceTlsClientStorage::disk())->assertExists('service-tls/' . $service->id . '/client.key');
+        Storage::disk(ServiceTlsClientStorage::disk())->assertMissing('service-tls/' . $service->id . '/client.p12');
+        Storage::disk(ServiceTlsClientStorage::disk())->assertMissing('service-tls/' . $service->id . '/extracted.crt');
+        Storage::disk(ServiceTlsClientStorage::disk())->assertMissing('service-tls/' . $service->id . '/extracted.key');
     }
 
     public function test_sync_p12_preserves_old_key_when_extraction_fails(): void
@@ -144,8 +171,8 @@ class ServiceTlsClientStorageTest extends TestCase
             'tls_client_key_path' => 'service-tls/' . $service->id . '/client.key',
         ]);
 
-        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.p12', 'not-a-p12');
-        Storage::disk(ServiceTlsClientStorage::DISK)->put('service-tls/' . $service->id . '/client.key', 'old-key');
+        Storage::disk(ServiceTlsClientStorage::disk())->put('service-tls/' . $service->id . '/client.p12', 'not-a-p12');
+        Storage::disk(ServiceTlsClientStorage::disk())->put('service-tls/' . $service->id . '/client.key', 'old-key');
 
         try {
             ServiceTlsClientStorage::sync($service, TlsClientMode::P12->value, passphrase: 'wrong-secret');
@@ -154,7 +181,7 @@ class ServiceTlsClientStorageTest extends TestCase
             // Expected.
         }
 
-        Storage::disk(ServiceTlsClientStorage::DISK)->assertExists('service-tls/' . $service->id . '/client.key');
+        Storage::disk(ServiceTlsClientStorage::disk())->assertExists('service-tls/' . $service->id . '/client.key');
     }
 
     public function test_sync_stores_pem_and_forget_clears_directory(): void
@@ -177,7 +204,7 @@ class ServiceTlsClientStorageTest extends TestCase
         $this->assertSame('service-tls/' . $service->id . '/client.key', $paths['tls_client_key_path']);
 
         ServiceTlsClientStorage::forget($service);
-        Storage::disk(ServiceTlsClientStorage::DISK)->assertMissing('service-tls/' . $service->id);
+        Storage::disk(ServiceTlsClientStorage::disk())->assertMissing('service-tls/' . $service->id);
     }
 
     /**

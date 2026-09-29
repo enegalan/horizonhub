@@ -14,16 +14,6 @@ use RuntimeException;
 class ServiceTlsClientStorage
 {
     /**
-     * The disk to use for storing TLS client certificates.
-     */
-    public const DISK = 'local';
-
-    /**
-     * The name of the directory for storing TLS client certificates.
-     */
-    private const DIRECTORY = 'service-tls';
-
-    /**
      * The name of the extracted certificate file that will be stored in the service directory.
      */
     private const EXTRACTED_CERT = 'extracted.crt';
@@ -42,7 +32,17 @@ class ServiceTlsClientStorage
      */
     public static function directory(Service $service): string
     {
-        return self::DIRECTORY . '/' . $service->id;
+        return self::root() . '/' . $service->id;
+    }
+
+    /**
+     * Get the disk used for storing TLS client certificates.
+     *
+     * @return string The disk name.
+     */
+    public static function disk(): string
+    {
+        return config('horizonhub.tls.disk');
     }
 
     /**
@@ -78,8 +78,8 @@ class ServiceTlsClientStorage
     {
         $directory = self::directory($service);
 
-        if (Storage::disk(self::DISK)->exists($directory)) {
-            Storage::disk(self::DISK)->deleteDirectory($directory);
+        if (Storage::disk(self::disk())->exists($directory)) {
+            Storage::disk(self::disk())->deleteDirectory($directory);
         }
     }
 
@@ -107,8 +107,8 @@ class ServiceTlsClientStorage
             ];
         }
 
-        $cert = PathBuilder::absolutePath($service->tls_client_cert_path, self::DISK);
-        $key = PathBuilder::absolutePath($service->tls_client_key_path, self::DISK);
+        $cert = PathBuilder::absolutePath($service->tls_client_cert_path, self::disk());
+        $key = PathBuilder::absolutePath($service->tls_client_key_path, self::disk());
 
         if (blank($cert) || blank($key)) {
             return [];
@@ -120,6 +120,16 @@ class ServiceTlsClientStorage
             'cert' => $cert,
             'ssl_key' => blank($passphrase) ? $key : [$key, (string) $passphrase],
         ];
+    }
+
+    /**
+     * Get the root directory used for storing TLS client certificates.
+     *
+     * @return string The root directory.
+     */
+    public static function root(): string
+    {
+        return config('horizonhub.tls.root');
     }
 
     /**
@@ -150,7 +160,7 @@ class ServiceTlsClientStorage
             return ['tls_client_cert_path' => null, 'tls_client_key_path' => null];
         }
 
-        $disk = Storage::disk(self::DISK);
+        $disk = Storage::disk(self::disk());
         $directory = self::directory($service);
         $certPath = $service->tls_client_cert_path;
         $keyPath = $service->tls_client_key_path;
@@ -266,15 +276,15 @@ class ServiceTlsClientStorage
      */
     private static function private__ensurePemFromP12(Service $service, ?string $passphrase = null): array
     {
-        $p12 = PathBuilder::absolutePath($service->tls_client_cert_path, self::DISK);
+        $p12 = PathBuilder::absolutePath($service->tls_client_cert_path, self::disk());
 
         if (blank($p12) || ! \is_readable($p12)) {
             throw new RuntimeException('PKCS#12 file is missing or not readable.');
         }
 
         $dir = self::directory($service);
-        $cert = (string) PathBuilder::absolutePath("$dir/" . self::EXTRACTED_CERT, self::DISK);
-        $key = (string) PathBuilder::absolutePath("$dir/" . self::EXTRACTED_KEY, self::DISK);
+        $cert = (string) PathBuilder::absolutePath("$dir/" . self::EXTRACTED_CERT, self::disk());
+        $key = (string) PathBuilder::absolutePath("$dir/" . self::EXTRACTED_KEY, self::disk());
         $passphrase = (string) $passphrase;
 
         // If the certificate/key are not readable, extract them from the PKCS#12 file.

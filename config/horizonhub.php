@@ -95,6 +95,27 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Client TLS Storage
+    |--------------------------------------------------------------------------
+    |
+    | Where the per-service mTLS client certificates uploaded from the service
+    | form are stored.
+    |
+    | disk: The filesystem disk that holds the client certificates and keys.
+    | root: The directory on that disk under which one subdirectory per service
+    |   is created.
+    |   WARNING: Changing this value orphans the relative paths already persisted in
+    |   `services.tls_client_cert_path` and `services.tls_client_key_path` in the database,
+    |   so existing certificates must be re-uploaded.
+    |
+    */
+    'tls' => [
+        'disk' => (string) env('HORIZON_HUB_TLS_DISK', 'local'),
+        'root' => (string) trim(env('HORIZON_HUB_TLS_ROOT', 'service-tls'), '/'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Stale Service Minutes
     |--------------------------------------------------------------------------
     |
