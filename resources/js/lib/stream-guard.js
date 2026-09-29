@@ -234,7 +234,11 @@ function rowIdsAreValidAndMatching(existingKeyed, incomingKeyed) {
     }
     var incomingIds = new Set();
     for (let i = 0; i < incomingKeyed.length; i++) {
-        incomingIds.add(incomingKeyed[i].getAttribute(STREAM_ROW_ID_ATTR));
+        var incomingId = incomingKeyed[i].getAttribute(STREAM_ROW_ID_ATTR);
+        if (incomingId !== existingKeyed[i].getAttribute(STREAM_ROW_ID_ATTR)) {
+            return false;
+        }
+        incomingIds.add(incomingId);
     }
     for (let j = 0; j < existingKeyed.length; j++) {
         if (!incomingIds.has(existingKeyed[j].getAttribute(STREAM_ROW_ID_ATTR))) {
