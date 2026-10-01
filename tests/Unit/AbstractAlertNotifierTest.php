@@ -89,7 +89,7 @@ class AbstractAlertNotifierTest extends TestCase
             ];
         }
 
-        $enriched = (new \ReflectionMethod($notifier, 'enrichEvents'))->invoke($notifier, $events);
+        $enriched = (new \ReflectionMethod($notifier, 'enrichEvents'))->invoke($notifier, $events, $service);
 
         $this->assertCount(12, $enriched);
     }
@@ -135,7 +135,7 @@ class AbstractAlertNotifierTest extends TestCase
 
             public function sendBatched(Alert $alert, array $events, array $config): void
             {
-                $this->captured = $this->enrichEvents($events);
+                $this->captured = $this->enrichEvents($events, Service::find((int) ($events[0]['service_id'] ?? 0)));
             }
         };
 

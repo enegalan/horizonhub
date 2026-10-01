@@ -6,6 +6,7 @@ use App\Enums\AlertLogStatus;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
+use App\Models\Service;
 use App\Services\Alerts\Rules\AlertRuleStrategyRegistry;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
@@ -109,9 +110,9 @@ class AlertEngine
         }
 
         try {
-            $serviceIds = $alert->resolvedServiceIds();
+            $services = $alert->resolvedServices();
 
-            if ($serviceIds === []) {
+            if ($services === []) {
                 $errorMessage = 'No enabled services to evaluate alert (enable at least one service).';
 
                 return [
@@ -126,7 +127,7 @@ class AlertEngine
                 ];
             }
 
-            $hit = $this->private__evaluateFirstTriggeredService($alert, $serviceIds);
+            $hit = $this->private__evaluateFirstTriggeredService($alert, $services);
 
             if ($hit !== null) {
                 $this->private__triggerAlert($alert, $hit['service_id'], $hit['job_uuids']);
@@ -169,22 +170,17 @@ class AlertEngine
      */
     public function evaluateScheduled(): void
     {
-        $this->flushPendingAlerts();
-
-        /** @var Collection<int, Alert> $alerts */
-        $alerts = Alert::enabled()->get();
-
-        foreach ($alerts as $alert) {
+        foreach ($this->flushPendingAlerts() as $alert) {
             try {
-                $serviceIds = $alert->resolvedServiceIds();
+                $services = $alert->resolvedServices();
 
-                if ($serviceIds === []) {
+                if ($services === []) {
                     Log::channel('app')->warning('no enabled services to evaluate alert', ['alert_id' => $alert->id]);
 
                     continue;
                 }
 
-                $hit = $this->private__evaluateFirstTriggeredService($alert, $serviceIds);
+                $hit = $this->private__evaluateFirstTriggeredService($alert, $services);
 
                 if ($hit === null) {
                     continue;
@@ -199,11 +195,12 @@ class AlertEngine
 
     /**
      * Flush pending alerts.
+     *
+     * @return Collection<int, Alert>
      */
-    public function flushPendingAlerts(): void
+    public function flushPendingAlerts(): Collection
     {
-        /** @var Collection<int, Alert> $alerts */
-        $alerts = Alert::enabled()->get();
+        $alerts = Alert::enabled()->with('notificationProviders')->get();
 
         foreach ($alerts as $alert) {
             try {
@@ -212,6 +209,8 @@ class AlertEngine
                 Log::channel('app')->error('flush pending alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
             }
         }
+
+        return $alerts;
     }
 
     /**
@@ -250,26 +249,21 @@ class AlertEngine
      * Evaluate the first triggered service.
      *
      * @param Alert $alert The alert.
-     * @param list<int> $serviceIds
+     * @param list<Service> $services
      *
      * @return array{service_id: int, job_uuids: array<int, string>}|null
      */
-    private function private__evaluateFirstTriggeredService(Alert $alert, array $serviceIds): ?array
+    private function private__evaluateFirstTriggeredService(Alert $alert, array $services): ?array
     {
-        $cachedStrategies = [];
+        $ruleType = $alert->rule_type->value;
+        $strategy = $this->ruleStrategyRegistry->resolve($ruleType);
 
-        foreach ($serviceIds as $serviceId) {
-            $ruleType = $alert->rule_type->value;
-
-            if (! isset($cachedStrategies[$ruleType])) {
-                $cachedStrategies[$ruleType] = $this->ruleStrategyRegistry->resolve($ruleType);
-            }
-
-            $result = $cachedStrategies[$ruleType]->evaluateWithTriggeringJobs($alert, (int) $serviceId);
+        foreach ($services as $service) {
+            $result = $strategy->evaluateWithTriggeringJobs($alert, $service);
 
             if ($result['triggered']) {
                 return [
-                    'service_id' => (int) $serviceId,
+                    'service_id' => (int) $service->id,
                     'job_uuids' => $result['job_uuids'],
                 ];
             }

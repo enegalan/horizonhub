@@ -46,10 +46,8 @@ class EvaluateAlertJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(AlertEngine $engine): void
+    public function handle(AlertEngine $engine, AlertBatchStore $store): void
     {
-        $store = new AlertBatchStore;
-
         try {
             $alert = Alert::find($this->alertId);
 
@@ -61,7 +59,7 @@ class EvaluateAlertJob implements ShouldQueue
 
             $store->recordEvaluationResult($this->evaluationId, $engine->evaluateAlert($alert));
         } catch (\Throwable $e) {
-            Log::channel('hub')->error('alert evaluation job failed', [
+            Log::error('alert evaluation job failed', [
                 'alert_id' => $this->alertId,
                 'evaluation_id' => $this->evaluationId,
                 'error' => $e->getMessage(),

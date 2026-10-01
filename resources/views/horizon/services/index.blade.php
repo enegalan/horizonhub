@@ -5,60 +5,38 @@
         class="space-y-6"
         x-data="window.deleteConfirm ? window.deleteConfirm('Service') : {}"
     >
-        <div class="card overflow-hidden" x-data="window.horizonServicesList ? window.horizonServicesList() : {}" x-init="typeof init === 'function' && init()">
-            <x-page-hero
-                eyebrow="Connected Horizon instances"
-                title="Services"
-                description="Register each Horizon deployment, monitor its health, and open its dashboard when you need to inspect queues and workers."
-            >
-                <x-slot:actions>
-                    <x-form-drawer-link :href="route('horizon.services.create')" class="h-9 shrink-0 text-sm">
-                        Register service
-                    </x-form-drawer-link>
-                </x-slot:actions>
-            </x-page-hero>
+        <x-resource-index-page
+            eyebrow="Connected Horizon instances"
+            title="Services"
+            description="Register each Horizon deployment, monitor its health, and open its dashboard when you need to inspect queues and workers."
+            list-component="window.horizonServicesList ? window.horizonServicesList() : {}"
+            :filter-action="route('horizon.services.index')"
+            filter-form-attributes='data-service-tag-filter="1" data-service-tag-filter-manual="1"'
+            stats-target="horizon-service-stats"
+            stats-view="horizon.services.partials.index.stats"
+            body-target="tbody-horizon-service-list"
+            body-view="horizon.services.partials.index.tbody"
+            :body-view-data="['services' => $services]"
+            :defer="$defer ?? false"
+        >
+            <x-slot:actions>
+                <x-form-drawer-link :href="route('horizon.services.create')" class="h-9 shrink-0 text-sm">
+                    Register service
+                </x-form-drawer-link>
+            </x-slot:actions>
 
-            <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
-                <form method="GET" action="{{ route('horizon.services.index') }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="_top" data-service-tag-filter="1" data-service-tag-filter-manual="1">
-                    <x-service-tag-filter
-                        :all-tags="$allTags ?? []"
-                        :selected-tags="$selectedTags ?? []"
-                    />
-                    <x-button type="submit" class="h-9 w-full shrink-0 text-sm sm:w-auto">
-                        Search
-                    </x-button>
-                </form>
-            </div>
+            <x-slot:filter>
+                <x-service-tag-filter
+                    :all-tags="$allTags ?? []"
+                    :selected-tags="$selectedTags ?? []"
+                />
+            </x-slot:filter>
+        </x-resource-index-page>
 
-            <div class="grid gap-3 border-b border-border px-5 py-4 sm:grid-cols-3 sm:px-6">
-                <div
-                    id="horizon-service-stats"
-                    class="contents"
-                    data-turbo-stream-patch-children="true"
-                >
-                    @if(!empty($defer))
-                        <x-skeleton.metric-columns />
-                    @else
-                        @include('horizon.services.partials.index.stats')
-                    @endif
-                </div>
-            </div>
-
-            <div class="px-5 py-5 sm:px-6">
-                <div
-                    id="tbody-horizon-service-list"
-                    class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
-                    data-turbo-stream-patch-children="true"
-                >
-                    @if(!empty($defer))
-                        <x-skeleton.card-grid />
-                    @else
-                        @include('horizon.services.partials.index.tbody', ['services' => $services])
-                    @endif
-                </div>
-            </div>
-        </div>
-
-        @include('horizon.services.partials.index.delete-confirm-modal')
+        <x-horizon.delete-confirm-modal
+            entity="Service"
+            title="Delete service"
+            resource-label="service"
+        />
     </div>
 @endsection

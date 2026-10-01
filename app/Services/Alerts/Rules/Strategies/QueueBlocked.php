@@ -28,29 +28,28 @@ final class QueueBlocked extends AbstractAlertRuleStrategy
     }
 
     /**
+     * Evaluate the rule and return whether it triggered plus triggering job UUIDs.
+     *
+     * @param Alert $alert The alert.
+     * @param Service $service The service.
+     *
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
+    public function evaluateWithTriggeringJobs(Alert $alert, Service $service): array
     {
         $minutes = $alert->getThresholdMinutes();
-        $service = Service::find($serviceId);
 
-        $triggered = false;
+        $cutoff = \now()->subMinutes($minutes);
+        $jobs = $this->support->matchingCompletedJobsInWindow($alert, $service, $cutoff);
 
-        if ($service !== null) {
-            $cutoff = \now()->subMinutes($minutes);
-            $jobs = $this->support->matchingCompletedJobsInWindow($alert, $service, $cutoff);
+        $lastProcessed = $jobs
+            ->map(fn (array $job) => $this->support->parseCompletedAt($job))
+            ->filter()
+            ->sort()
+            ->last();
 
-            $lastProcessed = $jobs
-                ->map(fn (array $job) => $this->support->parseCompletedAt($job))
-                ->filter()
-                ->sort()
-                ->last();
-
-            if ($lastProcessed !== null) {
-                $triggered = $lastProcessed->copy()->addMinutes($minutes)->isPast();
-            }
-        }
+        $triggered = $lastProcessed !== null
+            && $lastProcessed->copy()->addMinutes($minutes)->isPast();
 
         return [
             'triggered' => $triggered,

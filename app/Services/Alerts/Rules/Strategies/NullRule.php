@@ -4,6 +4,7 @@ namespace App\Services\Alerts\Rules\Strategies;
 
 use App\Enums\AlertRuleType;
 use App\Models\Alert;
+use App\Models\Service;
 
 final class NullRule extends AbstractAlertRuleStrategy
 {
@@ -19,9 +20,14 @@ final class NullRule extends AbstractAlertRuleStrategy
     }
 
     /**
+     * Evaluate the rule and return whether it triggered plus triggering job UUIDs.
+     *
+     * @param Alert $alert The alert.
+     * @param Service $service The service.
+     *
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
+    public function evaluateWithTriggeringJobs(Alert $alert, Service $service): array
     {
         return $this->notTriggered();
     }

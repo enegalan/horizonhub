@@ -75,12 +75,10 @@ class AlertRulesTest extends TestCase
 
         $support = new AlertRuleEvaluation(new JobsWindowFetcherService);
         $strategy = new FailureCount($support);
-        $result = $strategy->evaluateWithTriggeringJobs($alert, $service->id);
+        $result = $strategy->evaluateWithTriggeringJobs($alert, $service);
 
         $this->assertTrue($result['triggered']);
         $this->assertSame(['x1', 'x2'], $result['job_uuids']);
-
-        $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, 999999)['triggered']);
     }
 
     public function test_horizon_offline_grace_period_respects_long_threshold(): void
@@ -104,14 +102,14 @@ class AlertRulesTest extends TestCase
         ]);
         $strategy = new HorizonOffline;
 
-        $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, $service->id)['triggered']);
+        $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, $service)['triggered']);
 
         $this->travel(1999)->minutes();
-        $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, $service->id)['triggered']);
+        $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, $service)['triggered']);
         $this->assertNotNull(Cache::get('horizon_offline_since:' . $service->id));
 
         $this->travel(2)->minutes();
-        $this->assertTrue($strategy->evaluateWithTriggeringJobs($alert, $service->id)['triggered']);
+        $this->assertTrue($strategy->evaluateWithTriggeringJobs($alert, $service)['triggered']);
     }
 
     public function test_other_strategies_cover_normal_and_edge_paths(): void
@@ -193,32 +191,32 @@ class AlertRulesTest extends TestCase
         $support = new AlertRuleEvaluation(new JobsWindowFetcherService);
 
         $worker = new WorkerOffline;
-        $this->assertTrue($worker->evaluateWithTriggeringJobs($workerAlert, $service->id)['triggered']);
+        $this->assertTrue($worker->evaluateWithTriggeringJobs($workerAlert, $service)['triggered']);
 
         $avg = new AvgExecutionTime($support);
-        $this->assertTrue($avg->evaluateWithTriggeringJobs($avgAlert, $service->id)['triggered']);
+        $this->assertTrue($avg->evaluateWithTriggeringJobs($avgAlert, $service)['triggered']);
 
         $queueBlocked = new QueueBlocked($support);
-        $this->assertFalse($queueBlocked->evaluateWithTriggeringJobs($queueAlert, $service->id)['triggered']);
+        $this->assertFalse($queueBlocked->evaluateWithTriggeringJobs($queueAlert, $service)['triggered']);
 
         $supervisor = new SupervisorOffline;
-        $this->assertFalse($supervisor->evaluateWithTriggeringJobs($supAlert, $service->id)['triggered']);
+        $this->assertFalse($supervisor->evaluateWithTriggeringJobs($supAlert, $service)['triggered']);
 
         $this->travel(16)->minutes();
-        $this->assertTrue($supervisor->evaluateWithTriggeringJobs($supAlert, $service->id)['triggered']);
+        $this->assertTrue($supervisor->evaluateWithTriggeringJobs($supAlert, $service)['triggered']);
 
         $offline = new HorizonOffline;
-        $this->assertFalse($offline->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
+        $this->assertFalse($offline->evaluateWithTriggeringJobs($horizonAlert, $service)['triggered']);
 
         $this->travel(6)->minutes();
-        $this->assertTrue($offline->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
+        $this->assertTrue($offline->evaluateWithTriggeringJobs($horizonAlert, $service)['triggered']);
 
         $onlineStrategy = new HorizonOffline;
-        $this->assertFalse($onlineStrategy->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
+        $this->assertFalse($onlineStrategy->evaluateWithTriggeringJobs($horizonAlert, $service)['triggered']);
         $this->assertNull(Cache::get('horizon_offline_since:' . $service->id));
 
         $null = new NullRule;
-        $this->assertFalse($null->evaluateWithTriggeringJobs($horizonAlert, $service->id)['triggered']);
+        $this->assertFalse($null->evaluateWithTriggeringJobs($horizonAlert, $service)['triggered']);
     }
 
     public function test_queue_patterns_match_raw_then_unprefixed_normalized_only(): void
@@ -297,18 +295,18 @@ class AlertRulesTest extends TestCase
         $firstKey = 'supervisor_offline_since:' . $service->id . ':svc-sup-switch:supervisor-1';
         $secondKey = 'supervisor_offline_since:' . $service->id . ':svc-sup-switch:supervisor-2';
 
-        $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, $service->id)['triggered']);
+        $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, $service)['triggered']);
         $this->assertNotNull(Cache::get($firstKey));
 
         $this->travel(10)->minutes();
-        $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, $service->id)['triggered']);
+        $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, $service)['triggered']);
         $this->assertNull(Cache::get($firstKey));
         $this->assertNotNull(Cache::get($secondKey));
 
         $this->travel(5)->minutes();
-        $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, $service->id)['triggered']);
+        $this->assertFalse($strategy->evaluateWithTriggeringJobs($alert, $service)['triggered']);
 
         $this->travel(10)->minutes();
-        $this->assertTrue($strategy->evaluateWithTriggeringJobs($alert, $service->id)['triggered']);
+        $this->assertTrue($strategy->evaluateWithTriggeringJobs($alert, $service)['triggered']);
     }
 }

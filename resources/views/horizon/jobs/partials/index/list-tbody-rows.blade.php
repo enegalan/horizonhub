@@ -1,19 +1,32 @@
 @php
-    /** @var string $kind processing|processed|failed */
+    /** @var \App\Enums\JobSection|string $section */
     /** @var \Illuminate\Pagination\LengthAwarePaginator $paginator */
     /** @var bool $showServiceColumn */
     /** @var \App\Models\Service|null $pageService */
-    $emptyCopy = [
-        'processing' => ['title' => 'No processing jobs', 'description' => 'Jobs currently being executed will appear here.'],
-        'processed' => ['title' => 'No processed jobs', 'description' => 'Completed jobs will appear here.'],
-        'failed' => ['title' => 'No failed jobs', 'description' => 'Failed jobs will appear here.'],
-    ];
-    $skeletonColumns = match ($kind) {
-        'processing' => $showServiceColumn ? 8 : 7,
-        'processed', 'failed' => $showServiceColumn ? 9 : 8,
-        default => 8,
-    };
+    $jobSection = $section instanceof \App\Enums\JobSection
+        ? $section
+        : \App\Enums\JobSection::normalize($section);
+    $emptyCopy = $jobSection->emptyCopy();
+    $skeletonColumns = $jobSection->skeletonColumns() + ($showServiceColumn ? 1 : 0);
+    $isFailed = $jobSection === \App\Enums\JobSection::Failed;
     $paginatorTotal = isset($paginator) && $paginator instanceof \Illuminate\Pagination\LengthAwarePaginator ? $paginator->total() : 0;
+
+    /**
+     * Cell value for a section-specific column.
+     */
+    $cellValue = static function (string $column, $job): string {
+        $timestamp = match ($column) {
+            'delayed_until' => $job->available_at,
+            'processed' => $job->processed_at,
+            'failed_at' => $job->failed_at,
+            default => null,
+        };
+
+        return match ($column) {
+            'runtime' => (string) ($job->runtime ?? '–'),
+            default => $timestamp?->format('Y-m-d H:i:s') ?? '–',
+        };
+    };
 @endphp
 @if(! empty($defer) && $paginatorTotal === 0)
     <x-skeleton.table-rows rows="6" :columns="$skeletonColumns" />
@@ -43,35 +56,29 @@
         <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="job">{{ $job->name ?? $job->uuid }}</td>
         <td @class([
             'px-4 py-2.5 text-sm text-muted-foreground',
-            'min-w-[80px]' => $kind === 'failed' && ! $showServiceColumn,
+            'min-w-[80px]' => $isFailed && ! $showServiceColumn,
         ]) data-column-id="attempts">
             @php $attempts = $job->attempts; $attemptsDisplay = ($attempts !== null && $attempts > 0) ? $attempts : '–'; @endphp
             {{ $attemptsDisplay }}
         </td>
         <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="queued_at">{{ $job->queued_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
-        @if($kind === 'processing')
-            <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="delayed_until">{{ $job->available_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
-        @elseif($kind === 'processed')
-            <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="processed">{{ $job->processed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
-            <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="runtime">{{ $job->runtime ?? '–' }}</td>
-        @elseif($kind === 'failed')
-            <td class="px-4 py-2.5 text-xs text-muted-foreground truncate max-w-[180px]" data-column-id="failed_at">{{ $job->failed_at?->format('Y-m-d H:i:s') ?? '–' }}</td>
-            <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="runtime">{{ $job->runtime ?? '–' }}</td>
-        @endif
+        @foreach($jobSection->columns() as $column)
+            <td class="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[180px]" data-column-id="{{ $column['column'] }}">{{ $cellValue($column['column'], $job) }}</td>
+        @endforeach
         <td class="px-4 py-2.5" data-column-id="actions">
             @include('horizon.jobs.partials.index.row-actions', [
                 'job' => $job,
                 'pageService' => $pageService,
-                'showRetry' => $kind === 'failed' && $job->service,
+                'showRetry' => $isFailed && $job->service,
             ])
         </td>
     </tr>
 @empty
-    <tr data-stream-row-id="__empty-{{ $kind }}">
+    <tr data-stream-row-id="__empty-{{ $jobSection->value }}">
         <td colspan="9" data-column-id="{{ $showServiceColumn ? 'service' : 'queue' }}">
             <x-empty-state
-                title="{{ $emptyCopy[$kind]['title'] }}"
-                description="{{ $emptyCopy[$kind]['description'] }}"
+                title="{{ $emptyCopy['title'] }}"
+                description="{{ $emptyCopy['description'] }}"
             >
                 <x-slot name="icon">
                     <x-icons.document-text class="empty-state-icon" />

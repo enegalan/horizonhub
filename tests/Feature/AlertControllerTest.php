@@ -56,7 +56,7 @@ class AlertControllerTest extends TestCase
         $this->app->instance(AlertEngine::class, $engine);
 
         $upsert = $this->createMock(AlertUpsertService::class);
-        $upsert->method('validateAlert')->willReturn([
+        $upsert->method('buildUpsertData')->willReturn([
             'alert' => [
                 'name' => 'new-alert',
                 'service_ids' => [$service->id],
@@ -69,17 +69,28 @@ class AlertControllerTest extends TestCase
         ]);
         $this->app->instance(AlertUpsertService::class, $upsert);
 
+        $alertPayload = [
+            'name' => 'new-alert',
+            'rule_type' => FailureCount::type()->value,
+            'service_ids' => [$service->id],
+            'thresholdCount' => 1,
+            'thresholdMinutes' => 5,
+            'provider_ids' => [$provider->id],
+            'email_interval_minutes' => 0,
+            'enabled' => 1,
+        ];
+
         $this->get(route('horizon.alerts.edit', ['alert' => $alert]), [
             'Turbo-Frame' => FormDrawer::FRAME_ID,
         ])->assertOk();
         $this->get(route('horizon.alerts.show', ['alert' => $alert]))->assertOk();
         $this->post(route('horizon.alerts.evaluate', ['alert' => $alert]))->assertOk()->assertJsonPath('alert_id', $alert->id);
 
-        $this->post(route('horizon.alerts.store'))->assertRedirect(route('horizon.alerts.index'));
+        $this->post(route('horizon.alerts.store'), $alertPayload)->assertRedirect(route('horizon.alerts.index'));
         $created = Alert::where('name', 'new-alert')->latest('id')->first();
         $this->assertNotNull($created);
 
-        $this->put(route('horizon.alerts.update', ['alert' => $alert]))->assertRedirect(route('horizon.alerts.index'));
+        $this->put(route('horizon.alerts.update', ['alert' => $alert]), $alertPayload)->assertRedirect(route('horizon.alerts.index'));
         $alert->refresh();
         $this->assertSame('new-alert', $alert->name);
 
@@ -158,6 +169,55 @@ class AlertControllerTest extends TestCase
 
         $this->post(route('horizon.alerts.logs.retry', ['log' => $sentLog]))->assertRedirect();
         $this->post(route('horizon.alerts.logs.retry', ['log' => $failedLog]))->assertRedirect();
+    }
+
+    public function test_store_persists_the_alert_through_the_form_request(): void
+    {
+        $service = Service::factory()->create();
+        $provider = NotificationProvider::create([
+            'name' => 'mail',
+            'type' => EmailNotifierService::type(),
+            'config' => ['to' => ['a@example.com']],
+        ]);
+
+        $this->post(route('horizon.alerts.store'), [
+            'name' => 'validated-alert',
+            'rule_type' => FailureCount::type()->value,
+            'service_ids' => [$service->id],
+            'thresholdCount' => 2,
+            'thresholdMinutes' => 10,
+            'provider_ids' => [$provider->id],
+            'email_interval_minutes' => 15,
+            'enabled' => 1,
+        ])->assertRedirect(route('horizon.alerts.index'));
+
+        $alert = Alert::where('name', 'validated-alert')->firstOrFail();
+        $this->assertSame([$service->id], $alert->service_ids);
+        $this->assertSame(2, $alert->getThresholdCount());
+        $this->assertSame(10, $alert->getThresholdMinutes());
+        $this->assertSame([$provider->id], $alert->notificationProviders()->pluck('notification_providers.id')->all());
+    }
+
+    public function test_store_rejects_an_invalid_payload_without_touching_the_database(): void
+    {
+        $service = Service::factory()->create();
+        $provider = NotificationProvider::create([
+            'name' => 'mail',
+            'type' => EmailNotifierService::type(),
+            'config' => ['to' => ['a@example.com']],
+        ]);
+
+        $this->post(route('horizon.alerts.store'), [
+            'name' => 'missing-threshold',
+            'rule_type' => FailureCount::type()->value,
+            'service_ids' => [$service->id],
+            'thresholdMinutes' => 5,
+            'provider_ids' => [$provider->id],
+            'email_interval_minutes' => 0,
+            'enabled' => 1,
+        ])->assertSessionHasErrors('thresholdCount');
+
+        $this->assertSame(0, Alert::count());
     }
 
     public function test_toggle_enabled_updates_alert_state(): void

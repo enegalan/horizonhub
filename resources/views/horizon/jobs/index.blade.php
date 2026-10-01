@@ -113,7 +113,8 @@
                                 <template x-for="session in [retryModalSession]" :key="'retry-modal-services-' + session">
                                     <div class="min-w-0 space-y-2">
                                         <x-input-label id="retry-modal-services-label" for="retry-modal-services">Services</x-input-label>
-                                        <x-multiselect
+                                        <x-select
+                                            multiple
                                             id="retry-modal-services"
                                             labelled-by="retry-modal-services-label"
                                             name="retryModalServiceFilter"
@@ -126,13 +127,14 @@
                                             @foreach($services as $s)
                                                 <option value="{{ $s->id }}">{{ $s->name }} ({{ $s->status?->value }})</option>
                                             @endforeach
-                                        </x-multiselect>
+                                        </x-select>
                                     </div>
                                 </template>
                                 <template x-for="session in [retryModalSession]" :key="'retry-modal-tags-' + session">
                                     <div class="min-w-0 space-y-2">
                                         <x-input-label id="retry-modal-tags-label" for="retry-modal-tags">Tags</x-input-label>
-                                        <x-multiselect
+                                        <x-select
+                                            multiple
                                             id="retry-modal-tags"
                                             labelled-by="retry-modal-tags-label"
                                             name="retryModalServiceTag"
@@ -145,7 +147,7 @@
                                             @foreach($allTags ?? [] as $tag)
                                                 <option value="{{ $tag }}">{{ $tag }}</option>
                                             @endforeach
-                                        </x-multiselect>
+                                        </x-select>
                                     </div>
                                 </template>
                                 <div class="min-w-0 space-y-2">

@@ -2,83 +2,22 @@
 
 namespace App\Services\Alerts;
 
-use App\Enums\AlertRuleType;
-use App\Models\Alert;
+use App\Http\Requests\Horizon\UpsertAlertRequest;
 use App\Support\Alerts\AlertRuleCatalog;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class AlertUpsertService
 {
     /**
-     * Validate the alert.
+     * Build the persistence payload from a validated request.
      *
-     * @param Request $request The request.
+     * @param UpsertAlertRequest $request The validated request.
      *
      * @return array{alert: array<string, mixed>, provider_ids: array<int>}
      */
-    public function validateAlert(Request $request): array
+    public function buildUpsertData(UpsertAlertRequest $request): array
     {
-        $ruleTypes = AlertRuleType::values();
-        $baseRules = [
-            'rule_type' => 'required|in:' . implode(',', $ruleTypes),
-            'service_ids' => 'required|array|min:1',
-            'service_ids.*' => 'integer|exists:services,id',
-            'job_patterns' => 'nullable|array',
-            'job_patterns.*' => 'nullable|string|max:255',
-            'queue_patterns' => 'nullable|array',
-            'queue_patterns.*' => 'nullable|string|max:255',
-            'thresholdCount' => 'nullable|integer|min:1',
-            'thresholdMinutes' => 'nullable|integer|min:1',
-            'thresholdSeconds' => 'nullable|numeric|min:0.1',
-            'provider_ids' => 'required|array|min:1',
-            'provider_ids.*' => 'integer|exists:notification_providers,id',
-            'email_interval_minutes' => 'required|integer|min:0|max:1440',
-            'enabled' => 'required|boolean',
-            'name' => 'nullable|string|max:255',
-        ];
-
-        $ruleType = (string) $request->input('rule_type', \array_key_first(Alert::getProviders()));
-
-        if (\in_array($ruleType, AlertRuleCatalog::ruleTypesRequiringMinutes(), true)) {
-            $baseRules['thresholdMinutes'] = 'required|integer|min:1';
-        }
-
-        if (\in_array($ruleType, AlertRuleCatalog::ruleTypesRequiringCount(), true)) {
-            $baseRules['thresholdCount'] = 'required|integer|min:1';
-        }
-
-        if (\in_array($ruleType, AlertRuleCatalog::ruleTypesRequiringSeconds(), true)) {
-            $baseRules['thresholdSeconds'] = 'required|numeric|min:0.1';
-        }
-
-        $upsert = $this;
-        $validator = Validator::make($request->all(), $baseRules);
-        $validator->after(function (\Illuminate\Validation\Validator $v) use ($request, $upsert): void {
-            $jobPatterns = $upsert->private__sanitizePatternArray($request->input('job_patterns'));
-            $queuePatterns = $upsert->private__sanitizePatternArray($request->input('queue_patterns'));
-
-            foreach ($jobPatterns as $p) {
-                if (\strlen($p) > 255) {
-                    $v->errors()->add('job_patterns', 'Each job pattern must be at most 255 characters.');
-
-                    break;
-                }
-            }
-
-            foreach ($queuePatterns as $p) {
-                if (\strlen($p) > 255) {
-                    $v->errors()->add('queue_patterns', 'Each queue name must be at most 255 characters.');
-
-                    break;
-                }
-            }
-        });
-
-        $validated = $validator->validate();
-
-        $jobPatterns = $this->private__sanitizePatternArray($request->input('job_patterns'));
-        $queuePatterns = $this->private__sanitizePatternArray($request->input('queue_patterns'));
+        $validated = $request->validated();
+        $ruleType = $request->resolvedRuleType();
 
         $threshold = [];
 
@@ -94,11 +33,15 @@ class AlertUpsertService
             $threshold['seconds'] = (float) ($validated['thresholdSeconds'] ?? 0.0);
         }
 
-        if (\in_array($ruleType, AlertRuleCatalog::ruleTypesWithJobPatterns(), true) && ! empty($jobPatterns)) {
+        $jobPatterns = $this->private__sanitizePatternArray($validated['job_patterns'] ?? null);
+
+        if (\in_array($ruleType, AlertRuleCatalog::ruleTypesWithJobPatterns(), true) && $jobPatterns !== []) {
             $threshold['job_patterns'] = $jobPatterns;
         }
 
-        if (\in_array($ruleType, AlertRuleCatalog::ruleTypesWithQueuePatterns(), true) && ! empty($queuePatterns)) {
+        $queuePatterns = $this->private__sanitizePatternArray($validated['queue_patterns'] ?? null);
+
+        if (\in_array($ruleType, AlertRuleCatalog::ruleTypesWithQueuePatterns(), true) && $queuePatterns !== []) {
             $threshold['queue_patterns'] = $queuePatterns;
         }
 
@@ -144,6 +87,6 @@ class AlertUpsertService
             }
         }
 
-        return \array_values(\array_unique($out));
+        return $out;
     }
 }

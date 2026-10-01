@@ -132,9 +132,9 @@ trait BuildsServiceStreams
         ];
 
         if ($service->enabled) {
-            $data['jobsPastMinute'] = $this->metrics->getJobsPastMinute($service);
-            $data['jobsPastHour'] = $this->metrics->getJobsPastHour($service);
-            $data['failedPastSevenDays'] = $this->metrics->getFailedPastSevenDays($service);
+            $data['jobsPastMinute'] = $this->jobsThroughputMetrics->getJobsPastMinute($service);
+            $data['jobsPastHour'] = $this->jobsThroughputMetrics->getJobsPastHour($service);
+            $data['failedPastSevenDays'] = $this->jobsThroughputMetrics->getFailedPastSevenDays($service);
 
             $stats = StatsReader::summary(ClientResponse::data(
                 HorizonClientApiService::getStats($service),
@@ -179,7 +179,7 @@ trait BuildsServiceStreams
 
             $data['supervisorGroups'] = $supervisorGroups;
             $data['supervisors'] = $supervisors;
-            $data['workloadQueues'] = \collect($this->metrics->getWorkloadForService($service));
+            $data['workloadQueues'] = \collect($this->workloadMetrics->getWorkloadForService($service));
 
             $pageProcessing = max(1, (int) $request->query('page_processing', 1));
             $pageProcessed = max(1, (int) $request->query('page_processed', 1));

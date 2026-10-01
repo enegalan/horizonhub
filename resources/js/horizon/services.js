@@ -1,4 +1,5 @@
 import { isHotReloadEnabled } from '../lib/sse';
+import { registerDocumentDelegate } from '../lib/dom';
 import { setLoading } from '../components/loading-button';
 
 /**
@@ -194,22 +195,13 @@ export function horizonServicesList() {
         init() {
             var self = this;
 
-            window.__horizonServicesListToggleInstance = self;
-            // Attach the document click listener only once to avoid duplicate toasts.
-            if (!window.__horizonServicesListToggleClickListenerAttached) {
-                window.__horizonServicesListToggleClickListenerAttached = true;
-                window.__horizonServicesListToggleClickListener = function (e) {
-                    var instance = window.__horizonServicesListToggleInstance;
-                    if (!instance || !e.target || !e.target.closest) return;
-
-                    var enabledToggleBtn = e.target.closest('[data-service-enabled-toggle="1"]');
-                    if (enabledToggleBtn) {
-                        e.preventDefault();
-                        instance.private__handleEnabledToggleClick(enabledToggleBtn);
-                    }
-                };
-                document.addEventListener('click', window.__horizonServicesListToggleClickListener);
-            }
+            registerDocumentDelegate('services-list', self, function (e, instance) {
+                var enabledToggleBtn = e.target.closest('[data-service-enabled-toggle="1"]');
+                if (enabledToggleBtn) {
+                    e.preventDefault();
+                    instance.private__handleEnabledToggleClick(enabledToggleBtn);
+                }
+            });
         },
 
         /**

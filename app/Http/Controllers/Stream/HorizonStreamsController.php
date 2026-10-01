@@ -13,6 +13,8 @@ use App\Http\Controllers\Stream\Concerns\BuildsServiceStreams;
 use App\Http\Controllers\StreamController;
 use App\Models\Alert;
 use App\Models\Service;
+use App\Services\Metrics\Calculators\JobsThroughputMetricsCalculator;
+use App\Services\Metrics\Calculators\WorkloadMetricsCalculator;
 use App\Services\Metrics\MetricsDataService;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -29,18 +31,35 @@ class HorizonStreamsController extends StreamController
     use BuildsServiceStreams;
 
     /**
+     * The throughput metrics calculator.
+     */
+    private JobsThroughputMetricsCalculator $jobsThroughputMetrics;
+
+    /**
      * The metrics data service.
      */
     private MetricsDataService $metrics;
 
     /**
+     * The workload metrics calculator.
+     */
+    private WorkloadMetricsCalculator $workloadMetrics;
+
+    /**
      * The constructor.
      *
      * @param MetricsDataService $metrics The metrics data service.
+     * @param JobsThroughputMetricsCalculator $jobsThroughputMetrics The throughput metrics calculator.
+     * @param WorkloadMetricsCalculator $workloadMetrics The workload metrics calculator.
      */
-    public function __construct(MetricsDataService $metrics)
-    {
+    public function __construct(
+        MetricsDataService $metrics,
+        JobsThroughputMetricsCalculator $jobsThroughputMetrics,
+        WorkloadMetricsCalculator $workloadMetrics,
+    ) {
         $this->metrics = $metrics;
+        $this->jobsThroughputMetrics = $jobsThroughputMetrics;
+        $this->workloadMetrics = $workloadMetrics;
     }
 
     public function alerts(Request $request): StreamedResponse

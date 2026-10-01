@@ -7,10 +7,15 @@ use App\Enums\Concerns\HasOptions;
 enum TlsClientMode: string
 {
     use HasOptions;
-    case P12 = 'p12';
 
+    case P12 = 'p12';
     case Pem = 'pem';
 
+    /**
+     * Labels for the client modes.
+     *
+     * @return array<string, string>
+     */
     public static function labels(): array
     {
         return [

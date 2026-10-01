@@ -2,71 +2,53 @@
 
 @section('content')
     <div class="space-y-6">
-        <div class="card overflow-hidden">
-            <x-page-hero
-                eyebrow="Workload"
-                title="Queues"
-                description="Pending jobs per queue across your Horizon services. Filter by tag or service to focus on a subset of workers."
-            />
+        <x-resource-index-page
+            eyebrow="Workload"
+            title="Queues"
+            description="Pending jobs per queue across your Horizon services. Filter by tag or service to focus on a subset of workers."
+            :filter-action="route('horizon.queues.index')"
+            filter-form-attributes='data-service-tag-filter="1" data-service-tag-filter-manual="1"'
+            stats-target="horizon-queue-stats"
+            :stats-columns="2"
+            stats-view="horizon.queues.partials.index.stats"
+            :stats-view-data="['queueCount' => $queueCount ?? 0, 'totalJobs' => $totalJobs ?? 0]"
+            :defer="$defer ?? false"
+        >
+            <x-slot:filter>
+                <x-service-tag-filter
+                    :all-tags="$allTags ?? []"
+                    :selected-tags="$selectedTags ?? []"
+                    :show-service-multiselect="true"
+                    :services="$services"
+                    :service-ids="$selectedServiceIds ?? []"
+                    service-multiselect-id="queues-index-services"
+                    service-multiselect-label="Services"
+                />
+            </x-slot:filter>
 
-            <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
-                <form method="GET" action="{{ route('horizon.queues.index') }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="_top" data-service-tag-filter="1" data-service-tag-filter-manual="1">
-                    <x-service-tag-filter
-                        :all-tags="$allTags ?? []"
-                        :selected-tags="$selectedTags ?? []"
-                        :show-service-multiselect="true"
-                        :services="$services"
-                        :service-ids="$selectedServiceIds ?? []"
-                        service-multiselect-id="queues-index-services"
-                        service-multiselect-label="Services"
-                    />
-                    <x-button type="submit" class="h-9 w-full shrink-0 text-sm sm:w-auto">
-                        Search
-                    </x-button>
-                </form>
-            </div>
-
-            <div class="grid gap-3 border-b border-border px-5 py-4 sm:grid-cols-2 sm:px-6">
-                <div
-                    id="horizon-queue-stats"
-                    class="contents"
-                    data-turbo-stream-patch-children="true"
-                >
-                    @if(!empty($defer))
-                        @for ($i = 0; $i < 2; $i++)
-                            <div class="rounded-lg border border-border/70 bg-muted/20 px-4 py-3">
-                                <div class="skeleton h-3 w-16" style="--skeleton-delay: {{ $i * 80 }}ms"></div>
-                                <div class="skeleton mt-3 h-8 w-14" style="--skeleton-delay: {{ ($i * 80) + 100 }}ms"></div>
-                            </div>
-                        @endfor
-                    @else
-                        @include('horizon.queues.partials.index.stats', [
-                            'queueCount' => $queueCount ?? 0,
-                            'totalJobs' => $totalJobs ?? 0,
-                        ])
-                    @endif
+            <x-slot:divider>
+                <div class="flex flex-wrap items-center justify-between gap-2 bg-muted/20 px-5 py-3 sm:px-6">
+                    <h3 class="text-section-title text-foreground">By queue</h3>
+                    <a href="{{ route('horizon.metrics') }}" class="link text-xs" data-turbo-action="replace">Metrics</a>
                 </div>
-            </div>
+            </x-slot:divider>
 
-            <div class="flex flex-wrap items-center justify-between gap-2 bg-muted/20 px-5 py-3 sm:px-6">
-                <h3 class="text-section-title text-foreground">By queue</h3>
-                <a href="{{ route('horizon.metrics') }}" class="link text-xs" data-turbo-action="replace">Metrics</a>
-            </div>
-
-            <x-table
-                id="horizon-queue-list"
-                stream-patch-children
-            >
-                <x-slot:head>
-                    <x-table.th column="service" class="min-w-[120px]">Service</x-table.th>
-                    <x-table.th column="queue" class="min-w-[100px]">Queue</x-table.th>
-                    <x-table.th column="job_count">Pending jobs</x-table.th>
-                </x-slot:head>
-                @include('horizon.queues.partials.index.tbody', [
-                    'queues' => $queues,
-                    'defer' => $defer ?? false,
-                ])
-            </x-table>
-        </div>
+            <x-slot:body>
+                <x-table
+                    id="horizon-queue-list"
+                    stream-patch-children
+                >
+                    <x-slot:head>
+                        <x-table.th column="service" class="min-w-[120px]">Service</x-table.th>
+                        <x-table.th column="queue" class="min-w-[100px]">Queue</x-table.th>
+                        <x-table.th column="job_count">Pending jobs</x-table.th>
+                    </x-slot:head>
+                    @include('horizon.queues.partials.index.tbody', [
+                        'queues' => $queues,
+                        'defer' => $defer ?? false,
+                    ])
+                </x-table>
+            </x-slot:body>
+        </x-resource-index-page>
     </div>
 @endsection

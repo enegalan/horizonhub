@@ -32,18 +32,12 @@ final class AvgExecutionTime extends AbstractAlertRuleStrategy
      * Evaluate the rule and return whether it triggered plus triggering job UUIDs.
      *
      * @param Alert $alert The alert.
-     * @param int $serviceId The service ID.
+     * @param Service $service The service.
      *
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
+    public function evaluateWithTriggeringJobs(Alert $alert, Service $service): array
     {
-        $service = Service::find($serviceId);
-
-        if ($service === null) {
-            return $this->notTriggered();
-        }
-
         $cutoff = \now()->subMinutes($alert->getThresholdMinutes());
 
         $durations = $this->support

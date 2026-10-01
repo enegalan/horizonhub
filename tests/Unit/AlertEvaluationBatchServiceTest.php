@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Jobs\EvaluateAlertJob;
 use App\Models\Alert;
 use App\Services\Alerts\AlertEvaluationBatchService;
+use App\Services\Alerts\Engine\AlertBatchStore;
 use App\Services\Alerts\Rules\Strategies\FailureCount;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
@@ -26,7 +27,7 @@ class AlertEvaluationBatchServiceTest extends TestCase
         Cache::put('horizonhub.alert_evaluation_batches.ev1.first_error_message', ['bad'], 1800);
         Cache::put('horizonhub.alert_evaluation_batches.ev1.error_message', 'boom', 1800);
 
-        $service = new AlertEvaluationBatchService;
+        $service = new AlertEvaluationBatchService(new AlertBatchStore);
         $status = $service->getEvaluationStatus('ev1');
 
         $this->assertSame('failed', $status['status']);
@@ -43,7 +44,7 @@ class AlertEvaluationBatchServiceTest extends TestCase
         $a1 = Alert::create(['name' => 'a1', 'rule_type' => FailureCount::type(), 'enabled' => true]);
         $a2 = Alert::create(['name' => 'a2', 'rule_type' => FailureCount::type(), 'enabled' => true]);
 
-        $service = new AlertEvaluationBatchService;
+        $service = new AlertEvaluationBatchService(new AlertBatchStore);
         $result = $service->startEvaluateAll();
 
         $this->private__assertStartEvaluateAllResponseShape($result);
@@ -81,7 +82,7 @@ class AlertEvaluationBatchServiceTest extends TestCase
             'enabled' => false,
         ]);
 
-        $service = new AlertEvaluationBatchService;
+        $service = new AlertEvaluationBatchService(new AlertBatchStore);
         $result = $service->startEvaluateAll();
 
         $this->private__assertStartEvaluateAllResponseShape($result);

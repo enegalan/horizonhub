@@ -2,13 +2,21 @@
     /** @var bool $showServiceColumn */
     /** @var \App\Models\Service|null $pageService */
     /** @var string $resizablePrefix */
+    $sections = [
+        \App\Enums\JobSection::Processing->value => $jobsProcessing,
+        \App\Enums\JobSection::Processed->value => $jobsProcessed,
+        \App\Enums\JobSection::Failed->value => $jobsFailed,
+    ];
+    $sectionOpenFallback = \Illuminate\Support\Js::from(
+        \array_fill_keys(\array_keys($sections), true)
+    );
 @endphp
 <div
     class="rounded-bl-[var(--radius)] overflow-hidden"
     id="horizon-jobs-stack"
     x-data="{
         sectionOpen: (() => {
-            const fallback = { processing: true, processed: true, failed: true };
+            const fallback = {{ $sectionOpenFallback }};
             try {
                 const raw = localStorage.getItem('horizon_jobs_sections');
                 if (!raw) return fallback;
@@ -29,31 +37,15 @@
         }
     }"
 >
-    @include('horizon.jobs.partials.index.list-one-collapsible', [
-        'kind' => 'processing',
-        'paginator' => $jobsProcessing,
-        'showServiceColumn' => $showServiceColumn,
-        'pageService' => $pageService,
-        'id' => "$resizablePrefix-processing",
-        'bodyKey' => "$resizablePrefix-processing",
-        'defer' => $defer,
-    ])
-    @include('horizon.jobs.partials.index.list-one-collapsible', [
-        'kind' => 'processed',
-        'paginator' => $jobsProcessed,
-        'showServiceColumn' => $showServiceColumn,
-        'pageService' => $pageService,
-        'id' => "$resizablePrefix-processed",
-        'bodyKey' => "$resizablePrefix-processed",
-        'defer' => $defer,
-    ])
-    @include('horizon.jobs.partials.index.list-one-collapsible', [
-        'kind' => 'failed',
-        'paginator' => $jobsFailed,
-        'showServiceColumn' => $showServiceColumn,
-        'pageService' => $pageService,
-        'id' => "$resizablePrefix-failed",
-        'bodyKey' => "$resizablePrefix-failed",
-        'defer' => $defer,
-    ])
+    @foreach($sections as $sectionKey => $sectionPaginator)
+        @include('horizon.jobs.partials.index.list-one-collapsible', [
+            'section' => $sectionKey,
+            'paginator' => $sectionPaginator,
+            'showServiceColumn' => $showServiceColumn,
+            'pageService' => $pageService,
+            'id' => "$resizablePrefix-$sectionKey",
+            'bodyKey' => "$resizablePrefix-$sectionKey",
+            'defer' => $defer,
+        ])
+    @endforeach
 </div>

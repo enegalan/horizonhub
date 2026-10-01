@@ -1,3 +1,4 @@
+import { bindOnce } from '../lib/dom';
 import { parseJson } from '../lib/parse';
 
 (function () {
@@ -68,10 +69,29 @@ import { parseJson } from '../lib/parse';
     const HORIZON_RESIZING_ATTR = 'data-horizon-resizing';
 
     /**
-     * Interacting flag.
+     * Attribute marking a <th> whose resize handle listeners are already bound.
+     * @type {string}
+     */
+    const RESIZE_BOUND_ATTR = 'data-horizon-resize-bound';
+
+    /**
+     * Attribute marking a <th> whose reorder listeners are already bound.
+     * @type {string}
+     */
+    const REORDER_BOUND_ATTR = 'data-horizon-reorder-bound';
+
+    /**
+     * Attribute marking <body> as already carrying the delegated drag listeners.
+     * @type {string}
+     */
+    const DRAG_DELEGATED_ATTR = 'data-horizon-drag-delegated';
+
+    /**
+     * Set while the user is resizing or dragging a column, so a re-init does not
+     * rebuild the table mid-gesture.
      * @type {boolean}
      */
-    window.horizonTableInteracting = false;
+    let tableInteracting = false;
 
     /**
      * Load the state from localStorage.
@@ -399,33 +419,35 @@ import { parseJson } from '../lib/parse';
 
             th.appendChild(handle);
 
-            handle.addEventListener('mousedown', e => {
-                e.preventDefault();
-                window.horizonTableInteracting = true;
-                th.setAttribute(HORIZON_RESIZING_ATTR, '1');
-                th.draggable = false;
-                var startX = e.clientX;
-                var startWidth = th.offsetWidth;
+            bindOnce(handle, RESIZE_BOUND_ATTR, function (boundHandle) {
+                boundHandle.addEventListener('mousedown', e => {
+                    e.preventDefault();
+                    tableInteracting = true;
+                    th.setAttribute(HORIZON_RESIZING_ATTR, '1');
+                    th.draggable = false;
+                    var startX = e.clientX;
+                    var startWidth = th.offsetWidth;
 
-                function onMove(eMove) {
-                    var w = clampColumnWidth(th, startWidth + (eMove.clientX - startX));
-                    state.widths[colId] = w;
-                    var widths = getColumnStyleWidths(th, w);
-                    th.style.width = widths.width;
-                    th.style.maxWidth = widths.maxWidth;
-                }
+                    function onMove(eMove) {
+                        var w = clampColumnWidth(th, startWidth + (eMove.clientX - startX));
+                        state.widths[colId] = w;
+                        var widths = getColumnStyleWidths(th, w);
+                        th.style.width = widths.width;
+                        th.style.maxWidth = widths.maxWidth;
+                    }
 
-                function onUp() {
-                    document.removeEventListener('mousemove', onMove);
-                    document.removeEventListener('mouseup', onUp);
-                    th.removeAttribute(HORIZON_RESIZING_ATTR);
-                    th.draggable = true;
-                    saveState(storageKey, state.order, state.widths);
-                    window.horizonTableInteracting = false;
-                }
+                    function onUp() {
+                        document.removeEventListener('mousemove', onMove);
+                        document.removeEventListener('mouseup', onUp);
+                        th.removeAttribute(HORIZON_RESIZING_ATTR);
+                        th.draggable = true;
+                        saveState(storageKey, state.order, state.widths);
+                        tableInteracting = false;
+                    }
 
-                document.addEventListener('mousemove', onMove);
-                document.addEventListener('mouseup', onUp);
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup', onUp);
+                });
             });
         });
     }
@@ -451,58 +473,60 @@ import { parseJson } from '../lib/parse';
             th.setAttribute('draggable', 'true');
             th.classList.add('select-none', 'cursor-move');
 
-            th.addEventListener('dragstart', e => {
-                if (th.getAttribute(HORIZON_RESIZING_ATTR) === '1') {
+            bindOnce(th, REORDER_BOUND_ATTR, function (boundTh) {
+                boundTh.addEventListener('dragstart', e => {
+                    if (th.getAttribute(HORIZON_RESIZING_ATTR) === '1') {
+                        e.preventDefault();
+                        return;
+                    }
+                    tableInteracting = true;
+                    e.dataTransfer.effectAllowed = 'move';
+                    var colId = th.getAttribute(COLUMN_ID_ATTR);
+                    e.dataTransfer.setData('text/plain', colId);
+                    table.setAttribute('data-drag-source-id', colId);
+                    th.classList.add('opacity-50');
+
+                    var dragImage = th.cloneNode(true);
+                    dragImage.style.cssText = '';
+                    dragImage.classList.add('horizon-drag-image');
+                    document.body.appendChild(dragImage);
+                    e.dataTransfer.setDragImage(dragImage, e.offsetX, e.offsetY);
+                    setTimeout(() => {
+                        document.body.removeChild(dragImage);
+                    }, 0);
+                });
+
+                boundTh.addEventListener('dragend', () => {
+                    th.classList.remove('opacity-50');
+                    table.removeAttribute('data-drag-source-id');
+                    tableInteracting = false;
+                });
+
+                boundTh.addEventListener('dragover', e => {
+                    if (!table.getAttribute('data-drag-source-id')) return;
+                    if (th.getAttribute(COLUMN_ID_ATTR) === table.getAttribute('data-drag-source-id')) return;
                     e.preventDefault();
-                    return;
-                }
-                window.horizonTableInteracting = true;
-                e.dataTransfer.effectAllowed = 'move';
-                var colId = th.getAttribute(COLUMN_ID_ATTR);
-                e.dataTransfer.setData('text/plain', colId);
-                table.setAttribute('data-drag-source-id', colId);
-                th.classList.add('opacity-50');
+                    e.dataTransfer.dropEffect = 'move';
+                });
 
-                var dragImage = th.cloneNode(true);
-                dragImage.style.cssText = '';
-                dragImage.classList.add('horizon-drag-image');
-                document.body.appendChild(dragImage);
-                e.dataTransfer.setDragImage(dragImage, e.offsetX, e.offsetY);
-                setTimeout(() => {
-                    document.body.removeChild(dragImage);
-                }, 0);
-            });
+                boundTh.addEventListener('drop', e => {
+                    e.preventDefault();
+                    var sourceId = e.dataTransfer.getData('text/plain');
+                    var targetId = th.getAttribute(COLUMN_ID_ATTR);
+                    if (!sourceId || sourceId === targetId) return;
 
-            th.addEventListener('dragend', () => {
-                th.classList.remove('opacity-50');
-                table.removeAttribute('data-drag-source-id');
-                window.horizonTableInteracting = false;
-            });
+                    var order = state.order.slice();
+                    var si = order.indexOf(sourceId);
+                    var ti = order.indexOf(targetId);
+                    if (si === -1 || ti === -1) return;
 
-            th.addEventListener('dragover', e => {
-                if (!table.getAttribute('data-drag-source-id')) return;
-                if (th.getAttribute(COLUMN_ID_ATTR) === table.getAttribute('data-drag-source-id')) return;
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-            });
-
-            th.addEventListener('drop', e => {
-                e.preventDefault();
-                var sourceId = e.dataTransfer.getData('text/plain');
-                var targetId = th.getAttribute(COLUMN_ID_ATTR);
-                if (!sourceId || sourceId === targetId) return;
-
-                var order = state.order.slice();
-                var si = order.indexOf(sourceId);
-                var ti = order.indexOf(targetId);
-                if (si === -1 || ti === -1) return;
-
-                order.splice(si, 1);
-                order.splice(ti, 0, sourceId);
-                state.order = order;
-                applyState(table, state);
-                setupResize(table, storageKey, state);
-                saveState(storageKey, state.order, state.widths);
+                    order.splice(si, 1);
+                    order.splice(ti, 0, sourceId);
+                    state.order = order;
+                    applyState(table, state);
+                    setupResize(table, storageKey, state);
+                    saveState(storageKey, state.order, state.widths);
+                });
             });
         });
     }
@@ -601,7 +625,7 @@ import { parseJson } from '../lib/parse';
         var columnIds = getColumnIds(table);
         if (columnIds.length === 0) return;
 
-        if (table.hasAttribute(INITTED_ATTR) && window.horizonTableInteracting) {
+        if (table.hasAttribute(INITTED_ATTR) && !tableInteracting) {
             return;
         }
 
@@ -710,53 +734,44 @@ import { parseJson } from '../lib/parse';
      * @returns {void}
      */
     function setupDelegatedDragOver() {
-        if (window._horizonDragOverDelegated) return;
+        bindOnce(document.body, DRAG_DELEGATED_ATTR, function (body) {
+            body.addEventListener('dragover', e => {
+                var target = e.target.closest('th[' + COLUMN_ID_ATTR + ']');
+                if (!target) {
+                    hideDragOverlay();
+                    return;
+                }
+                var table = target.closest('table[data-resizable-table]');
+                if (!table) {
+                    hideDragOverlay();
+                    return;
+                }
+                if (!table.getAttribute('data-drag-source-id')) {
+                    hideDragOverlay();
+                    return;
+                }
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (target.getAttribute(COLUMN_ID_ATTR) !== table.getAttribute('data-drag-source-id')) {
+                    showOverlayOver(target);
+                } else {
+                    hideDragOverlay();
+                }
+            });
+            body.addEventListener('dragleave', e => {
+                var related = e.relatedTarget;
+                if (related && related.closest && related.closest('thead')) return;
 
-        window._horizonDragOverDelegated = true;
-        document.body.addEventListener('dragover', e => {
-            var target = e.target.closest('th[' + COLUMN_ID_ATTR + ']');
-            if (!target) {
                 hideDragOverlay();
-                return;
-            }
-            var table = target.closest('table[data-resizable-table]');
-            if (!table) {
+            });
+            body.addEventListener('dragend', () => {
                 hideDragOverlay();
-                return;
-            }
-            if (!table.getAttribute('data-drag-source-id')) {
-                hideDragOverlay();
-                return;
-            }
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            if (target.getAttribute(COLUMN_ID_ATTR) !== table.getAttribute('data-drag-source-id')) {
-                showOverlayOver(target);
-            } else {
-                hideDragOverlay();
-            }
-        });
-        document.body.addEventListener('dragleave', e => {
-            var related = e.relatedTarget;
-            if (related && related.closest && related.closest('thead')) return;
-
-            hideDragOverlay();
-        });
-        document.body.addEventListener('dragend', () => {
-            hideDragOverlay();
+            });
         });
     }
 
     /**
-     * Initialize the resizable tables.
-     * @returns {void}
-     */
-    if (!window.horizonInitResizableTables) {
-        window.horizonInitResizableTables = init;
-    }
-
-    /**
-     * Initialize the resizable tables.
+     * Initialize the resizable tables on every Turbo visit.
      * @returns {void}
      */
     document.addEventListener('turbo:load', function () {

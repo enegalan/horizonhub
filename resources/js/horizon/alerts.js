@@ -1,4 +1,5 @@
 import { getChartColors, applyChartOptions } from '../charts/charts';
+import { registerDocumentDelegate } from '../lib/dom';
 import { parseJsonFromElement } from '../lib/parse';
 import { isHotReloadEnabled } from '../lib/sse';
 import { setLoading } from '../components/loading-button';
@@ -29,36 +30,27 @@ export function horizonAlertsList() {
         init() {
             var self = this;
 
-            window.__horizonAlertsListEvaluationInstance = self;
-            // Attach the document click listener only once to avoid duplicate toasts.
-            if (!window.__horizonAlertsListEvaluationClickListenerAttached) {
-                window.__horizonAlertsListEvaluationClickListenerAttached = true;
-                window.__horizonAlertsListEvaluationClickListener = function (e) {
-                    var instance = window.__horizonAlertsListEvaluationInstance;
-                    if (!instance || !e.target || !e.target.closest) return;
+            registerDocumentDelegate('alerts-list', self, function (e, instance) {
+                var evaluateAllBtn = e.target.closest('[data-alert-evaluate-all-button="1"]');
+                if (evaluateAllBtn) {
+                    e.preventDefault();
+                    instance.private__handleEvaluateAllClick(evaluateAllBtn);
+                    return;
+                }
 
-                    var evaluateAllBtn = e.target.closest('[data-alert-evaluate-all-button="1"]');
-                    if (evaluateAllBtn) {
-                        e.preventDefault();
-                        instance.private__handleEvaluateAllClick(evaluateAllBtn);
-                        return;
-                    }
+                var evalBtn = e.target.closest('[data-alert-evaluate-button="1"]');
+                if (evalBtn) {
+                    e.preventDefault();
+                    instance.private__handleEvaluateAlertClick(evalBtn);
+                    return;
+                }
 
-                    var evalBtn = e.target.closest('[data-alert-evaluate-button="1"]');
-                    if (evalBtn) {
-                        e.preventDefault();
-                        instance.private__handleEvaluateAlertClick(evalBtn);
-                        return;
-                    }
-
-                    var enabledToggleBtn = e.target.closest('[data-alert-enabled-toggle="1"]');
-                    if (enabledToggleBtn) {
-                        e.preventDefault();
-                        instance.private__handleEnabledToggleClick(enabledToggleBtn);
-                    }
-                };
-                document.addEventListener('click', window.__horizonAlertsListEvaluationClickListener);
-            }
+                var enabledToggleBtn = e.target.closest('[data-alert-enabled-toggle="1"]');
+                if (enabledToggleBtn) {
+                    e.preventDefault();
+                    instance.private__handleEnabledToggleClick(enabledToggleBtn);
+                }
+            });
         },
 
         /**

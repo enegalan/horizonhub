@@ -7,14 +7,19 @@ use App\Enums\Concerns\HasOptions;
 enum AlertRuleType: string
 {
     use HasOptions;
-    case AvgExecutionTime = 'avg_execution_time';
 
+    case AvgExecutionTime = 'avg_execution_time';
     case FailureCount = 'failure_count';
     case HorizonOffline = 'horizon_offline';
     case QueueBlocked = 'queue_blocked';
     case SupervisorOffline = 'supervisor_offline';
     case WorkerOffline = 'worker_offline';
 
+    /**
+     * Labels for the rule types.
+     *
+     * @return array<string, string>
+     */
     public static function labels(): array
     {
         return [

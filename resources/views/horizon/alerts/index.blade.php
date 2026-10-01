@@ -5,87 +5,61 @@
         class="space-y-6"
         x-data="window.deleteConfirm ? window.deleteConfirm('Alert') : {}"
     >
-        <div
-            class="card overflow-hidden"
-            x-data="window.horizonAlertsList ? window.horizonAlertsList() : {}"
-            x-init="typeof init === 'function' && init()"
+        <x-resource-index-page
+            eyebrow="Monitoring rules"
+            title="Alert rules"
+            description="Define when Horizon should notify your team about failures, blocked queues, slow jobs, or offline workers."
+            list-component="window.horizonAlertsList ? window.horizonAlertsList() : {}"
+            :filter-action="route('horizon.alerts.index')"
+            stats-target="horizon-alert-stats"
+            :stats-columns="3"
+            stats-view="horizon.alerts.partials.index.stats"
+            body-target="tbody-horizon-alerts-list"
+            body-view="horizon.alerts.partials.index.tbody"
+            :body-view-data="['alerts' => $alerts]"
+            :defer="$defer ?? false"
         >
-            <x-page-hero
-                eyebrow="Monitoring rules"
-                title="Alert rules"
-                description="Define when Horizon should notify your team about failures, blocked queues, slow jobs, or offline workers."
-            >
-                <x-slot:actions>
-                    @if($evaluateAllAlertsVisible ?? false)
-                        <x-button
-                            variant="secondary"
-                            type="button"
-                            class="h-9 text-sm alert-evaluate-btn"
-                            data-alert-evaluate-all-button="1"
-                            data-alert-evaluate-all-url="{{ route('horizon.alerts.evaluate-all') }}"
-                            data-alert-evaluate-all-status-url="{{ route('horizon.alerts.evaluations.status', ['evaluationId' => '__EVALUATION_ID__']) }}"
-                        >
-                            <span class="inline-flex items-center gap-2">
-                                <x-icons.bell class="size-4 alert-evaluate-btn-icon" />
-                                <x-icons.arrow-path class="size-4 animate-spin alert-evaluate-btn-spinner hidden" />
-                                <span data-alert-evaluate-all-label>Evaluate all alerts</span>
-                            </span>
-                        </x-button>
-                    @endif
-                    <x-form-drawer-link :href="route('horizon.alerts.create')" class="h-9 shrink-0 text-sm">
-                        New alert
-                    </x-form-drawer-link>
-                </x-slot:actions>
-            </x-page-hero>
-
-            <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
-                <form method="GET" action="{{ route('horizon.alerts.index') }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="_top">
-                    <div class="min-w-0 flex-1 space-y-2">
-                        <x-input-label for="alerts-index-search">Search</x-input-label>
-                        <x-text-input
-                            id="alerts-index-search"
-                            type="text"
-                            name="search"
-                            value="{{ $search ?? '' }}"
-                            placeholder="Alert name"
-                            class="w-full min-w-0 sm:max-w-xs"
-                        />
-                    </div>
-                    <x-button type="submit" class="h-9 w-full shrink-0 text-sm sm:w-auto">
-                        Search
+            <x-slot:actions>
+                @if($evaluateAllAlertsVisible ?? false)
+                    <x-button
+                        variant="secondary"
+                        type="button"
+                        class="h-9 text-sm alert-evaluate-btn"
+                        data-alert-evaluate-all-button="1"
+                        data-alert-evaluate-all-url="{{ route('horizon.alerts.evaluate-all') }}"
+                        data-alert-evaluate-all-status-url="{{ route('horizon.alerts.evaluations.status', ['evaluationId' => '__EVALUATION_ID__']) }}"
+                    >
+                        <span class="inline-flex items-center gap-2">
+                            <x-icons.bell class="size-4 alert-evaluate-btn-icon" />
+                            <x-icons.arrow-path class="size-4 animate-spin alert-evaluate-btn-spinner hidden" />
+                            <span data-alert-evaluate-all-label>Evaluate all alerts</span>
+                        </span>
                     </x-button>
-                </form>
-            </div>
+                @endif
+                <x-form-drawer-link :href="route('horizon.alerts.create')" class="h-9 shrink-0 text-sm">
+                    New alert
+                </x-form-drawer-link>
+            </x-slot:actions>
 
-            <div class="grid gap-3 border-b border-border px-5 py-4 sm:grid-cols-3 sm:px-6">
-                <div
-                    id="horizon-alert-stats"
-                    class="contents"
-                    data-turbo-stream-patch-children="true"
-                >
-                    @if(!empty($defer))
-                        <x-skeleton.metric-columns />
-                    @else
-                        @include('horizon.alerts.partials.index.stats')
-                    @endif
+            <x-slot:filter>
+                <div class="min-w-0 flex-1 space-y-2">
+                    <x-input-label for="alerts-index-search">Search</x-input-label>
+                    <x-text-input
+                        id="alerts-index-search"
+                        type="text"
+                        name="search"
+                        value="{{ $search ?? '' }}"
+                        placeholder="Alert name"
+                        class="w-full min-w-0 sm:max-w-xs"
+                    />
                 </div>
-            </div>
+            </x-slot:filter>
+        </x-resource-index-page>
 
-            <div class="px-5 py-5 sm:px-6">
-                <div
-                    id="tbody-horizon-alerts-list"
-                    class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
-                    data-turbo-stream-patch-children="true"
-                >
-                    @if(!empty($defer))
-                        <x-skeleton.card-grid />
-                    @else
-                        @include('horizon.alerts.partials.index.tbody', ['alerts' => $alerts])
-                    @endif
-                </div>
-            </div>
-        </div>
-
-        @include('horizon.alerts.partials.index.delete-confirm-modal')
+        <x-horizon.delete-confirm-modal
+            entity="Alert"
+            title="Delete alert"
+            resource-label="alert"
+        />
     </div>
 @endsection

@@ -188,16 +188,12 @@ abstract class AbstractAlertNotifier implements AlertNotifier, AlertNotifierMeta
      *
      * @return array<int, array{service_id: int, job_uuid: string|null, triggered_at: string, job_class: string|null, queue: string|null, failed_at: string|null, exception: string|null, attempts: int|null}>
      */
-    protected function enrichEvents(array $events, ?Service $service = null): array
+    protected function enrichEvents(array $events, ?Service $service): array
     {
         $enriched = [];
         $jobUuids = \array_values(\array_filter(\array_column($events, 'job_uuid')));
 
-        if ($service === null && ! empty($events)) {
-            $serviceId = (int) ($events[0]['service_id'] ?? 0);
-            $service = Service::find($serviceId);
-        }
-        $jobs = (empty($jobUuids) || ! $service) ? \collect() : $this->getJobs($service, $jobUuids);
+        $jobs = (empty($jobUuids) || $service === null) ? \collect() : $this->getJobs($service, $jobUuids);
 
         foreach ($events as $event) {
             $jobUuid = ! empty($event['job_uuid']) ? (string) $event['job_uuid'] : null;

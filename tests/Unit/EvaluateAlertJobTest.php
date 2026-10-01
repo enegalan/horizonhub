@@ -29,7 +29,7 @@ class EvaluateAlertJobTest extends TestCase
         $engine = $this->createMock(AlertEngine::class);
         $engine->method('evaluateAlert')->willThrowException(new \RuntimeException('engine-fail'));
 
-        (new EvaluateAlertJob($alert->id, 'eval-c'))->handle($engine);
+        (new EvaluateAlertJob($alert->id, 'eval-c'))->handle($engine, $store);
 
         $this->assertEquals(1, Cache::get('horizonhub.alert_evaluation_batches.eval-c.evaluated_count'));
         $this->assertEquals(1, Cache::get('horizonhub.alert_evaluation_batches.eval-c.error_count'));
@@ -44,7 +44,7 @@ class EvaluateAlertJobTest extends TestCase
         $store->initializeCounters('eval-a');
         $job = new EvaluateAlertJob(99999, 'eval-a');
         $engine = $this->createMock(AlertEngine::class);
-        $job->handle($engine);
+        $job->handle($engine, $store);
 
         $this->assertEquals(1, Cache::get('horizonhub.alert_evaluation_batches.eval-a.evaluated_count'));
         $this->assertEquals(1, Cache::get('horizonhub.alert_evaluation_batches.eval-a.error_count'));
@@ -74,13 +74,13 @@ class EvaluateAlertJobTest extends TestCase
             'delivered' => true,
         ]);
 
-        (new EvaluateAlertJob($alert->id, 'eval-b'))->handle($engine);
+        (new EvaluateAlertJob($alert->id, 'eval-b'))->handle($engine, $store);
         $this->assertEquals(1, Cache::get('horizonhub.alert_evaluation_batches.eval-b.triggered_count'));
         $this->assertEquals(1, Cache::get('horizonhub.alert_evaluation_batches.eval-b.delivered_count'));
         $this->assertSame('first error', Cache::get('horizonhub.alert_evaluation_batches.eval-b.first_error_message'));
 
         Cache::put('horizonhub.alert_evaluation_batches.eval-b.first_error_message', 'locked', 1800);
-        (new EvaluateAlertJob($alert->id, 'eval-b'))->handle($engine);
+        (new EvaluateAlertJob($alert->id, 'eval-b'))->handle($engine, $store);
         $this->assertSame('locked', Cache::get('horizonhub.alert_evaluation_batches.eval-b.first_error_message'));
     }
 }

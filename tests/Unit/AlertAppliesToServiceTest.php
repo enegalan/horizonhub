@@ -49,4 +49,25 @@ class AlertAppliesToServiceTest extends TestCase
 
         $this->assertSame([$included->id], $alert->resolvedServiceIds());
     }
+
+    #[Test]
+    public function resolved_services_returns_hydrated_enabled_services_in_id_order(): void
+    {
+        $second = Service::factory()->create();
+        $first = Service::factory()->create(['id' => $second->id - 1]);
+        Service::factory()->create(['enabled' => false]);
+
+        $alert = Alert::factory()->create([
+            'service_ids' => [$second->id, $first->id, 999999],
+        ]);
+
+        $services = $alert->resolvedServices();
+
+        $this->assertSame([$first->id, $second->id], \array_map(
+            static fn (Service $service): int => $service->id,
+            $services,
+        ));
+        $this->assertInstanceOf(Service::class, $services[0]);
+        $this->assertSame($services[0]->id, $alert->resolvedServiceIds()[0]);
+    }
 }
