@@ -5,7 +5,21 @@
     @if($showRetry)
         <div
             class="inline-flex"
-            x-data='window.horizonJobRowRetry(@json(["retryUrl" => route("horizon.jobs.retry", ["uuid" => $job->uuid, 'service_id' => $job->service->id])]))'
+            x-data="{
+                retryUrl: {!! \Illuminate\Support\Js::from(route('horizon.jobs.retry', ['uuid' => $job->uuid, 'service_id' => $job->service->id])) !!},
+                retrying: false,
+                retry() {
+                    if (!window.horizon || !window.horizon.http || this.retrying) return;
+                    var self = this;
+                    this.retrying = true;
+                    window.horizon.http.post(this.retryUrl, {}).then(function () {
+                        window.toast.info('Retry requested.');
+                    }).catch(function () {
+                    }).finally(function () {
+                        self.retrying = false;
+                    });
+                },
+            }"
         >
             <x-button
                 type="button"

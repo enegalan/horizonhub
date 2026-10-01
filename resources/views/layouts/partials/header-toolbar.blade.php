@@ -1,17 +1,17 @@
 <div class="flex shrink-0 items-center gap-1.5"
     x-data="{
         hotReloadEnabled: localStorage.getItem('horizonhub_hotreload') !== 'false',
-        themePreference: window.horizonHubTheme.getStoredTheme(),
+        themePreference: window.horizon.theme.get(),
         toggleHotReload() {
             this.hotReloadEnabled = !this.hotReloadEnabled;
             localStorage.setItem('horizonhub_hotreload', this.hotReloadEnabled);
             window.dispatchEvent(new CustomEvent('horizonhub-hotreload-changed', { detail: { enabled: this.hotReloadEnabled } }));
         },
         cycleTheme() {
-            this.themePreference = window.horizonHubTheme.cycleTheme();
+            this.themePreference = window.horizon.theme.cycle();
         },
         syncThemePreference() {
-            this.themePreference = window.horizonHubTheme.getStoredTheme();
+            this.themePreference = window.horizon.theme.get();
         }
     }"
     @apply-theme.window="syncThemePreference()"

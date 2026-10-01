@@ -4,7 +4,6 @@
     'description' => null,
     'filterAction' => null,
     'filterFormAttributes' => null,
-    'listComponent' => null,
     'statsTarget' => null,
     'statsColumns' => 3,
     'statsView' => null,
@@ -23,7 +22,7 @@
         : new \Illuminate\View\ComponentAttributeBag((array) $filterFormAttributes);
 @endphp
 
-<div class="card overflow-hidden" @if($listComponent) x-data="{{ $listComponent }}" @endif>
+<div class="card overflow-hidden">
     <x-page-hero :eyebrow="$eyebrow" :title="$title" :description="$description">
         @isset($actions)
             <x-slot:actions>{{ $actions }}</x-slot:actions>

@@ -1,30 +1,14 @@
 import './bootstrap';
-import { startAlpine } from './alpine';
 import './components/resizable-table';
 import './components/form-drawer';
-import './components/loading-button';
-import { horizonJobsPage, horizonJobDetail, horizonJobRowRetry, initJsonTrees } from './horizon/jobs';
-import { horizonAlertsList, horizonAlertDetail, renderAlertDetailCharts } from './horizon/alerts';
-import { horizonServiceForm, horizonServicesList } from './horizon/services';
-import { horizonMetricsPage, renderMetricsCharts } from './horizon/metrics';
+import { startAlpine } from './alpine';
+import { renderJsonTrees } from './horizon/jobs';
+import { renderAlertDetailCharts } from './horizon/alerts';
+import { renderMetricsCharts } from './horizon/metrics';
 import { initTurboStream } from './lib/sse';
 import { formatDatetimeElements } from './lib/datetime-format';
 import { getTurboStreamTargetElement, renderTurboStreamWithGuards } from './lib/stream-guard';
-import { deleteConfirm } from './components/delete-confirm';
 import { mountToaster } from './components/toaster';
-import { initTheme } from './components/theme';
-
-window.horizonJobsPage = horizonJobsPage;
-window.horizonJobDetail = horizonJobDetail;
-window.horizonJobRowRetry = horizonJobRowRetry;
-window.horizonAlertsList = horizonAlertsList;
-window.horizonAlertDetail = horizonAlertDetail;
-window.deleteConfirm = deleteConfirm;
-window.horizonServiceForm = horizonServiceForm;
-window.horizonServicesList = horizonServicesList;
-window.horizonMetricsPage = horizonMetricsPage;
-
-window.horizonHubTheme = initTheme();
 
 startAlpine();
 
@@ -32,15 +16,11 @@ document.addEventListener('turbo:load', function () {
     setTimeout(function () {
         formatDatetimeElements();
     }, 0);
-    mountToaster();
 });
 
 onDocumentReady(function () {
-    mountToaster();
-    setTimeout(function () {
-        formatDatetimeElements();
-    }, 0);
     initTurboStream();
+    mountToaster();
 });
 
 document.addEventListener('turbo:before-stream-render', function (e) {
@@ -54,7 +34,7 @@ document.addEventListener('turbo:before-stream-render', function (e) {
             if (outcome === 'rendered' && typeof window.horizonSyncResizableTablesUnderRoot === 'function') {
                 window.horizonSyncResizableTablesUnderRoot(syncRoot);
             }
-            initJsonTrees();
+            renderJsonTrees();
             renderMetricsCharts();
             renderAlertDetailCharts();
         }, 0);
@@ -62,7 +42,7 @@ document.addEventListener('turbo:before-stream-render', function (e) {
 });
 
 window.addEventListener('apply-theme', function () {
-    window.horizonHubTheme.applyTheme();
+    window.horizon.theme.apply();
 });
 
 /**

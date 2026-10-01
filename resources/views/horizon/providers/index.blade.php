@@ -3,7 +3,23 @@
 @section('content')
     <div
         class="space-y-6"
-        x-data="window.deleteConfirm ? window.deleteConfirm('Provider') : {}"
+        x-data="{
+            showDeleteProviderModal: false,
+            deleteProviderName: '',
+            deleteProviderAction: '',
+            openDeleteProviderModal(name, action) {
+                this.deleteProviderName = name;
+                this.deleteProviderAction = action;
+                this.showDeleteProviderModal = true;
+            },
+            closeDeleteProviderModal() {
+                this.showDeleteProviderModal = false;
+            },
+            confirmDeleteProvider() {
+                this.$refs.deleteProviderForm.requestSubmit();
+                this.closeDeleteProviderModal();
+            },
+        }"
     >
         <x-resource-index-page
             eyebrow="Delivery channels"

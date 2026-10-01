@@ -3,11 +3,361 @@
 @section('content')
     <div
         class="space-y-6"
-        x-data="window.horizonJobsPage ? window.horizonJobsPage({
-            failedListUrl: '{{ route('horizon.jobs.failed') }}',
-            retryBatchUrl: '{{ route('horizon.jobs.retry-batch') }}',
-            jobsPerPage: {{ config('horizonhub.jobs_per_page') }},
-        }) : {}"
+        x-data="{
+            showRetryModal: false,
+            retryModalMounted: false,
+            retrying: false,
+            failedJobs: [],
+            selectedFailedJobs: [],
+            retrySelectionAnchorGlobalIndex: null,
+            selectingAllFailed: false,
+            retryLoadingJobs: false,
+            retryPage: 1,
+            retryLastPage: 1,
+            retryTotal: 0,
+            retryPerPage: {{ config('horizonhub.jobs_per_page') }},
+            retryModalSession: 0,
+            failedListUrl: {!! \Illuminate\Support\Js::from(route('horizon.jobs.failed')) !!},
+            retryBatchUrl: {!! \Illuminate\Support\Js::from(route('horizon.jobs.retry-batch')) !!},
+            retryFilters: {
+                service_ids: [],
+                service_tags: [],
+                search: '',
+                failed_at_range: '',
+            },
+            openRetryModal() {
+                this.retryModalSession = (this.retryModalSession || 0) + 1;
+                this.retryFilters.service_ids = [];
+                this.retryFilters.service_tags = [];
+                this.retryFilters.search = '';
+                this.retryFilters.failed_at_range = '';
+                this.retryModalMounted = true;
+                this.showRetryModal = false;
+                requestAnimationFrame(() => {
+                    this.showRetryModal = true;
+                });
+                this.selectedFailedJobs = [];
+                this.retrySelectionAnchorGlobalIndex = null;
+                this.selectingAllFailed = false;
+                this.retryPage = 1;
+                this.loadFailedJobs();
+            },
+            applyRetryModalFilters() {
+                this.retryPage = 1;
+                this.retrySelectionAnchorGlobalIndex = null;
+                this.loadFailedJobs();
+            },
+            closeRetryModal() {
+                this.showRetryModal = false;
+                this.selectedFailedJobs = [];
+                this.retrySelectionAnchorGlobalIndex = null;
+                this.selectingAllFailed = false;
+                window.setTimeout(() => {
+                    if (!this.showRetryModal) {
+                        this.retryModalMounted = false;
+                    }
+                }, 220);
+            },
+            retryModalFailedListQuery(options) {
+                options = options || {};
+                var params = new URLSearchParams();
+                var serviceIds = this.retryFilters.service_ids;
+                if (Array.isArray(serviceIds)) {
+                    serviceIds.forEach(function (id) {
+                        if (id !== null && id !== '' && id !== undefined) {
+                            params.append('service_ids[]', String(id));
+                        }
+                    });
+                }
+                var serviceTags = this.retryFilters.service_tags;
+                if (Array.isArray(serviceTags)) {
+                    serviceTags.forEach(function (tag) {
+                        if (tag !== null && tag !== '') {
+                            params.append('service_tag[]', String(tag));
+                        }
+                    });
+                }
+                if (this.retryFilters.search) params.append('search', this.retryFilters.search);
+                var rangeParts = window.horizon.parseFailedAtRange(this.retryFilters.failed_at_range);
+                if (rangeParts.dateFrom) params.append('date_from', rangeParts.dateFrom);
+                if (rangeParts.dateTo) params.append('date_to', rangeParts.dateTo);
+                if (options.selection) {
+                    params.append('selection', options.selection);
+                }
+                if (options.selection !== 'all') {
+                    if (this.retryPage) params.append('page', this.retryPage);
+                    if (this.retryPerPage) params.append('per_page', this.retryPerPage);
+                }
+                return params;
+            },
+            loadFailedJobs() {
+                var params = this.retryModalFailedListQuery();
+                var url = this.failedListUrl + (params.toString() ? ('?' + params.toString()) : '');
+                this.retryLoadingJobs = true;
+                window.horizon.http.get(url).then((data) => {
+                    this.failedJobs = Array.isArray(data.data) ? data.data : [];
+                    if (data.meta) {
+                        this.retryPage = typeof data.meta.current_page === 'number' ? data.meta.current_page : 1;
+                        this.retryLastPage = typeof data.meta.last_page === 'number' ? data.meta.last_page : 1;
+                        this.retryPerPage = typeof data.meta.per_page === 'number' ? data.meta.per_page : this.retryPerPage;
+                        this.retryTotal = typeof data.meta.total === 'number' ? data.meta.total : this.failedJobs.length;
+                    } else {
+                        this.retryLastPage = 1;
+                        this.retryTotal = this.failedJobs.length;
+                    }
+                }).catch(function (error) {
+                    console.error('Failed loading failed jobs', error);
+                }).finally(() => {
+                    this.retryLoadingJobs = false;
+                });
+            },
+            toggleFailed(id, serviceId, rowIndex, event) {
+                var index = typeof rowIndex === 'number' ? rowIndex : Number(rowIndex);
+                if (event && event.shiftKey && !Number.isNaN(index) && index >= 0) {
+                    this.applyFailedJobShiftSelection(index);
+                    return;
+                }
+                this.toggleFailedJobSelection(id, serviceId);
+                this.retrySelectionAnchorGlobalIndex = Number.isNaN(index) || index < 0 ? null : this.failedJobGlobalIndex(index);
+            },
+            selectAllFailed() {
+                var self = this;
+                if (this.selectingAllFailed) return;
+                this.selectingAllFailed = true;
+                this.retrySelectionAnchorGlobalIndex = null;
+                var params = this.retryModalFailedListQuery({ selection: 'all' });
+                var url = this.failedListUrl + (params.toString() ? ('?' + params.toString()) : '');
+                window.horizon.http.get(url).then(function (data) {
+                    var jobs = Array.isArray(data.jobs) ? data.jobs : [];
+                    self.selectedFailedJobs = jobs
+                        .map(function (j) {
+                            return {
+                                id: String(j.id || ''),
+                                service_id: typeof j.service_id === 'number' ? j.service_id : Number(j.service_id),
+                            };
+                        })
+                        .filter(function (j) {
+                            return j.id !== '' && !Number.isNaN(j.service_id) && j.service_id > 0;
+                        });
+                }).catch(function (error) {
+                    console.error('Failed selecting all failed jobs', error);
+                }).finally(function () {
+                    self.selectingAllFailed = false;
+                });
+            },
+            toggleAllFailedSelection() {
+                if (this.selectedFailedJobs.length > 0) {
+                    this.clearSelection();
+                    return;
+                }
+                this.selectAllFailed();
+            },
+            clearSelection() {
+                this.selectedFailedJobs = [];
+                this.retrySelectionAnchorGlobalIndex = null;
+            },
+            setRetryPage(page) {
+                var p = typeof page === 'number' ? page : Number(page);
+                if (!p || p < 1 || p > this.retryLastPage) return;
+                this.retryPage = p;
+                this.loadFailedJobs();
+            },
+            buildRetryPaginationSlider(current, last, onEachSide) {
+                var w = onEachSide;
+                var slider = [];
+                if (last <= (w * 2 + 3)) {
+                    for (let i = 1; i <= last; i++) {
+                        slider.push(i);
+                    }
+                } else if (current <= w + 2) {
+                    var end = Math.min(w * 2 + 2, last);
+                    for (let i = 1; i <= end; i++) {
+                        slider.push(i);
+                    }
+                    slider.push('...');
+                    slider.push(last);
+                } else if (current >= last - w - 1) {
+                    slider.push(1);
+                    slider.push('...');
+                    var start = Math.max(1, last - w * 2 - 1);
+                    for (let i = start; i <= last; i++) {
+                        slider.push(i);
+                    }
+                } else {
+                    slider.push(1);
+                    slider.push('...');
+                    for (let i = current - w; i <= current + w; i++) {
+                        slider.push(i);
+                    }
+                    slider.push('...');
+                    slider.push(last);
+                }
+                return slider;
+            },
+            retryPaginationPages() {
+                return this.buildRetryPaginationSlider(this.retryPage, this.retryLastPage, 2);
+            },
+            retryPaginationSummaryLine() {
+                var tot = this.retryTotal;
+                var count = this.failedJobs.length;
+                if (tot === 0) {
+                    return 'Showing 0 items';
+                }
+                if (count === 0) {
+                    return 'Showing ' + tot + ' items';
+                }
+                var fi = (this.retryPage - 1) * this.retryPerPage + 1;
+                var li = fi + count - 1;
+                return 'Showing ' + fi + '\\u2013' + li + ' of ' + tot;
+            },
+            prevRetryPage() {
+                this.setRetryPage(this.retryPage - 1);
+            },
+            nextRetryPage() {
+                this.setRetryPage(this.retryPage + 1);
+            },
+            retrySelected() {
+                var self = this;
+                if (!window.horizon || !window.horizon.http) return;
+                if (this.selectedFailedJobs.length === 0) return;
+                var jobs = this.selectedFailedJobs.map(function (j) {
+                    return { id: j.id, service_id: j.service_id };
+                });
+                var requestedCount = jobs.length;
+                this.retrying = true;
+                window.horizon.http.post(this.retryBatchUrl, { jobs: jobs }).then(function (data) {
+                    self.retrying = false;
+                    self.closeRetryModal();
+                    var succeeded = typeof data.succeeded === 'number' ? data.succeeded : requestedCount;
+                    var failed = typeof data.failed === 'number' ? data.failed : Math.max(0, requestedCount - succeeded);
+                    var results = Array.isArray(data && data.results) ? data.results : [];
+
+                    var firstFailureMessage = '';
+                    for (let i = 0; i < results.length; i++) {
+                        if (results[i] && !results[i].success && results[i].message) {
+                            firstFailureMessage = String(results[i].message);
+                            break;
+                        }
+                    }
+
+                    if (failed === 0) {
+                        window.toast.info('Retry requested for ' + succeeded + ' job(s).');
+                        return;
+                    }
+
+                    if (succeeded === 0) {
+                        window.toast.error('Retry could not be requested for the selected jobs' + (firstFailureMessage ? ': ' + firstFailureMessage : '.'));
+                        return;
+                    }
+
+                    window.toast.warning('Retry requested for ' + succeeded + ' job(s); ' + failed + ' job(s) failed' + (firstFailureMessage ? ': ' + firstFailureMessage : '.'));
+                }).catch(function () {
+                    self.retrying = false;
+                });
+            },
+            applyFailedJobShiftSelection(clickedIndex) {
+                var self = this;
+                var clickedGlobalIndex = this.failedJobGlobalIndex(clickedIndex);
+                if (clickedGlobalIndex === null) {
+                    return;
+                }
+                var startGlobalIndex = this.failedJobShiftStartGlobalIndex();
+                var from = Math.min(startGlobalIndex, clickedGlobalIndex);
+                var to = Math.max(startGlobalIndex, clickedGlobalIndex);
+                var pageStart = (this.retryPage - 1) * this.retryPerPage;
+                var pageEnd = pageStart + this.failedJobs.length - 1;
+
+                if (from >= pageStart && to <= pageEnd) {
+                    this.applyFailedJobShiftRangeOnRows(from - pageStart, to - pageStart);
+                    this.retrySelectionAnchorGlobalIndex = clickedGlobalIndex;
+                    return;
+                }
+
+                var params = this.retryModalFailedListQuery({ selection: 'all' });
+                var url = this.failedListUrl + (params.toString() ? ('?' + params.toString()) : '');
+                window.horizon.http.get(url).then(function (data) {
+                    var jobs = Array.isArray(data.jobs) ? data.jobs : [];
+                    self.applyFailedJobShiftRangeOnJobs(from, to, jobs);
+                    self.retrySelectionAnchorGlobalIndex = clickedGlobalIndex;
+                }).catch(function (error) {
+                    console.error('Failed applying shift selection across pages', error);
+                });
+            },
+            applyFailedJobShiftRangeOnRows(from, to) {
+                for (let i = from; i <= to; i++) {
+                    var job = this.failedJobs[i];
+                    if (!job || !job.uuid) {
+                        continue;
+                    }
+                    this.toggleFailedJobShiftSelection(job.uuid, job.service_id);
+                }
+            },
+            applyFailedJobShiftRangeOnJobs(from, to, jobs) {
+                if (!Array.isArray(jobs) || jobs.length === 0) {
+                    return;
+                }
+                var end = Math.min(to, jobs.length - 1);
+                for (let i = from; i <= end; i++) {
+                    var job = jobs[i];
+                    if (!job || !job.id) {
+                        continue;
+                    }
+                    var serviceId = typeof job.service_id === 'number' ? job.service_id : Number(job.service_id);
+                    this.toggleFailedJobShiftSelection(String(job.id), serviceId);
+                }
+            },
+            addFailedJobSelection(id, serviceId) {
+                if (!id || this.isFailedJobSelected(id)) {
+                    return;
+                }
+                this.selectedFailedJobs.push({
+                    id: id,
+                    service_id: typeof serviceId === 'number' ? serviceId : Number(serviceId),
+                });
+            },
+            isFailedJobSelected(id) {
+                return this.selectedFailedJobs.some(function (job) {
+                    return job.id === id;
+                });
+            },
+            removeFailedJobSelection(id) {
+                var index = this.selectedFailedJobs.findIndex(function (job) {
+                    return job.id === id;
+                });
+                if (index >= 0) {
+                    this.selectedFailedJobs.splice(index, 1);
+                }
+            },
+            toggleFailedJobSelection(id, serviceId) {
+                if (this.isFailedJobSelected(id)) {
+                    this.removeFailedJobSelection(id);
+                    return;
+                }
+                this.addFailedJobSelection(id, serviceId);
+            },
+            failedJobGlobalIndex(rowIndex) {
+                if (typeof rowIndex !== 'number' || Number.isNaN(rowIndex) || rowIndex < 0 || rowIndex >= this.failedJobs.length) {
+                    return null;
+                }
+                return (this.retryPage - 1) * this.retryPerPage + rowIndex;
+            },
+            failedJobShiftStartGlobalIndex() {
+                if (this.selectedFailedJobs.length === 0) {
+                    return 0;
+                }
+                if (typeof this.retrySelectionAnchorGlobalIndex === 'number' && !Number.isNaN(this.retrySelectionAnchorGlobalIndex) && this.retrySelectionAnchorGlobalIndex >= 0) {
+                    return this.retrySelectionAnchorGlobalIndex + 1;
+                }
+                return 0;
+            },
+            toggleFailedJobShiftSelection(id, serviceId) {
+                if (this.isFailedJobSelected(id)) {
+                    this.removeFailedJobSelection(id);
+                    return;
+                }
+                this.addFailedJobSelection(id, serviceId);
+            },
+        }"
     >
         <div class="card overflow-hidden">
             <x-page-hero

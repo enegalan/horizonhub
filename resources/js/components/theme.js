@@ -1,52 +1,10 @@
 const THEME_KEY = 'horizonhub_theme';
 
 /**
- * Initialize theme functionality.
- * @returns {Object}
- */
-export function initTheme() {
-    return {
-        getStoredTheme: getStoredTheme,
-        resolveDark: resolveDark,
-        /**
-         * Apply theme.
-         * @returns {void}
-         */
-        applyTheme: function () {
-            const theme = getStoredTheme();
-            const isDark = resolveDark(theme);
-
-            document.documentElement.classList.toggle('light', !isDark);
-            document.documentElement.classList.toggle('dark', isDark);
-        },
-        /**
-         * Set theme.
-         * @param {'light'|'dark'|'system'} theme
-         * @returns {void}
-         */
-        setTheme: function (theme) {
-            localStorage.setItem(THEME_KEY, theme);
-            window.dispatchEvent(new CustomEvent('apply-theme'));
-            return theme;
-        },
-        /**
-         * Advance stored preference: light → dark → system → light.
-         * @returns {'light'|'dark'|'system'}
-         */
-        cycleTheme: function () {
-            var current = getStoredTheme();
-            var next = current === 'light' ? 'dark' : current === 'dark' ? 'system' : 'light';
-
-            return this.setTheme(next);
-        },
-    };
-}
-
-/**
- * Validated theme value from localStorage.
+ * Get the stored theme from localStorage.
  * @returns {'light'|'dark'|'system'}
  */
-function getStoredTheme() {
+export function getTheme() {
     var raw = localStorage.getItem(THEME_KEY);
 
     if (raw === 'light' || raw === 'dark' || raw === 'system') {
@@ -67,4 +25,38 @@ function resolveDark(theme) {
     }
 
     return theme === 'dark';
+}
+
+/**
+ * Apply theme.
+ * @returns {void}
+ */
+export function applyTheme() {
+    const theme = getTheme();
+    const isDark = resolveDark(theme);
+
+    document.documentElement.classList.toggle('light', !isDark);
+    document.documentElement.classList.toggle('dark', isDark);
+}
+
+/**
+ * Cycle the theme preference: light → dark → system → light.
+ * @returns {'light'|'dark'|'system'}
+ */
+export function cycleTheme() {
+    var current = getTheme();
+    var next = current === 'light' ? 'dark' : current === 'dark' ? 'system' : 'light';
+
+    return setTheme(next);
+}
+
+/**
+    * Set theme.
+    * @param {'light'|'dark'|'system'} theme
+    * @returns {'light'|'dark'|'system'}
+    */
+function setTheme(theme) {
+    localStorage.setItem(THEME_KEY, theme);
+    window.dispatchEvent(new CustomEvent('apply-theme'));
+    return theme;
 }
