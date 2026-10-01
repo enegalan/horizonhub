@@ -2,9 +2,14 @@
 
 namespace App\Http\Requests\Horizon;
 
+/**
+ * Form request for the retry batch action.
+ */
 class RetryBatchRequest extends HorizonRequest
 {
     /**
+     * The validation rules for the request.
+     *
      * @return array<string, mixed>
      */
     public function rules(): array

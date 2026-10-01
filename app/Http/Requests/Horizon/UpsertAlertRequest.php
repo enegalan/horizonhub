@@ -8,9 +8,6 @@ use App\Support\Alerts\AlertRuleCatalog;
 
 /**
  * Form request for creating and updating an alert.
- *
- * The threshold fields are conditional on the selected rule type, so the rules
- * are resolved from the submitted `rule_type` rather than declared statically.
  */
 class UpsertAlertRequest extends HorizonRequest
 {

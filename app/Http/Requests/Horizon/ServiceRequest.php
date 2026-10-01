@@ -5,11 +5,15 @@ namespace App\Http\Requests\Horizon;
 use App\Models\Service;
 use Illuminate\Http\Request;
 
+/**
+ * Form request for the service action.
+ */
 class ServiceRequest extends HorizonRequest
 {
     /**
      * Parse `service_id` from the request and restrict to existing services.
      *
+     * @param Request $request
      * @return list<int>
      */
     public static function existingIdsFromRequest(Request $request): array

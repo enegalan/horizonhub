@@ -5,9 +5,14 @@ namespace App\Http\Requests\Horizon;
 use App\Rules\RetryModalDateFilter;
 use Illuminate\Validation\Rule;
 
+/**
+ * Form request for the failed jobs list.
+ */
 class FailedJobsListRequest extends HorizonRequest
 {
     /**
+     * The validation rules for the request.
+     *
      * @return array<string, mixed>
      */
     public function rules(): array

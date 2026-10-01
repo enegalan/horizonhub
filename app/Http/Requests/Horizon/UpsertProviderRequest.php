@@ -5,9 +5,14 @@ namespace App\Http\Requests\Horizon;
 use App\Enums\NotificationProviderType;
 use App\Models\NotificationProvider;
 
+/**
+ * Form request for the upsert provider action.
+ */
 class UpsertProviderRequest extends HorizonRequest
 {
     /**
+     * Normalize the provider data.
+     *
      * @return array<string, mixed>
      */
     public function normalizedProviderData(): array
@@ -27,6 +32,8 @@ class UpsertProviderRequest extends HorizonRequest
     }
 
     /**
+     * The validation rules for the request.
+     *
      * @return array<string, mixed>
      */
     public function rules(): array
