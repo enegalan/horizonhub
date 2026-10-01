@@ -21,6 +21,12 @@ import { parseJson } from '../lib/parse';
     const HORIZON_DRAG_OVERLAY_VISIBLE_CLASS = 'horizon-drag-overlay--visible';
 
     /**
+     * Horizon drag image class.
+     * @type {string}
+     */
+    const HORIZON_DRAG_IMAGE_CLASS = 'horizon-drag-image';
+
+    /**
      * Horizon resize handle line class.
      * @type {string}
      */
@@ -87,11 +93,36 @@ import { parseJson } from '../lib/parse';
     const DRAG_DELEGATED_ATTR = 'data-horizon-drag-delegated';
 
     /**
+     * Attribute marking a table as resizable.
+     * @type {string}
+     */
+    const RESIZABLE_TABLE_ATTR = 'data-resizable-table';
+
+    /**
+     * Attribute marking a <th> as having a resize handle.
+     * @type {string}
+     */
+    const DRAG_SOURCE_ID_ATTR = 'data-drag-source-id';
+
+    /**
+     * Attribute marking a <th> as having a fixed column.
+     * @type {string}
+     */
+    const COLUMN_FIXED_ATTR = 'data-column-fixed';
+
+    /**
      * Set while the user is resizing or dragging a column, so a re-init does not
      * rebuild the table mid-gesture.
      * @type {boolean}
      */
     let tableInteracting = false;
+
+    /**
+     * Set once the tables observer is installed, so a Turbo visit does not stack
+     * another one.
+     * @type {boolean}
+     */
+    let observingAddedTables = false;
 
     /**
      * Load the state from localStorage.
@@ -464,7 +495,7 @@ import { parseJson } from '../lib/parse';
         if (!theadRow) return;
 
         theadRow.querySelectorAll('th[' + COLUMN_ID_ATTR + ']').forEach(th => {
-            if (th.hasAttribute('data-column-fixed')) {
+            if (th.hasAttribute(COLUMN_FIXED_ATTR)) {
                 th.removeAttribute('draggable');
                 th.classList.remove('select-none', 'cursor-move');
                 return;
@@ -483,12 +514,12 @@ import { parseJson } from '../lib/parse';
                     e.dataTransfer.effectAllowed = 'move';
                     var colId = th.getAttribute(COLUMN_ID_ATTR);
                     e.dataTransfer.setData('text/plain', colId);
-                    table.setAttribute('data-drag-source-id', colId);
+                    table.setAttribute(DRAG_SOURCE_ID_ATTR, colId);
                     th.classList.add('opacity-50');
 
                     var dragImage = th.cloneNode(true);
                     dragImage.style.cssText = '';
-                    dragImage.classList.add('horizon-drag-image');
+                    dragImage.classList.add(HORIZON_DRAG_IMAGE_CLASS);
                     document.body.appendChild(dragImage);
                     e.dataTransfer.setDragImage(dragImage, e.offsetX, e.offsetY);
                     setTimeout(() => {
@@ -498,13 +529,13 @@ import { parseJson } from '../lib/parse';
 
                 boundTh.addEventListener('dragend', () => {
                     th.classList.remove('opacity-50');
-                    table.removeAttribute('data-drag-source-id');
+                    table.removeAttribute(DRAG_SOURCE_ID_ATTR);
                     tableInteracting = false;
                 });
 
                 boundTh.addEventListener('dragover', e => {
-                    if (!table.getAttribute('data-drag-source-id')) return;
-                    if (th.getAttribute(COLUMN_ID_ATTR) === table.getAttribute('data-drag-source-id')) return;
+                    if (!table.getAttribute(DRAG_SOURCE_ID_ATTR)) return;
+                    if (th.getAttribute(COLUMN_ID_ATTR) === table.getAttribute(DRAG_SOURCE_ID_ATTR)) return;
                     e.preventDefault();
                     e.dataTransfer.dropEffect = 'move';
                 });
@@ -594,6 +625,8 @@ import { parseJson } from '../lib/parse';
             return;
         }
 
+        if (wrapper.clientWidth === 0) return;
+
         emptyState.classList.add(HORIZON_EMPTY_PINNED_CLASS);
         emptyState.style.width = wrapper.clientWidth + 'px';
         table.style.overflow = 'visible';
@@ -604,7 +637,7 @@ import { parseJson } from '../lib/parse';
      * @returns {void}
      */
     function refreshEmptyStatePinning() {
-        document.querySelectorAll('table[data-resizable-table]').forEach(applyEmptyStatePinning);
+        document.querySelectorAll('table[' + RESIZABLE_TABLE_ATTR + ']').forEach(applyEmptyStatePinning);
     }
 
     if (!window._horizonEmptyStateRefreshBound) {
@@ -619,7 +652,7 @@ import { parseJson } from '../lib/parse';
      * @returns {void}
      */
     function initTable(table) {
-        var storageKey = table.getAttribute('data-resizable-table');
+        var storageKey = table.getAttribute(RESIZABLE_TABLE_ATTR);
         if (!storageKey) return;
 
         var columnIds = getColumnIds(table);
@@ -650,7 +683,7 @@ import { parseJson } from '../lib/parse';
      * @returns {void}
      */
     function syncLayoutFromStorage(table) {
-        var storageKey = table.getAttribute('data-resizable-table');
+        var storageKey = table.getAttribute(RESIZABLE_TABLE_ATTR);
         if (!storageKey) return;
 
         var columnIds = getColumnIds(table);
@@ -704,14 +737,14 @@ import { parseJson } from '../lib/parse';
             }
             tables.push(table);
         }
-        if (syncRoot.matches && syncRoot.matches('table[data-resizable-table]')) {
+        if (syncRoot.matches && syncRoot.matches('table[' + RESIZABLE_TABLE_ATTR + ']')) {
             addTable(syncRoot);
         }
-        var parentTable = syncRoot.closest && syncRoot.closest('table[data-resizable-table]');
+        var parentTable = syncRoot.closest && syncRoot.closest('table[' + RESIZABLE_TABLE_ATTR + ']');
         if (parentTable) {
             addTable(parentTable);
         }
-        syncRoot.querySelectorAll('table[data-resizable-table]').forEach(addTable);
+        syncRoot.querySelectorAll('table[' + RESIZABLE_TABLE_ATTR + ']').forEach(addTable);
         tables.forEach(function (table) {
             window.horizonSyncResizableTableLayout(table);
         });
@@ -722,11 +755,35 @@ import { parseJson } from '../lib/parse';
     }
 
     /**
-     * Initialize the resizable tables.
+     * Setup the observer that initializes tables added to the document.
+     *
+     * Tables rendered by an `x-if` (a modal body, for instance) do not exist
+     * when the page loads, so the code revealing them does not need to know
+     * that column layouts exist. Insertions are reported before the browser
+     * paints, so a table revealed by a modal is laid out on its first visible
+     * frame; the only measurement that needs a visible table (the empty state
+     * pinning) skips hidden ones.
      * @returns {void}
      */
-    function init() {
-        document.querySelectorAll('table[data-resizable-table]').forEach(initTable);
+    function setupTablesObserver() {
+        if (observingAddedTables) return;
+        observingAddedTables = true;
+
+        function initAdded(node) {
+            if (!node || node.nodeType !== 1) return;
+            if (node.matches && node.matches('table[' + RESIZABLE_TABLE_ATTR + ']')) {
+                initTable(node);
+            }
+            if (node.querySelectorAll) {
+                node.querySelectorAll('table[' + RESIZABLE_TABLE_ATTR + ']').forEach(initTable);
+            }
+        }
+
+        new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                Array.prototype.forEach.call(mutation.addedNodes, initAdded);
+            });
+        }).observe(document.body, { childList: true, subtree: true });
     }
 
     /**
@@ -741,18 +798,18 @@ import { parseJson } from '../lib/parse';
                     hideDragOverlay();
                     return;
                 }
-                var table = target.closest('table[data-resizable-table]');
+                var table = target.closest('table[' + RESIZABLE_TABLE_ATTR + ']');
                 if (!table) {
                     hideDragOverlay();
                     return;
                 }
-                if (!table.getAttribute('data-drag-source-id')) {
+                if (!table.getAttribute(DRAG_SOURCE_ID_ATTR)) {
                     hideDragOverlay();
                     return;
                 }
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
-                if (target.getAttribute(COLUMN_ID_ATTR) !== table.getAttribute('data-drag-source-id')) {
+                if (target.getAttribute(COLUMN_ID_ATTR) !== table.getAttribute(DRAG_SOURCE_ID_ATTR)) {
                     showOverlayOver(target);
                 } else {
                     hideDragOverlay();
@@ -776,6 +833,7 @@ import { parseJson } from '../lib/parse';
      */
     document.addEventListener('turbo:load', function () {
         setupDelegatedDragOver();
-        init();
+        setupTablesObserver();
+        document.querySelectorAll('table[' + RESIZABLE_TABLE_ATTR + ']').forEach(initTable)
     });
 })();

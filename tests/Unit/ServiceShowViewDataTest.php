@@ -34,7 +34,7 @@ class ServiceShowViewDataTest extends TestCase
 
             if (str_contains($request->url(), '/horizon/api/workload')) {
                 return Http::response([
-                    ['name' => 'default', 'jobs' => 5, 'processes' => 2, 'wait' => 1.2],
+                    ['name' => 'default', 'length' => 5, 'processes' => 2, 'wait' => 1.2],
                 ], 200);
             }
 
@@ -67,6 +67,7 @@ class ServiceShowViewDataTest extends TestCase
         $this->assertSame('job-x', $data['search']);
         $this->assertCount(1, $data['supervisors']);
         $this->assertCount(1, $data['workloadQueues']);
+        $this->assertSame(5, $data['workloadQueues'][0]['jobs']);
     }
 
     public function test_build_returns_empty_data_when_service_is_disabled(): void

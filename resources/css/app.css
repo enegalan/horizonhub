@@ -514,6 +514,28 @@
     @apply badge-danger;
 }
 
+.job-section {
+    @apply border-l-4;
+}
+.job-section[data-section-key="processing"] {
+    @apply border-l-amber-500/40 hover:border-l-amber-500/60;
+}
+.job-section[data-section-key="processing"][open] {
+    @apply border-l-amber-500/60 bg-amber-500/5;
+}
+.job-section[data-section-key="processed"] {
+    @apply border-l-emerald-500/40 hover:border-l-emerald-500/60;
+}
+.job-section[data-section-key="processed"][open] {
+    @apply border-l-emerald-500/60 bg-emerald-500/5;
+}
+.job-section[data-section-key="failed"] {
+    @apply border-l-destructive/40 hover:border-l-destructive/60;
+}
+.job-section[data-section-key="failed"][open] {
+    @apply border-l-destructive/60 bg-destructive/5;
+}
+
 th[data-column-id="actions"],
 td[data-column-id="actions"] {
     @apply text-center;

@@ -36,15 +36,11 @@ class JobSectionTest extends TestCase
         $this->assertSame('No failed jobs', JobSection::Failed->emptyCopy()['title']);
     }
 
-    public function test_every_section_has_distinct_visual_tones(): void
+    public function test_every_section_has_distinct_badge_tone(): void
     {
         $badges = \array_map(fn (JobSection $s) => $s->badgeClass(), JobSection::cases());
-        $borders = \array_map(fn (JobSection $s) => $s->borderClass(), JobSection::cases());
-        $accents = \array_map(fn (JobSection $s) => $s->openAccentClass(), JobSection::cases());
 
         $this->assertSame($badges, \array_unique($badges));
-        $this->assertSame($borders, \array_unique($borders));
-        $this->assertSame($accents, \array_unique($accents));
     }
 
     public function test_exposes_the_three_rendered_sections(): void

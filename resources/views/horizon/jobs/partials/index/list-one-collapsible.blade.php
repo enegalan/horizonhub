@@ -15,7 +15,7 @@
 <details
     data-section-key="{{ $sectionKey }}"
     :open="sectionOpen.{{ $sectionKey }}"
-    class="group border-b border-border border-l-4 transition-colors duration-200 last:border-b-0 py-2 {{ $jobSection->borderClass() }} {{ $jobSection->openAccentClass() }}"
+    class="group job-section border-b border-border transition-colors duration-200 last:border-b-0 py-2"
 >
     <summary
         class="flex cursor-pointer list-none items-center gap-2 py-2 pl-4 pr-5 text-section-title text-foreground sm:pr-6 [&::-webkit-details-marker]:hidden"

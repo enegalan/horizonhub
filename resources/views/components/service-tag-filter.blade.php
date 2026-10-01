@@ -16,7 +16,7 @@
 
 <div class="flex flex-wrap items-end gap-3">
     <div class="space-y-2">
-        <x-input-label id="service-tag-filter-label" for="service-tag-filter-trigger">Tags</x-input-label>
+        <x-input-label id="service-tag-filter-label" for="service-tag-filter">Tags</x-input-label>
         <x-select
             multiple
             id="service-tag-filter"

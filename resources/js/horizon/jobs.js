@@ -115,12 +115,6 @@ export function horizonJobsPage(config) {
             this.showRetryModal = false;
             requestAnimationFrame(() => {
                 this.showRetryModal = true;
-                window.requestAnimationFrame(function () {
-                    var table = document.querySelector('table[data-resizable-table="horizon-retry-modal-failed-jobs"]');
-                    if (table && typeof window.horizonSyncResizableTableLayout === 'function') {
-                        window.horizonSyncResizableTableLayout(table);
-                    }
-                });
             });
             this.selectedFailedJobs = [];
             this.retrySelectionAnchorGlobalIndex = null;

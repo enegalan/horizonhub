@@ -47,18 +47,6 @@ enum JobSection: string
     }
 
     /**
-     * Left border accent, used on the collapsed section.
-     */
-    public function borderClass(): string
-    {
-        return match ($this) {
-            self::Processing => 'border-l-amber-500/40 hover:border-l-amber-500/60',
-            self::Processed => 'border-l-emerald-500/40 hover:border-l-emerald-500/60',
-            self::Failed => 'border-l-destructive/40 hover:border-l-destructive/60',
-        };
-    }
-
-    /**
      * Table columns specific to this section, in render order.
      *
      * @return array<int, array{column: string, label: string, class?: string}>
@@ -100,18 +88,6 @@ enum JobSection: string
                 'title' => 'No failed jobs',
                 'description' => 'Failed jobs will appear here.',
             ],
-        };
-    }
-
-    /**
-     * Accent applied while the section is expanded.
-     */
-    public function openAccentClass(): string
-    {
-        return match ($this) {
-            self::Processing => 'group-open:border-l-amber-500/60 group-open:bg-amber-500/5',
-            self::Processed => 'group-open:border-l-emerald-500/60 group-open:bg-emerald-500/5',
-            self::Failed => 'group-open:border-l-destructive/60 group-open:bg-destructive/5',
         };
     }
 

@@ -1,4 +1,5 @@
 import './bootstrap';
+import { startAlpine } from './alpine';
 import './components/resizable-table';
 import './components/form-drawer';
 import './components/loading-button';
@@ -11,11 +12,7 @@ import { formatDatetimeElements } from './lib/datetime-format';
 import { getTurboStreamTargetElement, renderTurboStreamWithGuards } from './lib/stream-guard';
 import { deleteConfirm } from './components/delete-confirm';
 import { mountToaster } from './components/toaster';
-import { registerInputDatePicker } from './components/input-date-picker';
 import { initTheme } from './components/theme';
-import Alpine from 'alpinejs';
-
-registerInputDatePicker(Alpine);
 
 window.horizonJobsPage = horizonJobsPage;
 window.horizonJobDetail = horizonJobDetail;
@@ -29,17 +26,9 @@ window.horizonMetricsPage = horizonMetricsPage;
 
 window.horizonHubTheme = initTheme();
 
-window.Alpine = Alpine;
-Alpine.start();
-
-document.addEventListener('turbo:before-cache', function () {
-    Alpine.destroyTree(document.body);
-});
+startAlpine();
 
 document.addEventListener('turbo:load', function () {
-    queueMicrotask(function () {
-        Alpine.initTree(document.body);
-    });
     setTimeout(function () {
         formatDatetimeElements();
     }, 0);
@@ -62,12 +51,8 @@ document.addEventListener('turbo:before-stream-render', function (e) {
         var syncRoot = getTurboStreamTargetElement(streamElement);
         setTimeout(function () {
             formatDatetimeElements(syncRoot);
-            if (outcome === 'rendered') {
-                if (syncRoot && typeof window.horizonSyncResizableTablesUnderRoot === 'function') {
-                    window.horizonSyncResizableTablesUnderRoot(syncRoot);
-                } else if (typeof window.horizonInitResizableTables === 'function') {
-                    window.horizonInitResizableTables();
-                }
+            if (outcome === 'rendered' && typeof window.horizonSyncResizableTablesUnderRoot === 'function') {
+                window.horizonSyncResizableTablesUnderRoot(syncRoot);
             }
             initJsonTrees();
             renderMetricsCharts();
