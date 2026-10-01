@@ -57,7 +57,7 @@ class AlertEngine
 
                 if ($config === null) {
                     if (! $provider->usesWebhook()) {
-                        Log::channel('app')->warning('email provider has no recipients, skip', ['alert_id' => $alert->id, 'provider_id' => $provider->id]);
+                        Log::warning('email provider has no recipients, skip', ['alert_id' => $alert->id, 'provider_id' => $provider->id]);
                     }
 
                     continue;
@@ -65,7 +65,7 @@ class AlertEngine
 
                 app($notifierClass)->sendBatched($alert, $events, $config);
             } catch (\Throwable $e) {
-                Log::channel('app')->error('alert notification failed', ['alert_id' => $alert->id, 'provider_id' => $provider->id, 'error' => $e->getMessage()]);
+                Log::error('alert notification failed', ['alert_id' => $alert->id, 'provider_id' => $provider->id, 'error' => $e->getMessage()]);
                 $log->update(['status' => AlertLogStatus::Failed->value, 'failure_message' => $e->getMessage()]);
             }
         }
@@ -102,7 +102,7 @@ class AlertEngine
             $lastSentAtBefore = $this->batchStore->getLastSentAt($alert);
             $pendingFlushed = $this->private__flushPendingIfDue($alert);
         } catch (\Throwable $e) {
-            Log::channel('app')->error('evaluate alert failed while flushing pending', [
+            Log::error('evaluate alert failed while flushing pending', [
                 'alert_id' => $alert->id,
                 'error' => $e->getMessage(),
             ]);
@@ -135,7 +135,7 @@ class AlertEngine
                 $triggeredServiceId = $hit['service_id'];
             }
         } catch (\Throwable $e) {
-            Log::channel('app')->error('evaluate alert failed', [
+            Log::error('evaluate alert failed', [
                 'alert_id' => $alert->id,
                 'error' => $e->getMessage(),
             ]);
@@ -146,7 +146,7 @@ class AlertEngine
             $lastSentAtAfter = $this->batchStore->getLastSentAt($alert);
             $delivered = ! empty($lastSentAtAfter) && (empty($lastSentAtBefore) || ! $lastSentAtAfter->eq($lastSentAtBefore));
         } catch (\Throwable $e) {
-            Log::channel('app')->error('evaluate alert failed while checking delivery', [
+            Log::error('evaluate alert failed while checking delivery', [
                 'alert_id' => $alert->id,
                 'error' => $e->getMessage(),
             ]);
@@ -175,7 +175,7 @@ class AlertEngine
                 $services = $alert->resolvedServices();
 
                 if ($services === []) {
-                    Log::channel('app')->warning('no enabled services to evaluate alert', ['alert_id' => $alert->id]);
+                    Log::warning('no enabled services to evaluate alert', ['alert_id' => $alert->id]);
 
                     continue;
                 }
@@ -188,7 +188,7 @@ class AlertEngine
 
                 $this->private__triggerAlert($alert, $hit['service_id'], $hit['job_uuids']);
             } catch (\Throwable $e) {
-                Log::channel('app')->error('evaluate scheduled alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
+                Log::error('evaluate scheduled alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
             }
         }
     }
@@ -206,7 +206,7 @@ class AlertEngine
             try {
                 $this->private__flushPendingIfDue($alert);
             } catch (\Throwable $e) {
-                Log::channel('app')->error('flush pending alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
+                Log::error('flush pending alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
             }
         }
 
