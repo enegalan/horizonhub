@@ -783,7 +783,7 @@ import { parseJson } from '../lib/parse';
             mutations.forEach(function (mutation) {
                 Array.prototype.forEach.call(mutation.addedNodes, initAdded);
             });
-        }).observe(document.body, { childList: true, subtree: true });
+        }).observe(document.documentElement, { childList: true, subtree: true });
     }
 
     /**
@@ -826,6 +826,27 @@ import { parseJson } from '../lib/parse';
             });
         });
     }
+
+    /**
+     * Clear the binding markers before Turbo caches the page.
+     *
+     * The cached snapshot is a clone of the live body, so the restored markup
+     * carries the markers that make `bindOnce` and `initTable` skip elements
+     * whose listeners died with the body that was cloned. Clearing them lets
+     * the restored page bind again on its own `turbo:load`.
+     * @returns {void}
+     */
+    function clearBindingMarkers() {
+        document.body.removeAttribute(DRAG_DELEGATED_ATTR);
+        document.querySelectorAll('[' + REORDER_BOUND_ATTR + ']').forEach(function (th) {
+            th.removeAttribute(REORDER_BOUND_ATTR);
+        });
+        document.querySelectorAll('table[' + INITTED_ATTR + ']').forEach(function (table) {
+            table.removeAttribute(INITTED_ATTR);
+        });
+    }
+
+    document.addEventListener('turbo:before-cache', clearBindingMarkers);
 
     /**
      * Initialize the resizable tables on every Turbo visit.
