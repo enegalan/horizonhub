@@ -138,6 +138,7 @@
                 <x-button
                     type="submit"
                     class="h-9 text-sm relative inline-flex items-center justify-center"
+                    data-form-drawer-submit
                 >
                     {{ $isEdit ? 'Save changes' : 'Create provider' }}
                 </x-button>

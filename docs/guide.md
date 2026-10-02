@@ -27,7 +27,7 @@ For what Horizon Hub is and how it integrates technically, see [HORIZONHUB.md](H
     - Light
     - Dark
     - System appearance
-- **Form drawer**: creating or editing Services, Alerts, and Providers opens a slide-over panel instead of leaving the list page. Closing the drawer returns you to the index you came from.
+- **Form drawer**: creating or editing Services, Alerts, and Providers opens a slide-over panel instead of leaving the list page. Closing the drawer returns you to the index you came from. If you close the drawer (X, Cancel, outside click, or `Esc`) after modifying the form, a confirmation asks whether to **Discard** the changes or **Keep editing**. The save button stays disabled until the form actually has changes.
 
 ### Recommended setup order
 

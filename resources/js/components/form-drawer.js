@@ -3,8 +3,10 @@ const FORM_DRAWER_SHELL_ID = 'form-drawer-shell';
 const FORM_DRAWER_OPEN = 'form-drawer-shell--open';
 const FORM_DRAWER_CLOSING = 'form-drawer-shell--closing';
 const FORM_DRAWER_CLOSE_MS = 300; // Same as the CSS transition duration. See .form-drawer-panel and .form-drawer-backdrop transitions.
+const FORM_DRAWER_DISCARD_EVENT = 'form-drawer-discard-request';
 
 var formDrawerCloseTimer = null;
+var formDrawerCleanSignature = null;
 
 /**
  * Check if the form drawer is open.
@@ -17,6 +19,71 @@ function formDrawerIsOpen() {
 }
 
 /**
+ * Serialize the values of the form inside the drawer.
+ *
+ * @returns {string|null} The serialized form values, or null when there is no form.
+ */
+function formDrawerSignature() {
+    const frame = document.getElementById(FORM_DRAWER_FRAME_ID);
+    const form = frame && frame.querySelector(`form[data-turbo-frame="${FORM_DRAWER_FRAME_ID}"]`);
+
+    if (!form) {
+        return null;
+    }
+
+    return JSON.stringify(
+        Array.from(new FormData(form), ([name, value]) => [name, value.name ? `${value.name}:${value.size}` : value]),
+    );
+}
+
+/**
+ * Check if the drawer form holds changes that were never submitted.
+ *
+ * @returns {boolean} True if the form differs from the values it was loaded with.
+ */
+function formDrawerIsDirty() {
+    return formDrawerCleanSignature !== null && formDrawerSignature() !== formDrawerCleanSignature;
+}
+
+/**
+ * Enable or disable the drawer save button depending on whether the form has changes.
+ *
+ * Buttons flagged with data-form-drawer-submit-blocked stay disabled because of a
+ * server side condition.
+ *
+ * @returns {void}
+ */
+function formDrawerSyncSubmit() {
+    const frame = document.getElementById(FORM_DRAWER_FRAME_ID);
+    const submit = frame && frame.querySelector('[data-form-drawer-submit]');
+
+    if (!submit) {
+        return;
+    }
+
+    submit.disabled = submit.dataset.formDrawerSubmitBlocked === 'true' || !formDrawerIsDirty();
+}
+
+/**
+ * Keep the save button in sync whenever the form may have changed.
+ *
+ * The signature comparison is authoritative, so listening broadly is safe: clicking
+ * a field that was not edited recomputes an unchanged signature. Clicks are needed
+ * because the rows Alpine adds or removes have no input event of their own.
+ *
+ * @returns {void}
+ */
+function formDrawerSyncSubmitOnEdit(event) {
+    if (event.target.closest(`form[data-turbo-frame="${FORM_DRAWER_FRAME_ID}"]`)) {
+        formDrawerSyncSubmit();
+    }
+}
+
+document.addEventListener('input', formDrawerSyncSubmitOnEdit);
+document.addEventListener('change', formDrawerSyncSubmitOnEdit);
+document.addEventListener('click', formDrawerSyncSubmitOnEdit);
+
+/**
  * Clear the form drawer.
  */
 function clearFormDrawer() {
@@ -24,6 +91,8 @@ function clearFormDrawer() {
         window.clearTimeout(formDrawerCloseTimer);
         formDrawerCloseTimer = null;
     }
+
+    formDrawerCleanSignature = null;
 
     const frame = document.getElementById(FORM_DRAWER_FRAME_ID);
     if (frame) {
@@ -45,6 +114,11 @@ function clearFormDrawer() {
 function closeFormDrawer(immediate) {
     if (!formDrawerIsOpen()) {
         clearFormDrawer();
+        return;
+    }
+
+    if (!immediate && formDrawerIsDirty()) {
+        window.dispatchEvent(new CustomEvent(FORM_DRAWER_DISCARD_EVENT));
         return;
     }
 
@@ -151,19 +225,25 @@ document.addEventListener('turbo:frame-load', function (event) {
         shell.classList.add(FORM_DRAWER_OPEN);
     }
 
-    if (window.Alpine && typeof window.Alpine.initTree === 'function') {
-        window.Alpine.initTree(event.target);
-    }
+    formDrawerCleanSignature = formDrawerSignature();
+    formDrawerSyncSubmit();
 });
 
 /**
  * Handle the click event.
  *
- * Closes the form drawer if the target is a close button element.
+ * Closes the form drawer if the target is a close or discard button element.
  *
  * @returns {void}
  */
 document.addEventListener('click', function (event) {
+    if (event.target.closest('[data-form-drawer-discard]')) {
+        event.preventDefault();
+        formDrawerCleanSignature = formDrawerSignature();
+        closeFormDrawer();
+        return;
+    }
+
     if (event.target.closest('[data-form-drawer-close]')) {
         event.preventDefault();
         closeFormDrawer();
