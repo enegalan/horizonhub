@@ -474,7 +474,11 @@
             </div>
 
             <div class="flex flex-wrap gap-2">
-                <x-button type="submit" class="h-9 text-sm relative inline-flex items-center justify-center">
+                <x-button
+                    type="submit"
+                    class="h-9 text-sm relative inline-flex items-center justify-center"
+                    data-form-drawer-submit
+                >
                     {{ $isEdit ? 'Save changes' : 'Register service' }}
                 </x-button>
                 <x-button variant="ghost" type="button" class="h-9 text-sm" data-form-drawer-close>
