@@ -208,7 +208,7 @@
                 }
                 var fi = (this.retryPage - 1) * this.retryPerPage + 1;
                 var li = fi + count - 1;
-                return 'Showing ' + fi + '\\u2013' + li + ' of ' + tot;
+                return 'Showing ' + fi + '–' + li + ' of ' + tot;
             },
             prevRetryPage() {
                 this.setRetryPage(this.retryPage - 1);
@@ -261,7 +261,7 @@
                 if (clickedGlobalIndex === null) {
                     return;
                 }
-                var startGlobalIndex = this.failedJobShiftStartGlobalIndex();
+                var startGlobalIndex = this.failedJobShiftStartGlobalIndex(clickedGlobalIndex);
                 var from = Math.min(startGlobalIndex, clickedGlobalIndex);
                 var to = Math.max(startGlobalIndex, clickedGlobalIndex);
                 var pageStart = (this.retryPage - 1) * this.retryPerPage;
@@ -341,14 +341,24 @@
                 }
                 return (this.retryPage - 1) * this.retryPerPage + rowIndex;
             },
-            failedJobShiftStartGlobalIndex() {
+            failedJobShiftStartGlobalIndex(clickedGlobalIndex) {
                 if (this.selectedFailedJobs.length === 0) {
                     return 0;
                 }
-                if (typeof this.retrySelectionAnchorGlobalIndex === 'number' && !Number.isNaN(this.retrySelectionAnchorGlobalIndex) && this.retrySelectionAnchorGlobalIndex >= 0) {
-                    return this.retrySelectionAnchorGlobalIndex + 1;
+                var anchorGlobalIndex = this.retrySelectionAnchorGlobalIndex;
+                if (typeof anchorGlobalIndex !== 'number' || Number.isNaN(anchorGlobalIndex) || anchorGlobalIndex < 0) {
+                    return 0;
                 }
-                return 0;
+                if (typeof clickedGlobalIndex !== 'number' || Number.isNaN(clickedGlobalIndex)) {
+                    return anchorGlobalIndex + 1;
+                }
+                if (clickedGlobalIndex < anchorGlobalIndex) {
+                    return anchorGlobalIndex - 1;
+                }
+                if (clickedGlobalIndex > anchorGlobalIndex) {
+                    return anchorGlobalIndex + 1;
+                }
+                return anchorGlobalIndex;
             },
             toggleFailedJobShiftSelection(id, serviceId) {
                 if (this.isFailedJobSelected(id)) {

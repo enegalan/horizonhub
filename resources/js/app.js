@@ -13,14 +13,17 @@ import { mountToaster } from './components/toaster';
 startAlpine();
 
 document.addEventListener('turbo:load', function () {
+    mountToaster();
     setTimeout(function () {
         formatDatetimeElements();
+        renderJsonTrees();
+        renderMetricsCharts();
+        renderAlertDetailCharts();
     }, 0);
 });
 
 onDocumentReady(function () {
     initTurboStream();
-    mountToaster();
 });
 
 document.addEventListener('turbo:before-stream-render', function (e) {

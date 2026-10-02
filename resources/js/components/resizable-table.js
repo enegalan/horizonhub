@@ -841,6 +841,9 @@ import { parseJson } from '../lib/parse';
         document.querySelectorAll('[' + REORDER_BOUND_ATTR + ']').forEach(function (th) {
             th.removeAttribute(REORDER_BOUND_ATTR);
         });
+        document.querySelectorAll('.' + HORIZON_RESIZE_HANDLE_CLASS).forEach(function (handle) {
+            handle.remove();
+        });
         document.querySelectorAll('table[' + INITTED_ATTR + ']').forEach(function (table) {
             table.removeAttribute(INITTED_ATTR);
         });

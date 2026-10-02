@@ -45,7 +45,7 @@ Repository-specific conventions that expand on the rules in [AGENTS.md](../AGENT
 
 - Blade + Alpine.js + Turbo; Tailwind CSS v3 with the CSS-variable theme in `resources/css/app.css`.
 - ES modules under `resources/js/`: reusable behavior in `components/`, page render helpers in `horizon/`, low-level utilities in `lib/`.
-- Alpine components live inline in the `x-data` of the view that uses them; the helpers those components need are exposed on `window.horizon` from `resources/js/app.js`.
+- Alpine components live inline in the `x-data` of the view that uses them; the helpers those components need are exposed on `window.horizon` from `resources/js/bootstrap.js`.
 - Wire ECharts to `window.echarts` rather than importing it directly.
 - Vite inputs are declared in `vite.config.js`; run `npm run lint` (ESLint) before committing.
 
