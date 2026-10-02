@@ -7,13 +7,18 @@ use App\Enums\Concerns\HasOptions;
 enum JobStatus: string
 {
     use HasOptions;
-    case Failed = 'failed';
 
+    case Failed = 'failed';
     case Pending = 'pending';
     case Processed = 'processed';
     case Processing = 'processing';
     case Reserved = 'reserved';
 
+    /**
+     * Labels for the statuses.
+     *
+     * @return array<string, string>
+     */
     public static function labels(): array
     {
         return [

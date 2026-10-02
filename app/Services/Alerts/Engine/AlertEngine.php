@@ -6,6 +6,7 @@ use App\Enums\AlertLogStatus;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
+use App\Models\Service;
 use App\Services\Alerts\Rules\AlertRuleStrategyRegistry;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
@@ -56,7 +57,7 @@ class AlertEngine
 
                 if ($config === null) {
                     if (! $provider->usesWebhook()) {
-                        Log::channel('app')->warning('email provider has no recipients, skip', ['alert_id' => $alert->id, 'provider_id' => $provider->id]);
+                        Log::warning('email provider has no recipients, skip', ['alert_id' => $alert->id, 'provider_id' => $provider->id]);
                     }
 
                     continue;
@@ -64,7 +65,7 @@ class AlertEngine
 
                 app($notifierClass)->sendBatched($alert, $events, $config);
             } catch (\Throwable $e) {
-                Log::channel('app')->error('alert notification failed', ['alert_id' => $alert->id, 'provider_id' => $provider->id, 'error' => $e->getMessage()]);
+                Log::error('alert notification failed', ['alert_id' => $alert->id, 'provider_id' => $provider->id, 'error' => $e->getMessage()]);
                 $log->update(['status' => AlertLogStatus::Failed->value, 'failure_message' => $e->getMessage()]);
             }
         }
@@ -101,7 +102,7 @@ class AlertEngine
             $lastSentAtBefore = $this->batchStore->getLastSentAt($alert);
             $pendingFlushed = $this->private__flushPendingIfDue($alert);
         } catch (\Throwable $e) {
-            Log::channel('app')->error('evaluate alert failed while flushing pending', [
+            Log::error('evaluate alert failed while flushing pending', [
                 'alert_id' => $alert->id,
                 'error' => $e->getMessage(),
             ]);
@@ -109,9 +110,9 @@ class AlertEngine
         }
 
         try {
-            $serviceIds = $alert->resolvedServiceIds();
+            $services = $alert->resolvedServices();
 
-            if ($serviceIds === []) {
+            if ($services === []) {
                 $errorMessage = 'No enabled services to evaluate alert (enable at least one service).';
 
                 return [
@@ -126,7 +127,7 @@ class AlertEngine
                 ];
             }
 
-            $hit = $this->private__evaluateFirstTriggeredService($alert, $serviceIds);
+            $hit = $this->private__evaluateFirstTriggeredService($alert, $services);
 
             if ($hit !== null) {
                 $this->private__triggerAlert($alert, $hit['service_id'], $hit['job_uuids']);
@@ -134,7 +135,7 @@ class AlertEngine
                 $triggeredServiceId = $hit['service_id'];
             }
         } catch (\Throwable $e) {
-            Log::channel('app')->error('evaluate alert failed', [
+            Log::error('evaluate alert failed', [
                 'alert_id' => $alert->id,
                 'error' => $e->getMessage(),
             ]);
@@ -145,7 +146,7 @@ class AlertEngine
             $lastSentAtAfter = $this->batchStore->getLastSentAt($alert);
             $delivered = ! empty($lastSentAtAfter) && (empty($lastSentAtBefore) || ! $lastSentAtAfter->eq($lastSentAtBefore));
         } catch (\Throwable $e) {
-            Log::channel('app')->error('evaluate alert failed while checking delivery', [
+            Log::error('evaluate alert failed while checking delivery', [
                 'alert_id' => $alert->id,
                 'error' => $e->getMessage(),
             ]);
@@ -169,22 +170,17 @@ class AlertEngine
      */
     public function evaluateScheduled(): void
     {
-        $this->flushPendingAlerts();
-
-        /** @var Collection<int, Alert> $alerts */
-        $alerts = Alert::enabled()->get();
-
-        foreach ($alerts as $alert) {
+        foreach ($this->flushPendingAlerts() as $alert) {
             try {
-                $serviceIds = $alert->resolvedServiceIds();
+                $services = $alert->resolvedServices();
 
-                if ($serviceIds === []) {
-                    Log::channel('app')->warning('no enabled services to evaluate alert', ['alert_id' => $alert->id]);
+                if ($services === []) {
+                    Log::warning('no enabled services to evaluate alert', ['alert_id' => $alert->id]);
 
                     continue;
                 }
 
-                $hit = $this->private__evaluateFirstTriggeredService($alert, $serviceIds);
+                $hit = $this->private__evaluateFirstTriggeredService($alert, $services);
 
                 if ($hit === null) {
                     continue;
@@ -192,26 +188,29 @@ class AlertEngine
 
                 $this->private__triggerAlert($alert, $hit['service_id'], $hit['job_uuids']);
             } catch (\Throwable $e) {
-                Log::channel('app')->error('evaluate scheduled alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
+                Log::error('evaluate scheduled alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
             }
         }
     }
 
     /**
      * Flush pending alerts.
+     *
+     * @return Collection<int, Alert>
      */
-    public function flushPendingAlerts(): void
+    public function flushPendingAlerts(): Collection
     {
-        /** @var Collection<int, Alert> $alerts */
-        $alerts = Alert::enabled()->get();
+        $alerts = Alert::enabled()->with('notificationProviders')->get();
 
         foreach ($alerts as $alert) {
             try {
                 $this->private__flushPendingIfDue($alert);
             } catch (\Throwable $e) {
-                Log::channel('app')->error('flush pending alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
+                Log::error('flush pending alert failed', ['alert_id' => $alert->id, 'error' => $e->getMessage()]);
             }
         }
+
+        return $alerts;
     }
 
     /**
@@ -250,26 +249,21 @@ class AlertEngine
      * Evaluate the first triggered service.
      *
      * @param Alert $alert The alert.
-     * @param list<int> $serviceIds
+     * @param list<Service> $services
      *
      * @return array{service_id: int, job_uuids: array<int, string>}|null
      */
-    private function private__evaluateFirstTriggeredService(Alert $alert, array $serviceIds): ?array
+    private function private__evaluateFirstTriggeredService(Alert $alert, array $services): ?array
     {
-        $cachedStrategies = [];
+        $ruleType = $alert->rule_type->value;
+        $strategy = $this->ruleStrategyRegistry->resolve($ruleType);
 
-        foreach ($serviceIds as $serviceId) {
-            $ruleType = $alert->rule_type->value;
-
-            if (! isset($cachedStrategies[$ruleType])) {
-                $cachedStrategies[$ruleType] = $this->ruleStrategyRegistry->resolve($ruleType);
-            }
-
-            $result = $cachedStrategies[$ruleType]->evaluateWithTriggeringJobs($alert, (int) $serviceId);
+        foreach ($services as $service) {
+            $result = $strategy->evaluateWithTriggeringJobs($alert, $service);
 
             if ($result['triggered']) {
                 return [
-                    'service_id' => (int) $serviceId,
+                    'service_id' => (int) $service->id,
                     'job_uuids' => $result['job_uuids'],
                 ];
             }

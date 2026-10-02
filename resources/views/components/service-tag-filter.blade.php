@@ -16,8 +16,9 @@
 
 <div class="flex flex-wrap items-end gap-3">
     <div class="space-y-2">
-        <x-input-label id="service-tag-filter-label" for="service-tag-filter-trigger">Tags</x-input-label>
-        <x-multiselect
+        <x-input-label id="service-tag-filter-label" for="service-tag-filter">Tags</x-input-label>
+        <x-select
+            multiple
             id="service-tag-filter"
             labelled-by="service-tag-filter-label"
             name="service_tag"
@@ -29,12 +30,13 @@
             @foreach($allTags as $tag)
                 <option value="{{ $tag }}">{{ $tag }}</option>
             @endforeach
-        </x-multiselect>
+        </x-select>
     </div>
     @if($showServiceMultiselect && $services !== null)
         <div class="space-y-2">
             <x-input-label id="{{ $serviceMultiselectId }}-label" for="{{ $serviceMultiselectId }}">{{ $serviceMultiselectLabel }}</x-input-label>
-            <x-multiselect
+            <x-select
+                multiple
                 id="{{ $serviceMultiselectId }}"
                 labelled-by="{{ $serviceMultiselectId }}-label"
                 name="{{ $serviceMultiselectName }}"
@@ -46,7 +48,7 @@
                 @foreach($services as $service)
                     <option value="{{ $service->id }}">{{ $service->name }}</option>
                 @endforeach
-            </x-multiselect>
+            </x-select>
         </div>
     @endif
 </div>

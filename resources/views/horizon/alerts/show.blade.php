@@ -2,9 +2,39 @@
 
 @section('content')
     <div
-        x-data="window.horizonAlertDetail ? window.horizonAlertDetail({
+        x-data="{
+            showDeliveryLogModal: false,
+            deliveryLogModalMounted: false,
+            deliveryLog: null,
             initialDeliveryLog: @js($initialDeliveryLogPayload ?? null),
-        }) : {}"
+            init() {
+                var self = this;
+
+                if (self.initialDeliveryLog) {
+                    self.openDeliveryLogModal(self.initialDeliveryLog);
+                }
+            },
+            openDeliveryLogModal(logData) {
+                if (!logData || typeof logData !== 'object') {
+                    return;
+                }
+                this.deliveryLog = logData;
+                this.deliveryLogModalMounted = true;
+                this.showDeliveryLogModal = false;
+                requestAnimationFrame(() => {
+                    this.showDeliveryLogModal = true;
+                });
+            },
+            closeDeliveryLogModal() {
+                this.showDeliveryLogModal = false;
+                window.setTimeout(() => {
+                    if (!this.showDeliveryLogModal) {
+                        this.deliveryLogModalMounted = false;
+                        this.deliveryLog = null;
+                    }
+                }, 220);
+            },
+        }"
         x-init="typeof init === 'function' ? init() : null"
         id="horizon-alert-detail"
     >

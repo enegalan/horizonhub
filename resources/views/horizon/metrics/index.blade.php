@@ -3,8 +3,6 @@
 @section('content')
     <div
         id="horizon-metrics-dashboard"
-        x-data="window.horizonMetricsPage ? window.horizonMetricsPage() : {}"
-        x-init="typeof init === 'function' ? init() : null"
     >
         <script type="application/json" id="metrics-chart-data">@json($metricsChartData ?? [])</script>
 

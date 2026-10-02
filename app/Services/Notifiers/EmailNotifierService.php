@@ -76,7 +76,7 @@ class EmailNotifierService extends AbstractAlertNotifier
 
         $notification = $this->buildNotification($alert, $events);
 
-        Log::channel('app')->info('sending alert email', [
+        Log::info('sending alert email', [
             'alert_id' => $alert->id,
             'to' => $to,
             'event_count' => $notification['totalEventCount'],

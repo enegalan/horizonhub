@@ -28,7 +28,156 @@
 
     <div
         class="space-y-6"
-        x-data="window.horizonServiceForm({!! \Illuminate\Support\Js::from($headersForForm) !!}, {!! \Illuminate\Support\Js::from($tagsForForm) !!}, {!! \Illuminate\Support\Js::from($existingTags ?? []) !!}, {!! \Illuminate\Support\Js::from(old('tls_client_mode', $service->tls_client_mode?->value ?? '')) !!}, {!! \Illuminate\Support\Js::from($tlsFilesForForm) !!})"
+        x-data="{
+            headers: {!! \Illuminate\Support\Js::from($headersForForm) !!},
+            tags: {!! \Illuminate\Support\Js::from($tagsForForm) !!},
+            existingTags: {!! \Illuminate\Support\Js::from($existingTags ?? []) !!},
+            tlsClientMode: {!! \Illuminate\Support\Js::from(old('tls_client_mode', $service->tls_client_mode?->value ?? '')) !!},
+            tlsCertName: {!! \Illuminate\Support\Js::from($tlsFilesForForm['certName']) !!},
+            tlsKeyName: {!! \Illuminate\Support\Js::from($tlsFilesForForm['keyName']) !!},
+            tlsCertOnFile: {!! $tlsFilesForForm['certName'] !== '' ? 'true' : 'false' !!},
+            tlsKeyOnFile: {!! $tlsFilesForForm['keyName'] !== '' ? 'true' : 'false' !!},
+            tlsRemoveCert: false,
+            tlsRemoveKey: false,
+            showTlsPassphrase: false,
+            tagInput: '',
+            tagSuggestionsOpen: false,
+            tagSuggestionHighlight: -1,
+            tagSuggestionsLimit: 15,
+            init() {
+                this.tags = this.tags.map((tag) => this.normalizeTag(tag)).filter(Boolean);
+                this.existingTags = this.existingTags.map((tag) => this.normalizeTag(tag)).filter(Boolean);
+
+                if (this.headers.length === 0) {
+                    this.headers.push({ name: '', value: '' });
+                }
+            },
+            normalizeTag(value) {
+                return (value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+            },
+            get tagSuggestions() {
+                var query = this.normalizeTag(this.tagInput);
+                var available = this.existingTags.filter((tag) => {
+                    return this.tags.indexOf(tag) === -1;
+                });
+
+                if (query !== '') {
+                    available = available.filter(function (tag) {
+                        return tag.indexOf(query) !== -1;
+                    });
+                }
+
+                return available.slice(0, this.tagSuggestionsLimit);
+            },
+            removeTlsCert() {
+                this.tlsCertOnFile = false;
+                this.tlsRemoveCert = true;
+            },
+            removeTlsKey() {
+                this.tlsKeyOnFile = false;
+                this.tlsRemoveKey = true;
+            },
+            openTagSuggestions() {
+                this.tagSuggestionsOpen = true;
+                this.tagSuggestionHighlight = -1;
+            },
+            closeTagSuggestions() {
+                this.tagSuggestionsOpen = false;
+                this.tagSuggestionHighlight = -1;
+            },
+            highlightNextTagSuggestion() {
+                if (this.tagSuggestions.length === 0) {
+                    return;
+                }
+
+                this.tagSuggestionsOpen = true;
+                if (this.tagSuggestionHighlight < this.tagSuggestions.length - 1) {
+                    this.tagSuggestionHighlight += 1;
+                } else {
+                    this.tagSuggestionHighlight = 0;
+                }
+            },
+            highlightPreviousTagSuggestion() {
+                var suggestions = this.tagSuggestions;
+                if (suggestions.length === 0) {
+                    return;
+                }
+
+                this.tagSuggestionsOpen = true;
+                if (this.tagSuggestionHighlight > 0) {
+                    this.tagSuggestionHighlight -= 1;
+                } else {
+                    this.tagSuggestionHighlight = suggestions.length - 1;
+                }
+            },
+            hasHighlightedTagSuggestion() {
+                return this.tagSuggestionHighlight >= 0
+                    && this.tagSuggestionHighlight < this.tagSuggestions.length;
+            },
+            selectHighlightedTagSuggestion() {
+                if (!this.hasHighlightedTagSuggestion()) {
+                    return;
+                }
+
+                this.selectTagSuggestion(this.tagSuggestions[this.tagSuggestionHighlight]);
+            },
+            selectTagSuggestion(tag) {
+                this.tagInput = tag;
+                this.addTag();
+                this.closeTagSuggestions();
+            },
+            canAddTag() {
+                var normalized = this.normalizeTag(this.tagInput);
+                if (normalized === '') {
+                    return false;
+                }
+
+                return this.tags.indexOf(normalized) === -1;
+            },
+            addTag() {
+                var normalized = this.normalizeTag(this.tagInput);
+                if (normalized === '') {
+                    return;
+                }
+                if (this.tags.indexOf(normalized) !== -1) {
+                    this.tagInput = '';
+                    this.closeTagSuggestions();
+                    return;
+                }
+
+                this.tags.push(normalized);
+                this.tagInput = '';
+                this.closeTagSuggestions();
+            },
+            removeTag(index) {
+                if (index >= 0 && index < this.tags.length) {
+                    this.tags.splice(index, 1);
+                }
+            },
+            canAddHeader() {
+                for (let i = 0; i < this.headers.length; i++) {
+                    if ((this.headers[i].name || '').trim() === '') {
+                        return false;
+                    }
+                }
+
+                return true;
+            },
+            addHeader() {
+                if (!this.canAddHeader()) {
+                    return;
+                }
+
+                this.headers.push({ name: '', value: '' });
+            },
+            removeHeader(index) {
+                if (this.headers.length > 1) {
+                    this.headers.splice(index, 1);
+                } else {
+                    this.headers[0] = { name: '', value: '' };
+                }
+            },
+        }"
     >
         <form method="POST" action="{{ $action }}" enctype="multipart/form-data" class="space-y-6" data-turbo-frame="form-drawer">
             @csrf

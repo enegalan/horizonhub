@@ -7,11 +7,16 @@ use App\Enums\Concerns\HasOptions;
 enum EvaluationStatus: string
 {
     use HasOptions;
+
     case Completed = 'completed';
     case Failed = 'failed';
-
     case Running = 'running';
 
+    /**
+     * Labels for the statuses.
+     *
+     * @return array<string, string>
+     */
     public static function labels(): array
     {
         return [

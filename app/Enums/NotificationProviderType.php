@@ -7,11 +7,16 @@ use App\Enums\Concerns\HasOptions;
 enum NotificationProviderType: string
 {
     use HasOptions;
+
     case Discord = 'discord';
     case Email = 'email';
-
     case Slack = 'slack';
 
+    /**
+     * Labels for the provider types.
+     *
+     * @return array<string, string>
+     */
     public static function labels(): array
     {
         return [

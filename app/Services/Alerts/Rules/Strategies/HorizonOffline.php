@@ -29,20 +29,17 @@ final class HorizonOffline extends AbstractAlertRuleStrategy
     /**
      * Evaluate the rule and return whether it triggered plus triggering job UUIDs.
      *
+     * @param Alert $alert The alert.
+     * @param Service $service The service.
+     *
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
+    public function evaluateWithTriggeringJobs(Alert $alert, Service $service): array
     {
-        $service = Service::find($serviceId);
-
-        if ($service === null) {
-            return $this->notTriggered();
-        }
-
         $status = StatsReader::summary(ClientResponse::data(HorizonClientApiService::getStats($service)))['status'];
         $isOnline = $status !== null && HorizonStatus::tryFrom(\strtolower($status))?->isActive() === true;
 
-        $cacheKey = self::CACHE_KEY_PREFIX . $serviceId;
+        $cacheKey = self::CACHE_KEY_PREFIX . $service->id;
 
         if ($isOnline) {
             Cache::forget($cacheKey);

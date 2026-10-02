@@ -13,6 +13,21 @@ use Illuminate\Support\Str;
 class AlertEvaluationBatchService
 {
     /**
+     * The batch store.
+     */
+    private AlertBatchStore $batchStore;
+
+    /**
+     * The constructor.
+     *
+     * @param AlertBatchStore $batchStore The batch store.
+     */
+    public function __construct(AlertBatchStore $batchStore)
+    {
+        $this->batchStore = $batchStore;
+    }
+
+    /**
      * Get the evaluation status.
      *
      * @param string $evaluationId The evaluation ID.
@@ -21,18 +36,16 @@ class AlertEvaluationBatchService
      */
     public function getEvaluationStatus(string $evaluationId): array
     {
-        $store = new AlertBatchStore;
-
         return [
             'evaluation_id' => $evaluationId,
-            'status' => $store->getStatus($evaluationId),
-            'total_alerts' => $store->getTotalAlerts($evaluationId),
-            'evaluated_count' => $store->getEvaluatedCount($evaluationId),
-            'triggered_count' => $store->getTriggeredCount($evaluationId),
-            'delivered_count' => $store->getDeliveredCount($evaluationId),
-            'error_count' => $store->getErrorCount($evaluationId),
-            'first_error_message' => $store->getFirstErrorMessage($evaluationId),
-            'error_message' => $store->getErrorMessage($evaluationId),
+            'status' => $this->batchStore->getStatus($evaluationId),
+            'total_alerts' => $this->batchStore->getTotalAlerts($evaluationId),
+            'evaluated_count' => $this->batchStore->getEvaluatedCount($evaluationId),
+            'triggered_count' => $this->batchStore->getTriggeredCount($evaluationId),
+            'delivered_count' => $this->batchStore->getDeliveredCount($evaluationId),
+            'error_count' => $this->batchStore->getErrorCount($evaluationId),
+            'first_error_message' => $this->batchStore->getFirstErrorMessage($evaluationId),
+            'error_message' => $this->batchStore->getErrorMessage($evaluationId),
         ];
     }
 
@@ -49,11 +62,9 @@ class AlertEvaluationBatchService
 
         $total = \count($alertIds);
         $evaluationId = (string) Str::uuid();
-        $store = new AlertBatchStore;
-
-        $store->putStatus($evaluationId, $total > 0 ? EvaluationStatus::Running : EvaluationStatus::Completed);
-        $store->putTotalAlerts($evaluationId, $total);
-        $store->initializeCounters($evaluationId);
+        $this->batchStore->putStatus($evaluationId, $total > 0 ? EvaluationStatus::Running : EvaluationStatus::Completed);
+        $this->batchStore->putTotalAlerts($evaluationId, $total);
+        $this->batchStore->initializeCounters($evaluationId);
 
         if ($total === 0) {
             return [
@@ -63,13 +74,15 @@ class AlertEvaluationBatchService
             ];
         }
 
-        $store->forgetBatchErrors($evaluationId);
+        $this->batchStore->forgetBatchErrors($evaluationId);
 
         $jobs = [];
 
         foreach ($alertIds as $alertId) {
             $jobs[] = new EvaluateAlertJob((int) $alertId, $evaluationId);
         }
+
+        $store = $this->batchStore;
 
         Bus::batch($jobs)
             ->name('HorizonHub: Evaluate all alerts')

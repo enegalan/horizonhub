@@ -163,18 +163,30 @@ class Alert extends Model
      */
     public function resolvedServiceIds(): array
     {
+        return \array_map(
+            static fn (Service $service): int => $service->id,
+            $this->resolvedServices(),
+        );
+    }
+
+    /**
+     * Enabled services this alert should evaluate against.
+     *
+     * @return list<Service>
+     */
+    public function resolvedServices(): array
+    {
         if (empty($this->service_ids)) {
             return [];
         }
 
-        $ids = Service::enabled()
+        $services = Service::enabled()
             ->whereIn('id', $this->service_ids)
-            ->pluck('id')
+            ->orderBy('id')
+            ->get()
             ->all();
 
-        \sort($ids);
-
-        return $ids;
+        return $services;
     }
 
     /**

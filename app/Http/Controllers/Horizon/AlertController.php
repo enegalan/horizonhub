@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Horizon;
 
 use App\Enums\AlertLogStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Horizon\UpsertAlertRequest;
 use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\NotificationProvider;
@@ -173,9 +174,9 @@ class AlertController extends Controller
     /**
      * Store a new alert.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(UpsertAlertRequest $request): RedirectResponse
     {
-        $data = $this->alertUpsert->validateAlert($request);
+        $data = $this->alertUpsert->buildUpsertData($request);
         $alert = Alert::create($data['alert']);
         $alert->notificationProviders()->sync($data['provider_ids']);
 
@@ -199,9 +200,9 @@ class AlertController extends Controller
     /**
      * Update an existing alert.
      */
-    public function update(Request $request, Alert $alert): RedirectResponse
+    public function update(UpsertAlertRequest $request, Alert $alert): RedirectResponse
     {
-        $data = $this->alertUpsert->validateAlert($request);
+        $data = $this->alertUpsert->buildUpsertData($request);
         $alert->update($data['alert']);
         $alert->notificationProviders()->sync($data['provider_ids']);
 

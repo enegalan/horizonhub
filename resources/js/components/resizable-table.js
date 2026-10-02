@@ -1,3 +1,4 @@
+import { bindOnce } from '../lib/dom';
 import { parseJson } from '../lib/parse';
 
 (function () {
@@ -18,6 +19,12 @@ import { parseJson } from '../lib/parse';
      * @type {string}
      */
     const HORIZON_DRAG_OVERLAY_VISIBLE_CLASS = 'horizon-drag-overlay--visible';
+
+    /**
+     * Horizon drag image class.
+     * @type {string}
+     */
+    const HORIZON_DRAG_IMAGE_CLASS = 'horizon-drag-image';
 
     /**
      * Horizon resize handle line class.
@@ -68,10 +75,54 @@ import { parseJson } from '../lib/parse';
     const HORIZON_RESIZING_ATTR = 'data-horizon-resizing';
 
     /**
-     * Interacting flag.
+     * Attribute marking a <th> whose resize handle listeners are already bound.
+     * @type {string}
+     */
+    const RESIZE_BOUND_ATTR = 'data-horizon-resize-bound';
+
+    /**
+     * Attribute marking a <th> whose reorder listeners are already bound.
+     * @type {string}
+     */
+    const REORDER_BOUND_ATTR = 'data-horizon-reorder-bound';
+
+    /**
+     * Attribute marking <body> as already carrying the delegated drag listeners.
+     * @type {string}
+     */
+    const DRAG_DELEGATED_ATTR = 'data-horizon-drag-delegated';
+
+    /**
+     * Attribute marking a table as resizable.
+     * @type {string}
+     */
+    const RESIZABLE_TABLE_ATTR = 'data-resizable-table';
+
+    /**
+     * Attribute marking a <th> as having a resize handle.
+     * @type {string}
+     */
+    const DRAG_SOURCE_ID_ATTR = 'data-drag-source-id';
+
+    /**
+     * Attribute marking a <th> as having a fixed column.
+     * @type {string}
+     */
+    const COLUMN_FIXED_ATTR = 'data-column-fixed';
+
+    /**
+     * Set while the user is resizing or dragging a column, so a re-init does not
+     * rebuild the table mid-gesture.
      * @type {boolean}
      */
-    window.horizonTableInteracting = false;
+    let tableInteracting = false;
+
+    /**
+     * Set once the tables observer is installed, so a Turbo visit does not stack
+     * another one.
+     * @type {boolean}
+     */
+    let observingAddedTables = false;
 
     /**
      * Load the state from localStorage.
@@ -399,33 +450,35 @@ import { parseJson } from '../lib/parse';
 
             th.appendChild(handle);
 
-            handle.addEventListener('mousedown', e => {
-                e.preventDefault();
-                window.horizonTableInteracting = true;
-                th.setAttribute(HORIZON_RESIZING_ATTR, '1');
-                th.draggable = false;
-                var startX = e.clientX;
-                var startWidth = th.offsetWidth;
+            bindOnce(handle, RESIZE_BOUND_ATTR, function (boundHandle) {
+                boundHandle.addEventListener('mousedown', e => {
+                    e.preventDefault();
+                    tableInteracting = true;
+                    th.setAttribute(HORIZON_RESIZING_ATTR, '1');
+                    th.draggable = false;
+                    var startX = e.clientX;
+                    var startWidth = th.offsetWidth;
 
-                function onMove(eMove) {
-                    var w = clampColumnWidth(th, startWidth + (eMove.clientX - startX));
-                    state.widths[colId] = w;
-                    var widths = getColumnStyleWidths(th, w);
-                    th.style.width = widths.width;
-                    th.style.maxWidth = widths.maxWidth;
-                }
+                    function onMove(eMove) {
+                        var w = clampColumnWidth(th, startWidth + (eMove.clientX - startX));
+                        state.widths[colId] = w;
+                        var widths = getColumnStyleWidths(th, w);
+                        th.style.width = widths.width;
+                        th.style.maxWidth = widths.maxWidth;
+                    }
 
-                function onUp() {
-                    document.removeEventListener('mousemove', onMove);
-                    document.removeEventListener('mouseup', onUp);
-                    th.removeAttribute(HORIZON_RESIZING_ATTR);
-                    th.draggable = true;
-                    saveState(storageKey, state.order, state.widths);
-                    window.horizonTableInteracting = false;
-                }
+                    function onUp() {
+                        document.removeEventListener('mousemove', onMove);
+                        document.removeEventListener('mouseup', onUp);
+                        th.removeAttribute(HORIZON_RESIZING_ATTR);
+                        th.draggable = true;
+                        saveState(storageKey, state.order, state.widths);
+                        tableInteracting = false;
+                    }
 
-                document.addEventListener('mousemove', onMove);
-                document.addEventListener('mouseup', onUp);
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup', onUp);
+                });
             });
         });
     }
@@ -442,7 +495,7 @@ import { parseJson } from '../lib/parse';
         if (!theadRow) return;
 
         theadRow.querySelectorAll('th[' + COLUMN_ID_ATTR + ']').forEach(th => {
-            if (th.hasAttribute('data-column-fixed')) {
+            if (th.hasAttribute(COLUMN_FIXED_ATTR)) {
                 th.removeAttribute('draggable');
                 th.classList.remove('select-none', 'cursor-move');
                 return;
@@ -451,58 +504,60 @@ import { parseJson } from '../lib/parse';
             th.setAttribute('draggable', 'true');
             th.classList.add('select-none', 'cursor-move');
 
-            th.addEventListener('dragstart', e => {
-                if (th.getAttribute(HORIZON_RESIZING_ATTR) === '1') {
+            bindOnce(th, REORDER_BOUND_ATTR, function (boundTh) {
+                boundTh.addEventListener('dragstart', e => {
+                    if (th.getAttribute(HORIZON_RESIZING_ATTR) === '1') {
+                        e.preventDefault();
+                        return;
+                    }
+                    tableInteracting = true;
+                    e.dataTransfer.effectAllowed = 'move';
+                    var colId = th.getAttribute(COLUMN_ID_ATTR);
+                    e.dataTransfer.setData('text/plain', colId);
+                    table.setAttribute(DRAG_SOURCE_ID_ATTR, colId);
+                    th.classList.add('opacity-50');
+
+                    var dragImage = th.cloneNode(true);
+                    dragImage.style.cssText = '';
+                    dragImage.classList.add(HORIZON_DRAG_IMAGE_CLASS);
+                    document.body.appendChild(dragImage);
+                    e.dataTransfer.setDragImage(dragImage, e.offsetX, e.offsetY);
+                    setTimeout(() => {
+                        document.body.removeChild(dragImage);
+                    }, 0);
+                });
+
+                boundTh.addEventListener('dragend', () => {
+                    th.classList.remove('opacity-50');
+                    table.removeAttribute(DRAG_SOURCE_ID_ATTR);
+                    tableInteracting = false;
+                });
+
+                boundTh.addEventListener('dragover', e => {
+                    if (!table.getAttribute(DRAG_SOURCE_ID_ATTR)) return;
+                    if (th.getAttribute(COLUMN_ID_ATTR) === table.getAttribute(DRAG_SOURCE_ID_ATTR)) return;
                     e.preventDefault();
-                    return;
-                }
-                window.horizonTableInteracting = true;
-                e.dataTransfer.effectAllowed = 'move';
-                var colId = th.getAttribute(COLUMN_ID_ATTR);
-                e.dataTransfer.setData('text/plain', colId);
-                table.setAttribute('data-drag-source-id', colId);
-                th.classList.add('opacity-50');
+                    e.dataTransfer.dropEffect = 'move';
+                });
 
-                var dragImage = th.cloneNode(true);
-                dragImage.style.cssText = '';
-                dragImage.classList.add('horizon-drag-image');
-                document.body.appendChild(dragImage);
-                e.dataTransfer.setDragImage(dragImage, e.offsetX, e.offsetY);
-                setTimeout(() => {
-                    document.body.removeChild(dragImage);
-                }, 0);
-            });
+                boundTh.addEventListener('drop', e => {
+                    e.preventDefault();
+                    var sourceId = e.dataTransfer.getData('text/plain');
+                    var targetId = th.getAttribute(COLUMN_ID_ATTR);
+                    if (!sourceId || sourceId === targetId) return;
 
-            th.addEventListener('dragend', () => {
-                th.classList.remove('opacity-50');
-                table.removeAttribute('data-drag-source-id');
-                window.horizonTableInteracting = false;
-            });
+                    var order = state.order.slice();
+                    var si = order.indexOf(sourceId);
+                    var ti = order.indexOf(targetId);
+                    if (si === -1 || ti === -1) return;
 
-            th.addEventListener('dragover', e => {
-                if (!table.getAttribute('data-drag-source-id')) return;
-                if (th.getAttribute(COLUMN_ID_ATTR) === table.getAttribute('data-drag-source-id')) return;
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-            });
-
-            th.addEventListener('drop', e => {
-                e.preventDefault();
-                var sourceId = e.dataTransfer.getData('text/plain');
-                var targetId = th.getAttribute(COLUMN_ID_ATTR);
-                if (!sourceId || sourceId === targetId) return;
-
-                var order = state.order.slice();
-                var si = order.indexOf(sourceId);
-                var ti = order.indexOf(targetId);
-                if (si === -1 || ti === -1) return;
-
-                order.splice(si, 1);
-                order.splice(ti, 0, sourceId);
-                state.order = order;
-                applyState(table, state);
-                setupResize(table, storageKey, state);
-                saveState(storageKey, state.order, state.widths);
+                    order.splice(si, 1);
+                    order.splice(ti, 0, sourceId);
+                    state.order = order;
+                    applyState(table, state);
+                    setupResize(table, storageKey, state);
+                    saveState(storageKey, state.order, state.widths);
+                });
             });
         });
     }
@@ -570,6 +625,8 @@ import { parseJson } from '../lib/parse';
             return;
         }
 
+        if (wrapper.clientWidth === 0) return;
+
         emptyState.classList.add(HORIZON_EMPTY_PINNED_CLASS);
         emptyState.style.width = wrapper.clientWidth + 'px';
         table.style.overflow = 'visible';
@@ -580,7 +637,7 @@ import { parseJson } from '../lib/parse';
      * @returns {void}
      */
     function refreshEmptyStatePinning() {
-        document.querySelectorAll('table[data-resizable-table]').forEach(applyEmptyStatePinning);
+        document.querySelectorAll('table[' + RESIZABLE_TABLE_ATTR + ']').forEach(applyEmptyStatePinning);
     }
 
     if (!window._horizonEmptyStateRefreshBound) {
@@ -595,13 +652,13 @@ import { parseJson } from '../lib/parse';
      * @returns {void}
      */
     function initTable(table) {
-        var storageKey = table.getAttribute('data-resizable-table');
+        var storageKey = table.getAttribute(RESIZABLE_TABLE_ATTR);
         if (!storageKey) return;
 
         var columnIds = getColumnIds(table);
         if (columnIds.length === 0) return;
 
-        if (table.hasAttribute(INITTED_ATTR) && window.horizonTableInteracting) {
+        if (table.hasAttribute(INITTED_ATTR) && !tableInteracting) {
             return;
         }
 
@@ -626,7 +683,7 @@ import { parseJson } from '../lib/parse';
      * @returns {void}
      */
     function syncLayoutFromStorage(table) {
-        var storageKey = table.getAttribute('data-resizable-table');
+        var storageKey = table.getAttribute(RESIZABLE_TABLE_ATTR);
         if (!storageKey) return;
 
         var columnIds = getColumnIds(table);
@@ -680,14 +737,14 @@ import { parseJson } from '../lib/parse';
             }
             tables.push(table);
         }
-        if (syncRoot.matches && syncRoot.matches('table[data-resizable-table]')) {
+        if (syncRoot.matches && syncRoot.matches('table[' + RESIZABLE_TABLE_ATTR + ']')) {
             addTable(syncRoot);
         }
-        var parentTable = syncRoot.closest && syncRoot.closest('table[data-resizable-table]');
+        var parentTable = syncRoot.closest && syncRoot.closest('table[' + RESIZABLE_TABLE_ATTR + ']');
         if (parentTable) {
             addTable(parentTable);
         }
-        syncRoot.querySelectorAll('table[data-resizable-table]').forEach(addTable);
+        syncRoot.querySelectorAll('table[' + RESIZABLE_TABLE_ATTR + ']').forEach(addTable);
         tables.forEach(function (table) {
             window.horizonSyncResizableTableLayout(table);
         });
@@ -698,11 +755,35 @@ import { parseJson } from '../lib/parse';
     }
 
     /**
-     * Initialize the resizable tables.
+     * Setup the observer that initializes tables added to the document.
+     *
+     * Tables rendered by an `x-if` (a modal body, for instance) do not exist
+     * when the page loads, so the code revealing them does not need to know
+     * that column layouts exist. Insertions are reported before the browser
+     * paints, so a table revealed by a modal is laid out on its first visible
+     * frame; the only measurement that needs a visible table (the empty state
+     * pinning) skips hidden ones.
      * @returns {void}
      */
-    function init() {
-        document.querySelectorAll('table[data-resizable-table]').forEach(initTable);
+    function setupTablesObserver() {
+        if (observingAddedTables) return;
+        observingAddedTables = true;
+
+        function initAdded(node) {
+            if (!node || node.nodeType !== 1) return;
+            if (node.matches && node.matches('table[' + RESIZABLE_TABLE_ATTR + ']')) {
+                initTable(node);
+            }
+            if (node.querySelectorAll) {
+                node.querySelectorAll('table[' + RESIZABLE_TABLE_ATTR + ']').forEach(initTable);
+            }
+        }
+
+        new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                Array.prototype.forEach.call(mutation.addedNodes, initAdded);
+            });
+        }).observe(document.documentElement, { childList: true, subtree: true });
     }
 
     /**
@@ -710,57 +791,73 @@ import { parseJson } from '../lib/parse';
      * @returns {void}
      */
     function setupDelegatedDragOver() {
-        if (window._horizonDragOverDelegated) return;
+        bindOnce(document.body, DRAG_DELEGATED_ATTR, function (body) {
+            body.addEventListener('dragover', e => {
+                var target = e.target.closest('th[' + COLUMN_ID_ATTR + ']');
+                if (!target) {
+                    hideDragOverlay();
+                    return;
+                }
+                var table = target.closest('table[' + RESIZABLE_TABLE_ATTR + ']');
+                if (!table) {
+                    hideDragOverlay();
+                    return;
+                }
+                if (!table.getAttribute(DRAG_SOURCE_ID_ATTR)) {
+                    hideDragOverlay();
+                    return;
+                }
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (target.getAttribute(COLUMN_ID_ATTR) !== table.getAttribute(DRAG_SOURCE_ID_ATTR)) {
+                    showOverlayOver(target);
+                } else {
+                    hideDragOverlay();
+                }
+            });
+            body.addEventListener('dragleave', e => {
+                var related = e.relatedTarget;
+                if (related && related.closest && related.closest('thead')) return;
 
-        window._horizonDragOverDelegated = true;
-        document.body.addEventListener('dragover', e => {
-            var target = e.target.closest('th[' + COLUMN_ID_ATTR + ']');
-            if (!target) {
                 hideDragOverlay();
-                return;
-            }
-            var table = target.closest('table[data-resizable-table]');
-            if (!table) {
+            });
+            body.addEventListener('dragend', () => {
                 hideDragOverlay();
-                return;
-            }
-            if (!table.getAttribute('data-drag-source-id')) {
-                hideDragOverlay();
-                return;
-            }
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            if (target.getAttribute(COLUMN_ID_ATTR) !== table.getAttribute('data-drag-source-id')) {
-                showOverlayOver(target);
-            } else {
-                hideDragOverlay();
-            }
-        });
-        document.body.addEventListener('dragleave', e => {
-            var related = e.relatedTarget;
-            if (related && related.closest && related.closest('thead')) return;
-
-            hideDragOverlay();
-        });
-        document.body.addEventListener('dragend', () => {
-            hideDragOverlay();
+            });
         });
     }
 
     /**
-     * Initialize the resizable tables.
+     * Clear the binding markers before Turbo caches the page.
+     *
+     * The cached snapshot is a clone of the live body, so the restored markup
+     * carries the markers that make `bindOnce` and `initTable` skip elements
+     * whose listeners died with the body that was cloned. Clearing them lets
+     * the restored page bind again on its own `turbo:load`.
      * @returns {void}
      */
-    if (!window.horizonInitResizableTables) {
-        window.horizonInitResizableTables = init;
+    function clearBindingMarkers() {
+        document.body.removeAttribute(DRAG_DELEGATED_ATTR);
+        document.querySelectorAll('[' + REORDER_BOUND_ATTR + ']').forEach(function (th) {
+            th.removeAttribute(REORDER_BOUND_ATTR);
+        });
+        document.querySelectorAll('.' + HORIZON_RESIZE_HANDLE_CLASS).forEach(function (handle) {
+            handle.remove();
+        });
+        document.querySelectorAll('table[' + INITTED_ATTR + ']').forEach(function (table) {
+            table.removeAttribute(INITTED_ATTR);
+        });
     }
 
+    document.addEventListener('turbo:before-cache', clearBindingMarkers);
+
     /**
-     * Initialize the resizable tables.
+     * Initialize the resizable tables on every Turbo visit.
      * @returns {void}
      */
     document.addEventListener('turbo:load', function () {
         setupDelegatedDragOver();
-        init();
+        setupTablesObserver();
+        document.querySelectorAll('table[' + RESIZABLE_TABLE_ATTR + ']').forEach(initTable)
     });
 })();

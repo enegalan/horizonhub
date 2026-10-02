@@ -5,6 +5,9 @@ namespace App\Http\Requests\Horizon;
 use App\Models\Service;
 use Illuminate\Http\Request;
 
+/**
+ * Form request for the service action.
+ */
 class ServiceRequest extends HorizonRequest
 {
     /**

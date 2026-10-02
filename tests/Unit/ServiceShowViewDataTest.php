@@ -4,7 +4,6 @@ namespace Tests\Unit;
 
 use App\Http\Controllers\Stream\HorizonStreamsController;
 use App\Models\Service;
-use App\Services\Metrics\MetricsDataService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -19,23 +18,23 @@ class ServiceShowViewDataTest extends TestCase
         $service = Service::create(['name' => 'svc', 'base_url' => 'https://svc.test', 'status' => 'online']);
         $request = Request::create('/horizon/services/' . $service->id, 'GET', ['search' => 'job-x']);
 
-        $metrics = $this->createMock(MetricsDataService::class);
-        $metrics->method('getJobsPastMinute')->willReturn(2);
-        $metrics->method('getJobsPastHour')->willReturn(20);
-        $metrics->method('getFailedPastSevenDays')->willReturn(1);
-        $metrics->method('getWorkloadForService')->willReturn([
-            ['queue' => 'default', 'jobs' => 5, 'processes' => 2, 'wait' => 1.2],
-        ]);
-        $this->app->instance(MetricsDataService::class, $metrics);
-
         Http::fake(function ($request) {
             if (str_contains($request->url(), '/horizon/api/stats')) {
                 return Http::response([
                     'status' => 'running',
                     'processes' => 3,
+                    'jobsPerMinute' => 2.4,
+                    'recentJobs' => 20,
+                    'failedJobs' => 1,
                     'wait' => ['default' => 5.0, 'emails' => 0],
                     'queueWithMaxRuntime' => 'default',
                     'queueWithMaxThroughput' => 'emails',
+                ], 200);
+            }
+
+            if (str_contains($request->url(), '/horizon/api/workload')) {
+                return Http::response([
+                    ['name' => 'default', 'length' => 5, 'processes' => 2, 'wait' => 1.2],
                 ], 200);
             }
 
@@ -68,6 +67,7 @@ class ServiceShowViewDataTest extends TestCase
         $this->assertSame('job-x', $data['search']);
         $this->assertCount(1, $data['supervisors']);
         $this->assertCount(1, $data['workloadQueues']);
+        $this->assertSame(5, $data['workloadQueues'][0]['jobs']);
     }
 
     public function test_build_returns_empty_data_when_service_is_disabled(): void
@@ -79,10 +79,6 @@ class ServiceShowViewDataTest extends TestCase
             'enabled' => false,
         ]);
         $request = Request::create('/horizon/services/' . $service->id, 'GET');
-
-        $metrics = $this->createMock(MetricsDataService::class);
-        $metrics->expects($this->never())->method('getJobsPastMinute');
-        $this->app->instance(MetricsDataService::class, $metrics);
 
         Http::fake(['*' => Http::response([], 200)]);
 

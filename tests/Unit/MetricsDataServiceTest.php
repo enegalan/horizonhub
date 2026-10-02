@@ -26,14 +26,15 @@ class MetricsDataServiceTest extends TestCase
         $serviceA = Service::create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
         $serviceB = Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);
 
-        $metrics = $this->getMockBuilder(MetricsDataService::class)
-            ->disableOriginalConstructor()
-            ->onlyMethods(['getWorkloadData'])
-            ->getMock();
-        $metrics->method('getWorkloadData')->willReturn([
-            ['service_id' => $serviceA->id, 'queue' => 'redis.zeta', 'jobs' => 1],
-            ['service_id' => $serviceB->id, 'queue' => 'redis.alpha', 'jobs' => 2],
-        ]);
+        Http::fake(function ($request) use ($serviceB) {
+            if (\str_contains($request->url(), $serviceB->base_url)) {
+                return Http::response([['name' => 'redis:alpha', 'length' => 2, 'processes' => 1]], 200);
+            }
+
+            return Http::response([['name' => 'redis:zeta', 'length' => 1, 'processes' => 1]], 200);
+        });
+
+        $metrics = $this->private__makeMetricsDataService();
 
         $rows = $metrics->buildQueuesCollectionForServiceFilter([$serviceB->id]);
 
@@ -92,7 +93,7 @@ class MetricsDataServiceTest extends TestCase
         });
 
         $metrics = $this->private__makeMetricsDataService();
-        $result = $metrics->getFailureRate24h([$service->id]);
+        $result = $this->private__calculator($metrics, 'failureMetrics')->getFailureRate24h([$service->id]);
 
         $this->assertSame(51, $result['processed']);
         $this->assertSame(0, $result['failed']);
@@ -141,7 +142,7 @@ class MetricsDataServiceTest extends TestCase
         });
 
         $metrics = $this->private__makeMetricsDataService();
-        $result = $metrics->getFailureRateOverTime([$service->id]);
+        $result = $this->private__calculator($metrics, 'failureMetrics')->getFailureRateOverTime([$service->id]);
 
         $endHour = $now->copy()->startOfHour();
         $expectedBucketCount = \min(
@@ -212,7 +213,7 @@ class MetricsDataServiceTest extends TestCase
         });
 
         $metrics = $this->private__makeMetricsDataService();
-        $result = $metrics->getJobRuntimesLast24h([$service->id]);
+        $result = $this->private__calculator($metrics, 'runtimeMetrics')->getJobRuntimesLast24h([$service->id]);
 
         $this->assertCount(3, $result['points']);
 
@@ -264,7 +265,7 @@ class MetricsDataServiceTest extends TestCase
         });
 
         $metrics = $this->private__makeMetricsDataService();
-        $result = $metrics->getJobsVolumeLast24h([$service->id]);
+        $result = $this->private__calculator($metrics, 'jobsVolumeLast24h')->getJobsVolumeLast24h([$service->id]);
 
         $this->assertCount(25, $result['xAxis']);
         $this->assertCount(25, $result['completed']);
@@ -319,7 +320,7 @@ class MetricsDataServiceTest extends TestCase
         });
 
         $metrics = $this->private__makeMetricsDataService();
-        $rows = $metrics->getSupervisorsData([$service->id]);
+        $rows = $this->private__calculator($metrics, 'workloadMetrics')->getSupervisorsData([$service->id]);
 
         $this->assertCount(2, $rows);
 
@@ -406,7 +407,7 @@ class MetricsDataServiceTest extends TestCase
         ]);
 
         $metrics = $this->private__makeMetricsDataService();
-        $rows = $metrics->getWorkloadForService($service);
+        $rows = $this->private__calculator($metrics, 'workloadMetrics')->getWorkloadForService($service);
 
         $this->assertCount(1, $rows);
         $this->assertSame('default', $rows[0]['queue']);
@@ -434,7 +435,7 @@ class MetricsDataServiceTest extends TestCase
         ]);
 
         $metrics = $this->private__makeMetricsDataService();
-        $this->assertSame([], $metrics->getWorkloadForService($service));
+        $this->assertSame([], $this->private__calculator($metrics, 'workloadMetrics')->getWorkloadForService($service));
     }
 
     public function test_queue_name_normalizer_does_not_strip_when_leading_segment_starts_with_digit(): void
@@ -466,6 +467,21 @@ class MetricsDataServiceTest extends TestCase
         $this->assertSame('notifications', QueueNameNormalizer::normalize('sqs:notifications'));
         $this->assertSame('redis.', QueueNameNormalizer::normalize('redis.'));
         $this->assertSame('alpha', QueueNameNormalizer::normalize('alpha'));
+    }
+
+    /**
+     * Reach a private calculator dependency on the metrics service.
+     *
+     * The service exposes the calculators only as constructor-injected
+     * collaborators, so unit tests read them reflectively rather than the
+     * service growing pass-through getters that only they would use.
+     *
+     * @param MetricsDataService $metrics The service under test.
+     * @param string $property Property name of the injected calculator.
+     */
+    private function private__calculator(MetricsDataService $metrics, string $property): mixed
+    {
+        return new \ReflectionProperty($metrics, $property)->getValue($metrics);
     }
 
     private function private__makeMetricsDataService(): MetricsDataService

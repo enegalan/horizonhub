@@ -4,6 +4,7 @@ namespace App\Services\Alerts\Rules\Contracts;
 
 use App\Enums\AlertRuleType;
 use App\Models\Alert;
+use App\Models\Service;
 
 interface AlertRuleStrategy
 {
@@ -17,5 +18,5 @@ interface AlertRuleStrategy
      *
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array;
+    public function evaluateWithTriggeringJobs(Alert $alert, Service $service): array;
 }

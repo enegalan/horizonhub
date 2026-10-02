@@ -13,6 +13,11 @@ enum HorizonStatus: string
     case Paused = 'paused';
     case Running = 'running';
 
+    /**
+     * Labels for the statuses.
+     *
+     * @return array<string, string>
+     */
     public static function labels(): array
     {
         return [

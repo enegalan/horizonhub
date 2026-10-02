@@ -2,22 +2,39 @@ import { applyChartOptions, getChartColors } from "../charts/charts";
 import { parseJsonFromElement } from "../lib/parse";
 
 /**
- * Alpine component for the metrics page.
- * @returns {object}
+ * Render the metrics charts.
+ * @returns {void}
  */
-export function horizonMetricsPage() {
-    return {
-        /**
-         * Initialize the metrics page.
-         * @returns {void}
-         */
-        init: function () {
-            if (typeof window === "undefined" || typeof document === "undefined") return;
+export function renderMetricsCharts() {
+    var data = parseJsonFromElement('metrics-chart-data');
+    var loaded = data && typeof data === 'object' && !Array.isArray(data);
 
-            // Initial hydration to initially show metrics charts and format elements
-            renderMetricsCharts();
-        },
-    };
+    initMetricsCharts(data);
+
+    setMetricsChartPanelState(
+        document.getElementById('metrics-loader-jobs-volume-chart'),
+        document.getElementById('metrics-empty-jobs-volume-chart'),
+        loaded,
+        !!(data && data.jobsVolumeLast24h && data.jobsVolumeLast24h.xAxis && data.jobsVolumeLast24h.xAxis.length)
+    );
+    setMetricsChartPanelState(
+        document.getElementById('metrics-loader-failure-rate-chart'),
+        document.getElementById('metrics-empty-failure-rate-chart'),
+        loaded,
+        !!(data && data.failureRateOverTime && data.failureRateOverTime.xAxis && data.failureRateOverTime.xAxis.length)
+    );
+    setMetricsChartPanelState(
+        document.getElementById('metrics-loader-runtime-chart'),
+        document.getElementById('metrics-empty-runtime-chart'),
+        loaded,
+        (data && data.jobRuntimesLast24h && data.jobRuntimesLast24h.points ? data.jobRuntimesLast24h.points : []).length > 0
+    );
+    setMetricsChartPanelState(
+        document.getElementById('metrics-loader-service-chart'),
+        document.getElementById('metrics-empty-service-chart'),
+        loaded,
+        !!(data && data.waitByQueue && data.waitByQueue.queues && data.waitByQueue.queues.length)
+    );
 }
 
 /**
@@ -53,42 +70,6 @@ function getAxisTooltipViewportOptions() {
         enterable: true,
         className: 'horizon-chart-tooltip',
     };
-}
-
-/**
- * Render the metrics charts.
- * @returns {void}
- */
-export function renderMetricsCharts() {
-    var data = parseJsonFromElement('metrics-chart-data');
-    var loaded = data && typeof data === 'object' && !Array.isArray(data);
-
-    initMetricsCharts(data);
-
-    setMetricsChartPanelState(
-        document.getElementById('metrics-loader-jobs-volume-chart'),
-        document.getElementById('metrics-empty-jobs-volume-chart'),
-        loaded,
-        !!(data && data.jobsVolumeLast24h && data.jobsVolumeLast24h.xAxis && data.jobsVolumeLast24h.xAxis.length)
-    );
-    setMetricsChartPanelState(
-        document.getElementById('metrics-loader-failure-rate-chart'),
-        document.getElementById('metrics-empty-failure-rate-chart'),
-        loaded,
-        !!(data && data.failureRateOverTime && data.failureRateOverTime.xAxis && data.failureRateOverTime.xAxis.length)
-    );
-    setMetricsChartPanelState(
-        document.getElementById('metrics-loader-runtime-chart'),
-        document.getElementById('metrics-empty-runtime-chart'),
-        loaded,
-        (data && data.jobRuntimesLast24h && data.jobRuntimesLast24h.points ? data.jobRuntimesLast24h.points : []).length > 0
-    );
-    setMetricsChartPanelState(
-        document.getElementById('metrics-loader-service-chart'),
-        document.getElementById('metrics-empty-service-chart'),
-        loaded,
-        !!(data && data.waitByQueue && data.waitByQueue.queues && data.waitByQueue.queues.length)
-    );
 }
 
 /**

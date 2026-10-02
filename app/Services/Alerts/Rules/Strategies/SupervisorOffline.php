@@ -29,16 +29,13 @@ final class SupervisorOffline extends AbstractAlertRuleStrategy
     /**
      * Evaluate the rule and return whether it triggered plus triggering job UUIDs.
      *
+     * @param Alert $alert The alert.
+     * @param Service $service The service.
+     *
      * @return array{triggered: bool, job_uuids: array<int, string>}
      */
-    public function evaluateWithTriggeringJobs(Alert $alert, int $serviceId): array
+    public function evaluateWithTriggeringJobs(Alert $alert, Service $service): array
     {
-        $service = Service::find($serviceId);
-
-        if ($service === null) {
-            return $this->notTriggered();
-        }
-
         $mastersData = ClientResponse::data(HorizonClientApiService::getMasters($service));
 
         if ($mastersData === null) {
@@ -53,7 +50,7 @@ final class SupervisorOffline extends AbstractAlertRuleStrategy
             ? (string) $supervisor['name']
             : 'unnamed';
 
-            $cacheKey = self::CACHE_KEY_PREFIX . $serviceId . ':' . $identity;
+            $cacheKey = self::CACHE_KEY_PREFIX . $service->id . ':' . $identity;
 
             if (! isset($supervisor['status']) || (string) $supervisor['status'] !== HorizonStatus::Inactive->value) {
                 Cache::forget($cacheKey);

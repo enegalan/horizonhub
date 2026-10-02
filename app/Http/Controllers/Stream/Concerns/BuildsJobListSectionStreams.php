@@ -2,25 +2,26 @@
 
 namespace App\Http\Controllers\Stream\Concerns;
 
+use App\Enums\JobSection;
 use App\Models\Service;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 trait BuildsJobListSectionStreams
 {
     /**
-     * Turbo streams for the three job list section tbodies, badge counts, and pagination (no thead replace).
+     * Turbo streams for the job list section tbodies, badge counts, and pagination (no thead replace).
      *
-     * @param array{processing: LengthAwarePaginator, processed: LengthAwarePaginator, failed: LengthAwarePaginator} $jobsIndex
+     * @param array<string, LengthAwarePaginator> $jobsIndex keyed by JobSection value
      */
     protected function streamsForJobListSections(array $jobsIndex, string $resizablePrefix, bool $showServiceColumn, ?Service $pageService): string
     {
         $operations = [];
 
-        foreach (['processing', 'processed', 'failed'] as $kind) {
-            $paginator = $jobsIndex[$kind];
-            $bodyKey = "$resizablePrefix-$kind";
+        foreach (JobSection::cases() as $section) {
+            $paginator = $jobsIndex[$section->value];
+            $bodyKey = "$resizablePrefix-{$section->value}";
             $operations[] = ['update', "tbody-$bodyKey", \view('horizon.jobs.partials.index.list-tbody-rows', [
-                'kind' => $kind,
+                'section' => $section,
                 'paginator' => $paginator,
                 'showServiceColumn' => $showServiceColumn,
                 'pageService' => $pageService,

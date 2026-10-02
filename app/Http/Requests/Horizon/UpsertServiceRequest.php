@@ -8,6 +8,9 @@ use App\Support\Services\ServiceTagNormalizer;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
+/**
+ * Form request for the upsert service action.
+ */
 class UpsertServiceRequest extends HorizonRequest
 {
     /**
@@ -31,6 +34,8 @@ class UpsertServiceRequest extends HorizonRequest
     private const TLS_PEM_CERT_EXTENSIONS = ['crt', 'pem', 'cer'];
 
     /**
+     * The validation rules for the request.
+     *
      * @return array<string, mixed>
      */
     public function rules(): array

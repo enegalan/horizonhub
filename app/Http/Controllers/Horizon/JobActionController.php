@@ -38,10 +38,14 @@ class JobActionController extends Controller
         $serviceIds = [];
 
         if (! empty($validated['service_ids']) && \is_array($validated['service_ids'])) {
-            $serviceIds = \array_values(\array_unique(\array_map('intval', $validated['service_ids'])));
+            $serviceIds = $validated['service_ids'];
         }
 
-        $tags = $request->query('service_tag', []);
+        $tags = [];
+
+        if (! empty($validated['service_tag']) && \is_array($validated['service_tag'])) {
+            $tags = $validated['service_tag'];
+        }
 
         $servicesQuery = Service::enabled();
 

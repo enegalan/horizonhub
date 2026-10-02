@@ -1,56 +1,28 @@
 import './bootstrap';
 import './components/resizable-table';
 import './components/form-drawer';
-import './components/loading-button';
-import { horizonJobsPage, horizonJobDetail, horizonJobRowRetry, initJsonTrees } from './horizon/jobs';
-import { horizonAlertsList, horizonAlertDetail, renderAlertDetailCharts } from './horizon/alerts';
-import { horizonServiceForm, horizonServicesList } from './horizon/services';
-import { horizonMetricsPage, renderMetricsCharts } from './horizon/metrics';
+import { startAlpine } from './alpine';
+import { renderJsonTrees } from './horizon/jobs';
+import { renderAlertDetailCharts } from './horizon/alerts';
+import { renderMetricsCharts } from './horizon/metrics';
 import { initTurboStream } from './lib/sse';
 import { formatDatetimeElements } from './lib/datetime-format';
 import { getTurboStreamTargetElement, renderTurboStreamWithGuards } from './lib/stream-guard';
-import { deleteConfirm } from './components/delete-confirm';
 import { mountToaster } from './components/toaster';
-import { registerInputDatePicker } from './components/input-date-picker';
-import { initTheme } from './components/theme';
-import Alpine from 'alpinejs';
 
-registerInputDatePicker(Alpine);
-
-window.horizonJobsPage = horizonJobsPage;
-window.horizonJobDetail = horizonJobDetail;
-window.horizonJobRowRetry = horizonJobRowRetry;
-window.horizonAlertsList = horizonAlertsList;
-window.horizonAlertDetail = horizonAlertDetail;
-window.deleteConfirm = deleteConfirm;
-window.horizonServiceForm = horizonServiceForm;
-window.horizonServicesList = horizonServicesList;
-window.horizonMetricsPage = horizonMetricsPage;
-
-window.horizonHubTheme = initTheme();
-
-window.Alpine = Alpine;
-Alpine.start();
-
-document.addEventListener('turbo:before-cache', function () {
-    Alpine.destroyTree(document.body);
-});
+startAlpine();
 
 document.addEventListener('turbo:load', function () {
-    queueMicrotask(function () {
-        Alpine.initTree(document.body);
-    });
+    mountToaster();
     setTimeout(function () {
         formatDatetimeElements();
+        renderJsonTrees();
+        renderMetricsCharts();
+        renderAlertDetailCharts();
     }, 0);
-    mountToaster();
 });
 
 onDocumentReady(function () {
-    mountToaster();
-    setTimeout(function () {
-        formatDatetimeElements();
-    }, 0);
     initTurboStream();
 });
 
@@ -62,14 +34,10 @@ document.addEventListener('turbo:before-stream-render', function (e) {
         var syncRoot = getTurboStreamTargetElement(streamElement);
         setTimeout(function () {
             formatDatetimeElements(syncRoot);
-            if (outcome === 'rendered') {
-                if (syncRoot && typeof window.horizonSyncResizableTablesUnderRoot === 'function') {
-                    window.horizonSyncResizableTablesUnderRoot(syncRoot);
-                } else if (typeof window.horizonInitResizableTables === 'function') {
-                    window.horizonInitResizableTables();
-                }
+            if (outcome === 'rendered' && typeof window.horizonSyncResizableTablesUnderRoot === 'function') {
+                window.horizonSyncResizableTablesUnderRoot(syncRoot);
             }
-            initJsonTrees();
+            renderJsonTrees();
             renderMetricsCharts();
             renderAlertDetailCharts();
         }, 0);
@@ -77,7 +45,7 @@ document.addEventListener('turbo:before-stream-render', function (e) {
 });
 
 window.addEventListener('apply-theme', function () {
-    window.horizonHubTheme.applyTheme();
+    window.horizon.theme.apply();
 });
 
 /**

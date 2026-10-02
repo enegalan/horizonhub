@@ -7,10 +7,15 @@ use App\Enums\Concerns\HasOptions;
 enum AlertLogStatus: string
 {
     use HasOptions;
-    case Failed = 'failed';
 
+    case Failed = 'failed';
     case Sent = 'sent';
 
+    /**
+     * Labels for the statuses.
+     *
+     * @return array<string, string>
+     */
     public static function labels(): array
     {
         return [

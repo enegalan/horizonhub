@@ -7,7 +7,19 @@
     @endphp
     <div
         id="horizon-service-dashboard"
-        x-data="window.deleteConfirm ? window.deleteConfirm('Service', { listMode: false }) : {}"
+        x-data="{
+            showDeleteServiceModal: false,
+            openDeleteServiceModal() {
+                this.showDeleteServiceModal = true;
+            },
+            closeDeleteServiceModal() {
+                this.showDeleteServiceModal = false;
+            },
+            confirmDeleteService() {
+                this.$refs.deleteServiceForm.requestSubmit();
+                this.closeDeleteServiceModal();
+            },
+        }"
     >
         <x-breadcrumbs :items="[
             ['label' => 'Jobs', 'url' => route('horizon.jobs.index')],

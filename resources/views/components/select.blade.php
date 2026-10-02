@@ -1,9 +1,25 @@
-@props(['placeholder' => '', 'emptyMessage' => 'No results', 'searchable' => true])
+@props([
+    'multiple' => false,
+    'selected' => [],
+    'placeholder' => '',
+    'emptyMessage' => 'No results',
+    'searchable' => true,
+    'submitOnChange' => false,
+    'labelledBy' => null,
+    'ariaLabel' => null,
+])
 
 @php
     $wrapperClass = $attributes->get('class', '');
-    $selectAttrs = $attributes->except(['class', 'searchable']);
+    $multiple = (bool) $multiple;
     $searchable = (bool) $searchable;
+    $selectAttrs = $attributes->except(['class', 'searchable']);
+    $fieldAttrs = $attributes->except(['class', 'id', 'aria-labelledby', 'aria-label', 'name']);
+    $fieldName = $attributes->get('name') ?? 'select';
+    $triggerId = $multiple ? $attributes->get('id') : null;
+    $triggerLabelledBy = $multiple ? $labelledBy : null;
+    $triggerAriaLabel = $multiple ? $ariaLabel : null;
+    $selectedValues = array_values(array_map('strval', (array) $selected));
     $panelMaxHeight = 288;
     $panelMinHeight = 96;
     $panelGap = 4;
@@ -12,11 +28,17 @@
     $panelMaxWidth = 384;
 @endphp
 <div class="relative min-w-0 max-w-full {{ $wrapperClass }}"
+    {{ $multiple ? $fieldAttrs : '' }}
     x-data="{
         open: false,
         anchor: { top: 0, left: 0, width: 0, maxHeight: {{ $panelMaxHeight }} },
         _repositionHandler: null,
         selectedValue: '',
+        multiple: {{ $multiple ? 'true' : 'false' }},
+        selectedValues: {{ \Illuminate\Support\Js::from($selectedValues) }},
+        fieldName: {{ \Illuminate\Support\Js::from("{$fieldName}[]") }},
+        submitOnChange: {{ $submitOnChange ? 'true' : 'false' }},
+        initialSnapshot: '',
         searchable: {{ $searchable ? 'true' : 'false' }},
         filterQuery: '',
         get hiddenSelect() { return this.$refs.hidden; },
@@ -30,15 +52,25 @@
             return this.options.filter(o => o.value !== '');
         },
         get filteredOptions() {
-            if (!this.searchable) return this.options;
+            var source = this.multiple ? this.dataOptions : this.options;
+            if (!this.searchable) return source;
             var q = (this.filterQuery || '').trim().toLowerCase();
-            if (q === '') return this.options;
-            return this.options.filter(function (o) {
+            if (q === '') return source;
+            return source.filter(function (o) {
                 return o.label.toLowerCase().indexOf(q) !== -1;
             });
         },
         get selectedLabel() {
             if (this.dataOptions.length === 0) return this.emptyMessage;
+            if (this.multiple) {
+                if (this.selectedValues.length === 0) return this.placeholder || 'All';
+                if (this.selectedValues.length === 1) {
+                    var only = this.selectedValues[0];
+                    var one = this.dataOptions.find(o => String(o.value) === String(only));
+                    return one ? one.label : only;
+                }
+                return this.selectedValues.length + ' selected';
+            }
             var opt = this.options.find(o => o.value === this.selectedValue);
             return opt ? opt.label : (this.placeholder || '');
         },
@@ -64,6 +96,7 @@
             if (!this.open) return;
             this.open = false;
             this.unbindReposition();
+            if (this.multiple) this.maybeSubmitIfDirty();
         },
         toggleMenu() {
             if (this.open) {
@@ -135,33 +168,99 @@
                 panel.parentNode.removeChild(panel);
             }
         },
+        isSelected(opt) {
+            return this.multiple
+                ? this.selectedValues.indexOf(String(opt.value)) >= 0
+                : opt.value === this.selectedValue;
+        },
         choose(opt) {
+            if (this.multiple) {
+                var value = String(opt.value);
+                var at = this.selectedValues.indexOf(value);
+                if (at >= 0) {
+                    this.selectedValues.splice(at, 1);
+                } else {
+                    this.selectedValues.push(value);
+                }
+                this.syncHiddenInputs();
+                this.$dispatch('change', { values: this.selectedValues.slice() });
+                return;
+            }
             this.selectedValue = opt.value;
             this.hiddenSelect.value = opt.value;
             this.hiddenSelect.dispatchEvent(new Event('input', { bubbles: true }));
             this.hiddenSelect.dispatchEvent(new Event('change', { bubbles: true }));
             this.closeMenu();
         },
+        syncHiddenInputs() {
+            var host = this.$refs.hiddenInputsHost;
+            if (!host) return;
+            while (host.firstChild) host.removeChild(host.firstChild);
+            var self = this;
+            this.selectedValues.forEach(function (id) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = self.fieldName;
+                input.value = String(id);
+                host.appendChild(input);
+            });
+        },
+        maybeSubmitIfDirty() {
+            this.syncHiddenInputs();
+            var snapshot = JSON.stringify(this.selectedValues.slice().sort());
+            if (!this.submitOnChange || snapshot === this.initialSnapshot) return;
+            this.initialSnapshot = snapshot;
+            var form = this.$el.closest('form');
+            if (!form) return;
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+            } else {
+                form.submit();
+            }
+        },
     }"
     x-init="
-        const sync = () => { const el = $refs.hidden; if (el) selectedValue = el.value };
-        $nextTick(sync);
+        const sync = () => { const el = $refs.hidden; if (el && !multiple) selectedValue = el.value };
+        $nextTick(() => {
+            sync();
+            if (multiple) {
+                initialSnapshot = JSON.stringify(selectedValues.slice().sort());
+                syncHiddenInputs();
+            }
+        });
         $watch('open', (open) => { if (open) sync(); });
     "
     @click.window="handleOutsideClick($event)"
     @horizonhub-select-open.window="closeMenu()"
     >
-    <select x-ref="hidden"
-        {{ $selectAttrs->merge(['class' => 'sr-only']) }}>
-        {{ $slot }}
-    </select>
+    @if($multiple)
+        <select x-ref="hidden"
+            multiple
+            class="sr-only"
+            tabindex="-1"
+            aria-hidden="true">
+            {{ $slot }}
+        </select>
+        <div x-ref="hiddenInputsHost" class="hidden" aria-hidden="true"></div>
+    @else
+        <select x-ref="hidden"
+            {{ $selectAttrs->merge(['class' => 'sr-only']) }}>
+            {{ $slot }}
+        </select>
+    @endif
 
     <button type="button"
         x-ref="trigger"
+        @if($triggerId) id="{{ $triggerId }}" @endif
+        @if($triggerLabelledBy) aria-labelledby="{{ $triggerLabelledBy }}"
+        @elseif($triggerAriaLabel) aria-label="{{ $triggerAriaLabel }}" @endif
         @click.stop="toggleMenu()"
         :aria-expanded="open"
         aria-haspopup="listbox"
-        class="btn-ghost flex h-9 w-full max-w-full items-center justify-between gap-1 overflow-hidden whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground">
+        @class([
+            'btn-ghost flex h-9 w-full max-w-full items-center justify-between gap-1 overflow-hidden whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground',
+            'min-w-[8rem]' => $multiple,
+        ])>
         <span x-text="selectedLabel" :title="selectedLabel" class="min-w-0 flex-1 truncate text-left"></span>
         <x-icons.chevron-down class="h-4 w-4 shrink-0 opacity-50" />
     </button>
@@ -201,15 +300,15 @@
             class="px-2 py-1.5 text-sm text-muted-foreground select-none"
             role="presentation"
         >No matches</div>
-        <template x-for="opt in (searchable ? filteredOptions : options)" :key="opt.value">
+        <template x-for="opt in (searchable ? filteredOptions : (multiple ? dataOptions : options))" :key="opt.value">
             <button type="button"
                 x-show="dataOptions.length > 0"
                 @click="choose(opt)"
-                :class="opt.value === selectedValue ? 'text-accent-foreground' : ''"
+                :class="isSelected(opt) ? 'text-accent-foreground' : ''"
                 class="btn-ghost relative flex w-full cursor-default select-none items-center justify-start rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
                 role="option" no-ring>
-                <span :title="opt.label" class="min-w-0 flex-1 truncate" x-text="opt.label"></span>
-                <span x-show="opt.value === selectedValue" class="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
+                <span :title="opt.label" class="min-w-0 flex-1 truncate text-left" x-text="opt.label"></span>
+                <span x-show="isSelected(opt)" class="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
                     <x-icons.check class="size-3.5" />
                 </span>
             </button>

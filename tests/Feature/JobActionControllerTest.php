@@ -46,6 +46,13 @@ class JobActionControllerTest extends TestCase
         Http::assertSent(fn (Request $request): bool => \str_contains($request->url(), $matching->base_url . '/horizon/api/jobs/failed'));
     }
 
+    public function test_failed_list_rejects_scalar_service_tag_instead_of_failing(): void
+    {
+        $response = $this->getJson(route('horizon.jobs.failed') . '?service_tag=production');
+
+        $response->assertStatus(422)->assertJsonValidationErrors('service_tag');
+    }
+
     public function test_failed_list_returns_empty_meta_when_no_services_match(): void
     {
         $response = $this->getJson(route('horizon.jobs.failed'));

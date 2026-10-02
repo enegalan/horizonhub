@@ -5,41 +5,25 @@
     /** @var string $id */
     /** @var string $bodyKey */
     /** @var bool $defer */
-    /** @var string $kind processing|processed|failed */
-    $sectionKey = $kind;
-    $titles = [
-        'processing' => 'Processing',
-        'processed' => 'Processed',
-        'failed' => 'Failed',
-    ];
-    $badgeClasses = [
-        'processing' => 'badge-warning',
-        'processed' => 'badge-success',
-        'failed' => 'badge-danger',
-    ];
-    $baseBorderClasses = [
-        'processing' => 'border-l-amber-500/40 hover:border-l-amber-500/60',
-        'processed' => 'border-l-emerald-500/40 hover:border-l-emerald-500/60',
-        'failed' => 'border-l-destructive/40 hover:border-l-destructive/60',
-    ];
-    $openAccentClasses = [
-        'processing' => 'group-open:border-l-amber-500/60 group-open:bg-amber-500/5',
-        'processed' => 'group-open:border-l-emerald-500/60 group-open:bg-emerald-500/5',
-        'failed' => 'group-open:border-l-destructive/60 group-open:bg-destructive/5',
-    ];
+    /** @var \App\Enums\JobSection|string $section */
+    $jobSection = $section instanceof \App\Enums\JobSection
+        ? $section
+        : \App\Enums\JobSection::normalize($section);
+    $kind = $jobSection->value;
+    $sectionKey = $jobSection->value;
 @endphp
 <details
     data-section-key="{{ $sectionKey }}"
     :open="sectionOpen.{{ $sectionKey }}"
-    class="group border-b border-border border-l-4 transition-colors duration-200 last:border-b-0 py-2 {{ $baseBorderClasses[$kind] }} {{ $openAccentClasses[$kind] }}"
+    class="group job-section border-b border-border transition-colors duration-200 last:border-b-0 py-2"
 >
     <summary
         class="flex cursor-pointer list-none items-center gap-2 py-2 pl-4 pr-5 text-section-title text-foreground sm:pr-6 [&::-webkit-details-marker]:hidden"
         @click="persistSectionFromSummary('{{ $sectionKey }}', $event)"
     >
         <x-icons.chevron-down class="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
-        <span>{{ $titles[$kind] }}</span>
-        <span id="job-count-{{ $bodyKey }}" class="{{ $badgeClasses[$kind] }}">{{ isset($paginator) && $paginator instanceof \Illuminate\Pagination\LengthAwarePaginator ? $paginator->total() : 0 }}</span>
+        <span>{{ $jobSection->label() }}</span>
+        <span id="job-count-{{ $bodyKey }}" class="{{ $jobSection->badgeClass() }}">{{ isset($paginator) && $paginator instanceof \Illuminate\Pagination\LengthAwarePaginator ? $paginator->total() : 0 }}</span>
     </summary>
     <div class="pt-2">
         <x-table
@@ -55,19 +39,13 @@
                 <x-table.th column="job">Job</x-table.th>
                 <x-table.th column="attempts" class="min-w-[100px]">Attempts</x-table.th>
                 <x-table.th column="queued_at" class="min-w-[100px]">Queued at</x-table.th>
-                @if($kind === 'processing')
-                    <x-table.th column="delayed_until" class="min-w-[100px]">Delayed until</x-table.th>
-                @elseif($kind === 'processed')
-                    <x-table.th column="processed" class="min-w-[100px]">Processed</x-table.th>
-                    <x-table.th column="runtime" class="min-w-[100px]">Runtime</x-table.th>
-                @elseif($kind === 'failed')
-                    <x-table.th column="failed_at" class="min-w-[100px]">Failed at</x-table.th>
-                    <x-table.th column="runtime" class="min-w-[100px]">Runtime</x-table.th>
-                @endif
+                @foreach($jobSection->columns() as $column)
+                    <x-table.th :column="$column['column']" :class="$column['class'] ?? null">{{ $column['label'] }}</x-table.th>
+                @endforeach
                 <x-table.th column="actions" class="min-w-[100px]" data-column-fixed>Actions</x-table.th>
             </x-slot:head>
             @include('horizon.jobs.partials.index.list-tbody-rows', [
-                'kind' => $kind,
+                'section' => $jobSection,
                 'paginator' => $paginator,
                 'showServiceColumn' => $showServiceColumn,
                 'pageService' => $pageService,
