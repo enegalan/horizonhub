@@ -11,12 +11,15 @@ class FormDrawerDiscardConfirmationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_alert_save_button_stays_blocked_when_there_are_no_providers(): void
+    public function test_alert_save_button_is_disabled_only_while_there_are_no_providers(): void
     {
-        $this->get(route('horizon.alerts.create'), ['Turbo-Frame' => 'form-drawer'])
+        $disabledSubmitButton = '/<button(?=[^>]*data-form-drawer-submit=)(?=[^>]*\sdisabled)[^>]*>/';
+
+        $withoutProviders = $this->get(route('horizon.alerts.create'), ['Turbo-Frame' => 'form-drawer'])
             ->assertOk()
-            ->assertSee('data-form-drawer-submit-blocked="true"', false)
-            ->assertSee('disabled', false);
+            ->assertSee('data-form-drawer-submit-blocked="true"', false);
+
+        $this->assertMatchesRegularExpression($disabledSubmitButton, (string) $withoutProviders->getContent());
 
         NotificationProvider::create([
             'name' => 'mail',
@@ -24,9 +27,11 @@ class FormDrawerDiscardConfirmationTest extends TestCase
             'config' => ['to' => ['ops@example.test']],
         ]);
 
-        $this->get(route('horizon.alerts.create'), ['Turbo-Frame' => 'form-drawer'])
+        $withProviders = $this->get(route('horizon.alerts.create'), ['Turbo-Frame' => 'form-drawer'])
             ->assertOk()
             ->assertSee('data-form-drawer-submit-blocked="false"', false);
+
+        $this->assertDoesNotMatchRegularExpression($disabledSubmitButton, (string) $withProviders->getContent());
     }
 
     public function test_form_drawer_discard_confirmation_offers_discard_and_keep_editing_actions(): void

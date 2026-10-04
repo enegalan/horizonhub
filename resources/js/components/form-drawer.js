@@ -65,6 +65,25 @@ function formDrawerSyncSubmit() {
 }
 
 /**
+ * Run a callback once Alpine has rendered its pending updates.
+ *
+ * The rows added or removed by Alpine components are rendered on a later tick than
+ * the event that triggered them, so the form has to be read afterwards.
+ *
+ * @param {Function} callback The callback to run.
+ *
+ * @returns {void}
+ */
+function formDrawerAfterAlpineTick(callback) {
+    if (window.Alpine && typeof window.Alpine.nextTick === 'function') {
+        window.Alpine.nextTick(callback);
+        return;
+    }
+
+    callback();
+}
+
+/**
  * Keep the save button in sync whenever the form may have changed.
  *
  * The signature comparison is authoritative, so listening broadly is safe: clicking
@@ -75,7 +94,7 @@ function formDrawerSyncSubmit() {
  */
 function formDrawerSyncSubmitOnEdit(event) {
     if (event.target.closest(`form[data-turbo-frame="${FORM_DRAWER_FRAME_ID}"]`)) {
-        formDrawerSyncSubmit();
+        formDrawerAfterAlpineTick(formDrawerSyncSubmit);
     }
 }
 
@@ -225,8 +244,12 @@ document.addEventListener('turbo:frame-load', function (event) {
         shell.classList.add(FORM_DRAWER_OPEN);
     }
 
-    formDrawerCleanSignature = formDrawerSignature();
-    formDrawerSyncSubmit();
+    // The rows Alpine renders on init only exist on a later tick, so the values the
+    // form was loaded with can only be read afterwards.
+    formDrawerAfterAlpineTick(function () {
+        formDrawerCleanSignature = formDrawerSignature();
+        formDrawerSyncSubmit();
+    });
 });
 
 /**
