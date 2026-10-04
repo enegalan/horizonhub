@@ -368,6 +368,8 @@
                 <x-button
                     type="submit"
                     class="h-9 text-sm relative inline-flex items-center justify-center"
+                    data-form-drawer-submit
+                    data-form-drawer-submit-blocked="{{ $providers->isEmpty() ? 'true' : 'false' }}"
                     :disabled="$providers->isEmpty()"
                 >
                     {{ $isEdit ? 'Save changes' : 'Create alert' }}
