@@ -626,6 +626,17 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringStartsWith('text/event-stream', $response->headers->get('Content-Type'));
     }
 
+    /**
+     * Invoke a stream builder on the resolved controller through reflection.
+     *
+     * The builders are protected/private methods of the `Builds*Streams` traits
+     * composed into the controller, so the tests call them directly and assert on
+     * the Turbo Stream HTML instead of opening an SSE connection and reading the
+     * streamed frames.
+     *
+     * @param string $method The builder method name, such as `buildAlerts` or `private__buildChart`.
+     * @param mixed ...$args The arguments forwarded to the builder; each builder declares its own argument types.
+     */
     private function private__invokeStreamBuilder(string $method, mixed ...$args): mixed
     {
         $controller = $this->app->make(HorizonStreamsController::class);

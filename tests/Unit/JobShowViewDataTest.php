@@ -348,7 +348,15 @@ class JobShowViewDataTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $jobData
+     * Invoke the controller's private job-detail view data builder.
+     *
+     * `buildJobShowViewData()` is a private method of the `BuildsJobStreams`
+     * trait composed into the controller, so the status normalization, retry
+     * history and timing derivation are exercised through reflection instead of
+     * through a full SSE stream.
+     *
+     * @param Service $service The service the job belongs to.
+     * @param array<string, mixed> $jobData The raw Horizon job payload to normalize.
      */
     private function private__invokeBuildJobShowViewData(Service $service, array $jobData): object
     {

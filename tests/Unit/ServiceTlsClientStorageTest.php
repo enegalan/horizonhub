@@ -207,7 +207,11 @@ class ServiceTlsClientStorageTest extends TestCase
     }
 
     /**
-     * @param array{dir: string, p12: string, cert?: string, key?: string} $fixture
+     * Delete the temporary files and directory of a PKCS#12 fixture.
+     *
+     * Missing entries are ignored, so a partially generated fixture still cleans up.
+     *
+     * @param array{dir: string, p12: string, cert?: string, key?: string} $fixture The fixture paths to delete.
      */
     private function private__cleanupFixture(array $fixture): void
     {
@@ -223,6 +227,13 @@ class ServiceTlsClientStorageTest extends TestCase
     }
 
     /**
+     * Generate a throwaway self-signed certificate and matching PKCS#12 bundle.
+     *
+     * Both files are written into a fresh 0700 temp directory that the test must
+     * clean up again with `private__cleanupFixture()`.
+     *
+     * @param string $password The passphrase protecting the exported PKCS#12 bundle.
+     *
      * @return array{dir: string, p12: string, cert: string, key: string}
      */
     private function private__createPkcs12Fixture(string $password): array
@@ -248,7 +259,12 @@ class ServiceTlsClientStorageTest extends TestCase
     }
 
     /**
-     * @param list<string> $command
+     * Run an OpenSSL command, skipping the test when it is unavailable or fails.
+     *
+     * Both output pipes are drained and closed before waiting, so the command
+     * cannot block on a full pipe buffer.
+     *
+     * @param list<string> $command The command and arguments passed to `proc_open()`.
      */
     private function private__runOrSkip(array $command): void
     {

@@ -22,21 +22,45 @@ class AbstractAlertNotifierTest extends TestCase
 
         $notifier = new class extends AbstractAlertNotifier
         {
+            /**
+             * Return fixed provider metadata to satisfy the notifier metadata contract.
+             *
+             * This anonymous class stands in for a concrete notifier service, so the
+             * inherited `buildNotification()` logic can be tested without depending on
+             * any real provider.
+             *
+             * @return array{label: string, icon: string, description: string, color: string}
+             */
             public static function meta(): array
             {
                 return ['label' => 'Test', 'icon' => 'test', 'description' => 'Test', 'color' => 'gray'];
             }
 
+            /**
+             * Discard the validated provider config and return an empty array.
+             *
+             * The fake has no delivery endpoint, so there is nothing to normalize.
+             *
+             * @param array<string, mixed> $validated The validated provider config, ignored by the fake.
+             *
+             * @return array<string, mixed>
+             */
             public static function normalizedConfig(array $validated): array
             {
                 return [];
             }
 
+            /**
+             * Claim the email provider type so the fake looks like a real notifier.
+             */
             public static function type(): NotificationProviderType
             {
                 return NotificationProviderType::Email;
             }
 
+            /**
+             * Swallow the batch, because this test calls `buildNotification()` directly.
+             */
             public function sendBatched(Alert $alert, array $events, array $config): void {}
         };
 
@@ -61,21 +85,45 @@ class AbstractAlertNotifierTest extends TestCase
 
         $notifier = new class extends AbstractAlertNotifier
         {
+            /**
+             * Return fixed provider metadata to satisfy the notifier metadata contract.
+             *
+             * This anonymous class stands in for a concrete notifier service, so the
+             * inherited `enrichEvents()` logic can be tested without depending on any
+             * real provider.
+             *
+             * @return array{label: string, icon: string, description: string, color: string}
+             */
             public static function meta(): array
             {
                 return ['label' => 'Test', 'icon' => 'test', 'description' => 'Test', 'color' => 'gray'];
             }
 
+            /**
+             * Discard the validated provider config and return an empty array.
+             *
+             * The fake has no delivery endpoint, so there is nothing to normalize.
+             *
+             * @param array<string, mixed> $validated The validated provider config, ignored by the fake.
+             *
+             * @return array<string, mixed>
+             */
             public static function normalizedConfig(array $validated): array
             {
                 return [];
             }
 
+            /**
+             * Claim the email provider type so the fake looks like a real notifier.
+             */
             public static function type(): NotificationProviderType
             {
                 return NotificationProviderType::Email;
             }
 
+            /**
+             * Swallow the batch, because this test calls `enrichEvents()` directly.
+             */
             public function sendBatched(Alert $alert, array $events, array $config): void {}
         };
 
@@ -118,21 +166,54 @@ class AbstractAlertNotifierTest extends TestCase
         {
             public array $captured = [];
 
+            /**
+             * Return fixed provider metadata to satisfy the notifier metadata contract.
+             *
+             * This anonymous class stands in for a concrete notifier service, so
+             * `send()` and the inherited `enrichEvents()` logic can be tested without
+             * depending on any real provider.
+             *
+             * @return array{label: string, icon: string, description: string, color: string}
+             */
             public static function meta(): array
             {
                 return ['label' => 'Test', 'icon' => 'test', 'description' => 'Test', 'color' => 'gray'];
             }
 
+            /**
+             * Discard the validated provider config and return an empty array.
+             *
+             * The fake has no delivery endpoint, so there is nothing to normalize.
+             *
+             * @param array<string, mixed> $validated The validated provider config, ignored by the fake.
+             *
+             * @return array<string, mixed>
+             */
             public static function normalizedConfig(array $validated): array
             {
                 return [];
             }
 
+            /**
+             * Claim the email provider type so the fake looks like a real notifier.
+             */
             public static function type(): NotificationProviderType
             {
                 return NotificationProviderType::Email;
             }
 
+            /**
+             * Record the enriched events instead of sending them to a provider.
+             *
+             * The fake resolves the service from the first event and stores the
+             * `enrichEvents()` output on `$captured`, so the test can assert on the
+             * job details fetched from the Horizon API. The real notifiers would
+             * hand the same enriched batch to their webhook/email renderer.
+             *
+             * @param Alert $alert The triggering alert, unused by the fake.
+             * @param array<int, array<string, mixed>> $events The events enriched and captured.
+             * @param array<string, mixed> $config The provider config, unused by the fake.
+             */
             public function sendBatched(Alert $alert, array $events, array $config): void
             {
                 $this->captured = $this->enrichEvents($events, Service::find((int) ($events[0]['service_id'] ?? 0)));

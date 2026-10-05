@@ -92,6 +92,16 @@ class ServiceShowViewDataTest extends TestCase
     }
 
     /**
+     * Invoke the controller's private service-detail data builder.
+     *
+     * `buildServiceShowData()` is a private method of the `BuildsServiceStreams`
+     * trait composed into the controller, so it is reached through reflection
+     * rather than through an SSE stream or a pass-through getter that only the
+     * tests would use. Only enabled services trigger the Horizon reads.
+     *
+     * @param Service $service The service whose detail data is built.
+     * @param Request $request The request supplying the search term and per-section page numbers.
+     *
      * @return array<string, mixed>
      */
     private function private__invokeBuildServiceShowData(Service $service, Request $request): array

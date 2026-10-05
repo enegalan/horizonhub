@@ -5,13 +5,14 @@
         $total = $paginator->total();
         $firstItem = $paginator->firstItem();
         $lastItem = $paginator->lastItem();
+        $totalSuffix = $paginator instanceof \App\Support\Jobs\SearchResultsPaginator && $paginator->resultsMayBeTruncated() ? '+' : '';
     @endphp
     <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <p class="text-sm text-muted-foreground shrink-0">
             @if ($total === 0)
                 Showing 0 items
             @elseif ($firstItem !== null && $lastItem !== null)
-                Showing {{ $firstItem }}–{{ $lastItem }} of {{ $total }}
+                Showing {{ $firstItem }}–{{ $lastItem }} of {{ $total }}{{ $totalSuffix }}
             @else
                 Showing {{ $total }} items
             @endif

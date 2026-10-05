@@ -7,16 +7,26 @@ use App\Support\Horizon\ClientResponse;
 final class JobsPaginator
 {
     /**
-     * Paginate Horizon job list responses until no more pages.
+     * Paginate Horizon job list responses, keeping only the matching jobs.
+     *
+     * Matching runs on each job as soon as its page is received, so
+     * non-matching jobs never reach the expensive row mapping and sorting
+     * stages. When $maxMatches is a positive integer the loop stops as soon as
+     * that many jobs matched, leaving the remaining pages unread; callers that
+     * need a complete result set (for example bulk retries) pass null.
      *
      * @param callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>} $pageFetcher
+     * @param string|null $search The search string, matched against queue, job name and UUID.
+     * @param int|null $maxMatches The maximum number of matching jobs, or null for no limit.
      *
-     * @return list<mixed>
+     * @return array{jobs: list<array<string, mixed>>, complete: bool} The matching jobs and whether the source was fully read.
      */
-    public static function fetchAllPages(callable $pageFetcher): array
+    public static function fetchFiltered(callable $pageFetcher, ?string $search = null, ?int $maxMatches = null): array
     {
         $maxPages = config('horizonhub.max_horizon_pages');
         $jobsPerRequest = config('horizonhub.horizon_api_job_list_page_size');
+        $limit = $maxMatches !== null && $maxMatches > 0 ? $maxMatches : null;
+        $term = (string) $search;
         $accumulated = [];
         $startingAt = -1;
 
@@ -31,7 +41,22 @@ final class JobsPaginator
             }
 
             foreach ($batch as $job) {
+                if (! \is_array($job)) {
+                    continue;
+                }
+
+                if (! JobSearchFilter::matches($job, $term)) {
+                    continue;
+                }
+
                 $accumulated[] = $job;
+
+                if ($limit !== null && \count($accumulated) >= $limit) {
+                    return [
+                        'jobs' => $accumulated,
+                        'complete' => false,
+                    ];
+                }
             }
 
             if (\count($batch) < $jobsPerRequest) {
@@ -41,7 +66,10 @@ final class JobsPaginator
             $startingAt = self::private__nextStartingAt($startingAt, $batch);
         }
 
-        return $accumulated;
+        return [
+            'jobs' => $accumulated,
+            'complete' => true,
+        ];
     }
 
     /**

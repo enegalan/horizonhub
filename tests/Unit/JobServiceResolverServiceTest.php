@@ -13,6 +13,9 @@ class JobServiceResolverServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Flush the cache so cached job-to-service lookups never leak between tests.
+     */
     protected function setUp(): void
     {
         parent::setUp();

@@ -17,6 +17,9 @@ class HorizonClientTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Flush the Horizon response cache and clear any frozen test clock.
+     */
     protected function tearDown(): void
     {
         Cache::flush();

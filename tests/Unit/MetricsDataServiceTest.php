@@ -481,9 +481,17 @@ class MetricsDataServiceTest extends TestCase
      */
     private function private__calculator(MetricsDataService $metrics, string $property): mixed
     {
-        return new \ReflectionProperty($metrics, $property)->getValue($metrics);
+        return (new \ReflectionProperty($metrics, $property))->getValue($metrics);
     }
 
+    /**
+     * Build the metrics service with every calculator wired to one shared fetcher.
+     *
+     * The container would hand each calculator its own `JobsWindowFetcherService`,
+     * so the graph is assembled by hand here to share a single fetcher (and with
+     * it the memoized completed/failed Horizon job windows) across the service
+     * and all five calculators.
+     */
     private function private__makeMetricsDataService(): MetricsDataService
     {
         $fetcher = new JobsWindowFetcherService;
