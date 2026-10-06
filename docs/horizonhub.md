@@ -93,7 +93,7 @@ flowchart LR
 
 ### Read path (monitoring)
 
-Controllers and services call `HorizonClientService` to perform GETs (and POST for retries) against each enabled service's Horizon API. Metrics aggregation uses paginated job list endpoints with limits defined in `config/horizonhub.php` (`horizon_api_job_list_page_size`, `max_horizon_pages`).
+Controllers and services call `HorizonClientService` to perform GETs (and POST for retries) against each enabled service's Horizon API. Metrics aggregation uses paginated job list endpoints with limits defined in `config/horizonhub.php` (`horizon_api_job_list_page_size`, `max_horizon_pages`). Job searches match the raw payloads while those pages are read and stop early at `job_search_match_cap` matches, because Horizon's job list endpoints expose no queue, job name or UUID filter (see [ADR-0007](decisions/accepted/0007-job-search-payload-filtering.md)).
 
 ### Alert path
 
@@ -131,6 +131,7 @@ Summary relevant to agents and contributors:
 |-----------------------------------|---------------------------------------------------------------------------------|----------------------------------------------------------------|
 | Direct Horizon HTTP API           | Accepted ([0001](decisions/accepted/0001-agent-removal.md))                     | No agent layer; integrate via Horizon Hub proxy and config     |
 | Horizon API path hot-reload cache | Accepted ([0002](decisions/accepted/0002-horizon-api-hot-reload-path-cache.md)) | Path cache behavior for API integration                        |
+| Job search filtering             | Accepted ([0007](decisions/accepted/0007-job-search-payload-filtering.md))     | Horizon cannot filter job lists; match payloads and cap scans  |
 | Built-in authentication           | Rejected ([0001](decisions/rejected/0001-authentication.md))                    | Trusted network model                                          |
 | Route-level protection            | Rejected ([0002](decisions/rejected/0002-protect-routes.md))                    | Depends on auth model                                          |
 | Caching Horizon service data      | Rejected ([0003](decisions/rejected/0003-cache-horizon-service-data.md))        | Do not propose a cache layer without reopen conditions         |

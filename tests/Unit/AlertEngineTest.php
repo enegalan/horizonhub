@@ -365,6 +365,13 @@ class AlertEngineTest extends TestCase
         $this->assertDatabaseCount('alert_logs', 3);
     }
 
+    /**
+     * Build an alert engine with notifier doubles registered in the container.
+     *
+     * @param DiscordNotifierService $discord The Discord notifier double.
+     * @param EmailNotifierService $email The email notifier double.
+     * @param SlackNotifierService $slack The Slack notifier double.
+     */
     private function private__engineWithNotifiers(
         DiscordNotifierService $discord,
         EmailNotifierService $email,
@@ -380,6 +387,9 @@ class AlertEngineTest extends TestCase
         );
     }
 
+    /**
+     * Resolve the real alert rule strategy registry from the container.
+     */
     private function private__resolveRegistry(): AlertRuleStrategyRegistry
     {
         return $this->app->make(AlertRuleStrategyRegistry::class);

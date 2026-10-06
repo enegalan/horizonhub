@@ -16,8 +16,6 @@ chmod -R 775 storage bootstrap/cache
 : "${QUEUE_CONNECTION:=database}"
 : "${BROADCAST_CONNECTION:=null}"
 
-# Deployment containers must provide a stable APP_KEY. Refuse to boot without
-# one so encryption keys are not regenerated on every container recreate.
 if [ -z "$APP_KEY" ]; then
     echo "ERROR: APP_KEY is required. Set the APP_KEY environment variable (generate one with: php artisan key:generate --force --show)." >&2
     exit 1

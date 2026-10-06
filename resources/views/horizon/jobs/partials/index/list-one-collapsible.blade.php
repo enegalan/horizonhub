@@ -11,6 +11,8 @@
         : \App\Enums\JobSection::normalize($section);
     $kind = $jobSection->value;
     $sectionKey = $jobSection->value;
+    $countTotal = isset($paginator) && $paginator instanceof \Illuminate\Pagination\LengthAwarePaginator ? $paginator->total() : 0;
+    $countSuffix = isset($paginator) && $paginator instanceof \App\Support\Jobs\SearchResultsPaginator && $paginator->resultsMayBeTruncated() ? '+' : '';
 @endphp
 <details
     data-section-key="{{ $sectionKey }}"
@@ -23,7 +25,7 @@
     >
         <x-icons.chevron-down class="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
         <span>{{ $jobSection->label() }}</span>
-        <span id="job-count-{{ $bodyKey }}" class="{{ $jobSection->badgeClass() }}">{{ isset($paginator) && $paginator instanceof \Illuminate\Pagination\LengthAwarePaginator ? $paginator->total() : 0 }}</span>
+        <span id="job-count-{{ $bodyKey }}" class="{{ $jobSection->badgeClass() }}">{{ $countTotal }}{{ $countSuffix }}</span>
     </summary>
     <div class="pt-2">
         <x-table

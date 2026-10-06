@@ -20,6 +20,14 @@ class HorizonMetricsComputationTest extends TestCase
         $fetcher = new JobsWindowFetcherService;
         $probe = new class($fetcher) extends AbstractMetricsCalculator
         {
+            /**
+             * Expose `Service::getServices()` with the calculator defaults: enabled services only, no name
+             * ordering, and a limited column selection.
+             *
+             * @param array<int, int|string> $serviceIds The service ids to load; non-numeric and non-positive entries are dropped.
+             *
+             * @return Collection<int, Service>
+             */
             public function public__services(array $serviceIds): Collection
             {
                 return Service::getServices($serviceIds, true, false, ['id', 'name', 'base_url']);
@@ -36,11 +44,26 @@ class HorizonMetricsComputationTest extends TestCase
         $fetcher = new JobsWindowFetcherService;
         $probe = new class($fetcher) extends AbstractMetricsCalculator
         {
+            /**
+             * Expose `private__initHourlyBuckets()` with an hourly format, three bucket cap, and a single
+             * `v` counter as bucket initializer.
+             *
+             * @param Carbon $since The inclusive start of the bucket window.
+             * @param Carbon $end The inclusive end of the bucket window.
+             *
+             * @return array<string, array<string, mixed>> Hourly buckets keyed by `Y-m-d H:00`.
+             */
             public function public__initHourly(Carbon $since, Carbon $end): array
             {
                 return $this->private__initHourlyBuckets($since, $end, 'Y-m-d H:00', 3, static fn (): array => ['v' => 0]);
             }
 
+            /**
+             * Expose `private__sumJobsByQueueNames()` to total the job counts of the given queues.
+             *
+             * @param array<int, string> $queues The queue names to sum.
+             * @param array<string, int> $jobsByQueue The job count per queue name; unknown queues count as zero.
+             */
             public function public__sumQueues(array $queues, array $jobsByQueue): int
             {
                 return $this->private__sumJobsByQueueNames($queues, $jobsByQueue);

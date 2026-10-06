@@ -12,6 +12,11 @@ class StreamControllerTest extends TestCase
     {
         $controller = new class extends StreamController
         {
+            /**
+             * Expose the protected SSE runner so the test can assert the response headers.
+             *
+             * @param callable(): ?string $callback The Turbo Stream producer polled on every tick.
+             */
             public function public__run(callable $callback): StreamedResponse
             {
                 return $this->runStream($callback);
@@ -32,6 +37,15 @@ class StreamControllerTest extends TestCase
     {
         $controller = new class extends StreamController
         {
+            /**
+             * Expose the protected stream builder so the test can emit from one instance.
+             *
+             * Reusing a single controller instance is what makes the per-target
+             * fingerprint suppression inside `buildStreams()` observable across
+             * repeated calls.
+             *
+             * @param list<array<int, mixed>> $operations The [action, target, content, streamMethod?] operations.
+             */
             public function public__build(array $operations): string
             {
                 return $this->buildStreams($operations);

@@ -191,6 +191,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Job Search Match Cap
+    |--------------------------------------------------------------------------
+    |
+    | Maximum number of matching jobs collected per service and job status when
+    | a job search is active. Horizon's job list API cannot filter by queue, job
+    | name or UUID server-side, so Hub matches payloads locally and stops
+    | paginating once this many matches are collected, bounding the number of
+    | upstream requests a search performs.
+    |
+    | The paginator total becomes a lower bound in that case and the UI renders
+    | it with a trailing "+". Set to 0 to always scan the whole window.
+    |
+    | This cap never applies to the failed jobs batch retry modal, which must
+    | act on every matching job.
+    |
+    */
+    'job_search_match_cap' => (int) max(0, env('HORIZON_HUB_JOB_SEARCH_MATCH_CAP', 500)),
+
+    /*
+    |--------------------------------------------------------------------------
     | Alerts configuration
     |--------------------------------------------------------------------------
     |

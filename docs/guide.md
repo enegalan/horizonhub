@@ -220,6 +220,8 @@ Three collapsible blocks:
 - **Tags** — limit to services carrying selected tags.
 - **Search** — text match on queue name, job name, or job UUID.
 
+Searches are matched against each service as its jobs are read, and a search stops reading further job pages once enough matches are collected (`job_search_match_cap`, default 500 per service and section). When that limit kicks in the section total is shown with a trailing `+` (e.g. `of 500+`) because more matches may exist further back — narrow the search term to see them. Searches without a term are never limited, and the batch retry modal always works on every matching job.
+
 ### Job detail
 
 **Path:** `/horizon/jobs/{job}`

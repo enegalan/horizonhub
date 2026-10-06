@@ -8,9 +8,9 @@ use App\Services\Services\ServiceFilterService;
 use App\Support\DatetimeBoundaryParser;
 use App\Support\Jobs\JobRuntime;
 use App\Support\Jobs\JobsPaginator;
+use App\Support\Jobs\SearchResultsPaginator;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 class JobListService
@@ -21,9 +21,9 @@ class JobListService
      * @param Request $request The request.
      *
      * @return array{
-     *     processing: LengthAwarePaginator,
-     *     processed: LengthAwarePaginator,
-     *     failed: LengthAwarePaginator,
+     *     processing: SearchResultsPaginator,
+     *     processed: SearchResultsPaginator,
+     *     failed: SearchResultsPaginator,
      *     serviceFilterIds: list<int>,
      *     search: string
      * }
@@ -78,7 +78,7 @@ class JobListService
      * @param string $path The path.
      * @param array<string, mixed> $query The query.
      *
-     * @return array{processing: LengthAwarePaginator, processed: LengthAwarePaginator, failed: LengthAwarePaginator}
+     * @return array{processing: SearchResultsPaginator, processed: SearchResultsPaginator, failed: SearchResultsPaginator}
      */
     public static function buildAggregatedStatusPaginators(
         Collection $services,
@@ -90,14 +90,14 @@ class JobListService
         string $path,
         array $query,
     ): array {
-        $jobsProcessing = self::private__collectAndSortJobsForServices($services, 'processing', $search);
-        $jobsProcessed = self::private__collectAndSortJobsForServices($services, 'processed', $search);
-        $jobsFailed = self::private__collectAndSortJobsForServices($services, 'failed', $search);
+        $processing = self::private__collectAndSortJobsForServices($services, 'processing', $search);
+        $processed = self::private__collectAndSortJobsForServices($services, 'processed', $search);
+        $failed = self::private__collectAndSortJobsForServices($services, 'failed', $search);
 
         return [
-            'processing' => self::private__makePaginator($jobsProcessing, $perPage, $pageProcessing, $path, $query, 'page_processing'),
-            'processed' => self::private__makePaginator($jobsProcessed, $perPage, $pageProcessed, $path, $query, 'page_processed'),
-            'failed' => self::private__makePaginator($jobsFailed, $perPage, $pageFailed, $path, $query, 'page_failed'),
+            'processing' => self::private__makePaginator($processing, $perPage, $pageProcessing, $path, $query, 'page_processing'),
+            'processed' => self::private__makePaginator($processed, $perPage, $pageProcessed, $path, $query, 'page_processed'),
+            'failed' => self::private__makePaginator($failed, $perPage, $pageFailed, $path, $query, 'page_failed'),
         ];
     }
 
@@ -154,7 +154,7 @@ class JobListService
      * @param string $path The path.
      * @param array<string, mixed> $query The query.
      *
-     * @return array{processing: LengthAwarePaginator, processed: LengthAwarePaginator, failed: LengthAwarePaginator}
+     * @return array{processing: SearchResultsPaginator, processed: SearchResultsPaginator, failed: SearchResultsPaginator}
      */
     public static function buildServiceStatusPaginators(
         Service $service,
@@ -168,14 +168,14 @@ class JobListService
     ): array {
         $merged = \collect();
         $merged->push($service);
-        $jobsProcessing = self::private__collectAndSortJobsForServices($merged, 'processing', $search);
-        $jobsProcessed = self::private__collectAndSortJobsForServices($merged, 'processed', $search);
-        $jobsFailed = self::private__collectAndSortJobsForServices($merged, 'failed', $search);
+        $processing = self::private__collectAndSortJobsForServices($merged, 'processing', $search);
+        $processed = self::private__collectAndSortJobsForServices($merged, 'processed', $search);
+        $failed = self::private__collectAndSortJobsForServices($merged, 'failed', $search);
 
         return [
-            'processing' => self::private__makePaginator($jobsProcessing, $perPage, $pageProcessing, $path, $query, 'page_processing'),
-            'processed' => self::private__makePaginator($jobsProcessed, $perPage, $pageProcessed, $path, $query, 'page_processed'),
-            'failed' => self::private__makePaginator($jobsFailed, $perPage, $pageFailed, $path, $query, 'page_failed'),
+            'processing' => self::private__makePaginator($processing, $perPage, $pageProcessing, $path, $query, 'page_processing'),
+            'processed' => self::private__makePaginator($processed, $perPage, $pageProcessed, $path, $query, 'page_processed'),
+            'failed' => self::private__makePaginator($failed, $perPage, $pageFailed, $path, $query, 'page_failed'),
         ];
     }
 
@@ -200,6 +200,9 @@ class JobListService
     /**
      * Build filtered, sorted failed-job rows for the retry modal (before pagination).
      *
+     * The search match cap never applies here: the batch retry action must act on
+     * every matching failed job, so the whole window is always read.
+     *
      * @param Collection<int, Service> $services The services.
      * @param string $search The search.
      * @param mixed $dateFrom The date from.
@@ -221,28 +224,15 @@ class JobListService
         $dateToCarbon = DatetimeBoundaryParser::parseUpper($dateToStr);
 
         foreach ($services as $service) {
-            $rawJobs = JobsPaginator::fetchAllPages(
+            $fetch = JobsPaginator::fetchFiltered(
                 fn (array $query): array => HorizonClientApiService::getFailedJobs($service, $query),
+                $search,
             );
 
-            foreach ($rawJobs as $job) {
-                if (! \is_array($job)) {
-                    continue;
-                }
+            foreach ($fetch['jobs'] as $job) {
                 $jobUuid = (string) ($job['id'] ?? '');
 
                 if (empty($jobUuid)) {
-                    continue;
-                }
-
-                $queue = (string) ($job['queue'] ?? '');
-                $name = (string) ($job['name'] ?? '');
-
-                if (! self::private__matchesSearch((object) [
-                    'queue' => $queue,
-                    'name' => $name,
-                    'uuid' => $jobUuid,
-                ], $search)) {
                     continue;
                 }
 
@@ -298,39 +288,41 @@ class JobListService
     /**
      * Collect and sort jobs for one or more services.
      *
+     * The search is matched against the raw Horizon payload while pages are
+     * being read, so only matching jobs are mapped, sorted and collected. When
+     * a search is active the pagination loop stops early once
+     * `horizonhub.job_search_match_cap` matches have been collected per service.
+     *
      * @param Collection<int, Service> $services The services.
      * @param 'processing'|'processed'|'failed' $status The status.
      * @param string $search The search.
      *
-     * @return Collection<int, object>
+     * @return array{rows: Collection<int, object>, resultsMayBeTruncated: bool}
      */
-    private static function private__collectAndSortJobsForServices(Collection $services, string $status, string $search): Collection
+    private static function private__collectAndSortJobsForServices(Collection $services, string $status, string $search): array
     {
         $merged = \collect();
+        $resultsMayBeTruncated = false;
+        // The cap only exists to bound searches; an unfiltered list is complete.
+        $maxMatches = $search === '' ? null : config('horizonhub.job_search_match_cap');
 
         foreach ($services as $service) {
             $fetcher = self::private__apiFetcherForStatus($service, $status);
-            $rawJobs = JobsPaginator::fetchAllPages($fetcher);
+            $fetch = JobsPaginator::fetchFiltered($fetcher, $search, $maxMatches);
+            $resultsMayBeTruncated = $resultsMayBeTruncated || ! $fetch['complete'];
 
-            foreach ($rawJobs as $job) {
-                if (! \is_array($job)) {
-                    continue;
-                }
-
+            foreach ($fetch['jobs'] as $job) {
                 $row = self::private__mapRawJobToListRow($job, $service, $status);
 
                 if ($row === null) {
                     continue;
                 }
 
-                if (! self::private__matchesSearch($row, $search)) {
-                    continue;
-                }
                 $merged->push($row);
             }
         }
 
-        return $merged->sort(function (object $a, object $b) use ($status): int {
+        $sorted = $merged->sort(function (object $a, object $b) use ($status): int {
             $timeA = self::private__sortTimeForStatus($a, $status);
             $timeB = self::private__sortTimeForStatus($b, $status);
 
@@ -347,12 +339,17 @@ class JobListService
 
             return $timeA < $timeB ? 1 : -1;
         })->values();
+
+        return [
+            'rows' => $sorted,
+            'resultsMayBeTruncated' => $resultsMayBeTruncated,
+        ];
     }
 
     /**
      * Make a paginator for a given collection of items.
      *
-     * @param Collection<int, object> $items The items.
+     * @param array{rows: Collection<int, object>, resultsMayBeTruncated: bool} $result The collected result.
      * @param int $perPage The per page.
      * @param int $page The page.
      * @param string $path The path.
@@ -360,40 +357,32 @@ class JobListService
      * @param string $pageName The page name.
      */
     private static function private__makePaginator(
-        Collection $items,
+        array $result,
         int $perPage,
         int $page,
         string $path,
         array $query,
         string $pageName,
-    ): LengthAwarePaginator {
+    ): SearchResultsPaginator {
+        $items = $result['rows'];
         $page = \max(1, $page);
         $total = $items->count();
+        $options = ['path' => $path, 'query' => $query];
 
         if ($perPage <= 0) {
-            $paginator = new LengthAwarePaginator(
-                $items,
+            $paginator = new SearchResultsPaginator($items, $total, \max(1, $total), 1, $options);
+        } else {
+            $paginator = new SearchResultsPaginator(
+                $items->slice(($page - 1) * $perPage, $perPage)->values(),
                 $total,
-                \max(1, $total > 0 ? $total : 1),
-                1,
-                ['path' => $path, 'query' => $query],
+                $perPage,
+                $page,
+                $options,
             );
-            $paginator->setPageName($pageName);
-
-            return $paginator;
         }
 
-        $offset = ($page - 1) * $perPage;
-        $slice = $items->slice($offset, $perPage)->values();
-
-        $paginator = new LengthAwarePaginator(
-            $slice,
-            $total,
-            $perPage,
-            $page,
-            ['path' => $path, 'query' => $query],
-        );
         $paginator->setPageName($pageName);
+        $paginator->setResultsMayBeTruncated($result['resultsMayBeTruncated']);
 
         return $paginator;
     }
@@ -436,23 +425,6 @@ class JobListService
             'available_at' => $timing['available_at'],
             'service' => $service,
         ];
-    }
-
-    /**
-     * Check if a row matches the search.
-     *
-     * @param object $row The row.
-     * @param string $search The search.
-     */
-    private static function private__matchesSearch(object $row, string $search): bool
-    {
-        if ($search === '') {
-            return true;
-        }
-
-        $haystack = $row->queue . ' ' . $row->name . ' ' . $row->uuid;
-
-        return \stripos($haystack, $search) !== false;
     }
 
     /**
