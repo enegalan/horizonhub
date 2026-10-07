@@ -218,6 +218,21 @@ class HorizonClientCacheService
     }
 
     /**
+     * Try to acquire the request path fill lock without blocking.
+     *
+     * @param Service $service The service instance.
+     * @param string $path The path.
+     *
+     * @return Lock|null The lock when acquired, null when another caller is filling the path.
+     */
+    public static function tryAcquireRequestPathFillLock(Service $service, string $path): ?Lock
+    {
+        $lock = self::requestPathFillLock($service, $path);
+
+        return $lock->get() ? $lock : null;
+    }
+
+    /**
      * Compute how many seconds a lock entry should live.
      *
      * @return int The lock TTL in seconds.
