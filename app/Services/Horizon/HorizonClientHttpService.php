@@ -9,7 +9,6 @@ use App\Support\PathBuilder;
 use App\Support\Services\ServiceTlsClientStorage;
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Exception\GuzzleException;
-use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
@@ -19,6 +18,11 @@ use Illuminate\Support\Facades\Log;
 
 class HorizonClientHttpService
 {
+    /**
+     * Milliseconds to wait between request path cache polls while another caller fills the path.
+     */
+    private const REQUEST_PATH_FILL_POLL_MS = 100;
+
     /**
      * Call the Horizon HTTP API for a service.
      *
@@ -67,25 +71,32 @@ class HorizonClientHttpService
 
         try {
             // Check if request was previously cached so we can avoid new HTTP request.
+            // Concurrent misses coalesce with a single-flight pattern: the first
+            // caller becomes the fill leader and holds the fill lock, while every
+            // other caller waits on the shared cache entry instead of queueing on
+            // the lock, so a completed fill is observed without lock handshakes.
             if ($shouldCache) {
+                $deadline = \microtime(true) + (int) config('horizonhub.http.api_timeout');
                 $cached = HorizonClientCacheService::getRequestPathCache($service, $path);
 
-                if (empty($cached)) {
-                    $lock = HorizonClientCacheService::requestPathFillLock($service, $path);
+                while ($cached === null && $lock === null) {
+                    $lock = HorizonClientCacheService::tryAcquireRequestPathFillLock($service, $path);
 
-                    try {
-                        $lock->block(config('horizonhub.http.api_timeout'));
-                    } catch (LockTimeoutException) {
-                        $lock = null;
-
+                    if ($lock !== null) {
+                        // Re-check now that the lock is held: the previous leader
+                        // may have filled the entry between our read and our acquire.
+                        $cached = HorizonClientCacheService::getRequestPathCache($service, $path);
+                    } elseif (\microtime(true) >= $deadline) {
                         return [
                             'success' => false,
                             'message' => 'Horizon API request coalescing timed out.',
                             'status' => 503,
                         ];
-                    }
+                    } else {
+                        \usleep(self::REQUEST_PATH_FILL_POLL_MS * 1000);
 
-                    $cached = HorizonClientCacheService::getRequestPathCache($service, $path);
+                        $cached = HorizonClientCacheService::getRequestPathCache($service, $path);
+                    }
                 }
 
                 if ($cached !== null) {
@@ -102,7 +113,6 @@ class HorizonClientHttpService
 
                     return $cached;
                 }
-
             }
 
             // Reserve a concurrency slot so a slow upstream service is not

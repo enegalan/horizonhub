@@ -7,6 +7,8 @@ use App\Models\Service;
 use App\Services\Horizon\HorizonClientApiService;
 use App\Services\Horizon\HorizonClientCacheService;
 use Carbon\Carbon;
+use Illuminate\Cache\ArrayStore;
+use Illuminate\Cache\Repository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
@@ -52,6 +54,64 @@ class HorizonClientTest extends TestCase
 
         $this->assertTrue($result['success']);
         Http::assertSentCount(1);
+    }
+
+    public function test_concurrent_get_observes_fill_from_another_caller_without_upstream_request(): void
+    {
+        Http::fake();
+
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.ping', '/stats');
+        \config()->set('horizonhub.http.api_timeout', 1);
+
+        $service = Service::create([
+            'name' => 'svc-concurrent-fill',
+            'base_url' => 'https://service-concurrent-fill.test',
+            'status' => 'online',
+        ]);
+
+        $pathKey = HorizonClientCacheService::requestPathCacheKey($service, '/stats');
+        $payload = ['success' => true, 'data' => ['jobsPerMinute' => 7]];
+
+        // Simulates a concurrent leader holding the fill lock: the path misses
+        // once, then the leader's payload lands while this request is waiting.
+        $store = new class($pathKey, $payload) extends ArrayStore
+        {
+            public function __construct(
+                private readonly string $fillKey,
+                private readonly array $fillValue,
+                private bool $filled = false,
+            ) {
+                parent::__construct();
+            }
+
+            public function get($key)
+            {
+                if ($key !== $this->fillKey) {
+                    return parent::get($key);
+                }
+
+                if ($this->filled) {
+                    return $this->fillValue;
+                }
+
+                $this->filled = true;
+
+                return null;
+            }
+        };
+
+        Cache::swap(new Repository($store));
+
+        // A concurrent leader already holds the fill lock for this path.
+        $fillLock = Cache::lock($pathKey . ':fill', 30);
+        $this->assertTrue($fillLock->get());
+
+        $result = HorizonClientApiService::getStats($service);
+
+        $this->assertTrue($result['success']);
+        $this->assertSame($payload['data'], $result['data']);
+        Http::assertNothingSent();
     }
 
     public function test_connection_errors_without_timeout_do_not_set_timeout_advice(): void
