@@ -87,11 +87,19 @@ class HorizonClientHttpService
                         // may have filled the entry between our read and our acquire.
                         $cached = HorizonClientCacheService::getRequestPathCache($service, $path);
                     } elseif (\microtime(true) >= $deadline) {
-                        return [
-                            'success' => false,
-                            'message' => 'Horizon API request coalescing timed out.',
-                            'status' => 503,
-                        ];
+                        // The leader may have landed the fill after our last
+                        // read; only time out when this final read still misses.
+                        $cached = HorizonClientCacheService::getRequestPathCache($service, $path);
+
+                        if ($cached === null) {
+                            return [
+                                'success' => false,
+                                'message' => 'Horizon API request coalescing timed out.',
+                                'status' => 503,
+                            ];
+                        }
+
+                        break;
                     } else {
                         \usleep(self::REQUEST_PATH_FILL_POLL_MS * 1000);
 

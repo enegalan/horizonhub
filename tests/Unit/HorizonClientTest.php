@@ -30,6 +30,38 @@ class HorizonClientTest extends TestCase
         parent::tearDown();
     }
 
+    public function test_coalescing_deadline_re_checks_cache_before_timing_out(): void
+    {
+        Http::fake();
+
+        \config()->set('horizonhub.horizon_paths.api', '/horizon/api');
+        \config()->set('horizonhub.horizon_paths.ping', '/stats');
+        \config()->set('horizonhub.http.api_timeout', 0);
+
+        $service = Service::create([
+            'name' => 'svc-coalescing-deadline',
+            'base_url' => 'https://service-coalescing-deadline.test',
+            'status' => 'online',
+        ]);
+
+        $pathKey = HorizonClientCacheService::requestPathCacheKey($service, '/stats');
+        $payload = ['success' => true, 'data' => ['jobsPerMinute' => 7]];
+
+        // The fill lands between the last poll and the deadline check: the
+        // initial read misses and the deadline branch must observe the payload.
+        Cache::swap(new Repository($this->private__concurrentFillStore($pathKey, $payload)));
+
+        // A concurrent leader already holds the fill lock for this path.
+        $fillLock = Cache::lock($pathKey . ':fill', 30);
+        $this->assertTrue($fillLock->get());
+
+        $result = HorizonClientApiService::getStats($service);
+
+        $this->assertTrue($result['success']);
+        $this->assertSame($payload['data'], $result['data']);
+        Http::assertNothingSent();
+    }
+
     public function test_concurrency_limit_disabled_when_max_concurrent_is_zero(): void
     {
         Http::fake([
@@ -75,33 +107,7 @@ class HorizonClientTest extends TestCase
 
         // Simulates a concurrent leader holding the fill lock: the path misses
         // once, then the leader's payload lands while this request is waiting.
-        $store = new class($pathKey, $payload) extends ArrayStore
-        {
-            public function __construct(
-                private readonly string $fillKey,
-                private readonly array $fillValue,
-                private bool $filled = false,
-            ) {
-                parent::__construct();
-            }
-
-            public function get($key)
-            {
-                if ($key !== $this->fillKey) {
-                    return parent::get($key);
-                }
-
-                if ($this->filled) {
-                    return $this->fillValue;
-                }
-
-                $this->filled = true;
-
-                return null;
-            }
-        };
-
-        Cache::swap(new Repository($store));
+        Cache::swap(new Repository($this->private__concurrentFillStore($pathKey, $payload)));
 
         // A concurrent leader already holds the fill lock for this path.
         $fillLock = Cache::lock($pathKey . ':fill', 30);
@@ -826,5 +832,43 @@ class HorizonClientTest extends TestCase
         $this->assertFalse($result['success']);
         $this->assertSame(502, $result['status'] ?? null);
         $this->assertStringContainsString('Unable to bootstrap Horizon dashboard session', (string) $result['message']);
+    }
+
+    /**
+     * Build a cache store whose first read of the given key misses and whose
+     * later reads return the payload, simulating a concurrent fill landing.
+     *
+     * @param string $pathKey The path cache key.
+     * @param array $payload The payload served once the fill lands.
+     *
+     * @return ArrayStore The store.
+     */
+    private function private__concurrentFillStore(string $pathKey, array $payload): ArrayStore
+    {
+        return new class($pathKey, $payload) extends ArrayStore
+        {
+            public function __construct(
+                private readonly string $fillKey,
+                private readonly array $fillValue,
+                private bool $filled = false,
+            ) {
+                parent::__construct();
+            }
+
+            public function get($key)
+            {
+                if ($key !== $this->fillKey) {
+                    return parent::get($key);
+                }
+
+                if ($this->filled) {
+                    return $this->fillValue;
+                }
+
+                $this->filled = true;
+
+                return null;
+            }
+        };
     }
 }
