@@ -1,8 +1,6 @@
 @import 'lightpickr/lightpickr.css';
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@config '../../tailwind.config.js';
 
 @layer base {
     :root {
@@ -254,16 +252,16 @@
         @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors;
     }
     .badge-success {
-        @apply badge border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400;
+        @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400;
     }
     .badge-danger {
-        @apply badge border-transparent bg-destructive/15 text-destructive;
+        @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-destructive/15 text-destructive;
     }
     .badge-warning {
-        @apply badge border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400;
+        @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400;
     }
     .badge-muted {
-        @apply badge border-transparent bg-muted text-muted-foreground;
+        @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-muted text-muted-foreground;
     }
     .table-header {
         @apply relative text-left text-sm font-medium text-muted-foreground whitespace-nowrap;
@@ -449,10 +447,10 @@
     @apply border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300;
 }
 .alert-card--enabled [data-alert-enabled-badge="1"] {
-    @apply badge-success;
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400;
 }
 .alert-card--disabled [data-alert-enabled-badge="1"] {
-    @apply badge-danger;
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-destructive/15 text-destructive;
 }
 
 .service-card--disabled {
@@ -495,23 +493,23 @@
 }
 
 .service-card--disabled [data-service-enabled-badge="1"] {
-    @apply badge-danger;
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-destructive/15 text-destructive;
 }
 .service-card--enabled [data-service-enabled-badge="1"] {
-    @apply badge-success;
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400;
 }
 
 .service-card--disabled [data-service-connectivity-badge="1"] {
-    @apply badge-muted;
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-muted text-muted-foreground;
 }
 .service-card--enabled[data-service-connectivity="online"] [data-service-connectivity-badge="1"] {
-    @apply badge-success;
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400;
 }
 .service-card--enabled[data-service-connectivity="stand_by"] [data-service-connectivity-badge="1"] {
-    @apply badge-warning;
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400;
 }
 .service-card--enabled:not([data-service-connectivity="online"]):not([data-service-connectivity="stand_by"]) [data-service-connectivity-badge="1"] {
-    @apply badge-danger;
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-destructive/15 text-destructive;
 }
 
 .job-section {
