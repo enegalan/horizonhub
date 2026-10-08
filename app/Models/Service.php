@@ -130,7 +130,7 @@ class Service extends Model
         array $selectColumns = [],
     ): Collection {
         $servicesQuery = $enabledOnly ? static::enabled() : static::query();
-        $selectAllColumns = empty($selectColumns);
+        $selectAllColumns = empty($selectColumns) || \in_array('*', $selectColumns);
 
         if (! empty($serviceIds)) {
             $ids = [];
