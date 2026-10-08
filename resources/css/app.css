@@ -669,7 +669,7 @@ turbo-frame#form-drawer {
 
 @keyframes skeleton-show {
     to {
-        @apply opacity-100;
+        opacity: 1;
     }
 }
 
