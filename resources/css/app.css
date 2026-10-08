@@ -1,8 +1,6 @@
 @import 'lightpickr/lightpickr.css';
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@config '../../tailwind.config.js';
 
 @layer base {
     :root {
@@ -169,35 +167,35 @@
     }
     html.sidebar-bootstrapping .aside-drawer,
     html.sidebar-bootstrapping .nav-sidebar-column {
-        transition: none !important;
+        @apply !transition-none;
     }
     @media (min-width: 1024px) {
         body.sidebar-collapsed .nav-side-link-label {
-            @apply hidden;
+            @apply !hidden;
         }
         body.sidebar-collapsed .nav-side-link {
-            @apply justify-center gap-0 px-2;
+            @apply !justify-center !gap-0 !px-2;
         }
         body.sidebar-collapsed .aside-drawer-header-brand-text {
-            @apply hidden;
+            @apply !hidden;
         }
         body.sidebar-collapsed .nav-sidebar-column {
-            @apply w-16;
+            @apply !w-16;
         }
         body:not(.sidebar-collapsed) .nav-sidebar-column {
-            @apply w-60;
+            @apply !w-60;
         }
         body.sidebar-collapsed .aside-drawer-header {
-            @apply justify-center px-2;
+            @apply !justify-center !px-2;
         }
         body.sidebar-collapsed .aside-drawer-header-brand-link {
-            @apply hidden;
+            @apply !hidden;
         }
         body.sidebar-collapsed .aside-drawer-header-expand-btn {
-            display: inline-flex;
+            @apply !inline-flex;
         }
         body:not(.sidebar-collapsed) .aside-drawer-header-collapse-btn {
-            display: inline-flex;
+            @apply !inline-flex;
         }
     }
     .card {
@@ -208,7 +206,7 @@
     }
     @media (max-width: 767px) {
         .table-scroll :is(th.table-header, td) {
-            min-width: 0 !important;
+            @apply !min-w-0;
         }
     }
     .chart-panel {
@@ -254,16 +252,16 @@
         @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors;
     }
     .badge-success {
-        @apply badge border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400;
+        @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400;
     }
     .badge-danger {
-        @apply badge border-transparent bg-destructive/15 text-destructive;
+        @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-destructive/15 text-destructive;
     }
     .badge-warning {
-        @apply badge border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400;
+        @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400;
     }
     .badge-muted {
-        @apply badge border-transparent bg-muted text-muted-foreground;
+        @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-muted text-muted-foreground;
     }
     .table-header {
         @apply relative text-left text-sm font-medium text-muted-foreground whitespace-nowrap;
@@ -330,13 +328,12 @@
         @apply text-xs text-muted-foreground mb-3 max-w-[280px];
     }
     .horizon-empty-state-pinned {
-        position: sticky;
-        left: 0;
+        @apply sticky left-0;
     }
     .skeleton {
         --skeleton-show-delay: 250ms;
         --skeleton-delay: 0ms;
-        opacity: 0;
+        @apply opacity-0;
         border-radius: var(--radius);
         background-color: var(--skeleton-background);
         will-change: background-position;
@@ -377,56 +374,45 @@
 }
 
 #horizon-drag-overlay {
-    position: fixed;
+    @apply fixed transition-opacity duration-100;
     pointer-events: none;
     z-index: 9999;
-    transition: opacity 0.1s;
     display: none;
     box-sizing: border-box;
 }
 
 .horizon-drag-overlay--visible {
-    display: block;
-    opacity: 1;
+    @apply block opacity-100;
 }
 
 .horizon-resize-handle {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
+    @apply absolute top-0 right-0 bottom-0 bg-transparent;
     width: 8px;
     cursor: col-resize;
-    background: transparent;
 }
 
 .horizon-resize-handle-line {
-    position: absolute;
-    top: 0;
+    @apply absolute top-0 bottom-0;
     right: 3.5px;
-    bottom: 0;
-    width: 1px;
     background: hsl(var(--border));
 }
 
 .horizon-drag-image {
-    position: absolute;
+    @apply absolute top-0 border-1 border-border;
     left: -9999px;
-    top: 0;
     padding: 8px 4px;
     background: hsl(var(--card) / 0.92);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
     border-radius: 6px;
-    border: 1px solid hsl(var(--border));
     pointer-events: none;
 }
 
 .horizon-chart-tooltip {
+    @apply overflow-auto;
     max-width: min(96vw, 440px);
     max-height: min(55vh, 400px);
-    overflow: auto;
     padding: 8px 10px;
 }
 
@@ -449,10 +435,10 @@
     @apply border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300;
 }
 .alert-card--enabled [data-alert-enabled-badge="1"] {
-    @apply badge-success;
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400;
 }
 .alert-card--disabled [data-alert-enabled-badge="1"] {
-    @apply badge-danger;
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-destructive/15 text-destructive;
 }
 
 .service-card--disabled {
@@ -495,23 +481,23 @@
 }
 
 .service-card--disabled [data-service-enabled-badge="1"] {
-    @apply badge-danger;
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-destructive/15 text-destructive;
 }
 .service-card--enabled [data-service-enabled-badge="1"] {
-    @apply badge-success;
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400;
 }
 
 .service-card--disabled [data-service-connectivity-badge="1"] {
-    @apply badge-muted;
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-muted text-muted-foreground;
 }
 .service-card--enabled[data-service-connectivity="online"] [data-service-connectivity-badge="1"] {
-    @apply badge-success;
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400;
 }
 .service-card--enabled[data-service-connectivity="stand_by"] [data-service-connectivity-badge="1"] {
-    @apply badge-warning;
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400;
 }
 .service-card--enabled:not([data-service-connectivity="online"]):not([data-service-connectivity="stand_by"]) [data-service-connectivity-badge="1"] {
-    @apply badge-danger;
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-destructive/15 text-destructive;
 }
 
 .job-section {
@@ -582,7 +568,7 @@ td[data-column-id="actions"] > div {
 @media (prefers-reduced-motion: reduce) {
     .form-drawer-panel,
     .form-drawer-backdrop {
-        transition: none !important;
+        @apply !transition-none;
     }
 }
 .form-drawer-panel turbo-frame,
