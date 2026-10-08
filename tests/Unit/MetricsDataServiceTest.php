@@ -14,12 +14,63 @@ use App\Services\Metrics\MetricsDataService;
 use App\Support\Queues\QueueNameNormalizer;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class MetricsDataServiceTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_build_metrics_dashboard_data_keeps_query_count_bounded_for_large_filter(): void
+    {
+        $serviceIds = [];
+
+        for ($i = 0; $i < 25; $i++) {
+            $service = Service::create(['name' => "svc-$i", 'base_url' => "https://n1-$i.test", 'status' => 'online']);
+            $service->headers()->create(['name' => 'X-Token', 'value' => 'secret']);
+            $serviceIds[] = $service->id;
+        }
+
+        Http::fake(function ($request) {
+            $url = $request->url();
+
+            if (\str_contains($url, '/workload')) {
+                return Http::response([
+                    ['name' => 'redis.default', 'length' => 3, 'processes' => 1, 'wait' => 1.0],
+                ], 200);
+            }
+
+            if (\str_contains($url, '/masters')) {
+                return Http::response([
+                    ['supervisors' => [[
+                        'name' => 'sup-1',
+                        'processes' => [1],
+                        'options' => ['queue' => 'redis.default'],
+                    ]]],
+                ], 200);
+            }
+
+            if (\str_contains($url, '/stats')) {
+                return Http::response(['failedJobs' => 1, 'recentJobs' => 2, 'jobsPerMinute' => 1], 200);
+            }
+
+            return Http::response(['jobs' => []], 200);
+        });
+
+        $metrics = $this->private__makeMetricsDataService();
+
+        DB::enableQueryLog();
+        $metrics->buildMetricsDashboardData($serviceIds);
+        $metrics->buildQueuesCollectionForServiceFilter($serviceIds);
+        $selectCount = \count(\array_filter(
+            DB::getQueryLog(),
+            static fn (array $q): bool => \str_starts_with(\strtolower(\trim($q['query'])), 'select'),
+        ));
+        DB::disableQueryLog();
+
+        $this->assertLessThanOrEqual(20, $selectCount);
+    }
 
     public function test_build_queues_collection_for_service_filter_maps_and_sorts_rows(): void
     {

@@ -130,6 +130,7 @@ class Service extends Model
         array $selectColumns = [],
     ): Collection {
         $servicesQuery = $enabledOnly ? static::enabled() : static::query();
+        $selectAllColumns = empty($selectColumns);
 
         if (! empty($serviceIds)) {
             $ids = [];
@@ -152,7 +153,12 @@ class Service extends Model
             $servicesQuery->orderBy('name');
         }
 
-        if (! empty($selectColumns)) {
+        // Eager load headers – we need id to correlate headers with services.
+        if ($selectAllColumns || \in_array('id', $selectColumns)) {
+            $servicesQuery->with('headers');
+        }
+
+        if (! $selectAllColumns) {
             return $servicesQuery->get($selectColumns);
         }
 
