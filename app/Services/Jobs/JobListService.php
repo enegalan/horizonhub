@@ -301,10 +301,11 @@ class JobListService
      */
     private static function private__collectAndSortJobsForServices(Collection $services, string $status, string $search): array
     {
-        $merged = \collect();
         $resultsMayBeTruncated = false;
         // The cap only exists to bound searches; an unfiltered list is complete.
         $maxMatches = $search === '' ? null : config('horizonhub.job_search_match_cap');
+
+        $rows = \collect();
 
         foreach ($services as $service) {
             $fetcher = self::private__apiFetcherForStatus($service, $status);
@@ -318,15 +319,19 @@ class JobListService
                     continue;
                 }
 
-                $merged->push($row);
+                $rows->push($row);
             }
         }
 
-        $sorted = $merged->sort(function (object $a, object $b) use ($status): int {
-            $timeA = self::private__sortTimeForStatus($a, $status);
-            $timeB = self::private__sortTimeForStatus($b, $status);
+        return [
+            'rows' => $rows->sort(static function (object $a, object $b) use ($status): int {
+                $timeA = self::private__sortTimeForStatus($a, $status);
+                $timeB = self::private__sortTimeForStatus($b, $status);
 
-            if ($timeA === $timeB) {
+                if ($timeA !== $timeB) {
+                    return $timeA < $timeB ? 1 : -1;
+                }
+
                 $sidA = $a->service->id ?? 0;
                 $sidB = $b->service->id ?? 0;
 
@@ -335,13 +340,7 @@ class JobListService
                 }
 
                 return \strcmp((string) $a->uuid, (string) $b->uuid);
-            }
-
-            return $timeA < $timeB ? 1 : -1;
-        })->values();
-
-        return [
-            'rows' => $sorted,
+            })->values(),
             'resultsMayBeTruncated' => $resultsMayBeTruncated,
         ];
     }
