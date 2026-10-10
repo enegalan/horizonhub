@@ -301,15 +301,18 @@ class JobListService
      */
     private static function private__collectAndSortJobsForServices(Collection $services, string $status, string $search): array
     {
-        $merged = \collect();
         $resultsMayBeTruncated = false;
         // The cap only exists to bound searches; an unfiltered list is complete.
         $maxMatches = $search === '' ? null : config('horizonhub.job_search_match_cap');
+
+        $serviceLists = [];
 
         foreach ($services as $service) {
             $fetcher = self::private__apiFetcherForStatus($service, $status);
             $fetch = JobsPaginator::fetchFiltered($fetcher, $search, $maxMatches);
             $resultsMayBeTruncated = $resultsMayBeTruncated || ! $fetch['complete'];
+
+            $mappedList = [];
 
             foreach ($fetch['jobs'] as $job) {
                 $row = self::private__mapRawJobToListRow($job, $service, $status);
@@ -318,30 +321,16 @@ class JobListService
                     continue;
                 }
 
-                $merged->push($row);
+                $mappedList[] = $row;
+            }
+
+            if (! empty($mappedList)) {
+                $serviceLists[] = $mappedList;
             }
         }
 
-        $sorted = $merged->sort(function (object $a, object $b) use ($status): int {
-            $timeA = self::private__sortTimeForStatus($a, $status);
-            $timeB = self::private__sortTimeForStatus($b, $status);
-
-            if ($timeA === $timeB) {
-                $sidA = $a->service->id ?? 0;
-                $sidB = $b->service->id ?? 0;
-
-                if ($sidA !== $sidB) {
-                    return $sidA <=> $sidB;
-                }
-
-                return \strcmp((string) $a->uuid, (string) $b->uuid);
-            }
-
-            return $timeA < $timeB ? 1 : -1;
-        })->values();
-
         return [
-            'rows' => $sorted,
+            'rows' => self::private__mergeSortedLists($serviceLists, $status),
             'resultsMayBeTruncated' => $resultsMayBeTruncated,
         ];
     }
@@ -425,6 +414,58 @@ class JobListService
             'available_at' => $timing['available_at'],
             'service' => $service,
         ];
+    }
+
+    /**
+     * Build the merge queue priority for a row (higher extracts first).
+     *
+     * @param object $row The row.
+     * @param 'processing'|'processed'|'failed' $status The status.
+     *
+     * @return array{0: float, 1: int}
+     */
+    private static function private__mergePriority(object $row, string $status): array
+    {
+        return [self::private__sortTimeForStatus($row, $status), -(int) ($row->service->id)];
+    }
+
+    /**
+     * Merge the per-service job lists into one globally newest-first collection.
+     *
+     * Each service list arrives newest-first from Horizon, so a k-way merge over
+     * the list heads yields the global order without re-sorting every row.
+     * Timestamp ties fall back to the service id so the order stays deterministic.
+     *
+     * @param array<int, array<int, object>> $serviceLists The per-service rows, newest first.
+     * @param 'processing'|'processed'|'failed' $status The status.
+     *
+     * @return Collection<int, object>
+     */
+    private static function private__mergeSortedLists(array $serviceLists, string $status): Collection
+    {
+        $queue = new \SplPriorityQueue;
+        $queue->setExtractFlags(\SplPriorityQueue::EXTR_DATA);
+
+        foreach ($serviceLists as $serviceIndex => $list) {
+            $queue->insert([$serviceIndex, 0], self::private__mergePriority($list[0], $status));
+        }
+
+        $sorted = [];
+
+        while (! $queue->isEmpty()) {
+            [$serviceIndex, $listIndex] = $queue->extract();
+
+            $sorted[] = $serviceLists[$serviceIndex][$listIndex];
+
+            $nextIndex = $listIndex + 1;
+
+            if (isset($serviceLists[$serviceIndex][$nextIndex])) {
+                $next = $serviceLists[$serviceIndex][$nextIndex];
+                $queue->insert([$serviceIndex, $nextIndex], self::private__mergePriority($next, $status));
+            }
+        }
+
+        return \collect($sorted);
     }
 
     /**
