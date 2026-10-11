@@ -114,17 +114,6 @@ class Service extends Model
     }
 
     /**
-     * Get the cache key for the service tags.
-     *
-     * @param bool $enabledOnly Whether to only return enabled service tags.
-     *
-     * @return string
-     */
-    private static function private__tagsCacheKey(bool $enabledOnly = false): string {
-        return $enabledOnly ? 'horizonhub:service-tags:enabled' : 'horizonhub:service-tags:all';
-    }
-
-    /**
      * Get enabled services ordered by name.
      *
      * @param list<string> $selectColumns The columns to select.
@@ -362,5 +351,15 @@ class Service extends Model
                 return $value;
             },
         );
+    }
+
+    /**
+     * Get the cache key for the service tags.
+     *
+     * @param bool $enabledOnly Whether to only return enabled service tags.
+     */
+    private static function private__tagsCacheKey(bool $enabledOnly = false): string
+    {
+        return $enabledOnly ? 'horizonhub:service-tags:enabled' : 'horizonhub:service-tags:all';
     }
 }
