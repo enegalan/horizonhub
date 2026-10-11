@@ -85,4 +85,15 @@ class ServiceFilterServiceTest extends TestCase
 
         $this->assertSame([$staging->id], ServiceRequest::existingIdsFromRequest($request));
     }
+
+    #[Test]
+    public function view_data_lists_enabled_service_tags_only(): void
+    {
+        Service::factory()->create(['tags' => ['production'], 'enabled' => true]);
+        Service::factory()->create(['tags' => ['legacy'], 'enabled' => false]);
+
+        $request = Request::create('/horizon/dashboard', 'GET');
+
+        $this->assertSame(['production'], ServiceFilterService::viewData($request)['allTags']);
+    }
 }
