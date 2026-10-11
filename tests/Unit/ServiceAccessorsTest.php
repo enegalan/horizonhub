@@ -10,6 +10,18 @@ class ServiceAccessorsTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_empty_tags_return_an_empty_list(): void
+    {
+        $service = Service::create([
+            'name' => 'svc-tags-empty',
+            'base_url' => 'https://svc.test',
+            'status' => 'online',
+            'tags' => [],
+        ]);
+
+        $this->assertSame([], $service->tags);
+    }
+
     public function test_horizon_status_is_lowercased_and_falls_back_to_offline(): void
     {
         $service = Service::create([
@@ -23,6 +35,18 @@ class ServiceAccessorsTest extends TestCase
 
         $service->horizon_status = null;
         $this->assertSame('offline', $service->horizon_status);
+    }
+
+    public function test_null_tags_return_an_empty_list(): void
+    {
+        $service = Service::create([
+            'name' => 'svc-tags-null',
+            'base_url' => 'https://svc.test',
+            'status' => 'online',
+            'tags' => null,
+        ]);
+
+        $this->assertSame([], $service->tags);
     }
 
     public function test_persisted_tags_are_returned_in_sorted_order(): void
@@ -65,5 +89,17 @@ class ServiceAccessorsTest extends TestCase
         ]);
 
         $this->assertSame($expectedUrl, $service->public_url);
+    }
+
+    public function test_tags_are_deduplicated_when_read(): void
+    {
+        $service = Service::create([
+            'name' => 'svc-tags-duplicated',
+            'base_url' => 'https://svc.test',
+            'status' => 'online',
+            'tags' => ['production', 'production', 'staging', 'production'],
+        ]);
+
+        $this->assertSame(['production', 'staging'], $service->tags);
     }
 }
