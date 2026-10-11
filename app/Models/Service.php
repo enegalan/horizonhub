@@ -100,7 +100,7 @@ class Service extends Model
      */
     public static function allTags(bool $enabledOnly = false): array
     {
-        $cacheKey = static::private__tagsCacheKey($enabledOnly);
+        $cacheKey = self::private__tagsCacheKey($enabledOnly);
 
         return Cache::remember($cacheKey, config('horizonhub.service_tags_cache_seconds'), static function () use ($enabledOnly): array {
             $query = static::query();
