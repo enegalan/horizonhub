@@ -150,7 +150,7 @@ Horizon's job list endpoints accept only an index cursor (`starting_at`) plus `t
 
 - GET requests apply the configured retry policy for `429`, `502`, `503`, `504` (`horizonhub.http.retry`), with backoff from `Support\Http\HttpRetryBackoff`.
 - Responses with status `401`, `403`, or `419` skip the failure cooldown, so fixing the service `headers` takes effect immediately; other failures set the service status to `unreachable` with a cooldown (`failure_cooldown_seconds`).
-- Per-service concurrency is limited (`max_concurrent_requests_per_service`); callers that find a service saturated back off exponentially with jitter until a slot frees or `concurrent_request_wait_ms` elapses.
+- Per-service concurrency is limited (`max_concurrent_requests_per_service`); callers that find a service saturated back off exponentially until a slot frees or `concurrent_request_wait_ms` elapses.
 
 
 

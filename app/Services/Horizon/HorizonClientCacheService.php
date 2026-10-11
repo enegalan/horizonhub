@@ -22,10 +22,10 @@ class HorizonClientCacheService
     /**
      * Try to acquire a concurrency slot for a service.
      *
-     * When the service is saturated, callers back off exponentially with jitter
-     * instead of polling at a fixed interval, so a burst of concurrent callers
-     * does not hammer the cache store while it waits for a slot to free up. The
-     * wait is bounded by `concurrent_request_wait_ms`.
+     * When the service is saturated, callers back off exponentially instead of
+     * polling at a fixed interval, so a burst of concurrent callers does not
+     * hammer the cache store while it waits for a slot to free up. The wait is
+     * bounded by `concurrent_request_wait_ms`.
      *
      * @param Service $service The service instance.
      *
@@ -61,7 +61,9 @@ class HorizonClientCacheService
                 return false;
             }
 
-            \usleep(\min(self::private__slotBackoffMicroseconds($attempt), $remainingMicroseconds));
+            $backoffMs = \min(self::SLOT_WAIT_BASE_MS * (2 ** ($attempt - 1)), self::SLOT_WAIT_MAX_MS);
+
+            \usleep((int) \min($backoffMs * 1000, $remainingMicroseconds));
         }
     }
 
@@ -268,23 +270,5 @@ class HorizonClientCacheService
         $backoffSeconds = (int) \ceil($backoffMs / 1000);
 
         return $baseSeconds + $backoffSeconds + 1;
-    }
-
-    /**
-     * Compute the exponential backoff with jitter before the next slot attempt.
-     *
-     * @param int $attempt The 1-based attempt number.
-     *
-     * @return int The delay in microseconds.
-     */
-    private static function private__slotBackoffMicroseconds(int $attempt): int
-    {
-        $ceilingMs = \min(self::SLOT_WAIT_BASE_MS * (2 ** ($attempt - 1)), self::SLOT_WAIT_MAX_MS);
-
-        // Equal jitter: keep at least half of the ceiling so waiting callers make
-        // progress, while the randomized delay desynchronizes them from each other.
-        $floorMs = \intdiv($ceilingMs, 2);
-
-        return \random_int($floorMs, $ceilingMs) * 1000;
     }
 }
