@@ -834,6 +834,45 @@ class HorizonClientTest extends TestCase
         $this->assertStringContainsString('Unable to bootstrap Horizon dashboard session', (string) $result['message']);
     }
 
+    public function test_service_request_slot_admits_up_to_limit_and_reclaims_after_release(): void
+    {
+        \config()->set('horizonhub.http.max_concurrent_requests_per_service', 2);
+        \config()->set('horizonhub.http.concurrent_request_wait_ms', 50);
+
+        $service = Service::create([
+            'name' => 'svc-slot-semaphore',
+            'base_url' => 'https://service-slot-semaphore.test',
+            'status' => 'online',
+        ]);
+
+        $this->assertTrue(HorizonClientCacheService::acquireServiceRequestSlot($service));
+        $this->assertTrue(HorizonClientCacheService::acquireServiceRequestSlot($service));
+        $this->assertFalse(HorizonClientCacheService::acquireServiceRequestSlot($service));
+
+        HorizonClientCacheService::releaseServiceRequestSlot($service);
+
+        $this->assertTrue(HorizonClientCacheService::acquireServiceRequestSlot($service));
+
+        HorizonClientCacheService::releaseServiceRequestSlot($service);
+        HorizonClientCacheService::releaseServiceRequestSlot($service);
+
+        $this->assertFalse(Cache::has(HorizonClientCacheService::serviceRequestSlotCacheKey($service)));
+    }
+
+    public function test_slot_wait_backoff_grows_exponentially_caps_and_respects_budget(): void
+    {
+        $method = new \ReflectionMethod(HorizonClientCacheService::class, 'private__slotBackoffMicroseconds');
+        $method->setAccessible(true);
+
+        $this->assertSame(25_000, $method->invoke(null, 1, 2_000_000));
+        $this->assertSame(50_000, $method->invoke(null, 2, 2_000_000));
+        $this->assertSame(100_000, $method->invoke(null, 3, 2_000_000));
+        $this->assertSame(200_000, $method->invoke(null, 4, 2_000_000));
+        $this->assertSame(250_000, $method->invoke(null, 5, 2_000_000));
+        $this->assertSame(250_000, $method->invoke(null, 9, 2_000_000));
+        $this->assertSame(10_000, $method->invoke(null, 1, 10_000));
+    }
+
     /**
      * Build a cache store whose first read of the given key misses and whose
      * later reads return the payload, simulating a concurrent fill landing.

@@ -36,6 +36,34 @@ class JobListServiceSearchTest extends TestCase
         $this->assertTrue($aggregated['failed']->resultsMayBeTruncated());
     }
 
+    public function test_equal_timestamp_rows_are_ordered_by_service_then_uuid(): void
+    {
+        config()->set('horizonhub.horizon_api_job_list_page_size', 10);
+        config()->set('horizonhub.max_horizon_pages', 2);
+        config()->set('horizonhub.jobs_per_page', 100);
+
+        $services = $this->private__equalTimestampServices([
+            'svc-order-first' => ['job-z', 'job-a', 'job-m'],
+            'svc-order-second' => ['job-b'],
+        ]);
+
+        $paginators = JobListService::buildAggregatedStatusPaginators(
+            new Collection($services),
+            '',
+            1,
+            1,
+            1,
+            100,
+            '/horizon/jobs',
+            [],
+        );
+
+        $this->assertSame(
+            ['job-a', 'job-m', 'job-z', 'job-b'],
+            $paginators['failed']->pluck('uuid')->all(),
+        );
+    }
+
     public function test_match_cap_does_not_apply_without_a_search(): void
     {
         $this->private__configurePaging();
@@ -116,6 +144,53 @@ class JobListServiceSearchTest extends TestCase
         config()->set('horizonhub.horizon_api_job_list_page_size', 2);
         config()->set('horizonhub.max_horizon_pages', 10);
         config()->set('horizonhub.jobs_per_page', 10);
+    }
+
+    /**
+     * Create services whose failed lists share one timestamp, so the merge must
+     * break the tie by service id and then UUID rather than by Horizon order.
+     *
+     * @param array<string, list<string>> $fixtures Service name mapped to its failed UUIDs in Horizon response order.
+     *
+     * @return list<Service>
+     */
+    private function private__equalTimestampServices(array $fixtures): array
+    {
+        $responses = [];
+        $services = [];
+
+        foreach ($fixtures as $name => $uuids) {
+            $host = 'https://' . $name . '.test';
+
+            $services[] = Service::create(['name' => $name, 'base_url' => $host, 'status' => 'online']);
+            $responses[$host] = $uuids;
+        }
+
+        Http::fake(function ($request) use ($responses) {
+            foreach ($responses as $host => $uuids) {
+                if (! str_contains($request->url(), $host) || ! str_contains($request->url(), '/jobs/failed')) {
+                    continue;
+                }
+
+                $jobs = \array_map(
+                    static fn (string $uuid, int $index): array => [
+                        'id' => $uuid,
+                        'queue' => 'redis.default',
+                        'name' => 'App\\Jobs\\SendReport',
+                        'failed_at' => '1717249200',
+                        'index' => $index + 1,
+                    ],
+                    $uuids,
+                    \array_keys($uuids),
+                );
+
+                return Http::response(['jobs' => $jobs], 200);
+            }
+
+            return Http::response(['jobs' => []], 200);
+        });
+
+        return $services;
     }
 
     /**
