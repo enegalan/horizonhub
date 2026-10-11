@@ -9,6 +9,7 @@ use App\Services\Horizon\HorizonClientApiService;
 use App\Services\Horizon\HorizonClientCacheService;
 use App\Support\Horizon\ClientResponse;
 use App\Support\Horizon\StatsReader;
+use App\Support\Services\ServiceTagNormalizer;
 use Database\Factories\ServiceFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -338,17 +339,21 @@ class Service extends Model
     /**
      * Get the tags of the service.
      *
+     * The raw attribute holds a JSON payload. Normalization (decode, dedupe,
+     * lowercase and sort) is memoized per payload so repeated reads, including
+     * across services sharing the same tags, do not reprocess the value.
+     *
      * @return Attribute<list<string>, mixed>
      */
     protected function tags(): Attribute
     {
         return Attribute::make(
-            get: function ($value) {
-                $value = json_decode($value, true) ?: [];
+            get: static function ($value): array {
+                if (\is_array($value)) {
+                    return ServiceTagNormalizer::normalize($value);
+                }
 
-                sort($value);
-
-                return $value;
+                return ServiceTagNormalizer::fromJson(\is_string($value) ? $value : null);
             },
         );
     }
