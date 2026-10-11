@@ -27,6 +27,12 @@ class ServiceTagNormalizerTest extends TestCase
     }
 
     #[Test]
+    public function from_json_rejects_object_roots_instead_of_treating_values_as_tags(): void
+    {
+        $this->assertSame([], ServiceTagNormalizer::fromJson('{"production":"critical"}'));
+    }
+
+    #[Test]
     public function from_json_returns_an_empty_list_for_malformed_payloads(): void
     {
         $this->assertSame([], ServiceTagNormalizer::fromJson('not-json'));

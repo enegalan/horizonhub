@@ -20,8 +20,10 @@ final class ServiceTagNormalizer
     /**
      * Normalize a raw JSON encoded tag payload.
      *
-     * Empty, null and malformed payloads normalize to an empty list. Results
-     * are memoized per payload so repeated reads skip decoding and sorting.
+     * Empty, null and malformed payloads normalize to an empty list. Only a
+     * JSON array at the root is accepted; objects and other scalar roots are
+     * rejected so they are never mistaken for a tag list. Results are memoized
+     * per payload so repeated reads skip decoding and sorting.
      *
      * @param string|null $json The raw JSON payload stored on the model.
      *
@@ -39,7 +41,9 @@ final class ServiceTagNormalizer
 
         $decoded = \json_decode($json, true);
 
-        return self::$normalizedByJson[$json] = self::normalize(\is_array($decoded) ? $decoded : []);
+        $tags = \is_array($decoded) && \array_is_list($decoded) ? $decoded : [];
+
+        return self::$normalizedByJson[$json] = self::normalize($tags);
     }
 
     /**
