@@ -29,5 +29,8 @@
     "lightpickr": "*",
     "moment": "^2.31.0",
     "notyf": "^3.10.0"
+  },
+  "overrides": {
+    "shell-quote": "^1.11.0"
   }
 }
