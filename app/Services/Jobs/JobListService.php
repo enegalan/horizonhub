@@ -447,3 +447,4 @@ class JobListService
         return 0.0;
     }
 }
+

@@ -10,12 +10,22 @@ use Illuminate\Support\Facades\Cache;
 class HorizonClientCacheService
 {
     /**
-     * The number of milliseconds to wait before re-attempting to acquire a lock while blocking.
+     * Base delay in milliseconds for the first wait between concurrency-slot attempts.
      */
-    private static int $sleepMilliseconds = 250;
+    private const SLOT_WAIT_BASE_MS = 25;
+
+    /**
+     * Upper bound in milliseconds for the delay between concurrency-slot attempts.
+     */
+    private const SLOT_WAIT_MAX_MS = 250;
 
     /**
      * Try to acquire a concurrency slot for a service.
+     *
+     * When the service is saturated, callers back off exponentially with jitter
+     * instead of polling at a fixed interval, so a burst of concurrent callers
+     * does not hammer the cache store while it waits for a slot to free up. The
+     * wait is bounded by `concurrent_request_wait_ms`.
      *
      * @param Service $service The service instance.
      *
@@ -32,6 +42,7 @@ class HorizonClientCacheService
         $key = self::serviceRequestSlotCacheKey($service);
         $waitBudgetMs = config('horizonhub.http.concurrent_request_wait_ms');
         $deadline = \microtime(true) + ($waitBudgetMs / 1000);
+        $attempt = 0;
 
         while (true) {
             Cache::add($key, 0, \now()->addSeconds(self::private__requestLockSeconds()));
@@ -43,11 +54,14 @@ class HorizonClientCacheService
 
             Cache::decrement($key);
 
-            if (\microtime(true) >= $deadline) {
+            $attempt++;
+            $remainingMicroseconds = (int) (($deadline - \microtime(true)) * 1_000_000);
+
+            if ($remainingMicroseconds <= 0) {
                 return false;
             }
 
-            \usleep(self::$sleepMilliseconds * 1000);
+            \usleep(\min(self::private__slotBackoffMicroseconds($attempt), $remainingMicroseconds));
         }
     }
 
@@ -254,5 +268,23 @@ class HorizonClientCacheService
         $backoffSeconds = (int) \ceil($backoffMs / 1000);
 
         return $baseSeconds + $backoffSeconds + 1;
+    }
+
+    /**
+     * Compute the exponential backoff with jitter before the next slot attempt.
+     *
+     * @param int $attempt The 1-based attempt number.
+     *
+     * @return int The delay in microseconds.
+     */
+    private static function private__slotBackoffMicroseconds(int $attempt): int
+    {
+        $ceilingMs = \min(self::SLOT_WAIT_BASE_MS * (2 ** ($attempt - 1)), self::SLOT_WAIT_MAX_MS);
+
+        // Equal jitter: keep at least half of the ceiling so waiting callers make
+        // progress, while the randomized delay desynchronizes them from each other.
+        $floorMs = \intdiv($ceilingMs, 2);
+
+        return \random_int($floorMs, $ceilingMs) * 1000;
     }
 }

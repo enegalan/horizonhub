@@ -834,6 +834,89 @@ class HorizonClientTest extends TestCase
         $this->assertStringContainsString('Unable to bootstrap Horizon dashboard session', (string) $result['message']);
     }
 
+    public function test_service_request_slot_admits_up_to_limit_and_reclaims_after_release(): void
+    {
+        \config()->set('horizonhub.http.max_concurrent_requests_per_service', 2);
+        \config()->set('horizonhub.http.concurrent_request_wait_ms', 50);
+
+        $service = Service::create([
+            'name' => 'svc-slot-semaphore',
+            'base_url' => 'https://service-slot-semaphore.test',
+            'status' => 'online',
+        ]);
+
+        $this->assertTrue(HorizonClientCacheService::acquireServiceRequestSlot($service));
+        $this->assertTrue(HorizonClientCacheService::acquireServiceRequestSlot($service));
+        $this->assertFalse(HorizonClientCacheService::acquireServiceRequestSlot($service));
+
+        HorizonClientCacheService::releaseServiceRequestSlot($service);
+
+        $this->assertTrue(HorizonClientCacheService::acquireServiceRequestSlot($service));
+
+        HorizonClientCacheService::releaseServiceRequestSlot($service);
+        HorizonClientCacheService::releaseServiceRequestSlot($service);
+
+        $this->assertFalse(Cache::has(HorizonClientCacheService::serviceRequestSlotCacheKey($service)));
+    }
+
+    public function test_service_request_slot_recovers_when_a_slot_frees_during_backoff(): void
+    {
+        \config()->set('horizonhub.http.max_concurrent_requests_per_service', 1);
+        \config()->set('horizonhub.http.concurrent_request_wait_ms', 250);
+
+        $service = Service::create([
+            'name' => 'svc-slot-backoff',
+            'base_url' => 'https://service-slot-backoff.test',
+            'status' => 'online',
+        ]);
+
+        $slotKey = HorizonClientCacheService::serviceRequestSlotCacheKey($service);
+
+        // Simulate an in-flight holder that frees the only slot right after the
+        // first saturated attempt, so the waiter must observe it on a retry.
+        Cache::swap(new Repository(new class($slotKey) extends ArrayStore
+        {
+            private int $increments = 0;
+
+            public function __construct(private readonly string $slotKey)
+            {
+                parent::__construct();
+            }
+
+            public function increment($key, $value = 1)
+            {
+                if ($key === $this->slotKey) {
+                    $this->increments++;
+
+                    return $this->increments === 1 ? 2 : 1;
+                }
+
+                return parent::increment($key, $value);
+            }
+        }));
+
+        Cache::put($slotKey, 1, \now()->addSeconds(30));
+
+        $this->assertTrue(HorizonClientCacheService::acquireServiceRequestSlot($service));
+    }
+
+    public function test_slot_wait_backoff_grows_exponentially_and_is_capped(): void
+    {
+        $method = new \ReflectionMethod(HorizonClientCacheService::class, 'private__slotBackoffMicroseconds');
+        $method->setAccessible(true);
+
+        $first = $method->invoke(null, 1);
+        $second = $method->invoke(null, 2);
+        $late = $method->invoke(null, 10);
+
+        $this->assertGreaterThanOrEqual(12_000, $first);
+        $this->assertLessThanOrEqual(25_000, $first);
+        $this->assertGreaterThanOrEqual(25_000, $second);
+        $this->assertLessThanOrEqual(50_000, $second);
+        $this->assertGreaterThanOrEqual(125_000, $late);
+        $this->assertLessThanOrEqual(250_000, $late);
+    }
+
     /**
      * Build a cache store whose first read of the given key misses and whose
      * later reads return the payload, simulating a concurrent fill landing.
