@@ -859,6 +859,20 @@ class HorizonClientTest extends TestCase
         $this->assertFalse(Cache::has(HorizonClientCacheService::serviceRequestSlotCacheKey($service)));
     }
 
+    public function test_slot_wait_backoff_grows_exponentially_caps_and_respects_budget(): void
+    {
+        $method = new \ReflectionMethod(HorizonClientCacheService::class, 'private__slotBackoffMicroseconds');
+        $method->setAccessible(true);
+
+        $this->assertSame(25_000, $method->invoke(null, 1, 2_000_000));
+        $this->assertSame(50_000, $method->invoke(null, 2, 2_000_000));
+        $this->assertSame(100_000, $method->invoke(null, 3, 2_000_000));
+        $this->assertSame(200_000, $method->invoke(null, 4, 2_000_000));
+        $this->assertSame(250_000, $method->invoke(null, 5, 2_000_000));
+        $this->assertSame(250_000, $method->invoke(null, 9, 2_000_000));
+        $this->assertSame(10_000, $method->invoke(null, 1, 10_000));
+    }
+
     /**
      * Build a cache store whose first read of the given key misses and whose
      * later reads return the payload, simulating a concurrent fill landing.

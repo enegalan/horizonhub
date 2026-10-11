@@ -61,9 +61,7 @@ class HorizonClientCacheService
                 return false;
             }
 
-            $backoffMs = \min(self::SLOT_WAIT_BASE_MS * (2 ** ($attempt - 1)), self::SLOT_WAIT_MAX_MS);
-
-            \usleep((int) \min($backoffMs * 1000, $remainingMicroseconds));
+            \usleep(self::private__slotBackoffMicroseconds($attempt, $remainingMicroseconds));
         }
     }
 
@@ -270,5 +268,21 @@ class HorizonClientCacheService
         $backoffSeconds = (int) \ceil($backoffMs / 1000);
 
         return $baseSeconds + $backoffSeconds + 1;
+    }
+
+    /**
+     * Compute the exponential backoff before the next slot attempt, clamped by
+     * the remaining wait budget.
+     *
+     * @param int $attempt The 1-based attempt number.
+     * @param int $remainingMicroseconds The microseconds left in the wait budget.
+     *
+     * @return int The delay in microseconds.
+     */
+    private static function private__slotBackoffMicroseconds(int $attempt, int $remainingMicroseconds): int
+    {
+        $backoffMs = \min(self::SLOT_WAIT_BASE_MS * (2 ** ($attempt - 1)), self::SLOT_WAIT_MAX_MS);
+
+        return (int) \min($backoffMs * 1000, $remainingMicroseconds);
     }
 }
