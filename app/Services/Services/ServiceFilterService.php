@@ -91,7 +91,7 @@ final class ServiceFilterService
     public static function viewData(Request $request): array
     {
         return [
-            'allTags' => Service::enabled()->get(['tags'])->pluck('tags')->flatten()->unique()->sort()->values()->all(),
+            'allTags' => Service::allTags(true),
             'selectedServiceIds' => ServiceRequest::existingIdsFromRequest($request),
             'selectedTags' => ServiceTagNormalizer::normalize(
                 \is_array($request->query('service_tag', [])) ? $request->query('service_tag', []) : [],

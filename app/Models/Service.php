@@ -94,11 +94,23 @@ class Service extends Model
     /**
      * Get all distinct tags across services.
      *
+     * @param bool $enabledOnly Limit the result to tags used by enabled services.
+     *
      * @return list<string>
      */
-    public static function allTags(): array
+    public static function allTags(bool $enabledOnly = false): array
     {
-        return static::get(['tags'])->pluck('tags')->flatten()->unique()->sort()->values()->all();
+        $cacheKey = self::private__tagsCacheKey($enabledOnly);
+
+        return Cache::remember($cacheKey, config('horizonhub.service_tags_cache_seconds'), static function () use ($enabledOnly): array {
+            $query = static::query();
+
+            if ($enabledOnly) {
+                $query->where('enabled', true);
+            }
+
+            return $query->get(['tags'])->pluck('tags')->flatten()->unique()->sort()->values()->all();
+        });
     }
 
     /**
@@ -339,5 +351,15 @@ class Service extends Model
                 return $value;
             },
         );
+    }
+
+    /**
+     * Get the cache key for the service tags.
+     *
+     * @param bool $enabledOnly Whether to only return enabled service tags.
+     */
+    private static function private__tagsCacheKey(bool $enabledOnly = false): string
+    {
+        return $enabledOnly ? 'horizonhub:service-tags:enabled' : 'horizonhub:service-tags:all';
     }
 }

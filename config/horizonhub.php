@@ -245,6 +245,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Service tags cache seconds
+    |--------------------------------------------------------------------------
+    |
+    | Seconds the distinct service-tag list is cached for.
+    | Keep it short so tag edits show up quickly while repeated
+    | filter renders reuse the same values.
+    |
+    */
+    'service_tags_cache_seconds' => (int) env('HORIZON_HUB_SERVICE_TAGS_CACHE_SECONDS', 10),
+
+    /*
+    |--------------------------------------------------------------------------
     | Top N Queues
     |--------------------------------------------------------------------------
     |
