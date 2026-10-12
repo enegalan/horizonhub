@@ -6,6 +6,7 @@ use App\Models\Service;
 use App\Services\Jobs\JobServiceResolverService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -48,6 +49,36 @@ class JobServiceResolverServiceTest extends TestCase
         $this->assertEquals($second->id, Cache::get('horizonhub:job-service:job-uuid-1'));
 
         Http::assertSentCount(2);
+    }
+
+    public function test_resolve_loads_headers_for_every_service_in_a_single_query(): void
+    {
+        config()->set('horizonhub.http.retry', ['times' => 1, 'sleep_ms' => 0, 'retry_on_status' => []]);
+
+        foreach (\range(1, 10) as $index) {
+            $service = Service::create([
+                'name' => "svc-$index",
+                'base_url' => "https://svc-$index.test",
+                'status' => 'online',
+            ]);
+
+            $service->headers()->create(['name' => 'X-Token', 'value' => "token-$index"]);
+        }
+
+        Http::fake(static fn () => Http::response(['message' => 'not found'], 404));
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        JobServiceResolverService::resolve('missing-job');
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        $headerQueries = \array_filter(
+            $queries,
+            static fn (array $query): bool => \str_contains($query['query'], 'service_headers'),
+        );
+
+        $this->assertCount(1, $headerQueries, 'Headers must load for all services in a single query.');
     }
 
     public function test_resolve_returns_null_for_blank_uuid(): void

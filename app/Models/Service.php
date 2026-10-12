@@ -93,6 +93,13 @@ class Service extends Model
     ];
 
     /**
+     * Memoized normalized header map for this service instance.
+     *
+     * @var array<string, string>|null
+     */
+    private ?array $private__headersMemo = null;
+
+    /**
      * Get all distinct tags across services.
      *
      * @param bool $enabledOnly Limit the result to tags used by enabled services.
@@ -185,13 +192,17 @@ class Service extends Model
      */
     public function getHeaders(): array
     {
-        $headers = [];
-
-        foreach ($this->headers as $header) {
-            $headers[$header->name] = $header->value ?? '';
+        if ($this->private__headersMemo !== null) {
+            return $this->private__headersMemo;
         }
 
-        return $headers;
+        $map = [];
+
+        foreach ($this->headers as $header) {
+            $map[$header->name] = $header->value ?? '';
+        }
+
+        return $this->private__headersMemo = $map;
     }
 
     /**

@@ -4,7 +4,6 @@ namespace App\Services\Jobs;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientApiService;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 final class JobServiceResolverService
@@ -40,8 +39,11 @@ final class JobServiceResolverService
             Cache::forget($cacheKey);
         }
 
-        /** @var Collection<int, Service> $services */
         $services = Service::enabledNamed();
+
+        // Load every service's headers in a single query so probing many
+        // services for a job does not trigger one header query per service.
+        $services->load('headers');
 
         foreach ($services as $service) {
             $resolved = self::private__fetchFromService($service, $jobUuid);
