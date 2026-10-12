@@ -93,6 +93,11 @@ class Service extends Model
     ];
 
     /**
+     * @var array<int|string, array{failedJobs: int, recentJobs: int, status: string|null}>
+     */
+    private static array $horizonStatsMemo = [];
+
+    /**
      * Get all distinct tags across services.
      *
      * @param bool $enabledOnly Limit the result to tags used by enabled services.
@@ -237,19 +242,27 @@ class Service extends Model
      */
     public function withHorizonStats(): void
     {
-        if (! $this->enabled) {
-            $this->horizon_failed_jobs_count = 0;
-            $this->horizon_jobs_count = 0;
-            $this->horizon_status = null;
+        $serviceId = $this->getKey();
 
-            return;
+        if (array_key_exists($serviceId, self::$horizonStatsMemo)) {
+            $stats = self::$horizonStatsMemo[$serviceId];
+        } elseif (! $this->enabled) {
+            $stats = [
+                'failedJobs' => 0,
+                'recentJobs' => 0,
+                'status' => null,
+            ];
+        } else {
+            $stats = StatsReader::summary(ClientResponse::data(HorizonClientApiService::getStats($this)));
         }
-
-        $stats = StatsReader::summary(ClientResponse::data(HorizonClientApiService::getStats($this)));
 
         $this->horizon_failed_jobs_count = $stats['failedJobs'];
         $this->horizon_jobs_count = $stats['recentJobs'];
         $this->horizon_status = $stats['status'];
+
+        if ($serviceId) {
+            self::$horizonStatsMemo[$serviceId] = $stats;
+        }
     }
 
     /**
@@ -263,6 +276,14 @@ class Service extends Model
                     'base_url' => ['The base URL is required.'],
                 ]);
             }
+        });
+
+        static::saved(static function (): void {
+            self::$horizonStatsMemo = [];
+        });
+
+        static::deleted(static function (): void {
+            self::$horizonStatsMemo = [];
         });
     }
 
