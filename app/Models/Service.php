@@ -100,6 +100,17 @@ class Service extends Model
     private ?array $private__headersMemo = null;
 
     /**
+     * Loaded headers relation the memoized map was built from.
+     *
+     * A reloaded relation is a different collection instance, so comparing
+     * against it lets getHeaders rebuild the map instead of serving stale
+     * values after load('headers') or refresh().
+     *
+     * @var Collection<int, ServiceHeader>|null
+     */
+    private ?Collection $private__headersMemoSource = null;
+
+    /**
      * Get all distinct tags across services.
      *
      * @param bool $enabledOnly Limit the result to tags used by enabled services.
@@ -192,17 +203,22 @@ class Service extends Model
      */
     public function getHeaders(): array
     {
-        if ($this->private__headersMemo !== null) {
+        $headers = $this->headers;
+
+        if ($this->private__headersMemoSource === $headers && $this->private__headersMemo !== null) {
             return $this->private__headersMemo;
         }
 
         $map = [];
 
-        foreach ($this->headers as $header) {
+        foreach ($headers as $header) {
             $map[$header->name] = $header->value ?? '';
         }
 
-        return $this->private__headersMemo = $map;
+        $this->private__headersMemoSource = $headers;
+        $this->private__headersMemo = $map;
+
+        return $map;
     }
 
     /**

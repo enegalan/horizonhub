@@ -23,6 +23,19 @@ class ServiceHeadersTest extends TestCase
         );
     }
 
+    public function test_get_headers_rebuilds_after_relation_reload(): void
+    {
+        $service = Service::factory()->create();
+        $service->headers()->create(['name' => 'X-Token', 'value' => 'first']);
+
+        $this->assertSame(['X-Token' => 'first'], $service->getHeaders());
+
+        $service->headers()->update(['value' => 'second']);
+        $service->load('headers');
+
+        $this->assertSame(['X-Token' => 'second'], $service->getHeaders());
+    }
+
     public function test_many_services_load_headers_with_a_bounded_query_count(): void
     {
         $services = Service::factory()->count(20)->create();
