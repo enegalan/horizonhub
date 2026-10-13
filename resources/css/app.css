@@ -683,7 +683,7 @@ turbo-frame#form-drawer {
     0% {
         background-position: 150%;
     }
-    
+
     100% {
         background-position: -50%;
     }
