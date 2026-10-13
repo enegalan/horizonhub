@@ -137,6 +137,12 @@
         box-shadow: 0 0 0 .25rem hsl(var(--primary) / 0.25);
         transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
     }
+    table {
+        @apply min-w-full w-full overflow-hidden;
+    }
+    table tbody {
+        @apply divide-y divide-border;
+    }
 }
 
 @layer components {
@@ -202,7 +208,7 @@
         @apply min-w-0 rounded-lg border border-border bg-card text-card-foreground;
     }
     .table-scroll {
-        @apply min-w-0 w-full max-w-full overflow-x-auto overscroll-x-contain;
+        @apply min-w-0 w-full h-full max-w-full overflow-x-auto overscroll-x-contain;
     }
     @media (max-width: 767px) {
         .table-scroll :is(th.table-header, td) {

@@ -15,19 +15,17 @@
     if ($streamPatchChildren) {
         $bodyBag = $bodyBag->merge(['data-turbo-stream-patch-children' => 'true']);
     }
-    $bodyBag = $bodyBag->class('divide-y divide-border');
-    $tableClasses = trim("min-w-full w-full overflow-hidden $tableClass");
 @endphp
 
 @if($wrap)
 <div {{ $attributes->class('table-scroll') }}>
     <table
-        class="{{ $tableClasses }}"
+        class="{{ $tableClass }}"
         @if($id) data-resizable-table="{{ $id }}" @endif
     >
 @else
     <table
-        {{ $attributes->class($tableClasses) }}
+        {{ $attributes->class($tableClass) }}
         @if($id) data-resizable-table="{{ $id }}" @endif
     >
 @endif
