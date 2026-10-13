@@ -136,6 +136,14 @@ Providers define **where** alert notifications go. Create providers **before** o
 - **Recipients:** one or more addresses (comma-separated or multiple entries depending on the form).
 - Requires Horizon Hub's mail transport to be configured (`MAIL_*` in the `.env`) at deploy time.
 
+### Delivery behavior
+
+When a rule fires, each attached provider is attempted independently and the outcome is aggregated on the alert log (`/horizon/alerts`); the status is not recorded per provider:
+
+- **Success:** the provider is called with the batched payload. A webhook provider succeeds when the endpoint responds without a `4xx` or `5xx` status; an email provider succeeds when the mail transport accepts the message. Success does not establish the final log status; the log is retained as **Sent** only when no attached provider fails.
+- **Failure:** a webhook error (`4xx` or `5xx` response) or a mail transport error is caught per provider, logged with the alert and provider IDs, and the log is marked **Failed** with the failure message. A failing provider does not stop the remaining providers from being attempted.
+- **Skipped:** a provider with a blank webhook URL or no email recipients is not called and the log stays **Sent**; email providers additionally log a warning. Configure the provider fully before attaching it to alert rules.
+
 ---
 
 ## Alerts
