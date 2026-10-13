@@ -41,7 +41,7 @@
                         name="{{ $inputName }}"
                         x-model="row.value"
                         placeholder="{{ $placeholder }}"
-                        class="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm font-mono text-foreground shadow-sm"
+                        class="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm font-mono text-foreground"
                     />
                     <x-button
                         type="button"

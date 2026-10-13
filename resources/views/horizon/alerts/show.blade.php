@@ -303,7 +303,7 @@
                                 <dd class="text-foreground" x-text="deliveryLog ? deliveryLog.events_count : 0"></dd>
                             </div>
                             <div x-show="deliveryLog && deliveryLog.job_items && deliveryLog.job_items.length > 0">
-                                <dt class="label-muted">Job IDs (grouped)</dt>
+                                <dt class="label-muted">Job IDs grouped by number of occurrences</dt>
                                 <dd class="text-foreground flex flex-wrap gap-1">
                                     <template x-for="jobItem in (deliveryLog ? (deliveryLog.job_items || []) : [])" :key="jobItem.id">
                                         <span class="inline-flex items-center rounded border border-border px-1.5 py-0.5 text-[11px] font-mono text-muted-foreground bg-muted/40">

@@ -113,7 +113,7 @@
     input[type="password"],
     select,
     textarea {
-        @apply flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground;
+        @apply flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm transition-colors placeholder:text-muted-foreground;
     }
     select {
         @apply py-2 pr-8 appearance-none cursor-pointer;
@@ -136,6 +136,12 @@
         @apply outline-none;
         box-shadow: 0 0 0 .25rem hsl(var(--primary) / 0.25);
         transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+    }
+    table {
+        @apply min-w-full w-full overflow-hidden;
+    }
+    table tbody {
+        @apply divide-y divide-border;
     }
 }
 
@@ -199,10 +205,10 @@
         }
     }
     .card {
-        @apply min-w-0 rounded-lg border border-border bg-card text-card-foreground shadow-soft;
+        @apply min-w-0 rounded-lg border border-border bg-card text-card-foreground;
     }
     .table-scroll {
-        @apply min-w-0 w-full max-w-full overflow-x-auto overscroll-x-contain;
+        @apply min-w-0 w-full h-full max-w-full overflow-x-auto overscroll-x-contain;
     }
     @media (max-width: 767px) {
         .table-scroll :is(th.table-header, td) {
@@ -225,7 +231,7 @@
         @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-4 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:hover:bg-transparent disabled:cursor-not-allowed disabled:opacity-60;
     }
     .btn-secondary {
-        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-input bg-background px-4 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:hover:bg-background disabled:cursor-not-allowed disabled:opacity-60;
+        @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:hover:bg-background disabled:cursor-not-allowed disabled:opacity-60;
     }
     .btn-loadable {
         @apply relative;
@@ -392,7 +398,7 @@
 }
 
 .horizon-resize-handle-line {
-    @apply absolute top-0 bottom-0;
+    @apply absolute top-0 bottom-0 w-px;
     right: 3.5px;
     background: hsl(var(--border));
 }
@@ -555,7 +561,7 @@ td[data-column-id="actions"] > div {
     opacity: 0;
 }
 .form-drawer-panel {
-    @apply relative z-10 flex h-full w-full max-w-xl flex-col border-l border-border bg-card shadow-soft-lg;
+    @apply relative z-10 flex h-full w-full max-w-xl flex-col border-l border-border bg-card;
     transform: translateX(100%);
     transition: transform 300ms ease-out;
 }
@@ -677,7 +683,7 @@ turbo-frame#form-drawer {
     0% {
         background-position: 150%;
     }
-    
+
     100% {
         background-position: -50%;
     }
