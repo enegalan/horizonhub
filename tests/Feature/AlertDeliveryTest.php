@@ -26,19 +26,30 @@ class AlertDeliveryTest extends TestCase
 
     public function test_failing_provider_does_not_block_remaining_providers(): void
     {
-        Mail::fake();
-        Http::fake(['*' => Http::response('server error', 500)]);
+        $deliveryOrder = [];
+
+        Http::fake(function () use (&$deliveryOrder) {
+            $deliveryOrder[] = 'slack';
+
+            return Http::response('server error', 500);
+        });
+
+        Mail::shouldReceive('to')->once()->andReturnSelf();
+        Mail::shouldReceive('send')->once()->andReturnUsing(function () use (&$deliveryOrder): void {
+            $deliveryOrder[] = 'email';
+        });
 
         $service = $this->private__service();
         $emailProvider = $this->private__provider(EmailNotifierService::type(), ['to' => ['ops@example.com']]);
         $slackProvider = $this->private__provider(SlackNotifierService::type(), ['webhook_url' => 'https://hooks.slack.test/delivery']);
 
         $alert = $this->private__alertWithProvider($slackProvider, $emailProvider);
+        $alert->setRelation('notificationProviders', \collect([$slackProvider, $emailProvider]));
         $log = $this->private__log($alert, $service);
 
         $this->private__engine()->dispatch($alert, [$this->private__event($service)], $log);
 
-        Mail::assertSent(AlertBatchedMail::class);
+        $this->assertSame(['slack', 'email'], $deliveryOrder);
         $this->assertSame(AlertLogStatus::Failed, $log->refresh()->status);
     }
 

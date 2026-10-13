@@ -138,10 +138,10 @@ Providers define **where** alert notifications go. Create providers **before** o
 
 ### Delivery behavior
 
-When a rule fires, each attached provider is attempted independently and the outcome is recorded on the alert log (`/horizon/alerts`):
+When a rule fires, each attached provider is attempted independently and the outcome is aggregated on the alert log (`/horizon/alerts`); the status is not recorded per provider:
 
-- **Success:** the provider is called with the batched payload and the log is marked **Sent**. A webhook provider succeeds when the endpoint returns a 2xx response; an email provider succeeds when the mail transport accepts the message.
-- **Failure:** a webhook error (non-2xx response) or a mail transport error is caught per provider, logged with the alert and provider IDs, and the log is marked **Failed** with the failure message. A failing provider does not stop the remaining providers from being attempted.
+- **Success:** the provider is called with the batched payload. A webhook provider succeeds when the endpoint responds without a `4xx` or `5xx` status; an email provider succeeds when the mail transport accepts the message. Success does not establish the final log status; the log is retained as **Sent** only when no attached provider fails.
+- **Failure:** a webhook error (`4xx` or `5xx` response) or a mail transport error is caught per provider, logged with the alert and provider IDs, and the log is marked **Failed** with the failure message. A failing provider does not stop the remaining providers from being attempted.
 - **Skipped:** a provider with a blank webhook URL or no email recipients is not called and the log stays **Sent**; email providers additionally log a warning. Configure the provider fully before attaching it to alert rules.
 
 ---
