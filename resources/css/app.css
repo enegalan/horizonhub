@@ -398,7 +398,7 @@
 }
 
 .horizon-resize-handle-line {
-    @apply absolute top-0 bottom-0;
+    @apply absolute top-0 bottom-0 w-px;
     right: 3.5px;
     background: hsl(var(--border));
 }
