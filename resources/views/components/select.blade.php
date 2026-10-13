@@ -258,7 +258,7 @@
         :aria-expanded="open"
         aria-haspopup="listbox"
         @class([
-            'btn-ghost flex h-9 w-full max-w-full items-center justify-between gap-1 overflow-hidden whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground',
+            'btn-ghost flex h-9 w-full max-w-full items-center justify-between gap-1 overflow-hidden whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground',
             'min-w-[8rem]' => $multiple,
         ])>
         <span x-text="selectedLabel" :title="selectedLabel" class="min-w-0 flex-1 truncate text-left"></span>
@@ -284,7 +284,7 @@
                 x-ref="searchInput"
                 x-model="filterQuery"
                 placeholder="Search..."
-                class="flex h-8 w-full rounded-md border border-input bg-background px-2 text-sm shadow-sm"
+                class="flex h-8 w-full rounded-md border border-input bg-background px-2 text-sm"
                 autocomplete="off"
             />
         </div>

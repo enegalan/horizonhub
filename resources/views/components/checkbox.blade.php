@@ -24,7 +24,7 @@
     >
         <span class="relative inline-flex h-4 w-4 shrink-0">
             <input {{ $inputAttrs }} />
-            <span checkbox class="absolute inset-0 rounded-full border border-input bg-background shadow-sm transition-colors peer-disabled:pointer-events-none peer-disabled:opacity-50 peer-checked:border-primary peer-checked:bg-primary"></span>
+            <span checkbox class="absolute inset-0 rounded-full border border-input bg-background transition-colors peer-disabled:pointer-events-none peer-disabled:opacity-50 peer-checked:border-primary peer-checked:bg-primary"></span>
             <span class="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity peer-checked:opacity-100 text-primary-foreground pointer-events-none">
                 <x-icons.check class="size-3" />
             </span>

@@ -258,7 +258,7 @@
                                 <ul
                                     id="service-tag-suggestions"
                                     role="listbox"
-                                    class="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-border bg-background py-1 shadow-md"
+                                    class="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-border bg-background py-1"
                                     x-show="tagSuggestionsOpen && tagSuggestions.length > 0"
                                     x-cloak
                                 >
@@ -302,7 +302,7 @@
                                 <label class="block text-sm font-medium leading-none text-muted-foreground peer-disabled:opacity-70" x-bind:for="'header-name-' + index">Name</label>
                                 <input
                                     type="text"
-                                    class="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm font-mono text-foreground shadow-sm"
+                                    class="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm font-mono text-foreground"
                                     x-bind:id="'header-name-' + index"
                                     x-bind:name="'headers[' + index + '][name]'"
                                     x-model="headers[index].name"
@@ -314,7 +314,7 @@
                                 <div class="flex gap-2">
                                     <input
                                         type="text"
-                                        class="flex h-9 min-w-0 flex-1 rounded-md border border-border bg-background px-3 py-1 text-sm font-mono text-foreground shadow-sm"
+                                        class="flex h-9 min-w-0 flex-1 rounded-md border border-border bg-background px-3 py-1 text-sm font-mono text-foreground"
                                         x-bind:id="'header-value-' + index"
                                         x-bind:name="'headers[' + index + '][value]'"
                                         x-model="headers[index].value"
@@ -410,7 +410,7 @@
                             type="file"
                             name="tls_client_cert"
                             x-show="!tlsCertOnFile"
-                            class="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground shadow-sm file:mr-3 file:rounded file:border-0 file:bg-muted file:px-2 file:py-0.5 file:text-xs file:font-medium"
+                            class="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground file:mr-3 file:rounded file:border-0 file:bg-muted file:px-2 file:py-0.5 file:text-xs file:font-medium"
                         />
                         @error('tls_client_cert') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
@@ -439,7 +439,7 @@
                             type="file"
                             name="tls_client_key"
                             x-show="!tlsKeyOnFile"
-                            class="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground shadow-sm file:mr-3 file:rounded file:border-0 file:bg-muted file:px-2 file:py-0.5 file:text-xs file:font-medium"
+                            class="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground file:mr-3 file:rounded file:border-0 file:bg-muted file:px-2 file:py-0.5 file:text-xs file:font-medium"
                         />
                         @error('tls_client_key') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>

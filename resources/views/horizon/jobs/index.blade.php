@@ -438,7 +438,7 @@
                             <div class="pointer-events-none absolute -right-10 -top-10 size-36 rounded-full bg-primary/10 blur-3xl" aria-hidden="true"></div>
                             <div class="relative flex items-start justify-between gap-2 sm:gap-3">
                                 <div class="flex min-w-0 items-start gap-2.5 sm:gap-4">
-                                    <div class="flex size-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-sm sm:size-11">
+                                    <div class="flex size-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary sm:size-11">
                                         <x-icons.arrow-path class="size-4 sm:size-6" />
                                     </div>
                                     <div class="min-w-0 space-y-0.5 sm:space-y-1">
