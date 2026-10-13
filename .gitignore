@@ -10,6 +10,8 @@
 /.nova
 /.phpunit.cache
 /.vscode
+/coverage.xml
+/coverage
 /.zed
 /auth.json
 /node_modules

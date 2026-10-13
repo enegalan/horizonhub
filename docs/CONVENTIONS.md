@@ -53,6 +53,7 @@ Repository-specific conventions that expand on the rules in [AGENTS.md](../AGENT
 
 - PHPUnit 12; unit tests (`tests/Unit`) cover services, strategies, calculators, helpers, and models; feature tests (`tests/Feature`) cover pages and actions.
 - Doubles (Mockery), determinism, and coverage expectations follow [AGENTS.md](../AGENTS.md); mirror the patterns already present in `tests/Unit` and `tests/Feature`.
+- CI collects line coverage with PCOV and enforces a minimum of 90% (`php artisan test --coverage --min=90`); run `composer test:coverage` locally to reproduce it (see [DEVELOPMENT.md — Code coverage](DEVELOPMENT.md#code-coverage)).
 
 ## Static analysis
 
