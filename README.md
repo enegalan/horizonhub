@@ -3,9 +3,21 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/enegalan/horizonhub/actions/workflows/ci.yml"><img src="https://github.com/enegalan/horizonhub/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
-  <a href="https://github.com/enegalan/horizonhub/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT" /></a>
-  <a href="https://hub.docker.com/r/enegalan/horizonhub"><img src="https://img.shields.io/docker/pulls/enegalan/horizonhub?logo=docker&logoColor=white" alt="Docker pulls" /></a>
+  <a href="https://github.com/enegalan/horizonhub/actions/workflows/ci.yml">
+    <img src="https://github.com/enegalan/horizonhub/actions/workflows/ci.yml/badge.svg" alt="CI status" />
+  </a>
+  <a href="https://img.shields.io/github/license/enegalan/horizonhub">
+    <img src="https://img.shields.io/github/license/enegalan/horizonhub?style=flat-square" alt="License" />
+  </a>
+  <a href="https://github.com/enegalan/horizonhub/stargazers">
+    <img src="https://img.shields.io/github/stars/enegalan/horizonhub?style=flat-square" alt="GitHub Stars" />
+  </a>
+  <a href="https://github.com/enegalan/horizonhub/issues">
+    <img src="https://img.shields.io/github/issues/enegalan/horizonhub?style=flat-square" alt="GitHub Issues" />
+  </a>
+  <a href="https://hub.docker.com/r/enegalan/horizonhub">
+    <img src="https://img.shields.io/docker/pulls/enegalan/horizonhub?style=flat-square&logo=docker&logoColor=white" alt="Docker pulls" />
+  </a>
 </p>
 
 # Introduction
