@@ -21,7 +21,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          coverage: none
+          coverage: pcov
 
       - name: Validate composer.json and composer.lock
         run: composer validate --strict
@@ -54,5 +54,13 @@ jobs:
       - name: Run ESLint
         run: npm run lint
 
-      - name: Run test suite
-        run: php artisan test
+      - name: Run test suite with coverage
+        run: php artisan test --coverage --min=90 --coverage-clover=coverage.xml
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-coverage
+          path: coverage.xml
+          if-no-files-found: warn

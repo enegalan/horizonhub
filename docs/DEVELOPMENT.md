@@ -60,6 +60,18 @@ The `schedule:work` process runs the commands registered in `routes/console.php`
 
 Before committing, run the standard checks listed in [AGENTS.md](../AGENTS.md) (`composer test`, `./vendor/bin/pint`, `./vendor/bin/phpstan`, `npm run lint`). The custom `hh:*` artisan commands are documented in [ARCHITECTURE.md — Scheduler](ARCHITECTURE.md#scheduler).
 
+### Code coverage
+
+Coverage collection needs the **PCOV** or **Xdebug** PHP extension (`pcov` is used in CI). Generate a report locally with:
+
+```bash
+composer test:coverage
+# or directly:
+php artisan test --coverage --min=90 --coverage-clover=coverage.xml
+```
+
+This prints a per-file summary and writes a Clover report to `coverage.xml`. The `--min=90` threshold matches CI and fails the run if line coverage drops below it.
+
 ## Working with real Horizon services
 
 Register each service under **Services** (`/horizon/services`) with `base_url`, optional `public_url` and `headers`, then use **Test connection**. The integration model is described in [HORIZONHUB.md — Integration requirements](HORIZONHUB.md#integration-requirements), with the UI steps in [GUIDE.md — Connecting services](GUIDE.md#connecting-services).
@@ -130,7 +142,7 @@ docker compose up -d
 
 ## CI
 
-`npm run build`, lint (pint = `--test`, phpstan, eslint), `composer validate --strict`, and `php artisan test` run on every push to `main` and on PRs (`.github/workflows/ci.yml`). Run the same commands locally before pushing.
+`npm run build`, lint (pint = `--test`, phpstan, eslint), `composer validate --strict`, and `php artisan test --coverage --min=90 --coverage-clover=coverage.xml` run on every push to `main` and on PRs (`.github/workflows/ci.yml`). Run the same commands locally before pushing. The generated Clover report is uploaded as the `php-coverage` workflow artifact.
 
 ## Troubleshooting
 

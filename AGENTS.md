@@ -50,6 +50,7 @@ These instructions apply to the whole repository.
 
 ```bash
 composer test
+composer test:coverage
 php artisan test
 ./vendor/bin/phpunit
 ./vendor/bin/pint
