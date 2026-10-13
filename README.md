@@ -2,6 +2,12 @@
   <img src="art/logo.png" width="360" alt="Horizon Hub" />
 </p>
 
+<p align="center">
+  <a href="https://github.com/enegalan/horizonhub/actions/workflows/ci.yml"><img src="https://github.com/enegalan/horizonhub/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
+  <a href="https://github.com/enegalan/horizonhub/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT" /></a>
+  <a href="https://hub.docker.com/r/enegalan/horizonhub"><img src="https://img.shields.io/docker/pulls/enegalan/horizonhub?logo=docker&logoColor=white" alt="Docker pulls" /></a>
+</p>
+
 # Introduction
 
 Centralized dashboard for monitoring Laravel Horizon jobs across multiple services. Provides real-time metrics, job management, and alerting.
