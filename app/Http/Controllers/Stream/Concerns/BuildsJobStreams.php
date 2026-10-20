@@ -106,19 +106,21 @@ trait BuildsJobStreams
         }
         $retries = ! empty($retriedBy) ? \count($retriedBy) : null;
 
+        $jsonFlags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE;
+
         $context = $jobData['context'] ?? null;
         $context = \is_array($context) || \is_string($context) ? $context : null;
-        $context = $context ? json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
+        $context = $context ? json_encode($context, $jsonFlags) : null;
 
         $payload = ArrayFormatter::orEmpty($jobData['payload'] ?? null);
         $commandData = JobCommandDataExtractor::extract($payload);
-        $commandData = $commandData ? json_encode($commandData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
+        $commandData = $commandData ? json_encode($commandData, $jsonFlags) : null;
 
         $rawStatus = (string) ($jobData['status'] ?? 'failed');
         $status = JobStatus::normalizeStatus($rawStatus)->value;
         $timing = JobRuntime::resolveJobTimingFields($jobData, $payload, $status);
 
-        $encodedPayload = $payload ? json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
+        $encodedPayload = $payload ? json_encode($payload, $jsonFlags) : null;
 
         return (object) [
             'uuid' => $jobData['id'],

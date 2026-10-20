@@ -9,7 +9,8 @@ final class CommaSeparatedEmailList implements ValidationRule
 {
     /**
      * Validate a comma-separated list of email addresses.
-     * An empty list is allowed so conditional required rules can gate it.
+     * An empty value is allowed so conditional required rules can gate it,
+     * but nonblank input must yield at least one email address.
      *
      * @param string $attribute The attribute name.
      * @param mixed $value The value to validate.
@@ -24,6 +25,12 @@ final class CommaSeparatedEmailList implements ValidationRule
         }
 
         $emails = \array_filter(\array_map('trim', \explode(',', $value)));
+
+        if (\trim($value) !== '' && empty($emails)) {
+            $fail(__('validation.email', ['attribute' => $attribute]));
+
+            return;
+        }
 
         foreach ($emails as $email) {
             if (! \filter_var($email, FILTER_VALIDATE_EMAIL)) {

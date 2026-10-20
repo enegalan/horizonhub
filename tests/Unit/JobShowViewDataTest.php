@@ -316,6 +316,36 @@ class JobShowViewDataTest extends TestCase
     }
 
     #[Test]
+    public function it_substitutes_invalid_utf8_in_context_and_payload_instead_of_dropping_it(): void
+    {
+        $service = new Service;
+        $service->forceFill([
+            'name' => 'Orders API',
+            'base_url' => 'http://example.test',
+        ]);
+
+        $invalidUtf8 = "\xB1\x31";
+
+        $jobData = [
+            'id' => 'job-invalid-utf8',
+            'name' => 'App\\Jobs\\BrokenJob',
+            'queue' => 'default',
+            'connection' => 'database',
+            'status' => 'failed',
+            'context' => ['blob' => $invalidUtf8],
+            'payload' => ['data' => ['commandData' => ['blob' => $invalidUtf8]]],
+        ];
+
+        $result = $this->private__invokeBuildJobShowViewData($service, $jobData);
+
+        $this->assertIsString($result->context);
+        $this->assertIsString($result->payload);
+        $this->assertNotFalse(\json_decode($result->context, true));
+        $this->assertNotFalse(\json_decode($result->payload, true));
+        $this->assertStringContainsString("\u{FFFD}", $result->context);
+    }
+
+    #[Test]
     public function it_uses_absolute_delay_datetime_from_serialized_command_when_delay_seconds_are_missing(): void
     {
         $service = new Service;

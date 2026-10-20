@@ -23,6 +23,20 @@ class CommaSeparatedEmailListRuleTest extends TestCase
     }
 
     #[Test]
+    public function fails_for_delimiter_only_input(): void
+    {
+        $rule = new CommaSeparatedEmailList;
+
+        foreach ([',,,', ' , , ', ','] as $value) {
+            $failed = false;
+            $rule->validate('email_to', $value, function () use (&$failed): void {
+                $failed = true;
+            });
+            $this->assertTrue($failed, 'Expected fail for value: ' . \var_export($value, true));
+        }
+    }
+
+    #[Test]
     public function fails_for_invalid_emails_and_non_strings(): void
     {
         $rule = new CommaSeparatedEmailList;
