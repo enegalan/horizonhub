@@ -5,6 +5,7 @@ namespace App\Http\Requests\Horizon;
 use App\Enums\TlsClientMode;
 use App\Models\Service;
 use App\Support\Services\ServiceTagNormalizer;
+use App\Support\StringFormatter;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -98,7 +99,7 @@ class UpsertServiceRequest extends HorizonRequest
             $this->merge(['tls_client_mode' => null]);
         }
 
-        if ($this->exists('tls_client_passphrase') && \trim((string) $this->input('tls_client_passphrase')) === '') {
+        if ($this->exists('tls_client_passphrase') && StringFormatter::nullIfBlank($this->input('tls_client_passphrase')) === null) {
             $this->merge(['tls_client_passphrase' => null]);
         }
     }
@@ -124,8 +125,8 @@ class UpsertServiceRequest extends HorizonRequest
                 continue;
             }
 
-            $name = \trim((string) ($header['name'] ?? ''));
-            $value = isset($header['value']) ? \trim((string) $header['value']) : '';
+            $name = StringFormatter::trim($header['name'] ?? '');
+            $value = StringFormatter::trim($header['value'] ?? '');
 
             if (blank($name) && blank($value)) {
                 continue;
@@ -143,7 +144,7 @@ class UpsertServiceRequest extends HorizonRequest
                 continue;
             }
 
-            $lower = \strtolower($name);
+            $lower = StringFormatter::lower($name);
 
             if (\in_array($lower, $reserved, true)) {
                 $validator->errors()->add("headers.$index.name", 'This header name is reserved and cannot be set manually.');
@@ -205,7 +206,7 @@ class UpsertServiceRequest extends HorizonRequest
         }
 
         if ($certFile !== null) {
-            $extension = \strtolower((string) $certFile->getClientOriginalExtension());
+            $extension = StringFormatter::lower($certFile->getClientOriginalExtension());
             $allowedExtensions = $mode === TlsClientMode::P12->value
                 ? self::TLS_P12_CERT_EXTENSIONS
                 : self::TLS_PEM_CERT_EXTENSIONS;
@@ -226,7 +227,7 @@ class UpsertServiceRequest extends HorizonRequest
         }
 
         if ($keyFile !== null) {
-            $extension = \strtolower((string) $keyFile->getClientOriginalExtension());
+            $extension = StringFormatter::lower($keyFile->getClientOriginalExtension());
 
             if (! \in_array($extension, self::TLS_KEY_EXTENSIONS, true)) {
                 $validator->errors()->add(

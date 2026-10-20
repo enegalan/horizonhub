@@ -6,8 +6,11 @@ use App\Enums\JobStatus;
 use App\Models\Service;
 use App\Services\Jobs\JobListService;
 use App\Services\Jobs\JobServiceResolverService;
+use App\Support\ArrayFormatter;
 use App\Support\Jobs\JobCommandDataExtractor;
 use App\Support\Jobs\JobRuntime;
+use App\Support\StringFormatter;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 trait BuildsJobStreams
@@ -27,30 +30,14 @@ trait BuildsJobStreams
 
         $jobView = $this->private__buildJobShowViewData($resolved['service'], $resolved['data']);
 
-        $exception = ($jobView->exception ?? null) ? html_entity_decode((string) $jobView->exception, ENT_QUOTES | ENT_HTML401, 'UTF-8') : null;
-        $exceptionTrace = $exception ? (\preg_split("/\r\n|\n|\r/", $exception) ?: []) : [];
-        $retryHistory = \is_array($jobView->retried_by ?? null) ? $jobView->retried_by : [];
-        $payload = $jobView->payload ? json_encode($jobView->payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
-        $context = ($jobView->context ?? null) ? json_encode($jobView->context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
-        $commandData = ($jobView->command_data ?? null) ? json_encode($jobView->command_data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
-
-        $vars = [
-            'job' => $jobView,
-            'exception' => $exceptionTrace,
-            'retryHistory' => $retryHistory,
-            'payload' => $payload,
-            'context' => $context,
-            'commandData' => $commandData,
-        ];
-
         return $this->buildStreams([
-            ['update', 'horizon-job-detail-actions-stream', \view('horizon.jobs.partials.show.actions', $vars)->render(), null],
-            ['update', 'horizon-job-detail-meta', \view('horizon.jobs.partials.show.meta', $vars)->render(), null],
-            ['update', 'horizon-job-detail-exception', \view('horizon.jobs.partials.show.exception', $vars)->render(), null],
-            ['update', 'horizon-job-detail-context', \view('horizon.jobs.partials.show.context', $vars)->render(), null],
-            ['update', 'horizon-job-detail-retry-history', \view('horizon.jobs.partials.show.retry-history', $vars)->render(), null],
-            ['update', 'horizon-job-detail-data', \view('horizon.jobs.partials.show.data', $vars)->render(), null],
-            ['update', 'horizon-job-detail-payload', \view('horizon.jobs.partials.show.payload', $vars)->render(), null],
+            ['update', 'horizon-job-detail-actions-stream', \view('horizon.jobs.partials.show.actions', ['job' => $jobView])->render(), null],
+            ['update', 'horizon-job-detail-meta', \view('horizon.jobs.partials.show.meta', ['job' => $jobView])->render(), null],
+            ['update', 'horizon-job-detail-exception', \view('horizon.jobs.partials.show.exception', ['job' => $jobView])->render(), null],
+            ['update', 'horizon-job-detail-context', \view('horizon.jobs.partials.show.context', ['job' => $jobView])->render(), null],
+            ['update', 'horizon-job-detail-retry-history', \view('horizon.jobs.partials.show.retry-history', ['job' => $jobView])->render(), null],
+            ['update', 'horizon-job-detail-data', \view('horizon.jobs.partials.show.data', ['job' => $jobView])->render(), null],
+            ['update', 'horizon-job-detail-payload', \view('horizon.jobs.partials.show.payload', ['job' => $jobView])->render(), null],
         ]);
     }
 
@@ -88,61 +75,50 @@ trait BuildsJobStreams
      */
     private function private__buildJobShowViewData(Service $service, array $jobData): object
     {
-        $payload = isset($jobData['payload']) && \is_array($jobData['payload']) ? $jobData['payload'] : [];
-
         $tags = [];
 
-        if (isset($jobData['tags']) && \is_array($jobData['tags'])) {
+        if (\is_array($jobData['tags'] ?? null)) {
             $tags = \array_values(\array_filter($jobData['tags'], static function ($tag) {
-                return \is_string($tag) && $tag !== '';
+                return StringFormatter::trim($tag) !== '';
             }));
         }
 
-        $exception = null;
-
-        if (isset($jobData['exception']) && (string) $jobData['exception'] !== '') {
-            $exception = (string) $jobData['exception'];
-        }
+        $exception = ($jobData['exception'] ?? '') !== '' ? html_entity_decode($jobData['exception'] ?? '', ENT_QUOTES | ENT_HTML401, 'UTF-8') : null;
+        $exceptionTrace = $exception ? (\preg_split("/\r\n|\n|\r/", $exception) ?: []) : [];
 
         $retriedBy = [];
 
-        if (isset($jobData['retried_by']) && \is_array($jobData['retried_by'])) {
-            foreach ($jobData['retried_by'] as $retriedJob) {
-                if (! \is_array($retriedJob) || ! isset($retriedJob['id']) || ! \is_string($retriedJob['id']) || $retriedJob['id'] === '') {
-                    continue;
-                }
-
-                $retriedStatus = null;
-
-                if (isset($retriedJob['status']) && \is_string($retriedJob['status']) && $retriedJob['status'] !== '') {
-                    $retriedStatus = $retriedJob['status'];
-                }
-
-                $retriedAt = null;
-
-                if (isset($retriedJob['retried_at']) && \is_numeric($retriedJob['retried_at'])) {
-                    $retriedAt = (int) $retriedJob['retried_at'];
-                }
-
-                $retriedBy[] = [
-                    'id' => $retriedJob['id'],
-                    'status' => $retriedStatus,
-                    'retried_at' => $retriedAt,
-                ];
+        foreach (ArrayFormatter::orEmpty($jobData['retried_by'] ?? null) as $retriedJob) {
+            if (! \is_array($retriedJob) || StringFormatter::trim($retriedJob['id'] ?? '') === '') {
+                continue;
             }
+
+            $retriedStatus = StringFormatter::trim($retriedJob['status'] ?? '');
+            $retriedStatus = $retriedStatus !== '' ? JobStatus::normalizeStatus($retriedStatus)->value : null;
+
+            $retriedAt = \is_numeric($retriedJob['retried_at'] ?? null) ? Carbon::createFromTimestamp((int) $retriedJob['retried_at']) : null;
+
+            $retriedBy[] = [
+                'id' => $retriedJob['id'],
+                'status' => $retriedStatus,
+                'retried_at' => $retriedAt,
+            ];
         }
         $retries = ! empty($retriedBy) ? \count($retriedBy) : null;
 
-        $context = null;
+        $context = $jobData['context'] ?? null;
+        $context = \is_array($context) || \is_string($context) ? $context : null;
+        $context = $context ? json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
 
-        if (isset($jobData['context']) && (\is_array($jobData['context']) || \is_string($jobData['context']))) {
-            $context = $jobData['context'];
-        }
+        $payload = ArrayFormatter::orEmpty($jobData['payload'] ?? null);
         $commandData = JobCommandDataExtractor::extract($payload);
+        $commandData = $commandData ? json_encode($commandData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
 
         $rawStatus = (string) ($jobData['status'] ?? 'failed');
         $status = JobStatus::normalizeStatus($rawStatus)->value;
         $timing = JobRuntime::resolveJobTimingFields($jobData, $payload, $status);
+
+        $encodedPayload = $payload ? json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null;
 
         return (object) [
             'uuid' => $jobData['id'],
@@ -159,10 +135,10 @@ trait BuildsJobStreams
             'failed_at' => $timing['failed_at'],
             'runtime' => $timing['runtime'],
             'available_at' => $timing['available_at'],
-            'exception' => $exception,
+            'exception' => $exceptionTrace,
             'context' => $context,
             'command_data' => $commandData,
-            'payload' => $payload,
+            'payload' => $encodedPayload,
             'service' => $service,
         ];
     }

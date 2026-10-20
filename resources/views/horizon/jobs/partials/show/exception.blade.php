@@ -1,14 +1,12 @@
 @php
-    $exceptionStreamSig = \count($exception) > 0
-        ? \hash('sha256', \json_encode(\array_values($exception), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
-        : \hash('sha256', '');
+    $exceptionStreamSig = \hash('sha256', \json_encode(\array_values($job->exception), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '');
 @endphp
 <div data-horizon-stream-sig="{{ $exceptionStreamSig }}">
-    @if(\count($exception) > 0)
+    @if(\count($job->exception) > 0)
         <div>
             <dt class="label-muted mb-1">Error</dt>
             <div class="flex flex-col items-start mt-1 rounded-md border border-red-500/30 bg-red-500/5 text-sm text-foreground break-words">
-                @foreach($exception as $lineIndex => $line)
+                @foreach($job->exception as $lineIndex => $line)
                     <code
                         @class([
                             'w-full py-1 px-3 leading-10 border-b whitespace-pre-wrap break-words border-red-500/20'
@@ -17,7 +15,7 @@
                         @if($lineIndex >= config('horizonhub.failed_job_exception_preview_lines')) x-cloak @endif
                     >{{ $line }}</code>
                 @endforeach
-                @if(\count($exception) > config('horizonhub.failed_job_exception_preview_lines'))
+                @if(\count($job->exception) > config('horizonhub.failed_job_exception_preview_lines'))
                     <button
                         type="button"
                         class="mx-4 my-4 font-medium text-primary"

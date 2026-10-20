@@ -15,6 +15,7 @@ use App\Services\Alerts\Engine\AlertEngine;
 use App\Support\Alerts\AlertDeliveryLogPresenter;
 use App\Support\Alerts\AlertRuleCatalog;
 use App\Support\FlashStatus;
+use App\Support\StringFormatter;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -104,7 +105,7 @@ class AlertController extends Controller
             'alerts' => collect(),
             'defer' => true,
             'evaluateAllAlertsVisible' => Alert::enabled()->exists(),
-            'search' => \trim((string) $request->query('search', '')),
+            'search' => StringFormatter::trim($request->query('search')),
             'header' => 'Alerts',
         ]);
     }
@@ -114,9 +115,11 @@ class AlertController extends Controller
      */
     public function retryLog(AlertLog $log, AlertEngine $engine): RedirectResponse
     {
-        if ($log->status === AlertLogStatus::Failed) {
-            $engine->retryAlertLog($log);
+        if ($log->status !== AlertLogStatus::Failed) {
+            return $this->redirectToRoute('horizon.alerts.show', FlashStatus::warning('Only failed alert deliveries can be retried.'), [$log->alert_id]);
         }
+
+        $engine->retryAlertLog($log);
 
         return $this->redirectToRoute('horizon.alerts.show', FlashStatus::success('Retry requested for alert delivery.'), [$log->alert_id]);
     }
@@ -126,9 +129,14 @@ class AlertController extends Controller
      */
     public function show(Alert $alert, Request $request): View
     {
-        $statusFilter = (string) $request->query('status', '');
-        $serviceFilter = $request->query('service_id');
-        $perPage = max(1, $request->query('per_page', config('horizonhub.jobs_per_page')));
+        $statusFilter = StringFormatter::trim($request->query('status'));
+
+        $serviceFilter = StringFormatter::trim($request->query('service_id'));
+
+        $perPageInput = $request->query('per_page', config('horizonhub.jobs_per_page'));
+        $perPage = \is_numeric($perPageInput)
+            ? \max(1, (int) $perPageInput)
+            : config('horizonhub.jobs_per_page');
 
         $logsQuery = $alert->alertLogs()
             ->with('service')
@@ -144,7 +152,7 @@ class AlertController extends Controller
 
         $logs = $logsQuery->paginate($perPage)->withQueryString();
 
-        $selectedLogId = $request->query('log');
+        $selectedLogId = StringFormatter::trim($request->query('log'));
         $selectedLog = null;
 
         if (! empty($selectedLogId)) {
@@ -164,7 +172,7 @@ class AlertController extends Controller
             'initialDeliveryLogPayload' => AlertDeliveryLogPresenter::payloadFromLog($selectedLog),
             'filters' => [
                 'status' => $statusFilter,
-                'service_id' => ! empty($serviceFilter) ? (string) $serviceFilter : '',
+                'service_id' => $serviceFilter,
                 'per_page' => $perPage,
             ],
             'header' => $alert->name,

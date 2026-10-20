@@ -10,6 +10,7 @@ use App\Services\Horizon\HorizonClientCacheService;
 use App\Support\Horizon\ClientResponse;
 use App\Support\Horizon\StatsReader;
 use App\Support\Services\ServiceTagNormalizer;
+use App\Support\StringFormatter;
 use Database\Factories\ServiceFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -338,7 +339,7 @@ class Service extends Model
     protected function horizonStatus(): Attribute
     {
         return Attribute::make(
-            get: fn ($value) => $value ? \strtolower($value) : 'offline',
+            get: fn ($value) => StringFormatter::lower($value) ?: 'offline',
         );
     }
 

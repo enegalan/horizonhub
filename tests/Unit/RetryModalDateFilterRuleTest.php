@@ -23,6 +23,20 @@ class RetryModalDateFilterRuleTest extends TestCase
     }
 
     #[Test]
+    public function fails_for_calendar_overflow_dates(): void
+    {
+        $rule = new RetryModalDateFilter;
+
+        foreach (['2026-02-30', '2026-13-05', '2026-10-18T24:00'] as $value) {
+            $failed = false;
+            $rule->validate('date_from', $value, function () use (&$failed): void {
+                $failed = true;
+            });
+            $this->assertTrue($failed, 'Expected fail for value: ' . $value);
+        }
+    }
+
+    #[Test]
     public function fails_for_non_string_and_invalid_calendar_date(): void
     {
         $rule = new RetryModalDateFilter;

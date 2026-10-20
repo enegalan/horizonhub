@@ -2,7 +2,6 @@
 
 namespace App\Rules;
 
-use Carbon\Carbon;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
@@ -40,9 +39,13 @@ final class RetryModalDateFilter implements ValidationRule
             return;
         }
 
-        try {
-            Carbon::parse($value);
-        } catch (\Throwable) {
+        $parsed = \DateTimeImmutable::createFromFormat(
+            \str_contains($value, 'T') ? '!Y-m-d\TH:i' : '!Y-m-d',
+            $value,
+        );
+        $errors = \DateTimeImmutable::getLastErrors();
+
+        if ($parsed === false || (\is_array($errors) && ($errors['error_count'] > 0 || $errors['warning_count'] > 0))) {
             $fail(__('validation.date', ['attribute' => $attribute]));
         }
     }

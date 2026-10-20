@@ -7,6 +7,34 @@ use Tests\TestCase;
 
 class JobsPaginatorTest extends TestCase
 {
+    public function test_fetch_filtered_marks_results_incomplete_when_max_pages_are_exhausted(): void
+    {
+        config()->set('horizonhub.horizon_api_job_list_page_size', 2);
+        config()->set('horizonhub.max_horizon_pages', 2);
+
+        $result = JobsPaginator::fetchFiltered(
+            $this->private__pageFetcher($this->private__jobs(6)),
+            '',
+        );
+
+        $this->assertFalse($result['complete']);
+        $this->assertCount(4, $result['jobs']);
+    }
+
+    public function test_fetch_filtered_marks_results_incomplete_when_the_source_fails(): void
+    {
+        config()->set('horizonhub.horizon_api_job_list_page_size', 2);
+        config()->set('horizonhub.max_horizon_pages', 5);
+
+        $result = JobsPaginator::fetchFiltered(
+            static fn (array $query): array => ['success' => false],
+            '',
+        );
+
+        $this->assertFalse($result['complete']);
+        $this->assertSame([], $result['jobs']);
+    }
+
     public function test_fetch_filtered_only_returns_matching_jobs(): void
     {
         config()->set('horizonhub.horizon_api_job_list_page_size', 2);

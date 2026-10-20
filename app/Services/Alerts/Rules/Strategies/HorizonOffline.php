@@ -9,6 +9,7 @@ use App\Models\Service;
 use App\Services\Horizon\HorizonClientApiService;
 use App\Support\Horizon\ClientResponse;
 use App\Support\Horizon\StatsReader;
+use App\Support\StringFormatter;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
@@ -37,7 +38,7 @@ final class HorizonOffline extends AbstractAlertRuleStrategy
     public function evaluateWithTriggeringJobs(Alert $alert, Service $service): array
     {
         $status = StatsReader::summary(ClientResponse::data(HorizonClientApiService::getStats($service)))['status'];
-        $isOnline = $status !== null && HorizonStatus::tryFrom(\strtolower($status))?->isActive() === true;
+        $isOnline = HorizonStatus::tryFrom(StringFormatter::lower($status))?->isActive() === true;
 
         $cacheKey = self::CACHE_KEY_PREFIX . $service->id;
 

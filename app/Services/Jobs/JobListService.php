@@ -5,10 +5,12 @@ namespace App\Services\Jobs;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientApiService;
 use App\Services\Services\ServiceFilterService;
+use App\Support\ArrayFormatter;
 use App\Support\DatetimeBoundaryParser;
 use App\Support\Jobs\JobRuntime;
 use App\Support\Jobs\JobsPaginator;
 use App\Support\Jobs\SearchResultsPaginator;
+use App\Support\StringFormatter;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -31,7 +33,7 @@ class JobListService
     public static function buildAggregatedJobsIndexFromRequest(Request $request): array
     {
         $serviceFilterIds = ServiceFilterService::resolveServiceIds($request);
-        $search = (string) $request->query('search', '');
+        $search = StringFormatter::trim($request->query('search'));
 
         $servicesQuery = Service::enabled();
 
@@ -218,8 +220,8 @@ class JobListService
     ): array {
         $rows = [];
 
-        $dateFromStr = \is_string($dateFrom) ? $dateFrom : null;
-        $dateToStr = \is_string($dateTo) ? $dateTo : null;
+        $dateFromStr = StringFormatter::nullIfBlank($dateFrom);
+        $dateToStr = StringFormatter::nullIfBlank($dateTo);
         $dateFromCarbon = DatetimeBoundaryParser::parseLower($dateFromStr);
         $dateToCarbon = DatetimeBoundaryParser::parseUpper($dateToStr);
 
@@ -403,7 +405,7 @@ class JobListService
 
         $queue = (string) ($job['queue'] ?? '');
         $name = (string) ($job['name'] ?? '');
-        $payload = isset($job['payload']) && \is_array($job['payload']) ? $job['payload'] : [];
+        $payload = ArrayFormatter::orEmpty($job['payload'] ?? null);
         $timing = JobRuntime::resolveJobTimingFields($job, $payload, $status);
 
         $attemptsRaw = $payload['attempts'] ?? null;

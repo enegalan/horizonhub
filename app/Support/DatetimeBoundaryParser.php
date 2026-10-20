@@ -13,10 +13,11 @@ final class DatetimeBoundaryParser
      */
     public static function parseLower(?string $value): ?Carbon
     {
-        if (empty($value)) {
+        $trimmed = StringFormatter::trim($value);
+
+        if (empty($trimmed)) {
             return null;
         }
-        $trimmed = \trim($value);
 
         try {
             $parsed = Carbon::parse($trimmed);
@@ -38,10 +39,11 @@ final class DatetimeBoundaryParser
      */
     public static function parseUpper(?string $value): ?Carbon
     {
-        if ($value === null || blank($value)) {
+        $trimmed = StringFormatter::trim($value);
+
+        if (blank($trimmed)) {
             return null;
         }
-        $trimmed = \trim($value);
 
         try {
             $parsed = Carbon::parse($trimmed);

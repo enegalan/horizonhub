@@ -4,6 +4,7 @@ namespace App\Http\Requests\Horizon;
 
 use App\Enums\NotificationProviderType;
 use App\Models\NotificationProvider;
+use App\Rules\CommaSeparatedEmailList;
 
 /**
  * Form request for the upsert provider action.
@@ -41,7 +42,7 @@ class UpsertProviderRequest extends HorizonRequest
         $providers = NotificationProviderType::values();
 
         $webhookRules = ['nullable', 'url'];
-        $mailingRules = [];
+        $mailingRules = ['nullable', 'string', new CommaSeparatedEmailList];
 
         foreach ($providers as $type) {
             $provider = new NotificationProvider(['type' => $type]);

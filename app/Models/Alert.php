@@ -10,6 +10,7 @@ use App\Services\Alerts\Rules\Strategies\HorizonOffline;
 use App\Services\Alerts\Rules\Strategies\QueueBlocked;
 use App\Services\Alerts\Rules\Strategies\SupervisorOffline;
 use App\Services\Alerts\Rules\Strategies\WorkerOffline;
+use App\Support\StringFormatter;
 use Database\Factories\AlertFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -198,7 +199,7 @@ class Alert extends Model
     {
         return Attribute::make(
             get: function (mixed $value): string {
-                $name = \is_string($value) ? \trim($value) : '';
+                $name = StringFormatter::trim($value);
 
                 if ($name !== '') {
                     return $name;
@@ -211,13 +212,7 @@ class Alert extends Model
                 return "Alert #{$this->id}";
             },
             set: static function (mixed $value): ?string {
-                if (! \is_string($value)) {
-                    return null;
-                }
-
-                $name = \trim($value);
-
-                return $name !== '' ? $name : null;
+                return StringFormatter::nullIfBlank($value);
             },
         );
     }

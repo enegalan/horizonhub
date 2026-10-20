@@ -10,6 +10,7 @@ use App\Services\Services\ServiceFilterService;
 use App\Support\Horizon\ClientResponse;
 use App\Support\Horizon\MasterReader;
 use App\Support\Horizon\StatsReader;
+use App\Support\StringFormatter;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -114,7 +115,7 @@ trait BuildsServiceStreams
      */
     private function private__buildServiceShowData(Service $service, Request $request): array
     {
-        $search = (string) $request->query('search', '');
+        $search = StringFormatter::trim($request->query('search'));
 
         $data = [
             'jobsPastMinute' => 0,

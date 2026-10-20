@@ -9,8 +9,9 @@ use App\Http\Requests\Horizon\RetryJobRequest;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientApiService;
 use App\Services\Jobs\JobListService;
+use App\Support\ArrayFormatter;
+use App\Support\StringFormatter;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Collection;
 use Symfony\Component\HttpFoundation\Response;
 
 class JobActionController extends Controller
@@ -35,17 +36,9 @@ class JobActionController extends Controller
             ],
         ];
 
-        $serviceIds = [];
+        $serviceIds = ArrayFormatter::orEmpty($validated['service_ids'] ?? null);
 
-        if (! empty($validated['service_ids']) && \is_array($validated['service_ids'])) {
-            $serviceIds = $validated['service_ids'];
-        }
-
-        $tags = [];
-
-        if (! empty($validated['service_tag']) && \is_array($validated['service_tag'])) {
-            $tags = $validated['service_tag'];
-        }
+        $tags = ArrayFormatter::orEmpty($validated['service_tag'] ?? null);
 
         $servicesQuery = Service::enabled();
 
@@ -57,7 +50,6 @@ class JobActionController extends Controller
             $servicesQuery->matchingTags($tags);
         }
 
-        /** @var Collection<int, Service> $services */
         $services = $servicesQuery->get();
 
         if ($services->count() === 0) {
@@ -71,7 +63,7 @@ class JobActionController extends Controller
             return \response()->json($returnData);
         }
 
-        $search = \trim((string) ($validated['search'] ?? ''));
+        $search = StringFormatter::trim($validated['search'] ?? null);
         $dateFrom = $validated['date_from'] ?? null;
         $dateTo = $validated['date_to'] ?? null;
 

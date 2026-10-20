@@ -5,8 +5,12 @@ namespace App\Http\Controllers\Horizon;
 use App\Enums\JobStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
+use App\Services\Jobs\JobServiceResolverService;
 use App\Services\Services\ServiceFilterService;
+use App\Support\FlashStatus;
+use App\Support\StringFormatter;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class JobController extends Controller
@@ -21,7 +25,7 @@ class JobController extends Controller
             'jobsProcessed' => [],
             'jobsFailed' => [],
             'services' => Service::enabledNamed(),
-            'search' => \trim((string) $request->query('search', '')),
+            'search' => StringFormatter::trim($request->query('search')),
             'header' => 'Jobs',
         ]));
     }
@@ -29,8 +33,12 @@ class JobController extends Controller
     /**
      * Show a single job detail.
      */
-    public function show(string $job): View
+    public function show(string $job): View|RedirectResponse
     {
+        if (JobServiceResolverService::resolve($job) === null) {
+            return $this->redirectToRoute('horizon.jobs.index', FlashStatus::error('Job not found or no longer available.'));
+        }
+
         return \view('horizon.jobs.show', [
             'job' => (object) [
                 'uuid' => $job,
@@ -54,11 +62,6 @@ class JobController extends Controller
                 'service' => null,
             ],
             'defer' => true,
-            'exception' => [],
-            'retryHistory' => [],
-            'payload' => null,
-            'context' => null,
-            'commandData' => null,
             'header' => 'Job',
         ]);
     }

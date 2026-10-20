@@ -6,6 +6,7 @@ use App\Enums\AlertRuleType;
 use App\Models\Alert;
 use App\Models\Service;
 use App\Support\Alerts\AlertRuleEvaluation;
+use App\Support\ArrayFormatter;
 use App\Support\Jobs\JobRuntime;
 
 final class AvgExecutionTime extends AbstractAlertRuleStrategy
@@ -43,7 +44,7 @@ final class AvgExecutionTime extends AbstractAlertRuleStrategy
         $durations = $this->support
             ->matchingCompletedJobsInWindow($alert, $service, $cutoff)
             ->map(function (array $job) {
-                $payload = \is_array($job['payload'] ?? null) ? $job['payload'] : [];
+                $payload = ArrayFormatter::orEmpty($job['payload'] ?? null);
 
                 return JobRuntime::getRuntimeSeconds(
                     null,

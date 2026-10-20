@@ -12,6 +12,7 @@ use App\Services\Horizon\HorizonClientCacheService;
 use App\Services\Services\ServiceFilterService;
 use App\Support\FlashStatus;
 use App\Support\Services\ServiceTlsClientStorage;
+use App\Support\StringFormatter;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -87,7 +88,7 @@ class ServiceController extends Controller
             'jobsProcessing' => [],
             'jobsProcessed' => [],
             'jobsFailed' => [],
-            'search' => \trim((string) $request->query('search', '')),
+            'search' => StringFormatter::trim($request->query('search')),
             'defer' => true,
         ]);
     }
@@ -146,7 +147,7 @@ class ServiceController extends Controller
 
         $message = $result['message'] ?? 'Connection test failed.';
 
-        if (\str_contains(\strtolower((string) $message), 'timed out')) {
+        if (StringFormatter::containsIgnoreCase($message, 'timed out')) {
             $message .= \sprintf(
                 ' Consider raising HORIZON_HUB_API_TIMEOUT (currently %ds) if this service is legitimately slow.',
                 config('horizonhub.http.api_timeout'),
@@ -251,6 +252,9 @@ class ServiceController extends Controller
 
     /**
      * Store the headers for a service.
+     *
+     * @param Service $service The service to store the headers for.
+     * @param array<string, mixed> $headers The headers to store.
      */
     private function private__storeHeaders(Service $service, array $headers): void
     {
@@ -259,13 +263,13 @@ class ServiceController extends Controller
                 continue;
             }
 
-            $name = \trim((string) ($header['name'] ?? ''));
+            $name = StringFormatter::trim($header['name'] ?? '');
 
             if (blank($name)) {
                 continue;
             }
 
-            $value = isset($header['value']) ? \trim((string) $header['value']) : '';
+            $value = StringFormatter::trim($header['value'] ?? '');
 
             $service->headers()->create([
                 'name' => $name,

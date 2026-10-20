@@ -13,6 +13,7 @@ use App\Services\Metrics\MetricsDataService;
 use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Notifiers\SlackNotifierService;
 use App\Services\Services\ServiceFilterService;
+use App\Support\Jobs\SearchResultsPaginator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -539,6 +540,22 @@ class TurboStreamSseTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public function test_job_count_stream_appends_plus_when_results_may_be_truncated(): void
+    {
+        $result = $this->private__invokeStreamBuilder('streamsForJobListSections', [
+            'processing' => (new SearchResultsPaginator([], 25, 20))->setResultsMayBeTruncated(true),
+            'processed' => new SearchResultsPaginator([], 10, 20),
+            'failed' => new SearchResultsPaginator([], 0, 20),
+        ], 'test-job-list', false, null);
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('target="job-count-test-job-list-processing"', $result);
+        $this->assertStringContainsString('<template>25+</template>', $result);
+        $this->assertStringContainsString('<template>10</template>', $result);
+        $this->assertStringNotContainsString('<template>10+</template>', $result);
+        $this->assertStringContainsString('<template>0</template>', $result);
+    }
+
     public function test_parse_service_ids_and_turbo_stream_tag_helper_branches(): void
     {
         $controller = $this->app->make(HorizonStreamsController::class);
@@ -599,6 +616,14 @@ class TurboStreamSseTest extends TestCase
         $response = $this->get($urlFactory());
 
         $this->assertStringStartsWith('text/event-stream', $response->headers->get('Content-Type'), $label);
+    }
+
+    public function test_streams_job_show_returns_404_when_the_job_cannot_be_resolved(): void
+    {
+        $response = $this->get('/horizon/streams/horizon/jobs/763dc9c2-a7cd-4b95-9da5-77beff5c264f');
+
+        $response->assertStatus(404);
+        $response->assertJsonPath('message', 'Job not found or no longer available.');
     }
 
     public function test_streams_job_show_returns_sse_content_type_when_resolvable(): void

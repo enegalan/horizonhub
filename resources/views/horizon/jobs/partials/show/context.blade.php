@@ -6,7 +6,7 @@
                 class="horizon-json-tree"
                 data-stream-preserve-client
                 data-json-tree="context"
-                data-json-source="{{ e($context) }}"
+                data-json-source="{{ e($job->context ?? 'null') }}"
             ></div>
         </div>
     </div>
