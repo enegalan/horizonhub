@@ -343,6 +343,7 @@ class JobShowViewDataTest extends TestCase
         $this->assertNotFalse(\json_decode($result->context, true));
         $this->assertNotFalse(\json_decode($result->payload, true));
         $this->assertStringContainsString("\u{FFFD}", $result->context);
+        $this->assertStringContainsString("\u{FFFD}", $result->payload);
     }
 
     #[Test]
