@@ -166,10 +166,11 @@
         <div class="card">
             <div class="flex flex-wrap items-end gap-3 border-b border-border px-4 py-3">
                 <div class="space-y-2">
-                    <x-input-label for="service-jobs-search">Search</x-input-label>
+                    <x-input-label for="service-jobs-search-input">Search</x-input-label>
                     <form method="GET" action="{{ route('horizon.services.show', $service) }}" id="service-jobs-search" class="flex flex-col gap-2 sm:flex-row sm:items-center" data-turbo-frame="service-jobs">
                         <x-text-input
                             type="text"
+                            id="service-jobs-search-input"
                             name="search"
                             value="{{ $search ?? '' }}"
                             placeholder="Queue, job or UUID"

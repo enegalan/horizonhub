@@ -7,6 +7,7 @@ use App\Models\Service;
 use App\Support\Http\HttpRetryBackoff;
 use App\Support\PathBuilder;
 use App\Support\Services\ServiceTlsClientStorage;
+use App\Support\StringFormatter;
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Client\ConnectionException;
@@ -63,7 +64,7 @@ class HorizonClientHttpService
 
         $url = PathBuilder::api($service, $path);
 
-        $httpMethod = \strtolower($method);
+        $httpMethod = StringFormatter::lower($method);
 
         $shouldCache = $httpMethod === 'get' && ! $withDashboardSession && ! $allowWhenDisabled;
         $lock = null;
@@ -328,7 +329,7 @@ class HorizonClientHttpService
             return false;
         }
 
-        return \str_contains(\strtolower((string) $e->getMessage()), 'timed out');
+        return StringFormatter::containsIgnoreCase($e->getMessage(), 'timed out');
     }
 
     /**
@@ -433,7 +434,7 @@ class HorizonClientHttpService
         if (\is_array($decoded) && isset($decoded['message']) && (string) $decoded['message'] !== '') {
             $errorMessage = (string) $decoded['message'];
         } else {
-            $trimmedBody = \trim((string) $rawBody);
+            $trimmedBody = StringFormatter::trim($rawBody);
             $isHtml = $trimmedBody !== \strip_tags($trimmedBody);
 
             if (! $isHtml && $trimmedBody !== '') {

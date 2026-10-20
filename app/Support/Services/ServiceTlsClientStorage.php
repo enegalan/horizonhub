@@ -5,6 +5,7 @@ namespace App\Support\Services;
 use App\Enums\TlsClientMode;
 use App\Models\Service;
 use App\Support\PathBuilder;
+use App\Support\StringFormatter;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
@@ -360,7 +361,7 @@ class ServiceTlsClientStorage
     {
         $name = \basename($file->getClientOriginalName());
         $name = \preg_replace('/[^\w.\-]+/u', '-', $name) ?? '';
-        $name = \trim($name, '.-_');
+        $name = StringFormatter::trim($name, '.-_');
 
         return $name !== '' ? $name : $fallback;
     }

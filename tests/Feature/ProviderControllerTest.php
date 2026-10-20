@@ -6,12 +6,28 @@ use App\Models\NotificationProvider;
 use App\Services\Notifiers\DiscordNotifierService;
 use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Notifiers\SlackNotifierService;
+use App\Support\FormDrawer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ProviderControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_create_form_preserves_selected_type_after_validation_errors(): void
+    {
+        $this->post(route('horizon.providers.store'), [
+            'type' => DiscordNotifierService::type()->value,
+            'webhook_url' => 'https://discord.com/api/webhooks/1/token',
+        ])->assertSessionHasErrors('name');
+
+        $form = $this->get(route('horizon.providers.create'), [
+            'Turbo-Frame' => FormDrawer::FRAME_ID,
+        ]);
+
+        $form->assertOk();
+        $form->assertSee('x-data="{ type: \'discord\' }"', false);
+    }
 
     public function test_index_renders_provider_stream_container(): void
     {
@@ -83,7 +99,8 @@ class ProviderControllerTest extends TestCase
             'email_to' => 'not-an-email',
         ]);
 
-        $invalidResponse->assertStatus(422);
+        $invalidResponse->assertSessionHasErrors('email_to');
+        $this->assertDatabaseMissing('notification_providers', ['name' => 'bad-mail']);
     }
 
     public function test_update_and_destroy_provider_paths(): void

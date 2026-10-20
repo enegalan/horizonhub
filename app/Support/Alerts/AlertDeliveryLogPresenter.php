@@ -4,6 +4,7 @@ namespace App\Support\Alerts;
 
 use App\Models\AlertLog;
 use App\Models\Service;
+use App\Support\ArrayFormatter;
 
 final class AlertDeliveryLogPresenter
 {
@@ -21,7 +22,7 @@ final class AlertDeliveryLogPresenter
         }
 
         $initialTriggerCount = max(1, (int) ($log->trigger_count ?? 0));
-        $initialJobUuids = \is_array($log->job_uuids ?? null) ? $log->job_uuids : [];
+        $initialJobUuids = ArrayFormatter::orEmpty($log->job_uuids ?? null);
         $initialJobTotals = [];
 
         foreach ($initialJobUuids as $initialUuid) {

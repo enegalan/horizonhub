@@ -19,6 +19,43 @@ class AlertControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_create_form_preserves_old_input_after_validation_errors(): void
+    {
+        $service = Service::factory()->create();
+        $provider = NotificationProvider::create([
+            'name' => 'mail',
+            'type' => EmailNotifierService::type(),
+            'config' => ['to' => ['a@example.com']],
+        ]);
+
+        $this->post(route('horizon.alerts.store'), [
+            'name' => 'kept-name',
+            'rule_type' => FailureCount::type()->value,
+            'service_ids' => [$service->id],
+            'thresholdMinutes' => 5,
+            'provider_ids' => [$provider->id],
+            'email_interval_minutes' => 0,
+            'enabled' => 1,
+        ])->assertSessionHasErrors('thresholdCount');
+
+        $form = $this->get(route('horizon.alerts.create'), [
+            'Turbo-Frame' => FormDrawer::FRAME_ID,
+        ]);
+
+        $form->assertOk();
+        $form->assertSee('value="kept-name"', false);
+        $form->assertSee('value="5"', false);
+        $form->assertDontSee('$parent.ruleType', false);
+        $form->assertSee('@change="ruleType = $event.target.value"', false);
+        $this->assertMatchesRegularExpression(
+            '/<input[^>]*name="service_ids\[\]"[^>]*value="' . $service->id . '"[^>]*>/',
+            (string) $form->getContent(),
+            'The posted service checkbox must be rendered with its value.',
+        );
+        \preg_match('/<input[^>]*name="service_ids\[\]"[^>]*>/', (string) $form->getContent(), $matches);
+        $this->assertStringContainsString('checked', $matches[0]);
+    }
+
     public function test_destroy_evaluate_single_show_store_and_update_paths(): void
     {
         $service = Service::create(['name' => 'svc', 'base_url' => 'https://x.test', 'status' => 'online']);
@@ -167,8 +204,35 @@ class AlertControllerTest extends TestCase
         $engine->expects($this->once())->method('retryAlertLog');
         $this->app->instance(AlertEngine::class, $engine);
 
-        $this->post(route('horizon.alerts.logs.retry', ['log' => $sentLog]))->assertRedirect();
-        $this->post(route('horizon.alerts.logs.retry', ['log' => $failedLog]))->assertRedirect();
+        $this->post(route('horizon.alerts.logs.retry', ['log' => $sentLog]))
+            ->assertRedirect()
+            ->assertSessionHas('status', [
+                'message' => 'Only failed alert deliveries can be retried.',
+                'type' => 'warning',
+            ]);
+        $this->post(route('horizon.alerts.logs.retry', ['log' => $failedLog]))
+            ->assertRedirect()
+            ->assertSessionHas('status', [
+                'message' => 'Retry requested for alert delivery.',
+                'type' => 'success',
+            ]);
+    }
+
+    public function test_show_tolerates_malformed_query_parameters(): void
+    {
+        $alert = Alert::create([
+            'name' => 'query-params',
+            'rule_type' => FailureCount::type(),
+            'enabled' => true,
+        ]);
+
+        $this->get(route('horizon.alerts.show', [
+            'alert' => $alert->id,
+            'status' => ['failed'],
+            'service_id' => ['x'],
+            'per_page' => ['abc'],
+            'log' => ['x'],
+        ]))->assertOk();
     }
 
     public function test_store_persists_the_alert_through_the_form_request(): void

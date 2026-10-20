@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Stream\Concerns;
 
 use App\Enums\JobSection;
 use App\Models\Service;
+use App\Support\Jobs\SearchResultsPaginator;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 trait BuildsJobListSectionStreams
@@ -26,7 +27,8 @@ trait BuildsJobListSectionStreams
                 'showServiceColumn' => $showServiceColumn,
                 'pageService' => $pageService,
             ])->render(), 'morph'];
-            $operations[] = ['update', "job-count-$bodyKey", \e((string) $paginator->total()), null];
+            $countSuffix = $paginator instanceof SearchResultsPaginator && $paginator->resultsMayBeTruncated() ? '+' : '';
+            $operations[] = ['update', "job-count-$bodyKey", \e((string) $paginator->total() . $countSuffix), null];
             $operations[] = ['update', "job-pagination-$bodyKey", \view('horizon.jobs.partials.index.list-section-pagination', [
                 'paginator' => $paginator,
             ])->render(), 'morph'];

@@ -51,7 +51,9 @@ class JobListServiceLargeSearchBenchmarkTest extends TestCase
 
         $this->assertSame(20, $uncappedRequests, 'The uncapped scan must read the whole window.');
         $this->assertSame(1000, $uncapped['failed']->total());
-        $this->assertFalse($uncapped['failed']->resultsMayBeTruncated());
+        // Stopping at max_horizon_pages cannot prove the source ended, so the
+        // full window stays conservatively marked as possibly truncated.
+        $this->assertTrue($uncapped['failed']->resultsMayBeTruncated());
 
         $this->assertSame(10, $cappedRequests, 'The capped scan must stop once the cap is filled.');
         $this->assertSame(500, $capped['failed']->total());
@@ -78,7 +80,7 @@ class JobListServiceLargeSearchBenchmarkTest extends TestCase
         $this->assertSame(20, $this->requests);
         $this->assertSame(1, $result['failed']->total());
         $this->assertSame('job-999-invoice', $result['failed']->first()->uuid);
-        $this->assertFalse($result['failed']->resultsMayBeTruncated());
+        $this->assertTrue($result['failed']->resultsMayBeTruncated(), 'Stopping at max_horizon_pages cannot prove the source ended.');
     }
 
     /**

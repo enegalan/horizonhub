@@ -5,12 +5,20 @@
         $isEdit = $alert->exists;
         $action = $isEdit ? route('horizon.alerts.update', $alert) : route('horizon.alerts.store');
 
-        $jobPatternsForForm = \array_values(\array_map('strval',$alert->getJobPatterns()));
-        $queuePatternsForForm = \array_values(\array_map('strval',$alert->getQueuePatterns()));
+        $jobPatternsForForm = \array_values(\array_map('strval', (array) old('job_patterns', $alert->getJobPatterns())));
+        $queuePatternsForForm = \array_values(\array_map('strval', (array) old('queue_patterns', $alert->getQueuePatterns())));
+
+        $selectedServiceIds = \array_map('intval', (array) old('service_ids', $selectedServiceIds));
+        $selectedProviderIds = \array_map('intval', (array) old('provider_ids', $selectedProviderIds));
+
+        $ruleTypeForForm = old('rule_type');
+        if (! \is_string($ruleTypeForForm) || ! \array_key_exists($ruleTypeForForm, $ruleTypes)) {
+            $ruleTypeForForm = $alert->rule_type?->value ?? $formRuleMetadata['defaultRuleType'];
+        }
 
         $sectionHasValue = static fn (array $rows): bool => \array_any(
             $rows,
-            static fn ($x) => \is_string($x) && \trim($x) !== ''
+            static fn ($x) => \App\Support\StringFormatter::trim($x) !== ''
         );
         $queueOptionalSectionOpenDefault = $sectionHasValue($queuePatternsForForm) || $errors->has('queue_patterns') || $errors->has('queue_patterns.*');
         $jobOptionalSectionOpenDefault = $sectionHasValue($jobPatternsForForm) || $errors->has('job_patterns') || $errors->has('job_patterns.*');
@@ -19,7 +27,7 @@
     <div
         class="space-y-6"
         x-data="{
-            ruleType: {!! \Illuminate\Support\Js::from($alert->rule_type?->value ?? $formRuleMetadata['defaultRuleType']) !!},
+            ruleType: {!! \Illuminate\Support\Js::from($ruleTypeForForm) !!},
             ruleMeta: {!! \Illuminate\Support\Js::from($formRuleMetadata) !!},
             jobPatternNextId: 0,
             jobPatterns: [],
@@ -121,7 +129,7 @@
                             type="text"
                             id="name"
                             name="name"
-                            value="{{ $alert->name }}"
+                            value="{{ old('name', $alert->name) }}"
                             placeholder="e.g. Production failures"
                             class="w-full"
                         />
@@ -170,10 +178,10 @@
                             id="rule_type"
                             name="rule_type"
                             class="w-full"
-                            @change="$parent.ruleType = $event.target.value"
+                            @change="ruleType = $event.target.value"
                         >
                             @foreach($ruleTypes as $key => $label)
-                                <option value="{{ $key }}" @selected(($alert->rule_type?->value ?? $formRuleMetadata['defaultRuleType']) === $key)>{{ $label }}</option>
+                                <option value="{{ $key }}" @selected($ruleTypeForForm === $key)>{{ $label }}</option>
                             @endforeach
                         </x-select>
                         @error('rule_type') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
@@ -221,7 +229,7 @@
                                             name="thresholdCount"
                                             min="1"
                                             class="w-24"
-                                            value="{{ $alert->getThresholdCount() }}"
+                                            value="{{ old('thresholdCount', $alert->getThresholdCount()) }}"
                                         />
                                         @error('thresholdCount') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                                     </div>
@@ -232,7 +240,7 @@
                                             name="thresholdMinutes"
                                             min="1"
                                             class="w-24"
-                                            value="{{ $alert->getThresholdMinutes() }}"
+                                            value="{{ old('thresholdMinutes', $alert->getThresholdMinutes()) }}"
                                         />
                                         @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                                     </div>
@@ -248,7 +256,7 @@
                                             name="thresholdSeconds"
                                             min="0.1"
                                             class="w-24"
-                                            value="{{ $alert->getThresholdSeconds() }}"
+                                            value="{{ old('thresholdSeconds', $alert->getThresholdSeconds()) }}"
                                         />
                                         @error('thresholdSeconds') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                                     </div>
@@ -259,7 +267,7 @@
                                             name="thresholdMinutes"
                                             min="1"
                                             class="w-24"
-                                            value="{{ $alert->getThresholdMinutes() }}"
+                                            value="{{ old('thresholdMinutes', $alert->getThresholdMinutes()) }}"
                                         />
                                         @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                                     </div>
@@ -273,7 +281,7 @@
                                         name="thresholdMinutes"
                                         min="1"
                                         class="w-24"
-                                        value="{{ $alert->getThresholdMinutes() }}"
+                                        value="{{ old('thresholdMinutes', $alert->getThresholdMinutes()) }}"
                                     />
                                     @error('thresholdMinutes') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                                 </div>
@@ -287,7 +295,7 @@
                             id="enabled"
                             name="enabled"
                             value="1"
-                            :checked="$alert->enabled"
+                            :checked="old('enabled', $alert->enabled)"
                         />
                         <x-input-label for="enabled" class="text-sm font-normal cursor-pointer">Alert enabled</x-input-label>
                     </div>
@@ -309,7 +317,7 @@
                             min="0"
                             max="1440"
                             class="w-24"
-                            value="{{ $alert->email_interval_minutes ?? config('horizonhub.alerts.default_email_interval_minutes') }}"
+                            value="{{ old('email_interval_minutes', $alert->email_interval_minutes ?? config('horizonhub.alerts.default_email_interval_minutes')) }}"
                         />
                         <p class="text-xs text-muted-foreground">
                             Minimum minutes between sends. Multiple triggers in that window are batched into one notification. Use 0 to send on every trigger.

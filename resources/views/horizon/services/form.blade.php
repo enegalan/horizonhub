@@ -4,14 +4,29 @@
     @php
         $isEdit = $service->exists;
         $action = $isEdit ? route('horizon.services.update', $service) : route('horizon.services.store');
-        $headersForForm = [];
+        $headersForForm = old('headers');
 
-        if ($isEdit) {
-            foreach ($service->headers as $headerRow) {
-                $headersForForm[] = [
-                    'name' => $headerRow->name,
-                    'value' => $headerRow->value ?? '',
+        if (\is_array($headersForForm)) {
+            $normalizedHeaders = [];
+
+            foreach ($headersForForm as $headerRow) {
+                $normalizedHeaders[] = [
+                    'name' => \is_array($headerRow) && \is_string($headerRow['name'] ?? null) ? $headerRow['name'] : '',
+                    'value' => \is_array($headerRow) && \is_string($headerRow['value'] ?? null) ? $headerRow['value'] : '',
                 ];
+            }
+
+            $headersForForm = $normalizedHeaders;
+        } else {
+            $headersForForm = [];
+
+            if ($isEdit) {
+                foreach ($service->headers as $headerRow) {
+                    $headersForForm[] = [
+                        'name' => $headerRow->name,
+                        'value' => $headerRow->value ?? '',
+                    ];
+                }
             }
         }
 
@@ -19,7 +34,9 @@
             $headersForForm[] = ['name' => '', 'value' => ''];
         }
 
-        $tagsForForm = $isEdit ? $service->tags : [];
+        $tagsForForm = old('tags', $isEdit ? $service->tags : []);
+        $tagsForForm = \is_array($tagsForForm) ? $tagsForForm : (array) $tagsForForm;
+        $tagsForForm = \array_values(\array_filter($tagsForForm, static fn ($tag): bool => \is_string($tag)));
         $tlsFilesForForm = [
             'certName' => filled($service->tls_client_cert_path) ? \basename((string) $service->tls_client_cert_path) : '',
             'keyName' => filled($service->tls_client_key_path) ? \basename((string) $service->tls_client_key_path) : '',
@@ -193,12 +210,12 @@
                 <div class="space-y-4 px-5 py-5 sm:px-6">
                     <div class="space-y-2">
                         <x-input-label>Name</x-input-label>
-                        <x-text-input type="text" name="name" value="{{ $service->name }}" class="w-full" />
+                        <x-text-input type="text" name="name" value="{{ old('name', $service->name) }}" class="w-full" />
                         @error('name') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                     </div>
                     <div class="space-y-2 rounded-xl border border-border/70 bg-muted/20 px-4 py-4">
                         <x-input-label>Base URL</x-input-label>
-                        <x-text-input type="url" name="base_url" value="{{ $service->exists ? $service->base_url : '' }}" class="w-full font-mono text-sm" />
+                        <x-text-input type="url" name="base_url" value="{{ old('base_url', $service->exists ? $service->base_url : '') }}" class="w-full font-mono text-sm" />
                         @error('base_url') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                         <p class="text-xs text-muted-foreground">
                             Internal URL used to obtain events from the service.
@@ -206,7 +223,7 @@
                     </div>
                     <div class="space-y-2 rounded-xl border border-border/70 bg-muted/20 px-4 py-4">
                         <x-input-label>Public URL (optional)</x-input-label>
-                        <x-text-input type="url" name="public_url" value="{{ $service->exists ? $service->public_url : '' }}" class="w-full font-mono text-sm" />
+                        <x-text-input type="url" name="public_url" value="{{ old('public_url', $service->exists ? $service->public_url : '') }}" class="w-full font-mono text-sm" />
                         @error('public_url') <span class="text-xs text-destructive">{{ $message }}</span> @enderror
                         <p class="text-xs text-muted-foreground">
                             URL reachable from your browser.

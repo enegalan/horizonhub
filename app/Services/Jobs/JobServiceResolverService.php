@@ -4,6 +4,7 @@ namespace App\Services\Jobs;
 
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientApiService;
+use App\Support\StringFormatter;
 use Illuminate\Support\Facades\Cache;
 
 final class JobServiceResolverService
@@ -15,7 +16,7 @@ final class JobServiceResolverService
      */
     public static function resolve(string $jobUuid): ?array
     {
-        $jobUuid = \trim($jobUuid);
+        $jobUuid = StringFormatter::trim($jobUuid);
 
         if (blank($jobUuid)) {
             return null;

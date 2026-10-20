@@ -4,7 +4,11 @@
     @php
         $isEdit = $provider->exists;
         $action = $isEdit ? route('horizon.providers.update', $provider) : route('horizon.providers.store');
-        $currentType = $provider->type?->value ?? \array_key_first(\App\Models\NotificationProvider::getProviders());
+        $providerTypes = \App\Models\NotificationProvider::getProviders();
+        $currentType = old('type');
+        if (! \is_string($currentType) || ! \array_key_exists($currentType, $providerTypes)) {
+            $currentType = $provider->type?->value ?? \array_key_first($providerTypes);
+        }
     @endphp
 
     <div class="space-y-6" x-data="{ type: '{{ $currentType }}' }">

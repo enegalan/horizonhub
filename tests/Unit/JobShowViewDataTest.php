@@ -169,22 +169,22 @@ class JobShowViewDataTest extends TestCase
         $result = $this->private__invokeBuildJobShowViewData($service, $jobData);
 
         $this->assertSame(2, $result->retries);
-        $this->assertSame([
-            [
-                'id' => 'retry-1',
-                'status' => 'failed',
-                'retried_at' => 1774532546,
-            ],
-            [
-                'id' => 'retry-2',
-                'status' => null,
-                'retried_at' => 1774532534,
-            ],
-        ], $result->retried_by);
-        $this->assertSame([
-            'tenant_id' => 25,
-            'job' => 'App\\Jobs\\FailingJob',
-        ], $result->context);
+        $this->assertCount(2, $result->retried_by);
+        $this->assertSame('retry-1', $result->retried_by[0]['id']);
+        $this->assertSame('failed', $result->retried_by[0]['status']);
+        $this->assertInstanceOf(Carbon::class, $result->retried_by[0]['retried_at']);
+        $this->assertSame(1774532546, $result->retried_by[0]['retried_at']->getTimestamp());
+        $this->assertSame('retry-2', $result->retried_by[1]['id']);
+        $this->assertNull($result->retried_by[1]['status']);
+        $this->assertInstanceOf(Carbon::class, $result->retried_by[1]['retried_at']);
+        $this->assertSame(1774532534, $result->retried_by[1]['retried_at']->getTimestamp());
+        $this->assertSame(
+            \json_encode([
+                'tenant_id' => 25,
+                'job' => 'App\\Jobs\\FailingJob',
+            ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            $result->context,
+        );
     }
 
     #[Test]
@@ -220,13 +220,16 @@ class JobShowViewDataTest extends TestCase
 
         $result = $this->private__invokeBuildJobShowViewData($service, $jobData);
 
-        $this->assertSame([
-            'sender' => [
-                'from' => ['address' => 'from@example.test'],
-                'to' => ['address' => 'to@example.test'],
-            ],
-            'retries' => 3,
-        ], $result->command_data);
+        $this->assertSame(
+            \json_encode([
+                'sender' => [
+                    'from' => ['address' => 'from@example.test'],
+                    'to' => ['address' => 'to@example.test'],
+                ],
+                'retries' => 3,
+            ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            $result->command_data,
+        );
     }
 
     #[Test]
@@ -310,6 +313,37 @@ class JobShowViewDataTest extends TestCase
         $result = $this->private__invokeBuildJobShowViewData($service, $jobData);
 
         $this->assertNull($result->available_at);
+    }
+
+    #[Test]
+    public function it_substitutes_invalid_utf8_in_context_and_payload_instead_of_dropping_it(): void
+    {
+        $service = new Service;
+        $service->forceFill([
+            'name' => 'Orders API',
+            'base_url' => 'http://example.test',
+        ]);
+
+        $invalidUtf8 = "\xB1\x31";
+
+        $jobData = [
+            'id' => 'job-invalid-utf8',
+            'name' => 'App\\Jobs\\BrokenJob',
+            'queue' => 'default',
+            'connection' => 'database',
+            'status' => 'failed',
+            'context' => ['blob' => $invalidUtf8],
+            'payload' => ['data' => ['commandData' => ['blob' => $invalidUtf8]]],
+        ];
+
+        $result = $this->private__invokeBuildJobShowViewData($service, $jobData);
+
+        $this->assertIsString($result->context);
+        $this->assertIsString($result->payload);
+        $this->assertNotFalse(\json_decode($result->context, true));
+        $this->assertNotFalse(\json_decode($result->payload, true));
+        $this->assertStringContainsString("\u{FFFD}", $result->context);
+        $this->assertStringContainsString("\u{FFFD}", $result->payload);
     }
 
     #[Test]

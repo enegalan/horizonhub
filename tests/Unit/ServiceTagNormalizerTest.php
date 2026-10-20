@@ -47,6 +47,14 @@ class ServiceTagNormalizerTest extends TestCase
     }
 
     #[Test]
+    public function normalize_falls_back_to_byte_whitespace_collapsing_for_malformed_utf8(): void
+    {
+        // mb_strtolower substitutes the invalid byte with '?', so the tag is
+        // kept (collapsed and lowercased) instead of being dropped.
+        $this->assertSame(['a b?'], ServiceTagNormalizer::normalize(["A \t B\xFF"]));
+    }
+
+    #[Test]
     public function normalize_list_dedupes_and_sorts(): void
     {
         $tags = ServiceTagNormalizer::normalize(['Staging', 'production', 'staging', '  ']);

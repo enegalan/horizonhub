@@ -4,6 +4,7 @@ namespace App\Services\Alerts;
 
 use App\Http\Requests\Horizon\UpsertAlertRequest;
 use App\Support\Alerts\AlertRuleCatalog;
+use App\Support\StringFormatter;
 
 class AlertUpsertService
 {
@@ -74,19 +75,13 @@ class AlertUpsertService
         if (! \is_array($raw)) {
             return [];
         }
-        $out = [];
 
-        foreach ($raw as $v) {
-            if (! \is_string($v)) {
-                continue;
-            }
-            $t = \trim($v);
-
-            if ($t !== '') {
-                $out[] = $t;
-            }
-        }
-
-        return $out;
+        return \array_values(\array_filter(
+            \array_map(
+                static fn (mixed $value): string => StringFormatter::trim($value),
+                $raw,
+            ),
+            static fn (string $pattern): bool => ! blank($pattern),
+        ));
     }
 }

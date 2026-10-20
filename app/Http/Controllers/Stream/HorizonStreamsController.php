@@ -13,9 +13,11 @@ use App\Http\Controllers\Stream\Concerns\BuildsServiceStreams;
 use App\Http\Controllers\StreamController;
 use App\Models\Alert;
 use App\Models\Service;
+use App\Services\Jobs\JobServiceResolverService;
 use App\Services\Metrics\Calculators\JobsThroughputMetricsCalculator;
 use App\Services\Metrics\Calculators\WorkloadMetricsCalculator;
 use App\Services\Metrics\MetricsDataService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -82,8 +84,12 @@ class HorizonStreamsController extends StreamController
         return $this->private__streamFromRequest($request, fn (string $query): string => $this->buildJobsIndex($query));
     }
 
-    public function jobShow(string $job): StreamedResponse
+    public function jobShow(string $job): StreamedResponse|JsonResponse
     {
+        if (JobServiceResolverService::resolve($job) === null) {
+            return response()->json(['message' => 'Job not found or no longer available.'], 404);
+        }
+
         return $this->runStream(fn (): ?string => $this->buildJobShow($job));
     }
 

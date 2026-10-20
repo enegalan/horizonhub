@@ -4,7 +4,9 @@ namespace App\Services\Services;
 
 use App\Http\Requests\Horizon\ServiceRequest;
 use App\Models\Service;
+use App\Support\ArrayFormatter;
 use App\Support\Services\ServiceTagNormalizer;
+use App\Support\StringFormatter;
 use Illuminate\Http\Request;
 
 final class ServiceFilterService
@@ -80,7 +82,7 @@ final class ServiceFilterService
     {
         \parse_str($query, $params);
 
-        return \trim((string) ($params['search'] ?? ''));
+        return StringFormatter::trim($params['search'] ?? '');
     }
 
     /**
@@ -94,7 +96,7 @@ final class ServiceFilterService
             'allTags' => Service::allTags(true),
             'selectedServiceIds' => ServiceRequest::existingIdsFromRequest($request),
             'selectedTags' => ServiceTagNormalizer::normalize(
-                \is_array($request->query('service_tag', [])) ? $request->query('service_tag', []) : [],
+                ArrayFormatter::orEmpty($request->query('service_tag', [])),
             ),
         ];
     }

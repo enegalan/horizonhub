@@ -2,6 +2,8 @@
 
 namespace App\Support\Services;
 
+use App\Support\StringFormatter;
+
 final class ServiceTagNormalizer
 {
     /**
@@ -58,11 +60,11 @@ final class ServiceTagNormalizer
         $normalized = [];
 
         foreach ($tags as $tag) {
-            if (! \is_string($tag)) {
-                continue;
-            }
+            $tag = StringFormatter::trim($tag);
 
-            $value = \mb_strtolower(\preg_replace('/\s+/u', ' ', \trim($tag)));
+            // The unicode pattern returns null on malformed UTF-8, so fall
+            // back to byte-wise whitespace collapsing before lowercasing.
+            $value = \mb_strtolower(\preg_replace('/\s+/u', ' ', $tag) ?? \preg_replace('/\s+/', ' ', $tag));
 
             if (empty($value)) {
                 continue;

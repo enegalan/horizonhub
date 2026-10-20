@@ -2,6 +2,7 @@
 
 namespace App\Support\Horizon;
 
+use App\Support\ArrayFormatter;
 use App\Support\Queues\QueueNameNormalizer;
 
 final class MasterReader
@@ -63,7 +64,7 @@ final class MasterReader
 
             $groupParts = \explode(':', $name, 2);
             $groupName = $groupParts[0] !== '' ? $groupParts[0] : $name;
-            $options = isset($supervisor['options']) && \is_array($supervisor['options']) ? $supervisor['options'] : [];
+            $options = ArrayFormatter::orEmpty($supervisor['options'] ?? null);
             $connection = '';
 
             if (isset($options['connection']) && (string) $options['connection'] !== '') {

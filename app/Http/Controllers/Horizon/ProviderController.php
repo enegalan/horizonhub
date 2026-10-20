@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Horizon\UpsertProviderRequest;
 use App\Models\NotificationProvider;
 use App\Support\FlashStatus;
+use App\Support\StringFormatter;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,7 +53,7 @@ class ProviderController extends Controller
         return \view('horizon.providers.index', [
             'providers' => collect(),
             'defer' => true,
-            'search' => \trim((string) $request->query('search', '')),
+            'search' => StringFormatter::trim($request->query('search')),
             'header' => 'Providers',
         ]);
     }

@@ -8,6 +8,7 @@ use App\Models\AlertLog;
 use App\Models\NotificationProvider;
 use App\Models\Service;
 use App\Services\Alerts\Rules\AlertRuleStrategyRegistry;
+use App\Support\ArrayFormatter;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 
@@ -294,9 +295,10 @@ class AlertEngine
 
     /**
      * @description This method reconstructs alert trigger events from a stored log.
-     *              It uses the current time for all reconstructed events and will
-     *              generate placeholder events with null job UUIDs when the
-     *              trigger_count is greater than the number of stored job UUIDs.
+     *              It preserves the log's original sent_at timestamp for all
+     *              reconstructed events and will generate placeholder events with
+     *              null job UUIDs when the trigger_count is greater than the
+     *              number of stored job UUIDs.
      *
      * @param AlertLog $log The alert log.
      *
@@ -306,7 +308,7 @@ class AlertEngine
     {
         $events = [];
         $serviceId = (int) $log->service_id;
-        $jobUuids = \is_array($log->job_uuids) ? $log->job_uuids : [];
+        $jobUuids = ArrayFormatter::orEmpty($log->job_uuids ?? null);
 
         foreach ($jobUuids as $jobUuid) {
             $events[] = [

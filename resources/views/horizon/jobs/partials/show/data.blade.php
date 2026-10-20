@@ -5,7 +5,7 @@
             class="horizon-json-tree"
             data-stream-preserve-client
             data-json-tree="data"
-            data-json-source="{{ e($commandData ?? 'null') }}"
+            data-json-source="{{ e($job->command_data ?? 'null') }}"
         ></div>
     </div>
 </div>

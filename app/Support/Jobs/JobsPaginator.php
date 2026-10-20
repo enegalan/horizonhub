@@ -29,6 +29,7 @@ final class JobsPaginator
         $term = (string) $search;
         $accumulated = [];
         $startingAt = -1;
+        $sourceExhausted = false;
 
         for ($pageIdx = 0; $pageIdx < $maxPages; $pageIdx++) {
             $batch = ClientResponse::data($pageFetcher([
@@ -36,7 +37,12 @@ final class JobsPaginator
                 'limit' => $jobsPerRequest,
             ]), 'jobs');
 
-            if ($batch === null || empty($batch)) {
+            if ($batch === null) {
+                break;
+            }
+
+            if (empty($batch)) {
+                $sourceExhausted = true;
                 break;
             }
 
@@ -60,6 +66,7 @@ final class JobsPaginator
             }
 
             if (\count($batch) < $jobsPerRequest) {
+                $sourceExhausted = true;
                 break;
             }
 
@@ -68,7 +75,7 @@ final class JobsPaginator
 
         return [
             'jobs' => $accumulated,
-            'complete' => true,
+            'complete' => $sourceExhausted,
         ];
     }
 

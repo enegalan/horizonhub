@@ -55,6 +55,22 @@ k+FgbjI7xd1xX5CurB4TvGVjXBSGScNCC1E5fsyORV595qMnQ5IxMwJBAILqHapH
 -----END PRIVATE KEY-----
 PEM;
 
+    public function test_create_form_preserves_old_urls_after_validation_errors(): void
+    {
+        $this->post(route('horizon.services.store'), [
+            'base_url' => 'https://kept-base.test',
+            'public_url' => 'https://kept-public.test',
+        ])->assertSessionHasErrors('name');
+
+        $form = $this->get(route('horizon.services.create'), [
+            'Turbo-Frame' => FormDrawer::FRAME_ID,
+        ]);
+
+        $form->assertOk();
+        $form->assertSee('value="https://kept-base.test"', false);
+        $form->assertSee('value="https://kept-public.test"', false);
+    }
+
     public function test_index_edit_show_store_update_destroy_and_connection_paths(): void
     {
         $service = Service::create([
@@ -86,7 +102,9 @@ PEM;
         $this->get(route('horizon.services.show', ['service' => $service]))
             ->assertOk()
             ->assertDontSee('Supervisor data is not available', false)
-            ->assertDontSee('No queues for this service yet', false);
+            ->assertDontSee('No queues for this service yet', false)
+            ->assertSee('for="service-jobs-search-input"', false)
+            ->assertSee('id="service-jobs-search-input"', false);
 
         $this->post(route('horizon.services.store'), [
             'name' => 'svc-b',
