@@ -49,7 +49,7 @@ $wideDialog = \in_array((string) $size, ['xl', 'xxl'], true);
         @click.self="$dispatch('close-modal')"
     >
         <div
-            class="card w-full {{ $sizeClass }} bg-card {{ $wideDialog ? 'flex min-h-0 max-h-[100dvh] flex-col overflow-hidden rounded-none p-3 max-sm:min-h-[100dvh] sm:max-h-[min(90vh,100dvh-2rem)] sm:rounded-lg sm:p-4' : 'p-4' }}"
+            class="card w-full {{ $sizeClass }} bg-card {{ $wideDialog ? 'flex min-h-0 max-h-dvh flex-col overflow-hidden rounded-none p-3 max-sm:min-h-dvh sm:max-h-[min(90vh,100dvh-2rem)] sm:rounded-lg sm:p-4' : 'p-4' }}"
         >
             @if(isset($header))
                 {{ $header }}

@@ -56,7 +56,7 @@
             data-turbo-stream-patch-children="true"
         >
             @if($defer)
-                <x-dynamic-component :component="$statsSkeleton" :columns="$statsColumns" />
+                <x-skeleton.metric-columns :columns="$statsColumns" />
             @else
                 @include($statsView, $statsViewData)
             @endif

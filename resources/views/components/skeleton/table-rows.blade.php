@@ -7,7 +7,7 @@
         @for ($c = 0; $c < (int) $columns; $c++)
             <td class="px-4 py-3">
                 <div
-                    class="skeleton h-4 w-full max-w-[200px]"
+                    class="skeleton h-4 w-full max-w-50"
                     style="--skeleton-delay: {{ ($i * 80) + ($c * 35) }}ms"
                 ></div>
             </td>

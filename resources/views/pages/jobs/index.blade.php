@@ -1,0 +1,760 @@
+@extends('layouts.app')
+
+@section('content')
+    <div
+        class="space-y-6"
+        x-data="{
+            showRetryModal: false,
+            retryModalMounted: false,
+            retrying: false,
+            failedJobs: [],
+            selectedFailedJobs: [],
+            retrySelectionAnchorGlobalIndex: null,
+            selectingAllFailed: false,
+            retryLoadingJobs: false,
+            retryPage: 1,
+            retryLastPage: 1,
+            retryTotal: 0,
+            retryPerPage: {{ config('horizonhub.jobs_per_page') }},
+            retryModalSession: 0,
+            failedListUrl: {!! \Illuminate\Support\Js::from(route('horizon.jobs.failed')) !!},
+            retryBatchUrl: {!! \Illuminate\Support\Js::from(route('horizon.jobs.retry-batch')) !!},
+            retryFilters: {
+                service_ids: [],
+                service_tags: [],
+                search: '',
+                failed_at_range: '',
+            },
+            openRetryModal() {
+                this.retryModalSession = (this.retryModalSession || 0) + 1;
+                this.retryFilters.service_ids = [];
+                this.retryFilters.service_tags = [];
+                this.retryFilters.search = '';
+                this.retryFilters.failed_at_range = '';
+                this.retryModalMounted = true;
+                this.showRetryModal = false;
+                requestAnimationFrame(() => {
+                    this.showRetryModal = true;
+                });
+                this.selectedFailedJobs = [];
+                this.retrySelectionAnchorGlobalIndex = null;
+                this.selectingAllFailed = false;
+                this.retryPage = 1;
+                this.loadFailedJobs();
+            },
+            applyRetryModalFilters() {
+                this.retryPage = 1;
+                this.retrySelectionAnchorGlobalIndex = null;
+                this.loadFailedJobs();
+            },
+            closeRetryModal() {
+                this.showRetryModal = false;
+                this.selectedFailedJobs = [];
+                this.retrySelectionAnchorGlobalIndex = null;
+                this.selectingAllFailed = false;
+                window.setTimeout(() => {
+                    if (!this.showRetryModal) {
+                        this.retryModalMounted = false;
+                    }
+                }, 220);
+            },
+            retryModalFailedListQuery(options) {
+                options = options || {};
+                var params = new URLSearchParams();
+                var serviceIds = this.retryFilters.service_ids;
+                if (Array.isArray(serviceIds)) {
+                    serviceIds.forEach(function (id) {
+                        if (id !== null && id !== '' && id !== undefined) {
+                            params.append('service_ids[]', String(id));
+                        }
+                    });
+                }
+                var serviceTags = this.retryFilters.service_tags;
+                if (Array.isArray(serviceTags)) {
+                    serviceTags.forEach(function (tag) {
+                        if (tag !== null && tag !== '') {
+                            params.append('service_tag[]', String(tag));
+                        }
+                    });
+                }
+                if (this.retryFilters.search) params.append('search', this.retryFilters.search);
+                var rangeParts = window.horizon.parseFailedAtRange(this.retryFilters.failed_at_range);
+                if (rangeParts.dateFrom) params.append('date_from', rangeParts.dateFrom);
+                if (rangeParts.dateTo) params.append('date_to', rangeParts.dateTo);
+                if (options.selection) {
+                    params.append('selection', options.selection);
+                }
+                if (options.selection !== 'all') {
+                    if (this.retryPage) params.append('page', this.retryPage);
+                    if (this.retryPerPage) params.append('per_page', this.retryPerPage);
+                }
+                return params;
+            },
+            loadFailedJobs() {
+                var params = this.retryModalFailedListQuery();
+                var url = this.failedListUrl + (params.toString() ? ('?' + params.toString()) : '');
+                this.retryLoadingJobs = true;
+                window.horizon.http.get(url).then((data) => {
+                    this.failedJobs = Array.isArray(data.data) ? data.data : [];
+                    if (data.meta) {
+                        this.retryPage = typeof data.meta.current_page === 'number' ? data.meta.current_page : 1;
+                        this.retryLastPage = typeof data.meta.last_page === 'number' ? data.meta.last_page : 1;
+                        this.retryPerPage = typeof data.meta.per_page === 'number' ? data.meta.per_page : this.retryPerPage;
+                        this.retryTotal = typeof data.meta.total === 'number' ? data.meta.total : this.failedJobs.length;
+                    } else {
+                        this.retryLastPage = 1;
+                        this.retryTotal = this.failedJobs.length;
+                    }
+                }).catch(function (error) {
+                    console.error('Failed loading failed jobs', error);
+                }).finally(() => {
+                    this.retryLoadingJobs = false;
+                });
+            },
+            toggleFailed(id, serviceId, rowIndex, event) {
+                var index = typeof rowIndex === 'number' ? rowIndex : Number(rowIndex);
+                if (event && event.shiftKey && !Number.isNaN(index) && index >= 0) {
+                    this.applyFailedJobShiftSelection(index);
+                    return;
+                }
+                this.toggleFailedJobSelection(id, serviceId);
+                this.retrySelectionAnchorGlobalIndex = Number.isNaN(index) || index < 0 ? null : this.failedJobGlobalIndex(index);
+            },
+            selectAllFailed() {
+                var self = this;
+                if (this.selectingAllFailed) return;
+                this.selectingAllFailed = true;
+                this.retrySelectionAnchorGlobalIndex = null;
+                var params = this.retryModalFailedListQuery({ selection: 'all' });
+                var url = this.failedListUrl + (params.toString() ? ('?' + params.toString()) : '');
+                window.horizon.http.get(url).then(function (data) {
+                    var jobs = Array.isArray(data.jobs) ? data.jobs : [];
+                    self.selectedFailedJobs = jobs
+                        .map(function (j) {
+                            return {
+                                id: String(j.id || ''),
+                                service_id: typeof j.service_id === 'number' ? j.service_id : Number(j.service_id),
+                            };
+                        })
+                        .filter(function (j) {
+                            return j.id !== '' && !Number.isNaN(j.service_id) && j.service_id > 0;
+                        });
+                }).catch(function (error) {
+                    console.error('Failed selecting all failed jobs', error);
+                }).finally(function () {
+                    self.selectingAllFailed = false;
+                });
+            },
+            toggleAllFailedSelection() {
+                if (this.selectedFailedJobs.length > 0) {
+                    this.clearSelection();
+                    return;
+                }
+                this.selectAllFailed();
+            },
+            clearSelection() {
+                this.selectedFailedJobs = [];
+                this.retrySelectionAnchorGlobalIndex = null;
+            },
+            setRetryPage(page) {
+                var p = typeof page === 'number' ? page : Number(page);
+                if (!p || p < 1 || p > this.retryLastPage) return;
+                this.retryPage = p;
+                this.loadFailedJobs();
+            },
+            buildRetryPaginationSlider(current, last, onEachSide) {
+                var w = onEachSide;
+                var slider = [];
+                if (last <= (w * 2 + 3)) {
+                    for (let i = 1; i <= last; i++) {
+                        slider.push(i);
+                    }
+                } else if (current <= w + 2) {
+                    var end = Math.min(w * 2 + 2, last);
+                    for (let i = 1; i <= end; i++) {
+                        slider.push(i);
+                    }
+                    slider.push('...');
+                    slider.push(last);
+                } else if (current >= last - w - 1) {
+                    slider.push(1);
+                    slider.push('...');
+                    var start = Math.max(1, last - w * 2 - 1);
+                    for (let i = start; i <= last; i++) {
+                        slider.push(i);
+                    }
+                } else {
+                    slider.push(1);
+                    slider.push('...');
+                    for (let i = current - w; i <= current + w; i++) {
+                        slider.push(i);
+                    }
+                    slider.push('...');
+                    slider.push(last);
+                }
+                return slider;
+            },
+            retryPaginationPages() {
+                return this.buildRetryPaginationSlider(this.retryPage, this.retryLastPage, 2);
+            },
+            retryPaginationSummaryLine() {
+                var tot = this.retryTotal;
+                var count = this.failedJobs.length;
+                if (tot === 0) {
+                    return 'Showing 0 items';
+                }
+                if (count === 0) {
+                    return 'Showing ' + tot + ' items';
+                }
+                var fi = (this.retryPage - 1) * this.retryPerPage + 1;
+                var li = fi + count - 1;
+                return 'Showing ' + fi + '–' + li + ' of ' + tot;
+            },
+            prevRetryPage() {
+                this.setRetryPage(this.retryPage - 1);
+            },
+            nextRetryPage() {
+                this.setRetryPage(this.retryPage + 1);
+            },
+            retrySelected() {
+                var self = this;
+                if (!window.horizon || !window.horizon.http) return;
+                if (this.selectedFailedJobs.length === 0) return;
+                var jobs = this.selectedFailedJobs.map(function (j) {
+                    return { id: j.id, service_id: j.service_id };
+                });
+                var requestedCount = jobs.length;
+                this.retrying = true;
+                window.horizon.http.post(this.retryBatchUrl, { jobs: jobs }).then(function (data) {
+                    self.retrying = false;
+                    self.closeRetryModal();
+                    var succeeded = typeof data.succeeded === 'number' ? data.succeeded : requestedCount;
+                    var failed = typeof data.failed === 'number' ? data.failed : Math.max(0, requestedCount - succeeded);
+                    var results = Array.isArray(data && data.results) ? data.results : [];
+
+                    var firstFailureMessage = '';
+                    for (let i = 0; i < results.length; i++) {
+                        if (results[i] && !results[i].success && results[i].message) {
+                            firstFailureMessage = String(results[i].message);
+                            break;
+                        }
+                    }
+
+                    if (failed === 0) {
+                        window.toast.info('Retry requested for ' + succeeded + ' job(s).');
+                        return;
+                    }
+
+                    if (succeeded === 0) {
+                        window.toast.error('Retry could not be requested for the selected jobs' + (firstFailureMessage ? ': ' + firstFailureMessage : '.'));
+                        return;
+                    }
+
+                    window.toast.warning('Retry requested for ' + succeeded + ' job(s); ' + failed + ' job(s) failed' + (firstFailureMessage ? ': ' + firstFailureMessage : '.'));
+                }).catch(function () {
+                    self.retrying = false;
+                });
+            },
+            applyFailedJobShiftSelection(clickedIndex) {
+                var self = this;
+                var clickedGlobalIndex = this.failedJobGlobalIndex(clickedIndex);
+                if (clickedGlobalIndex === null) {
+                    return;
+                }
+                var startGlobalIndex = this.failedJobShiftStartGlobalIndex(clickedGlobalIndex);
+                var from = Math.min(startGlobalIndex, clickedGlobalIndex);
+                var to = Math.max(startGlobalIndex, clickedGlobalIndex);
+                var pageStart = (this.retryPage - 1) * this.retryPerPage;
+                var pageEnd = pageStart + this.failedJobs.length - 1;
+
+                if (from >= pageStart && to <= pageEnd) {
+                    this.applyFailedJobShiftRangeOnRows(from - pageStart, to - pageStart);
+                    this.retrySelectionAnchorGlobalIndex = clickedGlobalIndex;
+                    return;
+                }
+
+                var params = this.retryModalFailedListQuery({ selection: 'all' });
+                var url = this.failedListUrl + (params.toString() ? ('?' + params.toString()) : '');
+                window.horizon.http.get(url).then(function (data) {
+                    var jobs = Array.isArray(data.jobs) ? data.jobs : [];
+                    self.applyFailedJobShiftRangeOnJobs(from, to, jobs);
+                    self.retrySelectionAnchorGlobalIndex = clickedGlobalIndex;
+                }).catch(function (error) {
+                    console.error('Failed applying shift selection across pages', error);
+                });
+            },
+            applyFailedJobShiftRangeOnRows(from, to) {
+                for (let i = from; i <= to; i++) {
+                    var job = this.failedJobs[i];
+                    if (!job || !job.uuid) {
+                        continue;
+                    }
+                    this.toggleFailedJobShiftSelection(job.uuid, job.service_id);
+                }
+            },
+            applyFailedJobShiftRangeOnJobs(from, to, jobs) {
+                if (!Array.isArray(jobs) || jobs.length === 0) {
+                    return;
+                }
+                var end = Math.min(to, jobs.length - 1);
+                for (let i = from; i <= end; i++) {
+                    var job = jobs[i];
+                    if (!job || !job.id) {
+                        continue;
+                    }
+                    var serviceId = typeof job.service_id === 'number' ? job.service_id : Number(job.service_id);
+                    this.toggleFailedJobShiftSelection(String(job.id), serviceId);
+                }
+            },
+            addFailedJobSelection(id, serviceId) {
+                if (!id || this.isFailedJobSelected(id)) {
+                    return;
+                }
+                this.selectedFailedJobs.push({
+                    id: id,
+                    service_id: typeof serviceId === 'number' ? serviceId : Number(serviceId),
+                });
+            },
+            isFailedJobSelected(id) {
+                return this.selectedFailedJobs.some(function (job) {
+                    return job.id === id;
+                });
+            },
+            removeFailedJobSelection(id) {
+                var index = this.selectedFailedJobs.findIndex(function (job) {
+                    return job.id === id;
+                });
+                if (index >= 0) {
+                    this.selectedFailedJobs.splice(index, 1);
+                }
+            },
+            toggleFailedJobSelection(id, serviceId) {
+                if (this.isFailedJobSelected(id)) {
+                    this.removeFailedJobSelection(id);
+                    return;
+                }
+                this.addFailedJobSelection(id, serviceId);
+            },
+            failedJobGlobalIndex(rowIndex) {
+                if (typeof rowIndex !== 'number' || Number.isNaN(rowIndex) || rowIndex < 0 || rowIndex >= this.failedJobs.length) {
+                    return null;
+                }
+                return (this.retryPage - 1) * this.retryPerPage + rowIndex;
+            },
+            failedJobShiftStartGlobalIndex(clickedGlobalIndex) {
+                if (this.selectedFailedJobs.length === 0) {
+                    return 0;
+                }
+                var anchorGlobalIndex = this.retrySelectionAnchorGlobalIndex;
+                if (typeof anchorGlobalIndex !== 'number' || Number.isNaN(anchorGlobalIndex) || anchorGlobalIndex < 0) {
+                    return 0;
+                }
+                if (typeof clickedGlobalIndex !== 'number' || Number.isNaN(clickedGlobalIndex)) {
+                    return anchorGlobalIndex + 1;
+                }
+                if (clickedGlobalIndex < anchorGlobalIndex) {
+                    return anchorGlobalIndex - 1;
+                }
+                if (clickedGlobalIndex > anchorGlobalIndex) {
+                    return anchorGlobalIndex + 1;
+                }
+                return anchorGlobalIndex;
+            },
+            toggleFailedJobShiftSelection(id, serviceId) {
+                if (this.isFailedJobSelected(id)) {
+                    this.removeFailedJobSelection(id);
+                    return;
+                }
+                this.addFailedJobSelection(id, serviceId);
+            },
+        }"
+    >
+        <div class="card overflow-hidden">
+            <x-page-hero
+                eyebrow="Job monitor"
+                title="Queues & workloads"
+                description="Inspect processing, completed, and failed jobs across services. Filter by service or search, and retry failures in bulk when needed."
+            />
+
+            <div class="border-b border-border bg-muted/15 px-5 py-4 sm:px-6">
+                <div class="flex flex-col gap-4 xl:flex-row xl:flex-wrap xl:items-end xl:justify-between">
+                    <form method="GET" action="{{ route('horizon.jobs.index') }}" class="flex min-w-0 flex-1 flex-col gap-3 md:flex-row md:flex-wrap md:items-end" data-turbo-frame="_top" data-service-tag-filter="1">
+                        <x-service-tag-filter
+                            :all-tags="$allTags ?? []"
+                            :selected-tags="$selectedTags ?? []"
+                            :show-service-multiselect="true"
+                            :services="$services"
+                            :service-ids="$selectedServiceIds ?? []"
+                            service-multiselect-id="jobs-index-services"
+                            service-multiselect-label="Services"
+                        />
+                        <div class="flex min-w-0 flex-1 flex-col gap-2 md:max-w-88">
+                            <x-input-label for="jobs-index-search">Search</x-input-label>
+                            <div class="flex min-w-0 flex-col gap-2 md:flex-row md:items-center">
+                                <x-text-input
+                                    id="jobs-index-search"
+                                    type="text"
+                                    name="search"
+                                    value="{{ $search ?? '' }}"
+                                    placeholder="Queue, job or UUID"
+                                    class="w-full min-w-0 md:flex-1 md:max-w-56"
+                                />
+                                <x-button type="submit" class="h-9 w-full text-sm md:w-auto">
+                                    Search
+                                </x-button>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="flex w-full shrink-0 items-end gap-2 sm:w-auto">
+                        <x-button type="button" variant="secondary" class="h-9 w-full text-sm sm:w-auto" @click="openRetryModal()">
+                            <x-icons.arrow-path class="size-4" />
+                            Retry failed jobs
+                        </x-button>
+                    </div>
+                </div>
+            </div>
+
+            @include('pages.jobs.partials.index.list-collapsible-stack', [
+                'jobsProcessing' => $jobsProcessing,
+                'jobsProcessed' => $jobsProcessed,
+                'jobsFailed' => $jobsFailed,
+                'showServiceColumn' => true,
+                'pageService' => null,
+                'resizablePrefix' => 'horizon-job-list',
+                'defer' => $defer ?? false,
+            ])
+        </div>
+
+        <template x-if="retryModalMounted">
+            <div>
+                <x-confirm-modal
+                    size="xxl"
+                    x-data
+                    x-show="showRetryModal"
+                    x-on:close-modal.window="closeRetryModal()"
+                >
+                    <x-slot:header>
+                        <div class="relative -mx-3 -mt-3 shrink-0 overflow-hidden border-b border-border bg-linear-to-br from-primary/15 via-card to-card px-3 py-3 sm:-mx-4 sm:-mt-4 sm:px-6 sm:py-5">
+                            <div class="pointer-events-none absolute -right-10 -top-10 size-36 rounded-full bg-primary/10 blur-3xl" aria-hidden="true"></div>
+                            <div class="relative flex items-start justify-between gap-2 sm:gap-3">
+                                <div class="flex min-w-0 items-start gap-2.5 sm:gap-4">
+                                    <div class="flex size-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary sm:size-11">
+                                        <x-icons.arrow-path class="size-4 sm:size-6" />
+                                    </div>
+                                    <div class="min-w-0 space-y-0.5 sm:space-y-1">
+                                        <h2 class="text-lg font-semibold leading-tight text-foreground sm:text-section-title">Retry failed jobs</h2>
+                                        <p class="hidden max-w-2xl text-sm text-muted-foreground sm:block">
+                                            Filter by service, tag, search, or failure time. Select jobs below, then retry in bulk.
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="btn-ghost -mr-1 inline-flex size-9 shrink-0 items-center justify-center rounded-md p-0"
+                                    aria-label="Close"
+                                    @click="closeRetryModal()"
+                                >
+                                    <x-icons.x-mark class="size-5" />
+                                </button>
+                            </div>
+                        </div>
+                    </x-slot:header>
+
+                    <div class="flex min-w-0 flex-col gap-3 sm:gap-4">
+                        <section class="shrink-0 rounded-lg border border-border bg-muted/20 p-3 sm:p-4">
+                            <div class="mb-3 flex items-center gap-2">
+                                <x-icons.funnel class="size-4 text-primary" />
+                                <h3 class="text-sm font-medium text-foreground">Filters</h3>
+                            </div>
+                            <form
+                                @submit.prevent="applyRetryModalFilters()"
+                                class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)_auto] xl:items-end"
+                            >
+                                <template x-for="session in [retryModalSession]" :key="'retry-modal-services-' + session">
+                                    <div class="min-w-0 space-y-2">
+                                        <x-input-label id="retry-modal-services-label" for="retry-modal-services">Services</x-input-label>
+                                        <x-select
+                                            multiple
+                                            id="retry-modal-services"
+                                            labelled-by="retry-modal-services-label"
+                                            name="retryModalServiceFilter"
+                                            class="w-full min-w-0"
+                                            :selected="[]"
+                                            placeholder="All services"
+                                            empty-message="No services found"
+                                            @change="retryFilters.service_ids = $event.detail.values"
+                                        >
+                                            @foreach($services as $s)
+                                                <option value="{{ $s->id }}">{{ $s->name }} ({{ $s->status?->value }})</option>
+                                            @endforeach
+                                        </x-select>
+                                    </div>
+                                </template>
+                                <template x-for="session in [retryModalSession]" :key="'retry-modal-tags-' + session">
+                                    <div class="min-w-0 space-y-2">
+                                        <x-input-label id="retry-modal-tags-label" for="retry-modal-tags">Tags</x-input-label>
+                                        <x-select
+                                            multiple
+                                            id="retry-modal-tags"
+                                            labelled-by="retry-modal-tags-label"
+                                            name="retryModalServiceTag"
+                                            class="w-full min-w-0"
+                                            :selected="[]"
+                                            placeholder="All tags"
+                                            empty-message="No tags defined"
+                                            @change="retryFilters.service_tags = $event.detail.values"
+                                        >
+                                            @foreach($allTags ?? [] as $tag)
+                                                <option value="{{ $tag }}">{{ $tag }}</option>
+                                            @endforeach
+                                        </x-select>
+                                    </div>
+                                </template>
+                                <div class="min-w-0 space-y-2">
+                                    <x-input-label for="retry-modal-search">Search</x-input-label>
+                                    <x-text-input
+                                        id="retry-modal-search"
+                                        name="retry_modal_search"
+                                        type="text"
+                                        placeholder="Queue, job or UUID"
+                                        class="w-full min-w-0"
+                                        x-model="retryFilters.search"
+                                        autocomplete="off"
+                                    />
+                                </div>
+                                <div class="min-w-0 space-y-2 sm:col-span-2 lg:col-span-1">
+                                    <x-input-label for="retry-modal-failed-at-range">Failed at range</x-input-label>
+                                    <x-input-date
+                                        id="retry-modal-failed-at-range"
+                                        :range="true"
+                                        :with-time="true"
+                                        x-model="retryFilters.failed_at_range"
+                                    />
+                                </div>
+                                <div class="flex items-end sm:col-span-2 sm:justify-end lg:col-span-1 lg:justify-start">
+                                    <x-button
+                                        type="submit"
+                                        class="h-9 w-full shrink-0 whitespace-nowrap sm:w-auto"
+                                        x-bind:disabled="retryLoadingJobs"
+                                        x-bind:data-loading="retryLoadingJobs ? 'true' : null"
+                                    >
+                                        <x-icons.magnifying-glass class="size-4 shrink-0" />
+                                        Search
+                                    </x-button>
+                                </div>
+                            </form>
+                        </section>
+
+                        <section class="rounded-lg border border-border bg-card">
+                            <div class="flex shrink-0 flex-col gap-2 border-b border-border bg-muted/25 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+                                <div class="flex min-w-0 items-center gap-2">
+                                    <x-icons.exclamation-triangle class="size-4 shrink-0 text-destructive" />
+                                    <h3 class="text-sm font-medium text-foreground">Matching failed jobs</h3>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2 text-xs sm:justify-end">
+                                    <span
+                                        class="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-0.5 font-medium text-muted-foreground"
+                                        x-show="retryTotal > 0"
+                                        x-text="retryTotal + ' total'"
+                                    ></span>
+                                    <span
+                                        class="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 font-medium text-primary"
+                                        x-show="selectedFailedJobs.length > 0"
+                                        x-text="selectedFailedJobs.length + ' selected'"
+                                    ></span>
+                                    <button
+                                        type="button"
+                                        class="link text-xs"
+                                        x-show="selectedFailedJobs.length > 0"
+                                        @click="clearSelection()"
+                                    >
+                                        Clear selection
+                                    </button>
+                                    <span
+                                        class="text-xs text-muted-foreground"
+                                        x-show="selectingAllFailed"
+                                    >
+                                        Selecting all...
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-0 z-10 flex items-center justify-center bg-card/80 backdrop-blur-[1px]"
+                                    x-show="retryLoadingJobs"
+                                    x-cloak
+                                >
+                                    <x-loader class="size-6 text-primary" />
+                                </div>
+
+                                <div class="table-scroll">
+                                <x-table
+                                    :wrap="false"
+                                    id="horizon-retry-modal-failed-jobs"
+                                    table-class="text-sm"
+                                    thead-class="sticky top-0 z-[1] bg-muted/80 backdrop-blur-sm"
+                                >
+                                    <x-slot:head>
+                                        <x-table.th column="select" class="w-10 cursor-pointer" padding="px-3 py-2.5 sm:px-4" data-column-fixed @click="toggleAllFailedSelection()">
+                                            <div class="pointer-events-none flex justify-center">
+                                                <x-checkbox
+                                                    x-bind:checked="selectedFailedJobs.length > 0"
+                                                    aria-label="Select all failed jobs matching filters"
+                                                />
+                                            </div>
+                                        </x-table.th>
+                                        <x-table.th column="service" class="hidden min-w-22 sm:table-cell sm:min-w-25" padding="px-3 py-2.5 sm:px-4">Service</x-table.th>
+                                        <x-table.th column="queue" class="hidden min-w-18 md:table-cell md:min-w-25" padding="px-3 py-2.5 md:px-4">Queue</x-table.th>
+                                        <x-table.th column="job" class="min-w-30" padding="px-3 py-2.5 sm:px-4">Job</x-table.th>
+                                        <x-table.th column="failed_at" class="min-w-24 sm:min-w-25" padding="px-3 py-2.5 sm:px-4">Failed at</x-table.th>
+                                    </x-slot:head>
+                                    <template x-if="!retryLoadingJobs && failedJobs.length === 0">
+                                        <tr>
+                                            <td colspan="5" class="p-0" data-column-id="service">
+                                                <x-empty-state
+                                                    title="No failed jobs to show"
+                                                    description="Adjust filters and run Search, or there are no failures in this range."
+                                                    class="py-10 sm:py-12"
+                                                >
+                                                    <x-slot:icon>
+                                                        <x-icons.inbox class="empty-state-icon mx-auto" />
+                                                    </x-slot:icon>
+                                                </x-empty-state>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                    <template x-for="(job, index) in failedJobs" :key="job.uuid">
+                                        <tr
+                                            class="transition-colors hover:bg-muted/30"
+                                            x-bind:class="isFailedJobSelected(job.uuid) ? 'bg-primary/5' : ''"
+                                        >
+                                            <td
+                                                class="px-3 py-2.5 sm:px-4"
+                                                data-column-id="select"
+                                                x-bind:class="job.uuid ? 'cursor-pointer' : ''"
+                                                @click="job.uuid ? toggleFailed(job.uuid, job.service_id, index, $event) : null"
+                                            >
+                                                <template x-if="job.uuid">
+                                                    <div class="pointer-events-none flex justify-center sm:justify-start">
+                                                        <x-checkbox
+                                                            x-bind:checked="isFailedJobSelected(job.uuid)"
+                                                            x-bind:aria-label="'Select job ' + job.uuid"
+                                                        />
+                                                    </div>
+                                                </template>
+                                            </td>
+                                            <td class="hidden max-w-32 truncate px-3 py-2.5 text-sm text-muted-foreground sm:table-cell sm:max-w-44 sm:px-4" data-column-id="service" x-text="job.service_name || '–'" x-bind:title="job.service_name || ''"></td>
+                                            <td class="hidden max-w-24 truncate px-3 py-2.5 font-mono text-xs text-muted-foreground md:table-cell md:max-w-44 md:px-4" data-column-id="queue" x-text="job.queue || '–'"></td>
+                                            <td
+                                                class="max-w-40 px-3 py-2.5 sm:max-w-56 sm:px-4"
+                                                data-column-id="job"
+                                                x-bind:title="(job.name || '') + (job.service_name ? ' · ' + job.service_name : '')"
+                                            >
+                                                <div class="flex min-w-0 flex-col gap-0.5">
+                                                    <span class="truncate text-sm text-foreground" x-text="job.name || '–'"></span>
+                                                    <span
+                                                        class="truncate text-xs text-muted-foreground sm:hidden"
+                                                        x-show="job.service_name"
+                                                        x-text="job.service_name"
+                                                    ></span>
+                                                </div>
+                                            </td>
+                                            <td class="whitespace-nowrap px-3 py-2.5 text-xs text-muted-foreground sm:px-4" data-column-id="failed_at" x-text="job.failed_at_formatted || '–'"></td>
+                                        </tr>
+                                    </template>
+                                </x-table>
+                                </div>
+                            </div>
+
+                            <div class="border-t border-border bg-muted/15 px-3 py-2 sm:px-4" x-show="retryTotal > 0 && !retryLoadingJobs">
+                                <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                                    <p class="shrink-0 text-sm text-muted-foreground" x-text="retryPaginationSummaryLine()"></p>
+                                    <nav
+                                        role="navigation"
+                                        aria-label="Retry modal pagination"
+                                        class="flex flex-wrap items-center gap-1 sm:gap-2"
+                                        x-show="retryLastPage > 1"
+                                    >
+                                        <span
+                                            class="inline-flex cursor-not-allowed items-center justify-center rounded-md px-2 py-1 text-sm text-muted-foreground"
+                                            x-show="retryPage <= 1"
+                                        >Previous</span>
+                                        <a
+                                            href="#"
+                                            class="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                            x-show="retryPage > 1"
+                                            @click.prevent="prevRetryPage()"
+                                        >Previous</a>
+
+                                        <template x-for="(page, idx) in retryPaginationPages()" :key="idx + '-' + String(page)">
+                                            <span class="contents">
+                                                <span
+                                                    class="inline-flex min-w-8 items-center justify-center rounded-md px-2 py-1 text-sm text-muted-foreground"
+                                                    x-show="page === '...'"
+                                                >...</span>
+                                                <span
+                                                    class="inline-flex min-w-8 items-center justify-center rounded-md bg-primary px-2 py-1 text-sm font-medium text-primary-foreground"
+                                                    x-show="page !== '...' && Number(page) === retryPage"
+                                                    aria-current="page"
+                                                    x-text="page"
+                                                ></span>
+                                                <a
+                                                    href="#"
+                                                    class="inline-flex min-w-8 items-center justify-center rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                                    x-show="page !== '...' && Number(page) !== retryPage"
+                                                    @click.prevent="setRetryPage(page)"
+                                                    x-text="page"
+                                                ></a>
+                                            </span>
+                                        </template>
+
+                                        <span
+                                            class="inline-flex cursor-not-allowed items-center justify-center rounded-md px-2 py-1 text-sm text-muted-foreground"
+                                            x-show="retryPage >= retryLastPage"
+                                        >Next</span>
+                                        <a
+                                            href="#"
+                                            class="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                            x-show="retryPage < retryLastPage"
+                                            @click.prevent="nextRetryPage()"
+                                        >Next</a>
+                                    </nav>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <x-slot:footer>
+                        <div class="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <p class="hidden text-xs text-muted-foreground sm:block sm:text-left">
+                                Tip: Shift+click to select a range across pages.
+                            </p>
+                            <div class="flex w-full min-w-0 flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:justify-end">
+                                <x-button type="button" variant="ghost" class="w-full sm:w-auto" @click="closeRetryModal()">
+                                    Cancel
+                                </x-button>
+                                <x-button
+                                    type="button"
+                                    class="w-full gap-1.5 sm:w-auto"
+                                    x-bind:disabled="selectedFailedJobs.length === 0 || retrying"
+                                    @click="retrySelected()"
+                                >
+                                    <span x-show="!retrying" class="inline-flex items-center justify-center gap-1.5">
+                                        <x-icons.arrow-path class="size-4 shrink-0" />
+                                        <span class="sm:hidden" x-text="'Retry (' + selectedFailedJobs.length + ')'"></span>
+                                        <span class="hidden sm:inline" x-text="'Retry selected (' + selectedFailedJobs.length + ')'"></span>
+                                    </span>
+                                    <span x-cloak x-show="retrying" style="display: none" class="inline-flex items-center gap-1.5">
+                                        <x-loader class="size-4" />
+                                        Retrying...
+                                    </span>
+                                </x-button>
+                            </div>
+                        </div>
+                    </x-slot:footer>
+                </x-confirm-modal>
+            </div>
+        </template>
+    </div>
+@endsection

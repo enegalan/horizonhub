@@ -1,0 +1,130 @@
+@extends('layouts.app')
+
+@section('content')
+    <div
+        id="horizon-dashboard"
+        class="space-y-6"
+    >
+        <div class="card overflow-hidden">
+            <x-page-hero
+                eyebrow="Overview"
+                title="Dashboard"
+                description="Live health and workload across your connected Horizon services. Filter by tag or service to focus on a subset."
+            />
+
+            <div class="bg-muted/15 px-5 py-4 sm:px-6">
+                <form method="GET" action="{{ route('horizon.index') }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="_top" data-service-tag-filter="1" data-service-tag-filter-manual="1">
+                    <x-service-tag-filter
+                        :all-tags="$allTags ?? []"
+                        :selected-tags="$selectedTags ?? []"
+                        :show-service-multiselect="true"
+                        :services="$services ?? collect()"
+                        :service-ids="$selectedServiceIds ?? []"
+                        service-multiselect-id="dashboard-index-services"
+                        service-multiselect-label="Services"
+                    />
+                    <x-button type="submit" class="h-9 w-full shrink-0 text-sm sm:w-auto">
+                        Filter
+                    </x-button>
+                </form>
+            </div>
+        </div>
+
+        <x-kpi-grid gradient>
+            @include('partials.kpi-throughput-triad', [
+                'idPrefix' => 'dashboard',
+                'defer' => $defer ?? false,
+                'jobsPastMinute' => $jobsPastMinute ?? '—',
+                'jobsPastHour' => $jobsPastHour ?? '—',
+                'failedPastSevenDays' => $failedPastSevenDays ?? '—',
+                'failedLabel' => 'Failed jobs (7 days)',
+            ])
+            <x-stat-card label="Services online" tone="violet" class="sm:col-span-2 lg:col-span-1">
+                <div id="dashboard-services-kpi-inner" class="flex min-h-10 items-center gap-2">
+                    @if(!empty($defer))
+                        <x-skeleton.text class="size-4 shrink-0 rounded-full" />
+                        <x-skeleton.text class="h-8 w-20" />
+                    @else
+                        @include('pages.dashboard.partials.index.kpi-services-online')
+                    @endif
+                </div>
+            </x-stat-card>
+        </x-kpi-grid>
+
+        <div class="card overflow-hidden">
+            <div class="border-b border-border px-5 py-5 sm:px-6">
+                <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+                    <h3 class="text-section-title text-foreground">Services</h3>
+                    <a href="{{ route('horizon.services.index') }}" class="link text-sm" data-turbo-action="replace">Manage services</a>
+                </div>
+                <div id="dashboard-service-health-grid" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    @if(!empty($defer))
+                        @for ($i = 0; $i < 6; $i++)
+                            <div class="card overflow-hidden p-4">
+                                <div class="skeleton h-1 w-full rounded-full" style="--skeleton-delay: {{ $i * 60 }}ms"></div>
+                                <div class="mt-3 flex items-start gap-3">
+                                    <div class="min-w-0 flex-1 space-y-2">
+                                        <div class="skeleton h-4 max-w-55" style="--skeleton-delay: {{ ($i * 60) + 80 }}ms"></div>
+                                        <div class="skeleton h-3 w-1/2" style="--skeleton-delay: {{ ($i * 60) + 160 }}ms"></div>
+                                    </div>
+                                    <div class="skeleton size-4 shrink-0" style="--skeleton-delay: {{ ($i * 60) + 120 }}ms"></div>
+                                </div>
+                            </div>
+                        @endfor
+                    @else
+                        @include('pages.dashboard.partials.index.service-health-grid', ['services' => $services ?? null])
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-2">
+            <div class="card flex min-w-0 flex-col overflow-hidden">
+                <div class="flex items-center justify-between bg-muted/20 px-5 py-3 sm:px-6">
+                    <h3 class="text-section-title text-foreground">Recent alerts</h3>
+                    <a href="{{ route('horizon.alerts.index') }}" class="link text-xs" data-turbo-action="replace">View all</a>
+                </div>
+                <x-table
+                    id="horizon-dashboard-alerts"
+                    stream-patch-children
+                >
+                    <x-slot:head>
+                        <x-table.th column="name" class="min-w-30">Alert</x-table.th>
+                        <x-table.th column="service" class="min-w-25">Service</x-table.th>
+                        <x-table.th column="status" class="min-w-20">Status</x-table.th>
+                        <x-table.th column="sent" class="min-w-25">Sent</x-table.th>
+                    </x-slot:head>
+                    @if(!empty($defer))
+                        <x-skeleton.table-rows rows="5" columns="4" />
+                    @else
+                        @include('pages.dashboard.partials.index.recent-alerts-tbody', ['recentAlertLogs' => $recentAlertLogs ?? null])
+                    @endif
+                </x-table>
+            </div>
+
+            <div class="card flex min-w-0 flex-col overflow-hidden">
+                <div class="flex items-center justify-between bg-muted/20 px-5 py-3 sm:px-6">
+                    <h3 class="text-section-title text-foreground">Current workload</h3>
+                    <a href="{{ route('horizon.queues.index') }}" class="link text-xs" data-turbo-action="replace">View queues</a>
+                </div>
+                <x-table
+                    id="horizon-dashboard-workload"
+                    stream-patch-children
+                >
+                    <x-slot:head>
+                        <x-table.th column="service" class="min-w-30">Service</x-table.th>
+                        <x-table.th column="queue" class="min-w-25">Queue</x-table.th>
+                        <x-table.th column="jobs">Jobs</x-table.th>
+                        <x-table.th column="processes">Processes</x-table.th>
+                        <x-table.th column="wait">Wait</x-table.th>
+                    </x-slot:head>
+                    @if(!empty($defer))
+                        <x-skeleton.table-rows rows="5" columns="5" />
+                    @else
+                        @include('pages.dashboard.partials.index.workload-summary-tbody', ['workloadRows' => $workloadRows ?? []])
+                    @endif
+                </x-table>
+            </div>
+        </div>
+    </div>
+@endsection

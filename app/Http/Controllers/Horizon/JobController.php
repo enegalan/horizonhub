@@ -20,7 +20,7 @@ class JobController extends Controller
      */
     public function index(Request $request): View
     {
-        return \view('horizon.jobs.index', ServiceFilterService::indexViewData($request, [
+        return \view('pages.jobs.index', ServiceFilterService::indexViewData($request, [
             'jobsProcessing' => [],
             'jobsProcessed' => [],
             'jobsFailed' => [],
@@ -39,7 +39,7 @@ class JobController extends Controller
             return $this->redirectToRoute('horizon.jobs.index', FlashStatus::error('Job not found or no longer available.'));
         }
 
-        return \view('horizon.jobs.show', [
+        return \view('pages.jobs.show', [
             'job' => (object) [
                 'uuid' => $job,
                 'name' => null,

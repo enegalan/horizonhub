@@ -39,7 +39,7 @@
         </a>
     </div>
 
-    <aside class="aside-drawer w-[inherit] fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card transition-[transform,width] duration-[380ms] ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none lg:inset-auto lg:h-full lg:min-h-0"
+    <aside class="aside-drawer w-[inherit] fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card transition-[transform,width] duration-380 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none lg:inset-auto lg:h-full lg:min-h-0"
         :class="!isLg && !drawerOpen ? '-translate-x-full pointer-events-none' : 'translate-x-0'"
         style="will-change: transform;">
         <div class="aside-drawer-header flex h-12 min-h-12 shrink-0 items-center gap-8 border-b border-border justify-between px-5">

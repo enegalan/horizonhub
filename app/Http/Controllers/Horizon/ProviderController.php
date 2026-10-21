@@ -18,7 +18,7 @@ class ProviderController extends Controller
      */
     public function create(): View
     {
-        return \view('horizon.providers.form', [
+        return \view('pages.providers.form', [
             'provider' => new NotificationProvider,
             'header' => 'New provider',
         ]);
@@ -39,7 +39,7 @@ class ProviderController extends Controller
      */
     public function edit(NotificationProvider $provider): View
     {
-        return \view('horizon.providers.form', [
+        return \view('pages.providers.form', [
             'provider' => $provider,
             'header' => 'Edit provider',
         ]);
@@ -50,7 +50,7 @@ class ProviderController extends Controller
      */
     public function index(Request $request): View
     {
-        return \view('horizon.providers.index', [
+        return \view('pages.providers.index', [
             'providers' => collect(),
             'defer' => true,
             'search' => StringFormatter::trim($request->query('search')),

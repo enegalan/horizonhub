@@ -40,7 +40,7 @@
     role="{{ $variantConfig['role'] }}"
 >
     <x-dynamic-component :component="$variantConfig['icon']" @class(['size-5 shrink-0', $variantConfig['iconClass']]) />
-    <p class="min-w-0 flex-1 break-words">{{ $message }}</p>
+    <p class="min-w-0 flex-1 wrap-break-word">{{ $message }}</p>
     <button
         type="button"
         class="btn-ghost -mr-1 inline-flex size-8 shrink-0 items-center justify-center rounded-md {{ $variantConfig['buttonClass'] }}"

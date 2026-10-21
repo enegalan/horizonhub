@@ -10,7 +10,7 @@
     $blurSize = $compact ? 'size-36' : 'size-40';
 @endphp
 
-<div {{ $attributes->class(['relative border-b border-border bg-gradient-to-br from-primary/10 via-card to-card', $paddingClass]) }}>
+<div {{ $attributes->class(['relative border-b border-border bg-linear-to-br from-primary/10 via-card to-card', $paddingClass]) }}>
     <div class="pointer-events-none absolute -right-10 -top-10 {{ $blurSize }} rounded-full bg-primary/10 blur-3xl" aria-hidden="true"></div>
     <div class="relative flex flex-wrap items-start justify-between gap-4">
         <div class="min-w-0 space-y-2">

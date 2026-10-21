@@ -55,15 +55,15 @@ enum JobSection: string
     {
         return match ($this) {
             self::Processing => [
-                ['column' => 'delayed_until', 'label' => 'Delayed until', 'class' => 'min-w-[100px]'],
+                ['column' => 'delayed_until', 'label' => 'Delayed until', 'class' => 'min-w-25'],
             ],
             self::Processed => [
-                ['column' => 'processed', 'label' => 'Processed', 'class' => 'min-w-[100px]'],
-                ['column' => 'runtime', 'label' => 'Runtime', 'class' => 'min-w-[100px]'],
+                ['column' => 'processed', 'label' => 'Processed', 'class' => 'min-w-25'],
+                ['column' => 'runtime', 'label' => 'Runtime', 'class' => 'min-w-25'],
             ],
             self::Failed => [
-                ['column' => 'failed_at', 'label' => 'Failed at', 'class' => 'min-w-[100px]'],
-                ['column' => 'runtime', 'label' => 'Runtime', 'class' => 'min-w-[100px]'],
+                ['column' => 'failed_at', 'label' => 'Failed at', 'class' => 'min-w-25'],
+                ['column' => 'runtime', 'label' => 'Runtime', 'class' => 'min-w-25'],
             ],
         };
     }

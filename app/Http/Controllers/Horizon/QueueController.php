@@ -15,7 +15,7 @@ class QueueController extends Controller
      */
     public function index(Request $request): View
     {
-        return \view('horizon.queues.index', ServiceFilterService::indexViewData($request, [
+        return \view('pages.queues.index', ServiceFilterService::indexViewData($request, [
             'queueCount' => 0,
             'queues' => \collect(),
             'services' => Service::enabledNamed(),

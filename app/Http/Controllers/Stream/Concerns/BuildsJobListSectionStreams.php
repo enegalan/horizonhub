@@ -21,7 +21,7 @@ trait BuildsJobListSectionStreams
         foreach (JobSection::cases() as $section) {
             $paginator = $jobsIndex[$section->value];
             $bodyKey = "$resizablePrefix-{$section->value}";
-            $operations[] = ['update', "tbody-$bodyKey", \view('horizon.jobs.partials.index.list-tbody-rows', [
+            $operations[] = ['update', "tbody-$bodyKey", \view('pages.jobs.partials.index.list-tbody-rows', [
                 'section' => $section,
                 'paginator' => $paginator,
                 'showServiceColumn' => $showServiceColumn,
@@ -29,7 +29,7 @@ trait BuildsJobListSectionStreams
             ])->render(), 'morph'];
             $countSuffix = $paginator instanceof SearchResultsPaginator && $paginator->resultsMayBeTruncated() ? '+' : '';
             $operations[] = ['update', "job-count-$bodyKey", \e((string) $paginator->total() . $countSuffix), null];
-            $operations[] = ['update', "job-pagination-$bodyKey", \view('horizon.jobs.partials.index.list-section-pagination', [
+            $operations[] = ['update', "job-pagination-$bodyKey", \view('pages.jobs.partials.index.list-section-pagination', [
                 'paginator' => $paginator,
             ])->render(), 'morph'];
         }

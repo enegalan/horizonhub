@@ -11,7 +11,7 @@ class AlertPatternListPartialTest extends TestCase
         $view = $this->withViewErrors([
             'job_patterns.0' => 'The job_patterns.0 field must not be greater than 255 characters.',
             'job_patterns.1' => 'The job_patterns.1 field must not be greater than 255 characters.',
-        ])->view('horizon.alerts.partials.form.pattern-list', [
+        ])->view('pages.alerts.partials.form.pattern-list', [
             'sectionTitle' => 'Job patterns',
             'errorKey' => 'job_patterns',
             'hint' => 'Match job class substrings.',

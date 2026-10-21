@@ -16,12 +16,12 @@ trait BuildsQueueStreams
         $serviceFilterIds = ServiceFilterService::resolveServiceIdsFromQuery($query);
         $queues = $this->metrics->buildQueuesCollectionForServiceFilter($serviceFilterIds);
 
-        $statsHtml = \view('horizon.queues.partials.index.stats', [
+        $statsHtml = \view('pages.queues.partials.index.stats', [
             'queueCount' => $queues->count(),
             'totalJobs' => (int) $queues->sum(static fn ($r): int => (int) ($r->job_count ?? 0)),
         ])->render();
 
-        $tbodyHtml = \view('horizon.queues.partials.index.tbody', ['queues' => $queues])->render();
+        $tbodyHtml = \view('pages.queues.partials.index.tbody', ['queues' => $queues])->render();
 
         return $this->buildStreams([
             ['update', 'horizon-queue-stats', $statsHtml, 'morph'],

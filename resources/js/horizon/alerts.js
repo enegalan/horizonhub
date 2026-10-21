@@ -17,7 +17,7 @@ const ALERT_DETAIL_CHARTS = [
  */
 export function renderAlertDetailCharts() {
     if (typeof window.echarts === 'undefined') return;
-    var data = parseJsonFromElement('alert-detail-chart-data-json');
+    var data = parseJsonFromElement('alert-detail-chart-data');
     var ready = data && typeof data === 'object' && !Array.isArray(data) && data.chart24h && data.chart24h.xAxis && data.chart24h.xAxis.length;
     var loaderPrefix = 'alert-detail-loader-chart-';
     var chartPrefix = 'alert-detail-chart-';

@@ -31,13 +31,13 @@ trait BuildsJobStreams
         $jobView = $this->private__buildJobShowViewData($resolved['service'], $resolved['data']);
 
         return $this->buildStreams([
-            ['update', 'horizon-job-detail-actions-stream', \view('horizon.jobs.partials.show.actions', ['job' => $jobView])->render(), null],
-            ['update', 'horizon-job-detail-meta', \view('horizon.jobs.partials.show.meta', ['job' => $jobView])->render(), null],
-            ['update', 'horizon-job-detail-exception', \view('horizon.jobs.partials.show.exception', ['job' => $jobView])->render(), null],
-            ['update', 'horizon-job-detail-context', \view('horizon.jobs.partials.show.context', ['job' => $jobView])->render(), null],
-            ['update', 'horizon-job-detail-retry-history', \view('horizon.jobs.partials.show.retry-history', ['job' => $jobView])->render(), null],
-            ['update', 'horizon-job-detail-data', \view('horizon.jobs.partials.show.data', ['job' => $jobView])->render(), null],
-            ['update', 'horizon-job-detail-payload', \view('horizon.jobs.partials.show.payload', ['job' => $jobView])->render(), null],
+            ['update', 'horizon-job-detail-actions-stream', \view('pages.jobs.partials.show.actions', ['job' => $jobView])->render(), null],
+            ['update', 'horizon-job-detail-meta', \view('pages.jobs.partials.show.meta', ['job' => $jobView])->render(), null],
+            ['update', 'horizon-job-detail-exception', \view('pages.jobs.partials.show.exception', ['job' => $jobView])->render(), null],
+            ['update', 'horizon-job-detail-context', \view('pages.jobs.partials.show.context', ['job' => $jobView])->render(), null],
+            ['update', 'horizon-job-detail-retry-history', \view('pages.jobs.partials.show.retry-history', ['job' => $jobView])->render(), null],
+            ['update', 'horizon-job-detail-data', \view('pages.jobs.partials.show.data', ['job' => $jobView])->render(), null],
+            ['update', 'horizon-job-detail-payload', \view('pages.jobs.partials.show.payload', ['job' => $jobView])->render(), null],
         ]);
     }
 
