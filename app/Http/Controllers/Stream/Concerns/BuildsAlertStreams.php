@@ -48,8 +48,8 @@ trait BuildsAlertStreams
         }
 
         return $this->buildStreams([
-            ['update', 'horizon-alert-stats', \view('horizon.alerts.partials.index.stats', ['alertStats' => ['total' => $alerts->count(), 'enabled' => $alerts->where('enabled')->count(), 'disabled' => $alerts->where('enabled', false)->count()]])->render(), 'morph'],
-            ['update', 'tbody-horizon-alerts-list', \view('horizon.alerts.partials.index.tbody', ['alerts' => $alerts, 'serviceLabelsByAlertId' => $labelsByAlertId])->render(), 'morph'],
+            ['update', 'horizon-alert-stats', \view('pages.alerts.partials.index.stats', ['alertStats' => ['total' => $alerts->count(), 'enabled' => $alerts->where('enabled')->count(), 'disabled' => $alerts->where('enabled', false)->count()]])->render(), 'morph'],
+            ['update', 'tbody-horizon-alerts-list', \view('pages.alerts.partials.index.tbody', ['alerts' => $alerts, 'serviceLabelsByAlertId' => $labelsByAlertId])->render(), 'morph'],
         ]);
     }
 
@@ -66,17 +66,15 @@ trait BuildsAlertStreams
             'chart30d' => $this->private__buildChart($alert, 30),
         ];
 
-        $statsHtml = \view('horizon.alerts.partials.show.stats', [
+        $statsHtml = \view('pages.alerts.partials.show.stats', [
             'chartData' => $chartData,
         ])->render();
 
-        $chartDataHtml = \view('components.horizon.alert-detail-chart-data', [
-            'chartData' => $chartData,
-        ])->render();
+        $chartJson = \json_encode($chartData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         return $this->buildStreams([
             ['update', 'alert-detail-stats', $statsHtml, 'morph'],
-            ['replace', 'alert-detail-chart-data', $chartDataHtml, null],
+            ['replace', 'alert-detail-chart-data', "<script type='application/json' id='alert-detail-chart-data'>$chartJson</script>", null],
         ]);
     }
 

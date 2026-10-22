@@ -15,7 +15,7 @@ class DashboardController extends Controller
      */
     public function index(Request $request): View
     {
-        return \view('horizon.dashboard.index', ServiceFilterService::indexViewData($request, [
+        return \view('pages.dashboard.index', ServiceFilterService::indexViewData($request, [
             'header' => 'Dashboard',
             'services' => Service::enabledNamed(),
         ]));

@@ -331,7 +331,7 @@
         @apply text-sm font-medium text-foreground mb-0.5;
     }
     .empty-state-description {
-        @apply text-xs text-muted-foreground mb-3 max-w-[280px];
+        @apply text-xs text-muted-foreground mb-3 max-w-70;
     }
     .horizon-empty-state-pinned {
         @apply sticky left-0;
@@ -404,7 +404,7 @@
 }
 
 .horizon-drag-image {
-    @apply absolute top-0 border-1 border-border;
+    @apply absolute top-0 border border-border;
     left: -9999px;
     padding: 8px 4px;
     background: hsl(var(--card) / 0.92);
@@ -429,10 +429,10 @@
     @apply hover:border-amber-500/45 dark:hover:border-amber-400/50;
 }
 .alert-card--enabled [data-alert-enabled-accent="1"] {
-    @apply bg-gradient-to-r from-emerald-500/80 via-emerald-400/60 to-transparent;
+    @apply bg-linear-to-r from-emerald-500/80 via-emerald-400/60 to-transparent;
 }
 .alert-card--disabled [data-alert-enabled-accent="1"] {
-    @apply bg-gradient-to-r from-amber-500/80 via-amber-400/60 to-transparent;
+    @apply bg-linear-to-r from-amber-500/80 via-amber-400/60 to-transparent;
 }
 .alert-card--enabled [data-alert-enabled-icon="1"] {
     @apply border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300;
@@ -461,16 +461,16 @@
 }
 
 .service-card--disabled [data-service-enabled-accent="1"] {
-    @apply bg-gradient-to-r from-gray-500/80 via-gray-400/60 to-transparent;
+    @apply bg-linear-to-r from-gray-500/80 via-gray-400/60 to-transparent;
 }
 .service-card--enabled[data-service-connectivity="online"] [data-service-enabled-accent="1"] {
-    @apply bg-gradient-to-r from-emerald-500/80 via-emerald-400/60 to-transparent;
+    @apply bg-linear-to-r from-emerald-500/80 via-emerald-400/60 to-transparent;
 }
 .service-card--enabled[data-service-connectivity="stand_by"] [data-service-enabled-accent="1"] {
-    @apply bg-gradient-to-r from-amber-500/80 via-amber-400/60 to-transparent;
+    @apply bg-linear-to-r from-amber-500/80 via-amber-400/60 to-transparent;
 }
 .service-card--enabled:not([data-service-connectivity="online"]):not([data-service-connectivity="stand_by"]) [data-service-enabled-accent="1"] {
-    @apply bg-gradient-to-r from-red-500/80 via-red-400/60 to-transparent;
+    @apply bg-linear-to-r from-red-500/80 via-red-400/60 to-transparent;
 }
 
 .service-card--disabled [data-service-enabled-icon="1"] {
@@ -537,7 +537,7 @@ td[data-column-id="actions"] > div {
 }
 
 .form-drawer-shell {
-    @apply pointer-events-none fixed inset-0 z-[60] flex justify-end;
+    @apply pointer-events-none fixed inset-0 z-60 flex justify-end;
     visibility: hidden;
 }
 .form-drawer-shell.form-drawer-shell--open,

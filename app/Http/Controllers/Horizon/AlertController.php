@@ -51,7 +51,7 @@ class AlertController extends Controller
      */
     public function create(): View
     {
-        return \view('horizon.alerts.form', $this->private__buildFormViewVariables(new Alert));
+        return \view('pages.alerts.form', $this->private__buildFormViewVariables(new Alert));
     }
 
     /**
@@ -69,7 +69,7 @@ class AlertController extends Controller
      */
     public function edit(Alert $alert): View
     {
-        return \view('horizon.alerts.form', $this->private__buildFormViewVariables($alert));
+        return \view('pages.alerts.form', $this->private__buildFormViewVariables($alert));
     }
 
     /**
@@ -101,7 +101,7 @@ class AlertController extends Controller
      */
     public function index(Request $request): View
     {
-        return \view('horizon.alerts.index', [
+        return \view('pages.alerts.index', [
             'alerts' => collect(),
             'defer' => true,
             'evaluateAllAlertsVisible' => Alert::enabled()->exists(),
@@ -161,7 +161,7 @@ class AlertController extends Controller
                 ->find($selectedLogId);
         }
 
-        return \view('horizon.alerts.show', [
+        return \view('pages.alerts.show', [
             'alert' => $alert,
             'alertName' => $alert->name,
             'logs' => $logs,

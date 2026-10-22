@@ -41,15 +41,15 @@ trait BuildsDashboardStreams
             ['update', 'dashboard-value-jobs-minute', e($metrics['jobsPastMinute'] ?? '—'), null],
             ['update', 'dashboard-value-jobs-hour', e($metrics['jobsPastHour'] ?? '—'), null],
             ['update', 'dashboard-value-failed-seven', e($metrics['failedPastSevenDays'] ?? '—'), null],
-            ['update', 'dashboard-services-kpi-inner', \view('horizon.dashboard.partials.index.kpi-services-online', [
+            ['update', 'dashboard-services-kpi-inner', \view('pages.dashboard.partials.index.kpi-services-online', [
                 'servicesCount' => $enabledServices->count(),
                 'offlineCount' => $enabledServices->where('status', ServiceStatus::Offline)->count(),
                 'standByCount' => $enabledServices->where('status', ServiceStatus::StandBy)->count(),
                 'onlineCount' => $enabledServices->where('status', ServiceStatus::Online)->count(),
             ])->render(), 'morph'],
-            ['update', 'dashboard-service-health-grid', \view('horizon.dashboard.partials.index.service-health-grid', ['services' => $services])->render(), 'morph'],
-            ['update', 'tbody-horizon-dashboard-alerts', \view('horizon.dashboard.partials.index.recent-alerts-tbody', ['recentAlertLogs' => $recentAlertLogs])->render(), 'morph'],
-            ['update', 'tbody-horizon-dashboard-workload', \view('horizon.dashboard.partials.index.workload-summary-tbody', ['workloadRows' => $metrics['workloadRows']])->render(), 'morph'],
+            ['update', 'dashboard-service-health-grid', \view('pages.dashboard.partials.index.service-health-grid', ['services' => $services])->render(), 'morph'],
+            ['update', 'tbody-horizon-dashboard-alerts', \view('pages.dashboard.partials.index.recent-alerts-tbody', ['recentAlertLogs' => $recentAlertLogs])->render(), 'morph'],
+            ['update', 'tbody-horizon-dashboard-workload', \view('pages.dashboard.partials.index.workload-summary-tbody', ['workloadRows' => $metrics['workloadRows']])->render(), 'morph'],
         ]);
     }
 }

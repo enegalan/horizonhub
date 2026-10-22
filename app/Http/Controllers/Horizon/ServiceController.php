@@ -25,7 +25,7 @@ class ServiceController extends Controller
      */
     public function create(): View
     {
-        return \view('horizon.services.form', [
+        return \view('pages.services.form', [
             'service' => new Service,
             'header' => 'Register service',
             'existingTags' => Service::allTags(),
@@ -48,7 +48,7 @@ class ServiceController extends Controller
      */
     public function edit(Service $service): View
     {
-        return \view('horizon.services.form', [
+        return \view('pages.services.form', [
             'service' => $service,
             'header' => 'Edit service',
             'existingTags' => Service::allTags(),
@@ -60,7 +60,7 @@ class ServiceController extends Controller
      */
     public function index(Request $request): View
     {
-        return \view('horizon.services.index', ServiceFilterService::indexViewData($request, [
+        return \view('pages.services.index', ServiceFilterService::indexViewData($request, [
             'services' => collect(),
             'header' => 'Services',
         ]));
@@ -71,7 +71,7 @@ class ServiceController extends Controller
      */
     public function show(Request $request, Service $service): View
     {
-        return \view('horizon.services.show', [
+        return \view('pages.services.show', [
             'service' => $service,
             'header' => $service->name,
             'jobsPastMinute' => 0,

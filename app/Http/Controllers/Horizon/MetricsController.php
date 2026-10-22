@@ -15,7 +15,7 @@ class MetricsController extends Controller
      */
     public function index(Request $request): View
     {
-        return \view('horizon.metrics.index', ServiceFilterService::indexViewData($request, [
+        return \view('pages.metrics.index', ServiceFilterService::indexViewData($request, [
             'services' => Service::enabledNamed(['id', 'name']),
             'header' => 'Metrics',
             'metricsChartData' => [],

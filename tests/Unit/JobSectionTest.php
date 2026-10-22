@@ -10,20 +10,20 @@ class JobSectionTest extends TestCase
     public function test_columns_match_the_previous_hardcoded_table_headers(): void
     {
         $this->assertSame(
-            [['column' => 'delayed_until', 'label' => 'Delayed until', 'class' => 'min-w-[100px]']],
+            [['column' => 'delayed_until', 'label' => 'Delayed until', 'class' => 'min-w-25']],
             JobSection::Processing->columns(),
         );
         $this->assertSame(
             [
-                ['column' => 'processed', 'label' => 'Processed', 'class' => 'min-w-[100px]'],
-                ['column' => 'runtime', 'label' => 'Runtime', 'class' => 'min-w-[100px]'],
+                ['column' => 'processed', 'label' => 'Processed', 'class' => 'min-w-25'],
+                ['column' => 'runtime', 'label' => 'Runtime', 'class' => 'min-w-25'],
             ],
             JobSection::Processed->columns(),
         );
         $this->assertSame(
             [
-                ['column' => 'failed_at', 'label' => 'Failed at', 'class' => 'min-w-[100px]'],
-                ['column' => 'runtime', 'label' => 'Runtime', 'class' => 'min-w-[100px]'],
+                ['column' => 'failed_at', 'label' => 'Failed at', 'class' => 'min-w-25'],
+                ['column' => 'runtime', 'label' => 'Runtime', 'class' => 'min-w-25'],
             ],
             JobSection::Failed->columns(),
         );

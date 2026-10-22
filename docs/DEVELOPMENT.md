@@ -88,7 +88,7 @@ Doubles, environment details, and expectations follow [CONVENTIONS.md — Testin
 
 1. Add a migration (see [CONVENTIONS.md — Migrations](CONVENTIONS.md#migrations)) and/or a Form Request under `app/Http/Requests/Horizon/`.
 2. Put business logic in a service (`app/Services/`) or helper (`app/Support/`) and keep the controller thin, per [CONVENTIONS.md](CONVENTIONS.md).
-3. Add a Blade partial under `resources/views/horizon/` and wire any Alpine/JS module under `resources/js/`.
+3. Add a Blade partial under `resources/views/pages/` (shared fragments under `resources/views/partials/`) and wire any Alpine/JS module under `resources/js/`.
 4. For live updates, mirror the stream route in `routes/streams.php` and reuse/extend a `Builds*Streams` trait (see [ARCHITECTURE.md — Stream (SSE) path](ARCHITECTURE.md#stream-sse-path)).
 5. Add unit and feature tests, then run the verification checks above.
 6. Document user-facing changes in [GUIDE.md](GUIDE.md) and record notable trade-offs as ADRs under `docs/decisions/`.

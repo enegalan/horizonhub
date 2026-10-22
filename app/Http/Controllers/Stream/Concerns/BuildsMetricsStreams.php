@@ -15,7 +15,7 @@ trait BuildsMetricsStreams
     {
         $d = $this->metrics->buildMetricsDashboardData(ServiceFilterService::resolveServiceIdsFromQuery($query));
 
-        $failureRateHtml = \view('horizon.metrics.partials.index.failure-rate-value', [
+        $failureRateHtml = \view('pages.metrics.partials.index.failure-rate-value', [
             'failureRate24h' => $d['failureRate24h'],
         ])->render();
 
@@ -29,8 +29,8 @@ trait BuildsMetricsStreams
             ['update', 'metrics-supervisors-summary', e($d['supervisorsSummary']), null],
             ['update', 'metrics-value-failure-rate', $failureRateHtml, null],
             ['replace', 'metrics-chart-data', "<script type='application/json' id='metrics-chart-data'>$chartJson</script>", null],
-            ['update', 'tbody-horizon-metrics-queues', \view('horizon.metrics.partials.index.workload-tbody', ['workloadRows' => $d['workloadRows']])->render(), 'morph'],
-            ['update', 'tbody-horizon-metrics-supervisors', \view('horizon.metrics.partials.index.supervisors-tbody', ['supervisorsRows' => $d['supervisorsRows']])->render(), 'morph'],
+            ['update', 'tbody-horizon-metrics-queues', \view('pages.metrics.partials.index.workload-tbody', ['workloadRows' => $d['workloadRows']])->render(), 'morph'],
+            ['update', 'tbody-horizon-metrics-supervisors', \view('pages.metrics.partials.index.supervisors-tbody', ['supervisorsRows' => $d['supervisorsRows']])->render(), 'morph'],
         ]);
     }
 }

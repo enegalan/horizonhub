@@ -259,7 +259,7 @@
         aria-haspopup="listbox"
         @class([
             'btn-ghost flex h-9 w-full max-w-full items-center justify-between gap-1 overflow-hidden whitespace-nowrap rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground',
-            'min-w-[8rem]' => $multiple,
+            'min-w-32' => $multiple,
         ])>
         <span x-text="selectedLabel" :title="selectedLabel" class="min-w-0 flex-1 truncate text-left"></span>
         <x-icons.chevron-down class="h-4 w-4 shrink-0 opacity-50" />
@@ -276,7 +276,7 @@
             x-transition:leave-start="opacity-100 scale-100"
             x-transition:leave-end="opacity-0 scale-95"
             x-bind:style="{ top: anchor.top === 'auto' ? 'auto' : anchor.top + 'px', bottom: anchor.bottom === 'auto' ? 'auto' : anchor.bottom + 'px', left: anchor.left + 'px', width: anchor.width + 'px', maxHeight: anchor.maxHeight + 'px' }"
-            class="fixed z-[70] flex max-w-[min(24rem,calc(100vw_-_2rem))] flex-col overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md"
+            class="fixed z-70 flex max-w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md"
             role="listbox">
         <div x-show="searchable && dataOptions.length > 0" class="shrink-0 border-b border-border p-2" @click.stop>
             <input
@@ -305,7 +305,7 @@
                 x-show="dataOptions.length > 0"
                 @click="choose(opt)"
                 :class="isSelected(opt) ? 'text-accent-foreground' : ''"
-                class="btn-ghost relative flex w-full cursor-default select-none items-center justify-start rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                class="btn-ghost relative flex w-full cursor-default select-none items-center justify-start rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50"
                 role="option" no-ring>
                 <span :title="opt.label" class="min-w-0 flex-1 truncate text-left" x-text="opt.label"></span>
                 <span x-show="isSelected(opt)" class="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
