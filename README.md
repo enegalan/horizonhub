@@ -1,20 +1,14 @@
-<p align="center">
-  <img src="art/logo.png" width="360" alt="Horizon Hub" />
-</p>
+<img src="art/logo.png" width="360" alt="Horizon Hub" />
 
-<p align="center">
-  <a href="https://github.com/enegalan/horizonhub/actions/workflows/ci.yml"><img src="https://github.com/enegalan/horizonhub/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
-  <a href="https://github.com/enegalan/horizonhub/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT" /></a>
-  <a href="https://hub.docker.com/r/enegalan/horizonhub"><img src="https://img.shields.io/docker/pulls/enegalan/horizonhub?logo=docker&logoColor=white" alt="Docker pulls" /></a>
-</p>
+One dashboard to monitor multiple Laravel Horizon instances across all your Laravel apps. Track jobs, queues, failures, and workers in one place — and get alerts before users notice.
 
-# Introduction
+![CI status](https://github.com/enegalan/horizonhub/actions/workflows/ci.yml/badge.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Docker pulls](https://img.shields.io/docker/pulls/enegalan/horizonhub?logo=docker&logoColor=white) ![GitHub stars](https://img.shields.io/github/stars/enegalan/horizonhub?style=social)
 
-Centralized dashboard for monitoring Laravel Horizon jobs across multiple services. Provides real-time metrics, job management, and alerting.
+**[Quick start](#quick-start-recommended-mysql--redis)** · **[Why Horizon Hub?](COMPARISONS.md)**
 
-<p align="center">
-  <img src="art/dashboard.png" width="750" alt="Horizon Hub Dashboard page" />
-</p>
+<img src="art/dashboard.png" width="750" alt="Horizon Hub Dashboard page" />
+
+> Running more than one Laravel Horizon instance? Stop opening five tabs to track failing jobs.
 
 ## Features
 
@@ -80,6 +74,14 @@ Formatting (Laravel Pint):
 ```bash
 ./vendor/bin/pint
 ```
+
+## Like what you see?
+
+If Horizon Hub helps you keep an eye on all your Laravel Horizon queues in one place, consider giving it a [star on GitHub](https://github.com/enegalan/horizonhub). It really helps other Laravel teams find it!
+
+## Contributing
+
+Contributions are welcome! See the [contribution guide](docs/CONVENTIONS.md) and open issues or pull requests.
 
 ## License
 
