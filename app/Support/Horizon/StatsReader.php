@@ -2,6 +2,8 @@
 
 namespace App\Support\Horizon;
 
+use App\Support\NumberFormatter;
+
 final class StatsReader
 {
     /**
@@ -11,7 +13,7 @@ final class StatsReader
      */
     public static function failedJobs(?array $data): int
     {
-        return isset($data['failedJobs']) ? (int) $data['failedJobs'] : 0;
+        return NumberFormatter::nonNegativeInt($data['failedJobs'] ?? null);
     }
 
     /**
@@ -25,14 +27,14 @@ final class StatsReader
             return 0;
         }
 
-        $jobsPerMinute = isset($data['jobsPerMinute']) ? (float) $data['jobsPerMinute'] : 0.0;
+        $jobsPerMinute = NumberFormatter::floatOrNull($data['jobsPerMinute'] ?? null) ?? 0.0;
 
         if ($jobsPerMinute > 0) {
             return (int) \round($jobsPerMinute);
         }
 
-        $recent = isset($data['recentJobs']) ? (int) $data['recentJobs'] : 0;
-        $period = isset($data['periods']['recentJobs']) ? (int) $data['periods']['recentJobs'] : 60;
+        $recent = NumberFormatter::nonNegativeInt($data['recentJobs'] ?? null);
+        $period = NumberFormatter::intOrNull($data['periods']['recentJobs'] ?? null) ?? 60;
 
         if ($recent >= 0 && $period > 0) {
             return (int) \round($recent / $period);
@@ -42,35 +44,46 @@ final class StatsReader
     }
 
     /**
+     * Get the queue with the longest wait time.
+     *
+     * @param array<string, mixed>|null $data
+     *
+     * @return array{queue: string, seconds: float}|null
+     */
+    public static function maxWaitEntry(?array $data): ?array
+    {
+        if ($data === null || ! isset($data['wait']) || ! \is_array($data['wait'])) {
+            return null;
+        }
+
+        $entry = null;
+
+        foreach ($data['wait'] as $queue => $waitValue) {
+            $seconds = NumberFormatter::floatOrNull($waitValue);
+
+            if ($seconds === null || $seconds <= 0.0) {
+                continue;
+            }
+
+            if ($entry === null || $seconds > $entry['seconds']) {
+                $entry = [
+                    'queue' => (string) $queue,
+                    'seconds' => $seconds,
+                ];
+            }
+        }
+
+        return $entry;
+    }
+
+    /**
      * Get the maximum wait time in seconds.
      *
      * @param array<string, mixed>|null $data
      */
     public static function maxWaitTimeSeconds(?array $data): ?float
     {
-        if ($data === null || ! isset($data['wait']) || ! \is_array($data['wait'])) {
-            return null;
-        }
-
-        $maxWaitTimeSeconds = null;
-
-        foreach ($data['wait'] as $waitValue) {
-            if (! \is_numeric($waitValue)) {
-                continue;
-            }
-
-            $seconds = (float) $waitValue;
-
-            if ($seconds <= 0.0) {
-                continue;
-            }
-
-            if ($maxWaitTimeSeconds === null || $seconds > $maxWaitTimeSeconds) {
-                $maxWaitTimeSeconds = $seconds;
-            }
-        }
-
-        return $maxWaitTimeSeconds;
+        return self::maxWaitEntry($data)['seconds'] ?? null;
     }
 
     /**
@@ -80,11 +93,7 @@ final class StatsReader
      */
     public static function processes(?array $data): ?int
     {
-        if ($data === null || ! isset($data['processes']) || ! \is_numeric($data['processes'])) {
-            return null;
-        }
-
-        return (int) $data['processes'];
+        return NumberFormatter::intOrNull($data['processes'] ?? null);
     }
 
     /**
@@ -122,7 +131,7 @@ final class StatsReader
      */
     public static function recentJobs(?array $data): int
     {
-        return isset($data['recentJobs']) ? (int) $data['recentJobs'] : 0;
+        return NumberFormatter::nonNegativeInt($data['recentJobs'] ?? null);
     }
 
     /**

@@ -23,7 +23,17 @@
                 {{ $row['service'] ?? '' }}
             @endif
         </td>
-        <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground break-all" data-column-id="supervisor">{{ $row['name'] ?? '' }}</td>
+        <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground break-all" data-column-id="supervisor">
+            @if(! empty($row['service_id']) && ! empty($row['name']))
+                <a
+                    href="{{ route('horizon.services.supervisors.show', ['service' => $row['service_id'], 'supervisor' => $row['name']]) }}"
+                    class="link"
+                    data-turbo-action="replace"
+                >{{ $row['name'] }}</a>
+            @else
+                {{ $row['name'] ?? '' }}
+            @endif
+        </td>
         <td class="px-4 py-2.5 text-sm text-muted-foreground text-right" data-column-id="jobs">
             {{ isset($row['jobs']) ? (int) $row['jobs'] : 0 }}
         </td>

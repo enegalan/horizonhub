@@ -73,9 +73,17 @@
                 <x-icons.queue-list class="h-4 w-4 shrink-0" />
                 <span class="nav-side-link-label truncate">Queues</span>
             </a>
-            <a href="{{ route('horizon.services.index') }}" title="Services" class="nav-side-link {{ request()->routeIs('horizon.services.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
+            <a href="{{ route('horizon.batches.index') }}" title="Batches" class="nav-side-link {{ request()->routeIs('horizon.batches.*') || request()->routeIs('horizon.services.batches.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
+                <x-icons.inbox class="h-4 w-4 shrink-0" />
+                <span class="nav-side-link-label truncate">Batches</span>
+            </a>
+            <a href="{{ route('horizon.services.index') }}" title="Services" class="nav-side-link {{ request()->routeIs('horizon.services.*') && ! request()->routeIs('horizon.services.batches.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-icons.server-stack class="h-4 w-4 shrink-0" />
                 <span class="nav-side-link-label truncate">Services</span>
+            </a>
+            <a href="{{ route('horizon.instances.index') }}" title="Instances" class="nav-side-link {{ request()->routeIs('horizon.instances.*') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
+                <x-icons.computer-desktop class="h-4 w-4 shrink-0" />
+                <span class="nav-side-link-label truncate">Instances</span>
             </a>
             <a href="{{ route('horizon.metrics') }}" title="Metrics" class="nav-side-link {{ request()->routeIs('horizon.metrics') ? 'nav-side-link-active' : '' }}" @click="drawerOpen = false">
                 <x-icons.chart-bar class="h-4 w-4 shrink-0" />

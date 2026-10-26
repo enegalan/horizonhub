@@ -41,7 +41,11 @@
                     <x-slot:head>
                         <x-table.th column="service" class="min-w-30">Service</x-table.th>
                         <x-table.th column="queue" class="min-w-25">Queue</x-table.th>
+                        <x-table.th column="connection" class="min-w-24">Connection</x-table.th>
                         <x-table.th column="job_count">Pending jobs</x-table.th>
+                        <x-table.th column="processes">Processes</x-table.th>
+                        <x-table.th column="wait">Wait</x-table.th>
+                        <x-table.th column="throughput">Throughput</x-table.th>
                     </x-slot:head>
                     @include('pages.queues.partials.index.tbody', [
                         'queues' => $queues,

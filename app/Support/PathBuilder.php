@@ -34,6 +34,32 @@ final class PathBuilder
     }
 
     /**
+     * Build the batch URL.
+     *
+     * @param string $batchId The batch ID.
+     *
+     * @return string The batch URL.
+     */
+    public static function batch(string $batchId): string
+    {
+        return \str_replace('{id}', \rawurlencode($batchId), config('horizonhub.horizon_paths.batch'));
+    }
+
+    /**
+     * Build the batches URL.
+     *
+     * @param array<string, mixed> $query The query parameters.
+     *
+     * @return string The batches URL.
+     */
+    public static function batches(array $query = []): string
+    {
+        $path = config('horizonhub.horizon_paths.batches');
+
+        return $query === [] ? $path : $path . '?' . \http_build_query($query);
+    }
+
+    /**
      * Build the completed jobs URL.
      *
      * @param array<string, mixed> $query The query parameters.
@@ -119,6 +145,28 @@ final class PathBuilder
     }
 
     /**
+     * Build a queue metrics URL.
+     *
+     * @param string $queue The queue name as returned by the metrics API.
+     *
+     * @return string The queue metrics URL.
+     */
+    public static function metricsQueue(string $queue): string
+    {
+        return \str_replace('{queue}', \rawurlencode($queue), config('horizonhub.horizon_paths.metrics_queue'));
+    }
+
+    /**
+     * Build the queues with metrics URL.
+     *
+     * @return string The queues with metrics URL.
+     */
+    public static function metricsQueues(): string
+    {
+        return config('horizonhub.horizon_paths.metrics_queues');
+    }
+
+    /**
      * Build the pending jobs URL.
      *
      * @param array<string, mixed> $query The query parameters.
@@ -150,6 +198,16 @@ final class PathBuilder
     public static function retryJob(string $jobUuid): string
     {
         return \str_replace('{id}', $jobUuid, config('horizonhub.horizon_paths.retry'));
+    }
+
+    /**
+     * Build the silenced jobs URL.
+     *
+     * @return string The silenced jobs URL.
+     */
+    public static function silencedJobs(): string
+    {
+        return config('horizonhub.horizon_paths.silenced_jobs');
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Rules;
 
+use App\Support\StringFormatter;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
@@ -26,7 +27,7 @@ final class CommaSeparatedEmailList implements ValidationRule
 
         $emails = \array_filter(\array_map('trim', \explode(',', $value)));
 
-        if (\trim($value) !== '' && empty($emails)) {
+        if (StringFormatter::trim($value) !== '' && empty($emails)) {
             $fail(__('validation.email', ['attribute' => $attribute]));
 
             return;

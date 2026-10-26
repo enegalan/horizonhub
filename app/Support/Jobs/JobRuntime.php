@@ -3,6 +3,7 @@
 namespace App\Support\Jobs;
 
 use App\Enums\JobStatus;
+use App\Support\NumberFormatter;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 
@@ -93,9 +94,9 @@ final class JobRuntime
             return Carbon::instance($value);
         }
 
-        if (\is_numeric($value)) {
-            $seconds = (float) $value;
+        $seconds = NumberFormatter::floatOrNull($value);
 
+        if ($seconds !== null) {
             return Carbon::createFromTimestampMs((int) \round($seconds * 1000));
         }
 
@@ -138,9 +139,7 @@ final class JobRuntime
             ? self::parseJobTimestamp($commandData['delay']['date'])
             : null;
 
-        $runtimeSeconds = isset($job['runtime']) && \is_numeric($job['runtime'])
-            ? (float) $job['runtime']
-            : null;
+        $runtimeSeconds = NumberFormatter::floatOrNull($job['runtime'] ?? null);
 
         return [
             'queued_at' => $queuedAt,

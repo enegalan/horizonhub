@@ -10,6 +10,8 @@ use App\Support\DatetimeBoundaryParser;
 use App\Support\Jobs\JobRuntime;
 use App\Support\Jobs\JobsPaginator;
 use App\Support\Jobs\SearchResultsPaginator;
+use App\Support\NumberFormatter;
+use App\Support\Queues\QueueNameNormalizer;
 use App\Support\StringFormatter;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -79,6 +81,7 @@ class JobListService
      * @param int $perPage The per page.
      * @param string $path The path.
      * @param array<string, mixed> $query The query.
+     * @param string|null $queue Only include jobs from this normalized queue.
      *
      * @return array{processing: SearchResultsPaginator, processed: SearchResultsPaginator, failed: SearchResultsPaginator}
      */
@@ -91,10 +94,11 @@ class JobListService
         int $perPage,
         string $path,
         array $query,
+        ?string $queue = null,
     ): array {
-        $processing = self::private__collectAndSortJobsForServices($services, 'processing', $search);
-        $processed = self::private__collectAndSortJobsForServices($services, 'processed', $search);
-        $failed = self::private__collectAndSortJobsForServices($services, 'failed', $search);
+        $processing = self::private__collectAndSortJobsForServices($services, 'processing', $search, $queue);
+        $processed = self::private__collectAndSortJobsForServices($services, 'processed', $search, $queue);
+        $failed = self::private__collectAndSortJobsForServices($services, 'failed', $search, $queue);
 
         return [
             'processing' => self::private__makePaginator($processing, $perPage, $pageProcessing, $path, $query, 'page_processing'),
@@ -155,6 +159,7 @@ class JobListService
      * @param int $perPage The per page.
      * @param string $path The path.
      * @param array<string, mixed> $query The query.
+     * @param string|null $queue Only include jobs from this normalized queue.
      *
      * @return array{processing: SearchResultsPaginator, processed: SearchResultsPaginator, failed: SearchResultsPaginator}
      */
@@ -167,17 +172,38 @@ class JobListService
         int $perPage,
         string $path,
         array $query,
+        ?string $queue = null,
     ): array {
         $merged = \collect();
         $merged->push($service);
-        $processing = self::private__collectAndSortJobsForServices($merged, 'processing', $search);
-        $processed = self::private__collectAndSortJobsForServices($merged, 'processed', $search);
-        $failed = self::private__collectAndSortJobsForServices($merged, 'failed', $search);
+        $processing = self::private__collectAndSortJobsForServices($merged, 'processing', $search, $queue);
+        $processed = self::private__collectAndSortJobsForServices($merged, 'processed', $search, $queue);
+        $failed = self::private__collectAndSortJobsForServices($merged, 'failed', $search, $queue);
 
         return [
             'processing' => self::private__makePaginator($processing, $perPage, $pageProcessing, $path, $query, 'page_processing'),
             'processed' => self::private__makePaginator($processed, $perPage, $pageProcessed, $path, $query, 'page_processed'),
             'failed' => self::private__makePaginator($failed, $perPage, $pageFailed, $path, $query, 'page_failed'),
+        ];
+    }
+
+    /**
+     * Build empty paginators for a deferred queue detail page.
+     *
+     * @param string $path The path.
+     * @param array<string, mixed> $query The query.
+     *
+     * @return array{processing: SearchResultsPaginator, processed: SearchResultsPaginator, failed: SearchResultsPaginator}
+     */
+    public static function emptyStatusPaginators(string $path, array $query): array
+    {
+        $empty = ['rows' => \collect(), 'resultsMayBeTruncated' => false];
+        $perPage = (int) config('horizonhub.jobs_per_page');
+
+        return [
+            'processing' => self::private__makePaginator($empty, $perPage, 1, $path, $query, 'page_processing'),
+            'processed' => self::private__makePaginator($empty, $perPage, 1, $path, $query, 'page_processed'),
+            'failed' => self::private__makePaginator($empty, $perPage, 1, $path, $query, 'page_failed'),
         ];
     }
 
@@ -298,20 +324,30 @@ class JobListService
      * @param Collection<int, Service> $services The services.
      * @param 'processing'|'processed'|'failed' $status The status.
      * @param string $search The search.
+     * @param string|null $queue Only include jobs from this normalized queue.
      *
      * @return array{rows: Collection<int, object>, resultsMayBeTruncated: bool}
      */
-    private static function private__collectAndSortJobsForServices(Collection $services, string $status, string $search): array
+    private static function private__collectAndSortJobsForServices(Collection $services, string $status, string $search, ?string $queue = null): array
     {
         $resultsMayBeTruncated = false;
-        // The cap only exists to bound searches; an unfiltered list is complete.
-        $maxMatches = $search === '' ? null : config('horizonhub.job_search_match_cap');
+        // The cap bounds both searches and queue filters; an unfiltered list is complete.
+        $hasFilter = $search !== '' || ($queue !== null && $queue !== '');
+        $maxMatches = $hasFilter ? config('horizonhub.job_search_match_cap') : null;
+        $jobFilter = $queue !== null && $queue !== ''
+            ? static function (array $job) use ($queue): bool {
+                $rawQueue = (string) ($job['queue'] ?? '');
+                $normalized = QueueNameNormalizer::normalize($rawQueue);
+
+                return $normalized === $queue;
+            }
+        : null;
 
         $rows = \collect();
 
         foreach ($services as $service) {
             $fetcher = self::private__apiFetcherForStatus($service, $status);
-            $fetch = JobsPaginator::fetchFiltered($fetcher, $search, $maxMatches);
+            $fetch = JobsPaginator::fetchFiltered($fetcher, $search, $maxMatches, $jobFilter);
             $resultsMayBeTruncated = $resultsMayBeTruncated || ! $fetch['complete'];
 
             foreach ($fetch['jobs'] as $job) {
@@ -408,8 +444,8 @@ class JobListService
         $payload = ArrayFormatter::orEmpty($job['payload'] ?? null);
         $timing = JobRuntime::resolveJobTimingFields($job, $payload, $status);
 
-        $attemptsRaw = $payload['attempts'] ?? null;
-        $attempts = is_numeric($attemptsRaw) && $attemptsRaw >= 1 ? (int) $attemptsRaw : null;
+        $attempts = NumberFormatter::intOrNull($payload['attempts'] ?? null);
+        $attempts = $attempts !== null && $attempts >= 1 ? $attempts : null;
 
         return (object) [
             'id' => $uuid,

@@ -18,7 +18,7 @@
                 @foreach($groupSupervisors as $supervisor)
                     <tr class="transition-colors hover:bg-muted/30">
                         <td class="px-4 py-2.5 font-mono text-xs text-muted-foreground break-all" data-column-id="supervisor">
-                            {{ $supervisor->name }}
+                            <a href="{{ route('horizon.services.supervisors.show', ['service' => $service, 'supervisor' => $supervisor->name]) }}" class="link" data-turbo-action="replace">{{ $supervisor->name }}</a>
                         </td>
                         <td class="px-4 py-2.5 text-sm text-muted-foreground break-all" data-column-id="connection">
                             {{ $supervisor->connection !== '' ? $supervisor->connection : '–' }}
