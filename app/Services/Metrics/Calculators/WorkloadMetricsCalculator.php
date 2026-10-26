@@ -7,6 +7,7 @@ use App\Models\Service;
 use App\Services\Horizon\HorizonClientApiService;
 use App\Support\Horizon\ClientResponse;
 use App\Support\Horizon\MasterReader;
+use App\Support\NumberFormatter;
 use App\Support\Queues\QueueNameNormalizer;
 
 final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
@@ -130,25 +131,13 @@ final class WorkloadMetricsCalculator extends AbstractMetricsCalculator
                 continue;
             }
 
-            $queueName = QueueNameNormalizer::normalize($queueName) ?? $queueName;
-
-            $processes = null;
-
-            if (isset($row['processes']) && \is_numeric($row['processes'])) {
-                $processes = (int) $row['processes'];
-            }
-
-            $wait = null;
-
-            if (isset($row['wait']) && \is_numeric($row['wait'])) {
-                $wait = (float) $row['wait'];
-            }
+            $queueName = QueueNameNormalizer::normalize($queueName);
 
             $rows[] = [
                 'queue' => $queueName,
-                'jobs' => (int) ($row['length'] ?? 0),
-                'processes' => $processes,
-                'wait' => $wait,
+                'jobs' => NumberFormatter::nonNegativeInt($row['length'] ?? null),
+                'processes' => NumberFormatter::intOrNull($row['processes'] ?? null),
+                'wait' => NumberFormatter::floatOrNull($row['wait'] ?? null),
             ];
         }
 

@@ -27,7 +27,14 @@ return [
     |   in Horizon's UI (Horizon uses /failed/{id}, not /jobs/failed/{id}, what a mess :v).
     | - completed_jobs: the relative path to list completed jobs.
     | - pending_jobs: the relative path to list pending/processing jobs.
+    | - silenced_jobs: the relative path to list silenced jobs.
+    | - batches: the relative path to list recent batches.
+    | - batch: the relative path to read one batch; the "{id}" placeholder
+    |   will be replaced with the batch ID.
     | - masters: the relative path to list Horizon masters.
+    | - metrics_queues: the relative path to list queues with metrics.
+    | - metrics_queue: the relative path to read one queue's metrics; the
+    |   "{queue}" placeholder will be replaced with the queue name.
     */
     'horizon_paths' => [
         'api' => '/horizon/api',
@@ -40,7 +47,12 @@ return [
         'failed_jobs_dashboard' => '/failed',
         'completed_jobs' => '/jobs/completed',
         'pending_jobs' => '/jobs/pending',
+        'silenced_jobs' => '/jobs/silenced',
+        'batches' => '/batches',
+        'batch' => '/batches/{id}',
         'masters' => '/masters',
+        'metrics_queues' => '/metrics/queues',
+        'metrics_queue' => '/metrics/queues/{queue}',
     ],
 
     /*
@@ -191,14 +203,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Recent Batches Limit
+    |--------------------------------------------------------------------------
+    |
+    | Number of recent batches Horizon returns per service list request.
+    |
+    */
+    'batches_recent_limit' => max(1, (int) env('HORIZON_HUB_BATCHES_RECENT_LIMIT', 50)),
+
+    /*
+    |--------------------------------------------------------------------------
     | Job Search Match Cap
     |--------------------------------------------------------------------------
     |
     | Maximum number of matching jobs collected per service and job status when
-    | a job search is active. Horizon's job list API cannot filter by queue, job
-    | name or UUID server-side, so Hub matches payloads locally and stops
-    | paginating once this many matches are collected, bounding the number of
-    | upstream requests a search performs.
+    | a job search or queue filter is active. Horizon's job list API cannot filter
+    | by queue, job name or UUID server-side, so Hub matches payloads locally and
+    | stops paginating once this many matches are collected, bounding the number
+    | of upstream requests a search performs.
     |
     | The paginator total becomes a lower bound in that case and the UI renders
     | it with a trailing "+". Set to 0 to always scan the whole window.
@@ -275,4 +297,22 @@ return [
     |
     */
     'recent_alert_logs' => max(1, (int) env('HORIZON_HUB_RECENT_ALERT_LOGS', 5)),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Queue metrics cache
+    |--------------------------------------------------------------------------
+    |
+    | queue_metrics_cache_seconds: Seconds a queue history response is cached
+    | for, to avoid reading /metrics/queues/{queue} on every SSE tick.
+    | queue_metrics_max_queues: Maximum number of unique queues with history
+    | metrics on the queues index. When exceeded, throughput and runtime columns
+    | render as unavailable instead of fanning out HTTP calls.
+    | queue_metrics_history_points: Number of hourly buckets kept for sparklines
+    | on queue throughput, runtime and wait charts.
+    |
+    */
+    'queue_metrics_cache_seconds' => max(0, (int) env('HORIZON_HUB_QUEUE_METRICS_CACHE_SECONDS', 30)),
+    'queue_metrics_max_queues' => max(0, (int) env('HORIZON_HUB_QUEUE_METRICS_MAX_QUEUES', 50)),
+    'queue_metrics_history_points' => max(1, (int) env('HORIZON_HUB_QUEUE_METRICS_HISTORY_POINTS', 24)),
 ];

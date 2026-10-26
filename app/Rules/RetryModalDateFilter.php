@@ -2,6 +2,7 @@
 
 namespace App\Rules;
 
+use App\Support\StringFormatter;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
@@ -27,7 +28,7 @@ final class RetryModalDateFilter implements ValidationRule
             return;
         }
 
-        $value = \trim($value);
+        $value = StringFormatter::trim($value);
 
         if ($value === '') {
             return;

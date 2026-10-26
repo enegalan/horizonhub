@@ -44,6 +44,18 @@ class TurboStreamSseTest extends TestCase
             }],
             'dashboard' => ['dashboard', static fn (): string => route('horizon.streams.dashboard')],
             'metrics' => ['metrics', static fn (): string => route('horizon.streams.metrics')],
+            'batches' => ['batches', static fn (): string => route('horizon.streams.batches')],
+            'batch-show' => ['batch-show', static function (): string {
+                $service = Service::create([
+                    'name' => 'test-batch-svc',
+                    'base_url' => 'https://test-batch-svc.test',
+                    'status' => 'online',
+                ]);
+
+                return route('horizon.streams.batch-show', ['service' => $service->id, 'batch' => 'batch-1']);
+            }],
+            'instances' => ['instances', static fn (): string => route('horizon.streams.instances')],
+            'queue-show' => ['queue-show', static fn (): string => route('horizon.streams.queue-show', ['queue' => 'default'])],
             'service-show' => ['service-show', static function (): string {
                 $service = Service::create([
                     'name' => 'test-svc',
@@ -52,6 +64,18 @@ class TurboStreamSseTest extends TestCase
                 ]);
 
                 return route('horizon.streams.service-show', ['service' => $service->id]);
+            }],
+            'supervisor-show' => ['supervisor-show', static function (): string {
+                $service = Service::create([
+                    'name' => 'test-supervisor-svc',
+                    'base_url' => 'https://test-supervisor-svc.test',
+                    'status' => 'online',
+                ]);
+
+                return route('horizon.streams.supervisor-show', [
+                    'service' => $service->id,
+                    'supervisor' => 'supervisor-1',
+                ]);
             }],
         ];
     }
@@ -150,6 +174,145 @@ class TurboStreamSseTest extends TestCase
         $this->assertMatchesRegularExpression('/Disabled.*?<span>1<\/span>/s', $result);
     }
 
+    public function test_build_batch_show_streams_prefers_cancelled_over_finished(): void
+    {
+        $service = Service::create([
+            'name' => 'stream-batch-cancelled-svc',
+            'base_url' => 'https://horizon-api-stream-batch-cancelled.test',
+            'status' => 'online',
+        ]);
+        $batchId = 'batch-cancelled';
+
+        Http::fake([
+            '*/horizon/api/batches/' . $batchId => Http::response([
+                'batch' => [
+                    'id' => $batchId,
+                    'totalJobs' => 2,
+                    'pendingJobs' => 0,
+                    'processedJobs' => 2,
+                    'failedJobs' => 0,
+                    'cancelledAt' => '2026-10-26T10:05:00+00:00',
+                    'finishedAt' => '2026-10-26T10:04:00+00:00',
+                ],
+                'failedJobs' => [],
+            ], 200),
+        ]);
+
+        $result = $this->private__invokeStreamBuilder('buildBatchShow', $service, $batchId);
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('Cancelled', $result);
+    }
+
+    public function test_build_batch_show_streams_returns_detail_and_failed_jobs(): void
+    {
+        $service = Service::create([
+            'name' => 'stream-batch-detail-svc',
+            'base_url' => 'https://horizon-api-stream-batch-detail.test',
+            'status' => 'online',
+        ]);
+        $batchId = 'batch-stream-detail';
+
+        Http::fake([
+            '*/horizon/api/batches/' . $batchId => Http::response([
+                'batch' => [
+                    'id' => $batchId,
+                    'name' => 'Daily import',
+                    'totalJobs' => 5,
+                    'pendingJobs' => 1,
+                    'processedJobs' => 4,
+                    'failedJobs' => 1,
+                    'progress' => 80,
+                    'options' => ['queue' => 'imports', 'connection' => 'redis', 'allowFailures' => false],
+                    'createdAt' => '2026-10-26T10:00:00+00:00',
+                    'finishedAt' => null,
+                    'cancelledAt' => null,
+                ],
+                'failedJobs' => [
+                    [
+                        'id' => 'failed-job-1',
+                        'name' => 'App\\Jobs\\ImportCustomer',
+                        'queue' => 'imports',
+                        'reserved_at' => '1711111111.100',
+                        'failed_at' => '1711111111.140',
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $result = $this->private__invokeStreamBuilder('buildBatchShow', $service, $batchId);
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('target="batch-show-body" method="morph"', $result);
+        $this->assertStringContainsString('Daily import', $result);
+        $this->assertStringContainsString('Failed', $result);
+        $this->assertStringContainsString('/horizon/jobs/failed-job-1', $result);
+        $this->assertStringContainsString('0.04 s', $result);
+    }
+
+    public function test_build_batches_streams_returns_stats_and_rows(): void
+    {
+        $service = Service::create([
+            'name' => 'stream-batch-svc',
+            'base_url' => 'https://horizon-api-stream-batch.test',
+            'status' => 'online',
+        ]);
+
+        Http::fake([
+            '*/horizon/api/batches*' => Http::response([
+                'batches' => [
+                    [
+                        'id' => 'batch-stream-1',
+                        'name' => 'daily-import',
+                        'totalJobs' => 10,
+                        'pendingJobs' => 2,
+                        'processedJobs' => 8,
+                        'failedJobs' => 0,
+                        'progress' => 80,
+                        'options' => ['queue' => 'imports', 'connection' => 'redis'],
+                        'createdAt' => '2026-10-26T10:00:00+00:00',
+                        'finishedAt' => null,
+                        'cancelledAt' => null,
+                    ],
+                    [
+                        'id' => 'failed-running',
+                        'totalJobs' => 4,
+                        'pendingJobs' => 1,
+                        'processedJobs' => 3,
+                        'failedJobs' => 1,
+                    ],
+                    [
+                        'id' => 'finished-failures',
+                        'totalJobs' => 4,
+                        'pendingJobs' => 0,
+                        'processedJobs' => 4,
+                        'failedJobs' => 1,
+                        'finishedAt' => '2026-10-26T10:05:00+00:00',
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $result = $this->private__invokeStreamBuilder(
+            'buildBatches',
+            'search=daily&service_id[]=' . $service->id,
+        );
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('target="horizon-batch-stats" method="morph"', $result);
+        $this->assertStringContainsString('target="tbody-horizon-batch-list" method="morph"', $result);
+        $this->assertStringContainsString('stream-batch-svc', $result);
+        $this->assertStringContainsString('daily-import', $result);
+        $this->assertStringContainsString('80%', $result);
+        // Only pending batches count as active; failed_jobs > 0 count as failed.
+        $this->assertMatchesRegularExpression('/Batches<\/p>\s*<div[^>]*>\s*<span>3<\/span>/s', $result);
+        $this->assertMatchesRegularExpression('/Active<\/p>\s*<div[^>]*>\s*<span>1<\/span>/s', $result);
+        $this->assertMatchesRegularExpression('/With failures<\/p>\s*<div[^>]*>\s*<span>2<\/span>/s', $result);
+
+        Http::assertSent(fn (Request $request): bool => \str_contains($request->url(), '/horizon/api/batches')
+            && \str_contains($request->url(), 'query=daily'));
+    }
+
     public function test_build_chart_buckets_sent_and_failed_counts_for_24h_window(): void
     {
         $service = Service::create([
@@ -237,8 +400,12 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('dash-alert', $result);
         $this->assertStringContainsString('online-svc', $result);
         $this->assertStringContainsString('target="tbody-horizon-dashboard-workload" method="morph"', $result);
-
-        Http::assertSentCount(3);
+        $this->assertStringContainsString('target="dashboard-value-pending"', $result);
+        $this->assertStringContainsString('target="dashboard-value-silenced"', $result);
+        $this->assertStringContainsString('target="dashboard-value-batches"', $result);
+        $this->assertStringContainsString('target="dashboard-value-processes"', $result);
+        $this->assertStringContainsString('target="dashboard-limits-summary" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-supervisors" method="morph"', $result);
     }
 
     public function test_build_dashboard_streams_returns_expected_targets(): void
@@ -247,6 +414,12 @@ class TurboStreamSseTest extends TestCase
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="dashboard-value-jobs-minute"', $result);
+        $this->assertStringContainsString('target="dashboard-value-pending"', $result);
+        $this->assertStringContainsString('target="dashboard-value-silenced"', $result);
+        $this->assertStringContainsString('target="dashboard-value-batches"', $result);
+        $this->assertStringContainsString('target="dashboard-value-processes"', $result);
+        $this->assertStringContainsString('target="dashboard-limits-summary" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-supervisors" method="morph"', $result);
         $this->assertStringContainsString('target="dashboard-service-health-grid" method="morph"', $result);
         $this->assertStringContainsString('target="tbody-horizon-dashboard-alerts" method="morph"', $result);
         $this->assertStringContainsString('target="tbody-horizon-dashboard-workload" method="morph"', $result);
@@ -268,6 +441,46 @@ class TurboStreamSseTest extends TestCase
         $this->assertNotNull($result);
         $this->assertStringContainsString('bg-slate-400', $result);
         $this->assertMatchesRegularExpression('/dashboard-value-services-online.*?0\s*\/\s*0/s', $result);
+    }
+
+    public function test_build_instances_streams_returns_stats_and_groups(): void
+    {
+        Service::create([
+            'name' => 'stream-instance-svc',
+            'base_url' => 'https://horizon-api-stream-instance.test',
+            'status' => 'online',
+        ]);
+
+        Http::fake([
+            '*/horizon/api/masters' => Http::response([
+                [
+                    'name' => 'master-1',
+                    'status' => 'running',
+                    'environment' => 'production',
+                    'pid' => '100',
+                    'supervisors' => [
+                        [
+                            'name' => 'supervisor-1:name',
+                            'status' => 'running',
+                            'processes' => ['default' => 2],
+                            'options' => [
+                                'connection' => 'redis',
+                                'queue' => ['default'],
+                                'balance' => 'auto',
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $result = $this->private__invokeStreamBuilder('buildInstances', '');
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('target="instances-stats" method="morph"', $result);
+        $this->assertStringContainsString('target="instances-content" method="morph"', $result);
+        $this->assertStringContainsString('stream-instance-svc', $result);
+        $this->assertStringContainsString('supervisor-1:name', $result);
     }
 
     public function test_build_job_show_streams_returns_granular_detail_updates(): void
@@ -458,6 +671,51 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('stream-provider', $result);
     }
 
+    public function test_build_queue_show_streams_returns_stats_services_and_jobs(): void
+    {
+        Service::create([
+            'name' => 'stream-queue-show-svc',
+            'base_url' => 'https://horizon-api-stream-queue-show.test',
+            'status' => 'online',
+        ]);
+
+        Http::fake([
+            '*/horizon/api/workload' => Http::response([
+                ['name' => 'default', 'length' => 3, 'wait' => 1.5, 'processes' => 2],
+            ], 200),
+            '*/horizon/api/masters' => Http::response([
+                [
+                    'name' => 'master-1',
+                    'status' => 'running',
+                    'supervisors' => [
+                        [
+                            'name' => 'supervisor-1',
+                            'status' => 'running',
+                            'processes' => ['default' => 2],
+                            'options' => [
+                                'connection' => 'redis',
+                                'queue' => ['default'],
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+            '*/horizon/api/metrics/queues' => Http::response(['queues' => []], 200),
+            '*/horizon/api/jobs/silenced' => Http::response(['jobs' => [], 'total' => 0], 200),
+            '*/horizon/api/jobs/pending*' => Http::response(['jobs' => [], 'total' => 0], 200),
+            '*/horizon/api/jobs/completed*' => Http::response(['jobs' => [], 'total' => 0], 200),
+            '*/horizon/api/jobs/failed*' => Http::response(['jobs' => [], 'total' => 0], 200),
+        ]);
+
+        $result = $this->private__invokeStreamBuilder('buildQueueShow', 'default', '');
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('target="queue-show-stats" method="morph"', $result);
+        $this->assertStringContainsString('target="tbody-horizon-queue-services" method="morph"', $result);
+        $this->assertStringContainsString('target="queue-show-metrics" method="morph"', $result);
+        $this->assertStringContainsString('stream-queue-show-svc', $result);
+    }
+
     public function test_build_queues_streams_returns_tbody_update(): void
     {
         Service::create([
@@ -538,6 +796,46 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('data-horizon-stream-sig="', $result);
 
         Http::assertSentCount(1);
+    }
+
+    public function test_build_supervisor_show_streams_returns_detail_body(): void
+    {
+        $service = Service::create([
+            'name' => 'stream-supervisor-svc',
+            'base_url' => 'https://horizon-api-stream-supervisor.test',
+            'status' => 'online',
+        ]);
+
+        Http::fake([
+            '*/horizon/api/masters' => Http::response([
+                [
+                    'name' => 'master-1',
+                    'status' => 'running',
+                    'environment' => 'production',
+                    'pid' => '42',
+                    'supervisors' => [
+                        [
+                            'name' => 'supervisor-detail',
+                            'status' => 'running',
+                            'processes' => ['default' => 1],
+                            'options' => [
+                                'connection' => 'redis',
+                                'queue' => ['default'],
+                                'balance' => 'simple',
+                                'memory' => 128,
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $result = $this->private__invokeStreamBuilder('buildSupervisorShow', $service, 'supervisor-detail');
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('target="supervisor-show-body" method="morph"', $result);
+        $this->assertStringContainsString('master-1', $result);
+        $this->assertStringContainsString('128 MB', $result);
     }
 
     public function test_job_count_stream_appends_plus_when_results_may_be_truncated(): void

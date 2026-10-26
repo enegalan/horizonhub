@@ -42,4 +42,21 @@ class QueueControllerTest extends TestCase
         $response->assertOk();
         $response->assertViewHas('selectedServiceIds', [$service->id]);
     }
+
+    public function test_show_renders_aggregated_queue_detail(): void
+    {
+        Service::create([
+            'name' => 'queue-detail-svc',
+            'base_url' => 'https://queue-detail-svc.test',
+            'status' => 'online',
+        ]);
+
+        $response = $this->get(route('horizon.queues.show', ['queue' => 'default']));
+
+        $response->assertOk();
+        $response->assertViewHas('defer', true);
+        $response->assertViewHas('queueName', 'default');
+        $response->assertSee('queue-detail-svc', false);
+        $response->assertSee('id="queue-show-stats"', false);
+    }
 }

@@ -18,10 +18,11 @@ final class JobsPaginator
      * @param callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>} $pageFetcher
      * @param string|null $search The search string, matched against queue, job name and UUID.
      * @param int|null $maxMatches The maximum number of matching jobs, or null for no limit.
+     * @param (callable(array<string, mixed>): bool)|null $jobFilter Additional local filter applied before the match cap.
      *
      * @return array{jobs: list<array<string, mixed>>, complete: bool} The matching jobs and whether the source was fully read.
      */
-    public static function fetchFiltered(callable $pageFetcher, ?string $search = null, ?int $maxMatches = null): array
+    public static function fetchFiltered(callable $pageFetcher, ?string $search = null, ?int $maxMatches = null, ?callable $jobFilter = null): array
     {
         $maxPages = config('horizonhub.max_horizon_pages');
         $jobsPerRequest = config('horizonhub.horizon_api_job_list_page_size');
@@ -52,6 +53,10 @@ final class JobsPaginator
                 }
 
                 if (! JobSearchFilter::matches($job, $term)) {
+                    continue;
+                }
+
+                if ($jobFilter !== null && ! $jobFilter($job)) {
                     continue;
                 }
 

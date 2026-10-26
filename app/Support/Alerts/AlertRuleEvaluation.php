@@ -230,7 +230,7 @@ final class AlertRuleEvaluation
             return true;
         }
         $queue = (string) ($job['queue'] ?? '');
-        $normalizedQueue = QueueNameNormalizer::normalize($queue) ?? $queue;
+        $normalizedQueue = QueueNameNormalizer::normalize($queue);
 
         foreach ($patterns as $pattern) {
             $patternString = (string) $pattern;
@@ -239,7 +239,7 @@ final class AlertRuleEvaluation
                 return true;
             }
 
-            $normalizedPattern = QueueNameNormalizer::normalize($patternString) ?? $patternString;
+            $normalizedPattern = QueueNameNormalizer::normalize($patternString);
 
             if ($patternString === $normalizedPattern && $normalizedQueue === $normalizedPattern) {
                 return true;

@@ -183,7 +183,7 @@ class MetricsDataService
                 $service = $servicesById->get((int) $row['service_id']);
                 $queueRow = new \stdClass;
                 $queueRow->service_id = (int) $row['service_id'];
-                $queueRow->queue = QueueNameNormalizer::normalize($row['queue']) ?? $row['queue'];
+                $queueRow->queue = QueueNameNormalizer::normalize($row['queue']);
                 $queueRow->job_count = (int) $row['jobs'];
                 $queueRow->service = $service;
 

@@ -8,6 +8,32 @@ use App\Support\PathBuilder;
 class HorizonClientApiService
 {
     /**
+     * Get one batch by ID from the Horizon HTTP API for a service.
+     *
+     * @param Service $service The service instance.
+     * @param string $batchId The batch ID.
+     *
+     * @return array The response data.
+     */
+    public static function getBatch(Service $service, string $batchId): array
+    {
+        return HorizonClientHttpService::call($service, PathBuilder::batch($batchId), 'get');
+    }
+
+    /**
+     * Get recent batches from the Horizon HTTP API for a service.
+     *
+     * @param Service $service The service instance.
+     * @param array $query The query parameters.
+     *
+     * @return array The response data.
+     */
+    public static function getBatches(Service $service, array $query = []): array
+    {
+        return HorizonClientHttpService::call($service, PathBuilder::batches($query), 'get');
+    }
+
+    /**
      * Get completed/processed jobs from the Horizon HTTP API for a service.
      *
      * @param Service $service The service instance.
@@ -59,6 +85,31 @@ class HorizonClientApiService
     }
 
     /**
+     * Get a single queue's metrics history from the Horizon HTTP API for a service.
+     *
+     * @param Service $service The service instance.
+     * @param string $queue The queue name as returned by the metrics API.
+     *
+     * @return array The response data.
+     */
+    public static function getMetricsQueue(Service $service, string $queue): array
+    {
+        return HorizonClientHttpService::call($service, PathBuilder::metricsQueue($queue), 'get');
+    }
+
+    /**
+     * Get the queue names with metrics history from the Horizon HTTP API for a service.
+     *
+     * @param Service $service The service instance.
+     *
+     * @return array The response data.
+     */
+    public static function getMetricsQueues(Service $service): array
+    {
+        return HorizonClientHttpService::call($service, PathBuilder::metricsQueues(), 'get');
+    }
+
+    /**
      * Get pending/processing jobs from the Horizon HTTP API for a service.
      *
      * @param Service $service The service instance.
@@ -69,6 +120,18 @@ class HorizonClientApiService
     public static function getPendingJobs(Service $service, array $query = []): array
     {
         return HorizonClientHttpService::call($service, PathBuilder::pendingJobs($query), 'get');
+    }
+
+    /**
+     * Get silenced jobs from the Horizon HTTP API for a service.
+     *
+     * @param Service $service The service instance.
+     *
+     * @return array The response data.
+     */
+    public static function getSilencedJobs(Service $service): array
+    {
+        return HorizonClientHttpService::call($service, PathBuilder::silencedJobs(), 'get');
     }
 
     /**

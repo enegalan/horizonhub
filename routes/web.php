@@ -1,13 +1,16 @@
 <?php
 
 use App\Http\Controllers\Horizon\AlertController;
+use App\Http\Controllers\Horizon\BatchController;
 use App\Http\Controllers\Horizon\DashboardController;
+use App\Http\Controllers\Horizon\InstanceController;
 use App\Http\Controllers\Horizon\JobActionController;
 use App\Http\Controllers\Horizon\JobController;
 use App\Http\Controllers\Horizon\MetricsController;
 use App\Http\Controllers\Horizon\ProviderController;
 use App\Http\Controllers\Horizon\QueueController;
 use App\Http\Controllers\Horizon\ServiceController;
+use App\Http\Controllers\Horizon\SupervisorController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/horizon');
@@ -23,6 +26,9 @@ Route::prefix('horizon')->name('horizon.')->group(function (): void {
     // Metrics
     Route::get('/metrics', [MetricsController::class, 'index'])->name('metrics');
 
+    // Batches
+    Route::get('/batches', [BatchController::class, 'index'])->name('batches.index');
+
     // Jobs routes...
     Route::get('/jobs/failed', [JobActionController::class, 'failedList'])->name('jobs.failed');
     Route::post('/jobs/retry-batch', [JobActionController::class, 'retryBatch'])->name('jobs.retry-batch');
@@ -31,6 +37,10 @@ Route::prefix('horizon')->name('horizon.')->group(function (): void {
 
     // Queues
     Route::get('/queues', [QueueController::class, 'index'])->name('queues.index');
+    Route::get('/queues/{queue}', [QueueController::class, 'show'])->name('queues.show');
+
+    // Instances
+    Route::get('/instances', [InstanceController::class, 'index'])->name('instances.index');
 
     // Services routes...
     Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
@@ -39,6 +49,12 @@ Route::prefix('horizon')->name('horizon.')->group(function (): void {
         ->name('services.create');
     Route::post('/services', [ServiceController::class, 'store'])->name('services.store');
     Route::get('/services/{service}', [ServiceController::class, 'show'])->name('services.show');
+    Route::get('/services/{service}/batches/{batch}', [BatchController::class, 'show'])
+        ->whereNumber('service')
+        ->name('services.batches.show');
+    Route::get('/services/{service}/supervisors/{supervisor}', [SupervisorController::class, 'show'])
+        ->whereNumber('service')
+        ->name('services.supervisors.show');
     Route::get('/services/{service}/edit', [ServiceController::class, 'edit'])
         ->middleware('form.drawer:horizon.services.index')
         ->name('services.edit');

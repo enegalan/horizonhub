@@ -51,6 +51,79 @@
             </x-stat-card>
         </x-kpi-grid>
 
+        <x-kpi-grid>
+            <x-stat-card label="Pending jobs" tone="amber" value-id="dashboard-value-pending">
+                @if(!empty($defer))
+                    <x-skeleton.text class="h-8 w-20" />
+                @else
+                    —
+                @endif
+            </x-stat-card>
+            <x-stat-card label="Silenced jobs" tone="rose" value-id="dashboard-value-silenced">
+                @if(!empty($defer))
+                    <x-skeleton.text class="h-8 w-20" />
+                @else
+                    —
+                @endif
+            </x-stat-card>
+            <x-stat-card label="Recent batches" tone="violet" value-id="dashboard-value-batches">
+                @if(!empty($defer))
+                    <x-skeleton.text class="h-8 w-20" />
+                @else
+                    —
+                @endif
+            </x-stat-card>
+            <x-stat-card label="Worker processes" tone="emerald" value-id="dashboard-value-processes">
+                @if(!empty($defer))
+                    <x-skeleton.text class="h-8 w-20" />
+                @else
+                    —
+                @endif
+            </x-stat-card>
+        </x-kpi-grid>
+
+        <div id="dashboard-limits-summary" class="grid gap-4 sm:grid-cols-3">
+            @if(!empty($defer))
+                @for ($i = 0; $i < 3; $i++)
+                    <div class="rounded-lg border border-border/70 bg-muted/20 px-4 py-3">
+                        <div class="skeleton h-3 w-24" style="--skeleton-delay: {{ $i * 60 }}ms"></div>
+                        <div class="mt-2 skeleton h-7 w-20" style="--skeleton-delay: {{ ($i * 60) + 80 }}ms"></div>
+                    </div>
+                @endfor
+            @else
+                @include('pages.dashboard.partials.index.limits-summary', ['summary' => []])
+            @endif
+        </div>
+
+        <div class="card overflow-hidden">
+            <div class="flex items-center justify-between gap-2 border-b border-border bg-muted/20 px-5 py-3 sm:px-6">
+                <h3 class="text-section-title text-foreground">Supervisors</h3>
+                <a href="{{ route('horizon.instances.index') }}" class="link text-xs" data-turbo-action="replace">View instances</a>
+            </div>
+            <div id="dashboard-supervisors" class="space-y-4 p-4 sm:p-5">
+                @if(!empty($defer))
+                    <div class="grid gap-4 xl:grid-cols-2">
+                        @for ($i = 0; $i < 2; $i++)
+                            <div class="card overflow-hidden p-4">
+                                <div class="skeleton h-4 w-40" style="--skeleton-delay: {{ $i * 60 }}ms"></div>
+                                <div class="mt-3 space-y-2">
+                                    <div class="skeleton h-3 w-full" style="--skeleton-delay: {{ ($i * 60) + 80 }}ms"></div>
+                                    <div class="skeleton h-3 w-4/5" style="--skeleton-delay: {{ ($i * 60) + 140 }}ms"></div>
+                                </div>
+                            </div>
+                        @endfor
+                    </div>
+                @else
+                    @include('pages.partials.master-groups', [
+                        'emptyDescription' => 'No supervisors were reported by the connected Horizon services.',
+                        'emptyTitle' => 'No supervisors',
+                        'masterGroups' => [],
+                        'showServiceLink' => true,
+                    ])
+                @endif
+            </div>
+        </div>
+
         <div class="card overflow-hidden">
             <div class="border-b border-border px-5 py-5 sm:px-6">
                 <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
