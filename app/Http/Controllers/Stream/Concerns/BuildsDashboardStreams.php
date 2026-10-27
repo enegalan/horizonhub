@@ -6,7 +6,6 @@ use App\Enums\ServiceStatus;
 use App\Models\AlertLog;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientApiService;
-use App\Services\Services\ServiceFilterService;
 use App\Support\Horizon\ClientResponse;
 use App\Support\Horizon\StatsReader;
 use App\Support\NumberFormatter;
@@ -16,14 +15,11 @@ trait BuildsDashboardStreams
 {
     /**
      * Build the dashboard streams.
-     *
-     * @param string $query The query.
      */
-    protected function buildDashboard(string $query): string
+    protected function buildDashboard(): string
     {
-        $serviceFilterIds = ServiceFilterService::resolveServiceIdsFromQuery($query);
-        $metrics = $this->metrics->buildMetricsDashboardData($serviceFilterIds);
-        $overview = $this->queueOverview->build($serviceFilterIds, false);
+        $metrics = $this->metrics->buildMetricsDashboardData([]);
+        $overview = $this->queueOverview->build([], false);
         $processes = 0;
         $silencedJobs = 0;
         $silencedAvailable = true;
@@ -88,7 +84,7 @@ trait BuildsDashboardStreams
             'queueWithMaxThroughput' => $queueWithMaxThroughput,
         ];
 
-        $services = Service::getServices($serviceFilterIds, false, true);
+        $services = Service::getServices([], false, true);
 
         foreach ($services as $service) {
             $service->withHorizonStats();
@@ -102,14 +98,8 @@ trait BuildsDashboardStreams
             ? e(\number_format($summary['recentBatches']) . ($summary['batchesMayBeTruncated'] ? '+' : ''))
             : '—';
 
-        $recentAlertLogsQuery = AlertLog::with(['alert', 'service'])
-            ->orderByDesc('sent_at');
-
-        if (! empty($serviceFilterIds)) {
-            $recentAlertLogsQuery->whereIn('service_id', $serviceFilterIds);
-        }
-
-        $recentAlertLogs = $recentAlertLogsQuery
+        $recentAlertLogs = AlertLog::with(['alert', 'service'])
+            ->orderByDesc('sent_at')
             ->limit(config('horizonhub.recent_alert_logs'))
             ->get();
 

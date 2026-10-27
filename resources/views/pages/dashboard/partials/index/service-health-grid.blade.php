@@ -1,6 +1,16 @@
 @php
     /** @var \Illuminate\Support\Collection<int, \App\Models\Service>|\App\Models\Service[] $services */
-    $services ??= collect();
+    $services = collect($services ?? [])->sortBy(function (\App\Models\Service $service): int {
+        if (! $service->enabled) {
+            return 3;
+        }
+
+        return match ($service->status) {
+            \App\Enums\ServiceStatus::Online => 2,
+            \App\Enums\ServiceStatus::StandBy => 1,
+            default => 0,
+        };
+    })->values();
 @endphp
 @forelse($services as $service)
     @php
@@ -11,67 +21,41 @@
 
         if ($isEnabled && $isOnline) {
             $svcDot = 'bg-emerald-500';
+            $svcBadge = 'badge-success';
             $svcLabel = 'Online';
-            $topBarClass = 'from-emerald-500/80 via-emerald-400/60 to-transparent';
-            $hoverBorderClass = 'hover:border-emerald-500/45 dark:hover:border-emerald-400/50';
-            $hoverChevronClass = 'group-hover:text-emerald-600 dark:group-hover:text-emerald-400';
         } elseif ($isEnabled && $isStandBy) {
             $svcDot = 'bg-amber-500';
+            $svcBadge = 'badge-warning';
             $svcLabel = 'Stand-by';
-            $topBarClass = 'from-amber-500/80 via-amber-400/60 to-transparent';
-            $hoverBorderClass = 'hover:border-amber-500/45 dark:hover:border-amber-400/50';
-            $hoverChevronClass = 'group-hover:text-amber-600 dark:group-hover:text-amber-400';
         } elseif (! $isEnabled) {
             $svcDot = 'bg-gray-500';
+            $svcBadge = 'badge-muted';
             $svcLabel = 'Disabled';
-            $topBarClass = 'from-gray-500/80 via-gray-400/60 to-transparent';
-            $hoverBorderClass = 'hover:border-gray-500/45 dark:hover:border-gray-400/50';
-            $hoverChevronClass = 'group-hover:text-gray-600 dark:group-hover:text-gray-400';
         } else {
             $svcDot = 'bg-red-500';
+            $svcBadge = 'badge-danger';
             $svcLabel = $service->hasTimeoutAdvice() ? 'Timed Out' : 'Offline';
-            $topBarClass = 'from-red-500/80 via-red-400/60 to-transparent';
-            $hoverBorderClass = 'hover:border-red-500/45 dark:hover:border-red-400/50';
-            $hoverChevronClass = 'group-hover:text-red-600 dark:group-hover:text-red-400';
         }
+
         $hzStatus = \App\Enums\HorizonStatus::tryFrom(\strtolower((string) $service->horizon_status));
-        if ($hzStatus?->isActive() === true) {
-            $hzDot = 'bg-emerald-500';
-            $hzLabel = 'Horizon active';
-        } else {
-            $hzDot = 'bg-amber-500';
-            $hzLabel = 'Horizon inactive';
-        }
+        $hzActive = $hzStatus?->isActive() === true;
+        $hzLabel = $hzActive ? 'Horizon active' : 'Horizon inactive';
+        $hzBadge = $hzActive ? 'badge-success' : 'badge-warning';
     @endphp
     <a
         href="{{ route('horizon.services.show', $service) }}"
-        class="card group relative block overflow-hidden transition-colors {{ $hoverBorderClass }}"
+        class="group flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/40 sm:px-5"
         data-turbo-action="replace"
         data-stream-row-id="svc-h-{{ (int) $service->id }}"
     >
-        <div
-            class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r {{ $topBarClass }}"
-            aria-hidden="true"
-        ></div>
-        <div class="relative flex items-start justify-between gap-2 p-4">
-            <div class="min-w-0">
-                <p class="truncate text-sm font-semibold text-foreground" title="{{ $service->name }}">{{ $service->name }}</p>
-                <p class="mt-1 text-xs text-muted-foreground">
-                    <span class="inline-flex items-center gap-1">
-                        <span class="inline-block size-1.5 shrink-0 rounded-full {{ $svcDot }}" title="{{ $svcLabel }}" aria-hidden="true"></span>
-                        {{ $svcLabel }}
-                    </span>
-                    <span class="mt-0.5 flex items-center gap-1">
-                        <span class="inline-block size-1.5 shrink-0 rounded-full {{ $hzDot }}" title="{{ $hzLabel }}" aria-hidden="true"></span>
-                        <span class="truncate">{{ $hzLabel }}</span>
-                    </span>
-                </p>
-            </div>
-            <x-icons.chevron-right class="size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 {{ $hoverChevronClass }}" />
-        </div>
+        <span class="inline-flex size-2 shrink-0 rounded-full {{ $svcDot }}" title="{{ $svcLabel }}" aria-hidden="true"></span>
+        <span class="min-w-0 flex-1 truncate text-sm font-medium text-foreground" title="{{ $service->name }}">{{ $service->name }}</span>
+        <span class="{{ $svcBadge }} shrink-0">{{ $svcLabel }}</span>
+        <span class="{{ $hzBadge }} hidden shrink-0 sm:inline-flex">{{ $hzLabel }}</span>
+        <x-icons.chevron-right class="size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground" />
     </a>
 @empty
-    <div class="card p-8 sm:col-span-2 xl:col-span-3">
+    <div class="p-8">
         <x-empty-state
             title="No services registered"
             description="Register a Horizon service to see health here."

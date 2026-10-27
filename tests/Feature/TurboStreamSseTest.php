@@ -390,7 +390,7 @@ class TurboStreamSseTest extends TestCase
             '*/horizon/api/stats' => Http::response(['message' => 'Forbidden'], 403),
         ]);
 
-        $result = $this->private__invokeStreamBuilder('buildDashboard', '');
+        $result = $this->private__invokeStreamBuilder('buildDashboard');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="dashboard-value-jobs-minute"', $result);
@@ -410,7 +410,7 @@ class TurboStreamSseTest extends TestCase
 
     public function test_build_dashboard_streams_returns_expected_targets(): void
     {
-        $result = $this->private__invokeStreamBuilder('buildDashboard', '');
+        $result = $this->private__invokeStreamBuilder('buildDashboard');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('target="dashboard-value-jobs-minute"', $result);
@@ -436,7 +436,7 @@ class TurboStreamSseTest extends TestCase
                 ]);
         });
 
-        $result = $this->private__invokeStreamBuilder('buildDashboard', '');
+        $result = $this->private__invokeStreamBuilder('buildDashboard');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('bg-slate-400', $result);
