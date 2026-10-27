@@ -7,9 +7,8 @@ use Illuminate\Pagination\LengthAwarePaginator;
 /**
  * Length-aware paginator that flags when the underlying dataset was truncated.
  *
- * Job searches stop reading Horizon pages once enough matches are collected
- * (see `horizonhub.job_search_match_cap`), so the reported total is a lower
- * bound and the UI marks it as such.
+ * Job list scans stop at `job_list_scan_cap`. When that window ends before the
+ * source is exhausted, the reported total is a lower bound and the UI marks it.
  */
 final class SearchResultsPaginator extends LengthAwarePaginator
 {
@@ -36,5 +35,20 @@ final class SearchResultsPaginator extends LengthAwarePaginator
         $this->resultsMayBeTruncated = $resultsMayBeTruncated;
 
         return $this;
+    }
+
+    /**
+     * User-facing explanation of the trailing "+" / incomplete total, or null when exact.
+     */
+    public function truncationHint(): ?string
+    {
+        if (! $this->resultsMayBeTruncated) {
+            return null;
+        }
+
+        $collected = (int) $this->total();
+        $scanCap = config('horizonhub.job_list_scan_cap');
+
+        return "Lower bound ({$collected}+): Hub reads at most {$scanCap} jobs per service in this section. Across several services the listed total can exceed that. More jobs may exist further back.";
     }
 }

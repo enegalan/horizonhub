@@ -15,7 +15,7 @@ Apply application-level route protection to Horizon Hub (for example Laravel mid
 
 ## Reopen conditions
 
-- Horizon Hub is reachable from untrusted or broader networks than today’s trusted-internal model.
+- Horizon Hub is reachable from untrusted or broader networks than today's trusted-internal model.
 - A documented compliance, customer, or incident-driven requirement mandates application-level access control on specific routes or APIs.
 - DECISION-0001 is superseded or explicitly reopened and an identity or token model is adopted.
 

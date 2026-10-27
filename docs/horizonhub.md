@@ -93,7 +93,7 @@ flowchart LR
 
 ### Read path (monitoring)
 
-Controllers and services call `HorizonClientService` to perform GETs (and POST for retries) against each enabled service's Horizon API. Metrics aggregation uses paginated job list endpoints with limits defined in `config/horizonhub.php` (`horizon_api_job_list_page_size`, `max_horizon_pages`). Job searches match the raw payloads while those pages are read and stop early at `job_search_match_cap` matches, because Horizon's job list endpoints expose no queue, job name or UUID filter (see [ADR-0007](decisions/accepted/0007-job-search-payload-filtering.md)).
+Controllers and services call `HorizonClientService` to perform GETs (and POST for retries) against each enabled service's Horizon API. Metrics aggregation uses paginated job list endpoints bounded by `job_list_scan_cap` in `config/horizonhub.php`. Job searches match the raw payloads while those pages are read, because Horizon's job list endpoints expose no queue, job name or UUID filter (see [ADR-0007](decisions/accepted/0007-job-search-payload-filtering.md)).
 
 ### Alert path
 

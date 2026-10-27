@@ -27,13 +27,30 @@ class PaginationComponentTest extends TestCase
         $view->assertSee('Showing 1–2 of 500', false);
     }
 
-    public function test_truncated_search_totals_are_rendered_with_a_plus_suffix(): void
+    public function test_truncated_totals_explain_the_scan_cap(): void
     {
+        config()->set('horizonhub.job_list_scan_cap', 200);
+
         $view = $this->view('components.pagination', [
-            'paginator' => $this->private__paginator(500, true),
+            'paginator' => $this->private__paginator(370, true),
         ]);
 
-        $view->assertSee('Showing 1–2 of 500+', false);
+        $view->assertSee('Showing 1–2 of 370+', false);
+        $view->assertSee('Lower bound (370+)', false);
+        $view->assertSee('at most 200 jobs per service', false);
+        $view->assertSee('Across several services', false);
+    }
+
+    public function test_truncated_totals_keep_the_plus_suffix_when_the_current_page_slice_is_empty(): void
+    {
+        $paginator = (new SearchResultsPaginator([], 370, 2, 200, ['path' => '/horizon/jobs']))
+            ->setResultsMayBeTruncated(true);
+
+        $view = $this->view('components.pagination', [
+            'paginator' => $paginator,
+        ]);
+
+        $view->assertSee('Showing 370+ items', false);
     }
 
     /**

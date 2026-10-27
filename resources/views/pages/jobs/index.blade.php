@@ -15,7 +15,9 @@
             retryPage: 1,
             retryLastPage: 1,
             retryTotal: 0,
+            retryResultsMayBeTruncated: false,
             retryPerPage: {{ config('horizonhub.jobs_per_page') }},
+            retryScanCap: {{ config('horizonhub.job_list_scan_cap') }},
             retryModalSession: 0,
             failedListUrl: {!! \Illuminate\Support\Js::from(route('horizon.jobs.failed')) !!},
             retryBatchUrl: {!! \Illuminate\Support\Js::from(route('horizon.jobs.retry-batch')) !!},
@@ -101,9 +103,11 @@
                         this.retryLastPage = typeof data.meta.last_page === 'number' ? data.meta.last_page : 1;
                         this.retryPerPage = typeof data.meta.per_page === 'number' ? data.meta.per_page : this.retryPerPage;
                         this.retryTotal = typeof data.meta.total === 'number' ? data.meta.total : this.failedJobs.length;
+                        this.retryResultsMayBeTruncated = !!data.meta.results_may_be_truncated;
                     } else {
                         this.retryLastPage = 1;
                         this.retryTotal = this.failedJobs.length;
+                        this.retryResultsMayBeTruncated = false;
                     }
                 }).catch(function (error) {
                     console.error('Failed loading failed jobs', error);
@@ -200,15 +204,22 @@
             retryPaginationSummaryLine() {
                 var tot = this.retryTotal;
                 var count = this.failedJobs.length;
+                var suffix = this.retryResultsMayBeTruncated ? '+' : '';
                 if (tot === 0) {
                     return 'Showing 0 items';
                 }
                 if (count === 0) {
-                    return 'Showing ' + tot + ' items';
+                    return 'Showing ' + tot + suffix + ' items';
                 }
                 var fi = (this.retryPage - 1) * this.retryPerPage + 1;
                 var li = fi + count - 1;
-                return 'Showing ' + fi + '–' + li + ' of ' + tot;
+                return 'Showing ' + fi + '–' + li + ' of ' + tot + suffix;
+            },
+            retryTruncationHint() {
+                if (!this.retryResultsMayBeTruncated) {
+                    return '';
+                }
+                return 'Lower bound (' + this.retryTotal + '+): Hub reads at most ' + this.retryScanCap + ' jobs per service in this section. Across several services the listed total can exceed that. More jobs may exist further back.';
             },
             prevRetryPage() {
                 this.setRetryPage(this.retryPage - 1);
@@ -555,7 +566,7 @@
                                     <span
                                         class="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-0.5 font-medium text-muted-foreground"
                                         x-show="retryTotal > 0"
-                                        x-text="retryTotal + ' total'"
+                                        x-text="retryTotal + (retryResultsMayBeTruncated ? '+' : '') + ' total'"
                                     ></span>
                                     <span
                                         class="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 font-medium text-primary"
@@ -667,9 +678,16 @@
                                 </div>
                             </div>
 
-                            <div class="border-t border-border bg-muted/15 px-3 py-2 sm:px-4" x-show="retryTotal > 0 && !retryLoadingJobs">
+                            <div class="border-t border-border bg-muted/15 px-3 py-2 sm:px-4" x-show="(retryTotal > 0 || retryResultsMayBeTruncated) && !retryLoadingJobs">
                                 <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                                    <p class="shrink-0 text-sm text-muted-foreground" x-text="retryPaginationSummaryLine()"></p>
+                                    <div class="min-w-0">
+                                        <p class="text-sm text-muted-foreground" x-text="retryPaginationSummaryLine()"></p>
+                                        <p
+                                            class="mt-0.5 text-xs text-amber-700 dark:text-amber-400"
+                                            x-show="retryResultsMayBeTruncated"
+                                            x-text="retryTruncationHint()"
+                                        ></p>
+                                    </div>
                                     <nav
                                         role="navigation"
                                         aria-label="Retry modal pagination"

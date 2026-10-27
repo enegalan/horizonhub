@@ -18,7 +18,7 @@
         $tableId = 'master-' . (int) $serviceId . '-' . \Illuminate\Support\Str::slug($groupName) . '-' . $loop->index;
     @endphp
     <div class="card overflow-hidden">
-        <div class="flex flex-wrap items-start justify-between gap-3 border-b border-border bg-muted/20 px-4 py-3">
+        <div class="flex flex-wrap items-start justify-between gap-3 bg-muted/20 px-4 py-3">
             <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
                     @if($showServiceLink && $serviceId)

@@ -12,7 +12,9 @@
     $kind = $jobSection->value;
     $sectionKey = $jobSection->value;
     $countTotal = isset($paginator) && $paginator instanceof \Illuminate\Pagination\LengthAwarePaginator ? $paginator->total() : 0;
-    $countSuffix = isset($paginator) && $paginator instanceof \App\Support\Jobs\SearchResultsPaginator && $paginator->resultsMayBeTruncated() ? '+' : '';
+    $searchPaginator = isset($paginator) && $paginator instanceof \App\Support\Jobs\SearchResultsPaginator ? $paginator : null;
+    $countSuffix = $searchPaginator !== null && $searchPaginator->resultsMayBeTruncated() ? '+' : '';
+    $truncationHint = $searchPaginator?->truncationHint();
 @endphp
 <details
     data-section-key="{{ $sectionKey }}"
@@ -25,7 +27,18 @@
     >
         <x-icons.chevron-down class="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
         <span>{{ $jobSection->label() }}</span>
-        <span id="job-count-{{ $bodyKey }}" class="{{ $jobSection->badgeClass() }}">{{ $countTotal }}{{ $countSuffix }}</span>
+        <span
+            id="job-count-{{ $bodyKey }}"
+            class="{{ $jobSection->badgeClass() }}"
+            @if($truncationHint !== null) title="{{ $truncationHint }}" @endif
+        >{{ $countTotal }}{{ $countSuffix }}</span>
+        @if($truncationHint !== null)
+            <x-info-tooltip
+                :text="$truncationHint"
+                class="text-amber-600 transition-colors hover:text-amber-500 dark:text-amber-400 dark:hover:text-amber-300"
+                @click.stop
+            />
+        @endif
     </summary>
     <div class="pt-2">
         <x-table

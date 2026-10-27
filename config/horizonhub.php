@@ -168,18 +168,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Horizon API: job list page size
-    |--------------------------------------------------------------------------
-    |
-    | How many jobs each paginated response returns when Hub calls Horizon’s
-    | completed / failed / pending list HTTP endpoints (maps to query `limit`).
-    | Typical Horizon default is 50.
-    |
-    */
-    'horizon_api_job_list_page_size' => (int) env('HORIZON_HUB_API_JOB_LIST_PAGE_SIZE', 50),
-
-    /*
-    |--------------------------------------------------------------------------
     | Default Jobs Per Page
     |--------------------------------------------------------------------------
     |
@@ -190,16 +178,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Max Horizon API pages (pagination loops)
+    | Horizon job-list chunk
     |--------------------------------------------------------------------------
     |
-    | Upper bound for how many paginated HTTP responses Hub reads from a Horizon
-    | jobs list endpoint per service (completed/failed/pending in the job UI,
-    | and the scrolling fetch used for rolling 24h metrics). Each response is at
-    | most ~50 jobs (Horizon default chunk size).
+    | Horizon's pending/completed/failed list endpoints typically ignore `limit` parameter
+    | and return a fixed ~50-job chunk. Horizon Hub uses this constant for local slicing
+    | and page budgeting.
     |
     */
-    'max_horizon_pages' => (int) env('HORIZON_HUB_MAX_HORIZON_PAGES', 40),
+    'job_list_chunk' => 50,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Job list scan cap
+    |--------------------------------------------------------------------------
+    |
+    | Max jobs Horizon Hub reads from a job-list endpoint per service and section
+    | (pending / completed / failed, and rolling metrics fetches).
+    |
+    */
+    'job_list_scan_cap' => max(1, (int) env('HORIZON_HUB_JOB_LIST_SCAN_CAP', 2000)),
 
     /*
     |--------------------------------------------------------------------------
@@ -210,26 +208,6 @@ return [
     |
     */
     'batches_recent_limit' => max(1, (int) env('HORIZON_HUB_BATCHES_RECENT_LIMIT', 50)),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Job Search Match Cap
-    |--------------------------------------------------------------------------
-    |
-    | Maximum number of matching jobs collected per service and job status when
-    | a job search or queue filter is active. Horizon's job list API cannot filter
-    | by queue, job name or UUID server-side, so Hub matches payloads locally and
-    | stops paginating once this many matches are collected, bounding the number
-    | of upstream requests a search performs.
-    |
-    | The paginator total becomes a lower bound in that case and the UI renders
-    | it with a trailing "+". Set to 0 to always scan the whole window.
-    |
-    | This cap never applies to the failed jobs batch retry modal, which must
-    | act on every matching job.
-    |
-    */
-    'job_search_match_cap' => (int) max(0, env('HORIZON_HUB_JOB_SEARCH_MATCH_CAP', 500)),
 
     /*
     |--------------------------------------------------------------------------

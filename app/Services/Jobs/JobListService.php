@@ -117,7 +117,7 @@ class JobListService
      * @param int $page The page.
      * @param int $perPage The per page.
      *
-     * @return array{rows: list<array<string, mixed>>, total: int, last_page: int}
+     * @return array{rows: list<array<string, mixed>>, total: int, last_page: int, results_may_be_truncated: bool}
      */
     public static function buildFailedJobsRetryModalPage(
         Collection $services,
@@ -127,7 +127,8 @@ class JobListService
         int $page,
         int $perPage,
     ): array {
-        $rows = self::private__buildRetryModalFailedRows($services, $search, $dateFrom, $dateTo);
+        $collected = self::private__buildRetryModalFailedRows($services, $search, $dateFrom, $dateTo);
+        $rows = $collected['rows'];
 
         $total = \count($rows);
         $lastPage = $perPage > 0 ? (int) \max(1, (int) \ceil($total / $perPage)) : 1;
@@ -145,6 +146,7 @@ class JobListService
             'rows' => $data,
             'total' => $total,
             'last_page' => $lastPage,
+            'results_may_be_truncated' => $collected['results_may_be_truncated'],
         ];
     }
 
@@ -228,15 +230,12 @@ class JobListService
     /**
      * Build filtered, sorted failed-job rows for the retry modal (before pagination).
      *
-     * The search match cap never applies here: the batch retry action must act on
-     * every matching failed job, so the whole window is always read.
-     *
      * @param Collection<int, Service> $services The services.
      * @param string $search The search.
      * @param mixed $dateFrom The date from.
      * @param mixed $dateTo The date to.
      *
-     * @return list<array<string, mixed>>
+     * @return array{rows: list<array<string, mixed>>, results_may_be_truncated: bool}
      */
     private static function private__buildRetryModalFailedRows(
         Collection $services,
@@ -245,6 +244,7 @@ class JobListService
         mixed $dateTo,
     ): array {
         $rows = [];
+        $resultsMayBeTruncated = false;
 
         $dateFromStr = StringFormatter::nullIfBlank($dateFrom);
         $dateToStr = StringFormatter::nullIfBlank($dateTo);
@@ -256,6 +256,7 @@ class JobListService
                 fn (array $query): array => HorizonClientApiService::getFailedJobs($service, $query),
                 $search,
             );
+            $resultsMayBeTruncated = $resultsMayBeTruncated || ! $fetch['complete'];
 
             foreach ($fetch['jobs'] as $job) {
                 $jobUuid = (string) ($job['id'] ?? '');
@@ -310,16 +311,18 @@ class JobListService
             return $aTime->lt($bTime) ? 1 : -1;
         });
 
-        return $rows;
+        return [
+            'rows' => $rows,
+            'results_may_be_truncated' => $resultsMayBeTruncated,
+        ];
     }
 
     /**
      * Collect and sort jobs for one or more services.
      *
      * The search is matched against the raw Horizon payload while pages are
-     * being read, so only matching jobs are mapped, sorted and collected. When
-     * a search is active the pagination loop stops early once
-     * `horizonhub.job_search_match_cap` matches have been collected per service.
+     * being read, so only matching jobs are mapped, sorted and collected. The
+     * scan stops at `job_list_scan_cap` jobs per service.
      *
      * @param Collection<int, Service> $services The services.
      * @param 'processing'|'processed'|'failed' $status The status.
@@ -331,9 +334,6 @@ class JobListService
     private static function private__collectAndSortJobsForServices(Collection $services, string $status, string $search, ?string $queue = null): array
     {
         $resultsMayBeTruncated = false;
-        // The cap bounds both searches and queue filters; an unfiltered list is complete.
-        $hasFilter = $search !== '' || ($queue !== null && $queue !== '');
-        $maxMatches = $hasFilter ? config('horizonhub.job_search_match_cap') : null;
         $jobFilter = $queue !== null && $queue !== ''
             ? static function (array $job) use ($queue): bool {
                 $rawQueue = (string) ($job['queue'] ?? '');
@@ -347,7 +347,7 @@ class JobListService
 
         foreach ($services as $service) {
             $fetcher = self::private__apiFetcherForStatus($service, $status);
-            $fetch = JobsPaginator::fetchFiltered($fetcher, $search, $maxMatches, $jobFilter);
+            $fetch = JobsPaginator::fetchFiltered($fetcher, $search, $jobFilter);
             $resultsMayBeTruncated = $resultsMayBeTruncated || ! $fetch['complete'];
 
             foreach ($fetch['jobs'] as $job) {
