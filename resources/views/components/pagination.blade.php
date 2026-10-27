@@ -5,18 +5,25 @@
         $total = $paginator->total();
         $firstItem = $paginator->firstItem();
         $lastItem = $paginator->lastItem();
-        $totalSuffix = $paginator instanceof \App\Support\Jobs\SearchResultsPaginator && $paginator->resultsMayBeTruncated() ? '+' : '';
+        $searchPaginator = $paginator instanceof \App\Support\Jobs\SearchResultsPaginator ? $paginator : null;
+        $totalSuffix = $searchPaginator !== null && $searchPaginator->resultsMayBeTruncated() ? '+' : '';
+        $truncationHint = $searchPaginator?->truncationHint();
     @endphp
     <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <p class="text-sm text-muted-foreground shrink-0">
-            @if ($total === 0)
-                Showing 0 items
-            @elseif ($firstItem !== null && $lastItem !== null)
-                Showing {{ $firstItem }}–{{ $lastItem }} of {{ $total }}{{ $totalSuffix }}
-            @else
-                Showing {{ $total }} items
+        <div class="min-w-0 shrink-0">
+            <p class="text-sm text-muted-foreground">
+                @if ($total === 0)
+                    Showing 0 items
+                @elseif ($firstItem !== null && $lastItem !== null)
+                    Showing {{ $firstItem }}–{{ $lastItem }} of {{ $total }}{{ $totalSuffix }}
+                @else
+                    Showing {{ $total }} items
+                @endif
+            </p>
+            @if ($truncationHint !== null)
+                <p class="mt-0.5 text-xs text-amber-700 dark:text-amber-400">{{ $truncationHint }}</p>
             @endif
-        </p>
+        </div>
         @if ($paginator->hasPages())
             @php
                 $current = $paginator->currentPage();
@@ -46,7 +53,7 @@
                     @if ($page === '...')
                         <span class="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm text-muted-foreground">...</span>
                     @elseif ($page === $current)
-                        <span class="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm font-medium bg-primary text-primary-foreground" aria-current="page">{{ $page }}</span>
+                        <span class="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm font-medium bg-primary text-primary-foreground min-w-7" aria-current="page">{{ $page }}</span>
                     @else
                         <a href="{{ $paginator->url($page) }}" class="inline-flex items-center justify-center rounded-md px-2 py-1 text-sm text-muted-foreground hover:text-foreground transition-colors" data-turbo-action="replace">{{ $page }}</a>
                     @endif

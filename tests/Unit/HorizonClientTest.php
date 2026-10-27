@@ -753,7 +753,7 @@ class HorizonClientTest extends TestCase
         \config()->set('horizonhub.horizon_paths.job', '/jobs/{id}');
         \config()->set('horizonhub.horizon_paths.masters', '/masters');
         \config()->set('horizonhub.horizon_paths.ping', '/stats');
-        \config()->set('horizonhub.horizon_api_job_list_page_size', 25);
+        \config()->set('horizonhub.job_list_chunk', 25);
 
         $service = Service::create([
             'name' => 'svc-wrappers',

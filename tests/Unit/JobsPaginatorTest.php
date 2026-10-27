@@ -7,10 +7,39 @@ use Tests\TestCase;
 
 class JobsPaginatorTest extends TestCase
 {
-    public function test_fetch_filtered_marks_results_incomplete_when_max_pages_are_exhausted(): void
+    public function test_fetch_filtered_caps_oversized_upstream_pages_to_the_configured_chunk(): void
     {
-        config()->set('horizonhub.horizon_api_job_list_page_size', 2);
-        config()->set('horizonhub.max_horizon_pages', 2);
+        config()->set('horizonhub.job_list_chunk', 25);
+        config()->set('horizonhub.job_list_scan_cap', 200);
+
+        $jobs = $this->private__jobs(500);
+        $requests = 0;
+        $result = JobsPaginator::fetchFiltered(
+            function (array $query) use ($jobs, &$requests): array {
+                $requests++;
+                $offset = $query['starting_at'] + 1;
+
+                return [
+                    'success' => true,
+                    'data' => [
+                        'jobs' => \array_slice($jobs, $offset, 50),
+                    ],
+                ];
+            },
+            '',
+        );
+
+        $this->assertFalse($result['complete']);
+        $this->assertSame(8, $requests);
+        $this->assertCount(200, $result['jobs']);
+        $this->assertSame('job-0', $result['jobs'][0]['id']);
+        $this->assertSame('job-199', $result['jobs'][199]['id']);
+    }
+
+    public function test_fetch_filtered_marks_results_incomplete_when_scan_cap_pages_are_exhausted(): void
+    {
+        config()->set('horizonhub.job_list_chunk', 2);
+        config()->set('horizonhub.job_list_scan_cap', 4);
 
         $result = JobsPaginator::fetchFiltered(
             $this->private__pageFetcher($this->private__jobs(6)),
@@ -23,8 +52,8 @@ class JobsPaginatorTest extends TestCase
 
     public function test_fetch_filtered_marks_results_incomplete_when_the_source_fails(): void
     {
-        config()->set('horizonhub.horizon_api_job_list_page_size', 2);
-        config()->set('horizonhub.max_horizon_pages', 5);
+        config()->set('horizonhub.job_list_chunk', 2);
+        config()->set('horizonhub.job_list_scan_cap', 10);
 
         $result = JobsPaginator::fetchFiltered(
             static fn (array $query): array => ['success' => false],
@@ -37,8 +66,8 @@ class JobsPaginatorTest extends TestCase
 
     public function test_fetch_filtered_only_returns_matching_jobs(): void
     {
-        config()->set('horizonhub.horizon_api_job_list_page_size', 2);
-        config()->set('horizonhub.max_horizon_pages', 5);
+        config()->set('horizonhub.job_list_chunk', 2);
+        config()->set('horizonhub.job_list_scan_cap', 10);
 
         $requests = 0;
         $result = JobsPaginator::fetchFiltered(
@@ -51,31 +80,10 @@ class JobsPaginatorTest extends TestCase
         $this->assertSame(['job-4'], \array_column($result['jobs'], 'id'));
     }
 
-    public function test_fetch_filtered_reads_the_whole_window_when_max_matches_is_not_reached(): void
+    public function test_fetch_filtered_stops_once_the_scan_cap_of_matches_is_collected(): void
     {
-        config()->set('horizonhub.horizon_api_job_list_page_size', 2);
-        config()->set('horizonhub.max_horizon_pages', 5);
-
-        $requests = 0;
-        $result = JobsPaginator::fetchFiltered(
-            function (array $query) use (&$requests): array {
-                $requests++;
-
-                return $this->private__response($this->private__jobs(5), $query['starting_at'] + 1);
-            },
-            'job-4',
-            3,
-        );
-
-        $this->assertTrue($result['complete']);
-        $this->assertCount(1, $result['jobs']);
-        $this->assertSame(3, $requests);
-    }
-
-    public function test_fetch_filtered_stops_paginating_once_max_matches_are_collected(): void
-    {
-        config()->set('horizonhub.horizon_api_job_list_page_size', 2);
-        config()->set('horizonhub.max_horizon_pages', 5);
+        config()->set('horizonhub.job_list_chunk', 2);
+        config()->set('horizonhub.job_list_scan_cap', 3);
 
         $requests = 0;
         $result = JobsPaginator::fetchFiltered(
@@ -85,7 +93,6 @@ class JobsPaginatorTest extends TestCase
                 return $this->private__response($this->private__jobs(5), $query['starting_at'] + 1);
             },
             'redis',
-            3,
         );
 
         $this->assertFalse($result['complete']);
@@ -93,24 +100,7 @@ class JobsPaginatorTest extends TestCase
         $this->assertSame(2, $requests);
     }
 
-    public function test_fetch_filtered_treats_non_positive_max_matches_as_unlimited(): void
-    {
-        config()->set('horizonhub.horizon_api_job_list_page_size', 2);
-        config()->set('horizonhub.max_horizon_pages', 5);
-
-        $result = JobsPaginator::fetchFiltered(
-            $this->private__pageFetcher($this->private__jobs(5)),
-            'redis',
-            0,
-        );
-
-        $this->assertTrue($result['complete']);
-        $this->assertCount(5, $result['jobs']);
-    }
-
     /**
-     * Build synthetic job rows for the upstream page fetcher.
-     *
      * @param int $count How many jobs to generate.
      *
      * @return list<array<string, mixed>>
@@ -125,11 +115,6 @@ class JobsPaginatorTest extends TestCase
     }
 
     /**
-     * Build a stub upstream page fetcher that serves the given jobs.
-     *
-     * The returned closure stands in for the Horizon API page fetch, so the tests
-     * can count how many pages the paginator requested.
-     *
      * @param list<array<string, mixed>> $jobs The jobs.
      * @param int|null $requests Incremented on every upstream page request.
      *
@@ -147,10 +132,7 @@ class JobsPaginatorTest extends TestCase
     }
 
     /**
-     * Build one successful upstream page response starting at the given offset.
-     *
-     * The page size comes from `horizonhub.horizon_api_job_list_page_size`, so the
-     * paginator sees the same page size it would get from the real API.
+     * Build a stub upstream page response that serves the given jobs.
      *
      * @param list<array<string, mixed>> $jobs The jobs.
      * @param int $offset Index of the first job to include in the page.
@@ -162,7 +144,7 @@ class JobsPaginatorTest extends TestCase
         return [
             'success' => true,
             'data' => [
-                'jobs' => \array_slice($jobs, $offset, config('horizonhub.horizon_api_job_list_page_size')),
+                'jobs' => \array_slice($jobs, $offset, config('horizonhub.job_list_chunk')),
             ],
         ];
     }

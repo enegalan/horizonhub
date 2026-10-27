@@ -31,45 +31,26 @@ class JobListServiceLargeSearchBenchmarkTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_dense_search_reads_fewer_pages_than_the_uncapped_scan(): void
+    public function test_dense_search_stops_at_the_scan_cap(): void
     {
-        $this->private__configurePaging();
+        config()->set('horizonhub.job_list_chunk', self::PAGE_SIZE);
+        config()->set('horizonhub.job_list_scan_cap', 500);
+        config()->set('horizonhub.jobs_per_page', 20);
+
         $service = $this->private__service();
         $this->private__fakeHorizon($service, $this->private__jobIds(self::JOB_COUNT));
-
-        config()->set('horizonhub.job_search_match_cap', 0);
         $this->requests = 0;
-        Cache::flush();
-        $uncapped = JobListService::buildAggregatedJobsIndexFromRequest($this->private__request());
-        $uncappedRequests = $this->requests;
 
-        config()->set('horizonhub.job_search_match_cap', 500);
-        $this->requests = 0;
-        Cache::flush();
-        $capped = JobListService::buildAggregatedJobsIndexFromRequest($this->private__request());
-        $cappedRequests = $this->requests;
+        $result = JobListService::buildAggregatedJobsIndexFromRequest($this->private__request());
 
-        $this->assertSame(20, $uncappedRequests, 'The uncapped scan must read the whole window.');
-        $this->assertSame(1000, $uncapped['failed']->total());
-        // Stopping at max_horizon_pages cannot prove the source ended, so the
-        // full window stays conservatively marked as possibly truncated.
-        $this->assertTrue($uncapped['failed']->resultsMayBeTruncated());
-
-        $this->assertSame(10, $cappedRequests, 'The capped scan must stop once the cap is filled.');
-        $this->assertSame(500, $capped['failed']->total());
-        $this->assertTrue($capped['failed']->resultsMayBeTruncated());
-
-        $this->assertSame(
-            $uncapped['failed']->getCollection()->take(500)->pluck('uuid')->values()->all(),
-            $capped['failed']->getCollection()->pluck('uuid')->values()->all(),
-            'Stopping early must return the same rows, in the same order, as the full scan.',
-        );
+        $this->assertSame(10, $this->requests);
+        $this->assertSame(500, $result['failed']->total());
+        $this->assertTrue($result['failed']->resultsMayBeTruncated());
     }
 
-    public function test_selective_search_keeps_scanning_to_report_an_exact_total(): void
+    public function test_selective_search_reads_the_full_scan_window(): void
     {
         $this->private__configurePaging();
-        config()->set('horizonhub.job_search_match_cap', 500);
 
         $service = $this->private__service();
         $this->private__fakeHorizon($service, $this->private__jobIds(1));
@@ -80,16 +61,16 @@ class JobListServiceLargeSearchBenchmarkTest extends TestCase
         $this->assertSame(20, $this->requests);
         $this->assertSame(1, $result['failed']->total());
         $this->assertSame('job-999-invoice', $result['failed']->first()->uuid);
-        $this->assertTrue($result['failed']->resultsMayBeTruncated(), 'Stopping at max_horizon_pages cannot prove the source ended.');
+        $this->assertTrue($result['failed']->resultsMayBeTruncated(), 'Stopping at the scan cap cannot prove the source ended.');
     }
 
     /**
-     * Configure a paging window that reads the whole fixture in exactly `max_horizon_pages` requests.
+     * Configure a scan window that reads the whole fixture in exactly JOB_COUNT / chunk requests.
      */
     private function private__configurePaging(): void
     {
-        config()->set('horizonhub.horizon_api_job_list_page_size', self::PAGE_SIZE);
-        config()->set('horizonhub.max_horizon_pages', (int) (self::JOB_COUNT / self::PAGE_SIZE));
+        config()->set('horizonhub.job_list_chunk', self::PAGE_SIZE);
+        config()->set('horizonhub.job_list_scan_cap', self::JOB_COUNT);
         config()->set('horizonhub.jobs_per_page', 20);
     }
 
@@ -105,7 +86,7 @@ class JobListServiceLargeSearchBenchmarkTest extends TestCase
      */
     private function private__fakeHorizon(Service $service, array $jobIds): void
     {
-        $pageSize = (int) config('horizonhub.horizon_api_job_list_page_size');
+        $pageSize = config('horizonhub.job_list_chunk');
 
         Http::fake(function (Request $request) use ($jobIds, $pageSize) {
             if (! str_contains($request->url(), '/jobs/failed')) {

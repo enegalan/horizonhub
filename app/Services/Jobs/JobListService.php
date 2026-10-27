@@ -228,9 +228,6 @@ class JobListService
     /**
      * Build filtered, sorted failed-job rows for the retry modal (before pagination).
      *
-     * The search match cap never applies here: the batch retry action must act on
-     * every matching failed job, so the whole window is always read.
-     *
      * @param Collection<int, Service> $services The services.
      * @param string $search The search.
      * @param mixed $dateFrom The date from.
@@ -317,9 +314,8 @@ class JobListService
      * Collect and sort jobs for one or more services.
      *
      * The search is matched against the raw Horizon payload while pages are
-     * being read, so only matching jobs are mapped, sorted and collected. When
-     * a search is active the pagination loop stops early once
-     * `horizonhub.job_search_match_cap` matches have been collected per service.
+     * being read, so only matching jobs are mapped, sorted and collected. The
+     * scan stops at `job_list_scan_cap` jobs per service.
      *
      * @param Collection<int, Service> $services The services.
      * @param 'processing'|'processed'|'failed' $status The status.
@@ -331,9 +327,6 @@ class JobListService
     private static function private__collectAndSortJobsForServices(Collection $services, string $status, string $search, ?string $queue = null): array
     {
         $resultsMayBeTruncated = false;
-        // The cap bounds both searches and queue filters; an unfiltered list is complete.
-        $hasFilter = $search !== '' || ($queue !== null && $queue !== '');
-        $maxMatches = $hasFilter ? config('horizonhub.job_search_match_cap') : null;
         $jobFilter = $queue !== null && $queue !== ''
             ? static function (array $job) use ($queue): bool {
                 $rawQueue = (string) ($job['queue'] ?? '');
@@ -347,7 +340,7 @@ class JobListService
 
         foreach ($services as $service) {
             $fetcher = self::private__apiFetcherForStatus($service, $status);
-            $fetch = JobsPaginator::fetchFiltered($fetcher, $search, $maxMatches, $jobFilter);
+            $fetch = JobsPaginator::fetchFiltered($fetcher, $search, $jobFilter);
             $resultsMayBeTruncated = $resultsMayBeTruncated || ! $fetch['complete'];
 
             foreach ($fetch['jobs'] as $job) {

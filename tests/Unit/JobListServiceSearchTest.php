@@ -20,7 +20,7 @@ class JobListServiceSearchTest extends TestCase
     public function test_aggregated_search_reports_truncation_for_any_truncated_service(): void
     {
         $this->private__configurePaging();
-        config()->set('horizonhub.job_search_match_cap', 2);
+        config()->set('horizonhub.job_list_scan_cap', 3);
 
         $capped = $this->private__service('svc-agg-capped');
         $complete = $this->private__service('svc-agg-complete');
@@ -38,8 +38,8 @@ class JobListServiceSearchTest extends TestCase
 
     public function test_equal_timestamp_rows_are_ordered_by_service_then_uuid(): void
     {
-        config()->set('horizonhub.horizon_api_job_list_page_size', 10);
-        config()->set('horizonhub.max_horizon_pages', 2);
+        config()->set('horizonhub.job_list_chunk', 10);
+        config()->set('horizonhub.job_list_scan_cap', 20);
         config()->set('horizonhub.jobs_per_page', 100);
 
         $services = $this->private__equalTimestampServices([
@@ -64,26 +64,11 @@ class JobListServiceSearchTest extends TestCase
         );
     }
 
-    public function test_match_cap_does_not_apply_without_a_search(): void
+    public function test_retry_modal_reads_all_matches_within_the_scan_window(): void
     {
         $this->private__configurePaging();
-        config()->set('horizonhub.job_search_match_cap', 1);
 
-        $service = $this->private__service('svc-unsearched');
-
-        $paginator = JobListService::buildServiceStatusPaginators($service, '', 1, 1, 1, 10, '/horizon/services/' . $service->id, [])['failed'];
-
-        $this->assertSame(5, $paginator->total());
-        $this->assertFalse($paginator->resultsMayBeTruncated());
-        $this->assertSame(3, $this->requests['failed']);
-    }
-
-    public function test_match_cap_never_truncates_the_failed_jobs_retry_modal(): void
-    {
-        $this->private__configurePaging();
-        config()->set('horizonhub.job_search_match_cap', 1);
-
-        $service = $this->private__service('svc-retry-modal-cap');
+        $service = $this->private__service('svc-retry-modal');
 
         $page = JobListService::buildFailedJobsRetryModalPage(new Collection([$service]), 'Invoice', null, null, 1, \PHP_INT_MAX);
 
@@ -106,10 +91,10 @@ class JobListServiceSearchTest extends TestCase
         $this->assertSame(0, $paginators['processing']->total());
     }
 
-    public function test_search_stops_paginating_at_the_match_cap_and_flags_the_total(): void
+    public function test_search_stops_at_the_scan_cap_and_flags_the_total(): void
     {
         $this->private__configurePaging();
-        config()->set('horizonhub.job_search_match_cap', 2);
+        config()->set('horizonhub.job_list_scan_cap', 3);
 
         $service = $this->private__service('svc-capped');
 
@@ -122,10 +107,9 @@ class JobListServiceSearchTest extends TestCase
         $this->assertSame(2, $this->requests['failed']);
     }
 
-    public function test_search_without_reaching_the_match_cap_keeps_an_exact_total(): void
+    public function test_search_that_exhausts_the_source_keeps_an_exact_total(): void
     {
         $this->private__configurePaging();
-        config()->set('horizonhub.job_search_match_cap', 10);
 
         $service = $this->private__service('svc-exact');
 
@@ -136,13 +120,26 @@ class JobListServiceSearchTest extends TestCase
         $this->assertSame(3, $this->requests['failed']);
     }
 
+    public function test_unfiltered_list_reads_until_the_source_is_exhausted(): void
+    {
+        $this->private__configurePaging();
+
+        $service = $this->private__service('svc-unsearched');
+
+        $paginator = JobListService::buildServiceStatusPaginators($service, '', 1, 1, 1, 10, '/horizon/services/' . $service->id, [])['failed'];
+
+        $this->assertSame(5, $paginator->total());
+        $this->assertFalse($paginator->resultsMayBeTruncated());
+        $this->assertSame(3, $this->requests['failed']);
+    }
+
     /**
-     * Shrink the paging window to two rows per Horizon request, ten requests and ten rows per page.
+     * Shrink the paging window to two rows per Horizon request, scan cap 20, ten UI rows per page.
      */
     private function private__configurePaging(): void
     {
-        config()->set('horizonhub.horizon_api_job_list_page_size', 2);
-        config()->set('horizonhub.max_horizon_pages', 10);
+        config()->set('horizonhub.job_list_chunk', 2);
+        config()->set('horizonhub.job_list_scan_cap', 20);
         config()->set('horizonhub.jobs_per_page', 10);
     }
 
@@ -207,8 +204,6 @@ class JobListServiceSearchTest extends TestCase
      */
     private function private__jobList(array $ids, string $status): array
     {
-        $pageSize = (int) config('horizonhub.horizon_api_job_list_page_size');
-
         return \array_map(static function (string $id, int $position) use ($status): array {
             $timestamp = (string) (1717249200 - ($position * 60));
             $name = \str_contains($id, 'invoice') ? 'App\\Jobs\\SendInvoice' : 'App\\Jobs\\SendReport';
@@ -235,7 +230,7 @@ class JobListServiceSearchTest extends TestCase
     {
         $requests[$status] = ($requests[$status] ?? 0) + 1;
 
-        $pageSize = (int) config('horizonhub.horizon_api_job_list_page_size');
+        $pageSize = (int) config('horizonhub.job_list_chunk');
 
         return \array_slice($this->private__jobList($ids, $status), \max(0, $startingAt), $pageSize);
     }
@@ -244,8 +239,7 @@ class JobListServiceSearchTest extends TestCase
      * Create a service and fake its Horizon job list endpoints.
      *
      * The fake serves a fixed set of failed, completed and pending job UUIDs and
-     * records how many requests each status received in `$requests`, which is
-     * what the match-cap assertions inspect.
+     * records how many requests each status received in `$requests`.
      *
      * @param string $name The service name, also used as its test host.
      */

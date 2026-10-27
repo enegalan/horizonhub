@@ -11,22 +11,20 @@ final class JobsPaginator
      *
      * Matching runs on each job as soon as its page is received, so
      * non-matching jobs never reach the expensive row mapping and sorting
-     * stages. When $maxMatches is a positive integer the loop stops as soon as
-     * that many jobs matched, leaving the remaining pages unread; callers that
-     * need a complete result set (for example bulk retries) pass null.
+     * stages. The scan stops after `job_list_scan_cap` matching jobs (or the
+     * derived page budget), regardless of filters.
      *
      * @param callable(array<string, mixed>): array{success: bool, data?: array<string, mixed>} $pageFetcher
      * @param string|null $search The search string, matched against queue, job name and UUID.
-     * @param int|null $maxMatches The maximum number of matching jobs, or null for no limit.
-     * @param (callable(array<string, mixed>): bool)|null $jobFilter Additional local filter applied before the match cap.
+     * @param (callable(array<string, mixed>): bool)|null $jobFilter Additional local filter.
      *
      * @return array{jobs: list<array<string, mixed>>, complete: bool} The matching jobs and whether the source was fully read.
      */
-    public static function fetchFiltered(callable $pageFetcher, ?string $search = null, ?int $maxMatches = null, ?callable $jobFilter = null): array
+    public static function fetchFiltered(callable $pageFetcher, ?string $search = null, ?callable $jobFilter = null): array
     {
-        $maxPages = config('horizonhub.max_horizon_pages');
-        $jobsPerRequest = config('horizonhub.horizon_api_job_list_page_size');
-        $limit = $maxMatches !== null && $maxMatches > 0 ? $maxMatches : null;
+        $chunk = config('horizonhub.job_list_chunk');
+        $scanCap = config('horizonhub.job_list_scan_cap');
+        $maxPages = self::private__maxPages();
         $term = (string) $search;
         $accumulated = [];
         $startingAt = -1;
@@ -35,7 +33,7 @@ final class JobsPaginator
         for ($pageIdx = 0; $pageIdx < $maxPages; $pageIdx++) {
             $batch = ClientResponse::data($pageFetcher([
                 'starting_at' => $startingAt,
-                'limit' => $jobsPerRequest,
+                'limit' => $chunk,
             ]), 'jobs');
 
             if ($batch === null) {
@@ -46,6 +44,9 @@ final class JobsPaginator
                 $sourceExhausted = true;
                 break;
             }
+
+            $rawCount = \count($batch);
+            $batch = \array_values(\array_slice($batch, 0, $chunk));
 
             foreach ($batch as $job) {
                 if (! \is_array($job)) {
@@ -62,7 +63,7 @@ final class JobsPaginator
 
                 $accumulated[] = $job;
 
-                if ($limit !== null && \count($accumulated) >= $limit) {
+                if (\count($accumulated) >= $scanCap) {
                     return [
                         'jobs' => $accumulated,
                         'complete' => false,
@@ -70,7 +71,7 @@ final class JobsPaginator
                 }
             }
 
-            if (\count($batch) < $jobsPerRequest) {
+            if ($rawCount < $chunk) {
                 $sourceExhausted = true;
                 break;
             }
@@ -97,19 +98,21 @@ final class JobsPaginator
         $jobs = [];
         $startingAt = -1;
         $page = 0;
-        $jobsPerRequest = config('horizonhub.horizon_api_job_list_page_size');
-        $maxPages = config('horizonhub.max_horizon_pages');
+        $chunk = config('horizonhub.job_list_chunk');
+        $maxPages = self::private__maxPages();
 
         while ($page < $maxPages) {
             $batch = ClientResponse::data($pageFetcher([
                 'starting_at' => $startingAt,
-                'limit' => $jobsPerRequest,
+                'limit' => $chunk,
             ]), 'jobs');
 
             if ($batch === null || empty($batch)) {
                 break;
             }
 
+            $rawCount = \count($batch);
+            $batch = \array_values(\array_slice($batch, 0, $chunk));
             $oldestInBatch = null;
 
             foreach ($batch as $job) {
@@ -132,7 +135,7 @@ final class JobsPaginator
                 }
             }
 
-            if ($oldestInBatch === null || $oldestInBatch < $sinceTimestamp || \count($batch) < $jobsPerRequest) {
+            if ($oldestInBatch === null || $oldestInBatch < $sinceTimestamp || $rawCount < $chunk) {
                 break;
             }
 
@@ -141,6 +144,16 @@ final class JobsPaginator
         }
 
         return $jobs;
+    }
+
+    /**
+     * Get the maximum number of pages.
+     *
+     * @return int The maximum number of pages.
+     */
+    private static function private__maxPages(): int
+    {
+        return \max(1, (int) \ceil(config('horizonhub.job_list_scan_cap') / config('horizonhub.job_list_chunk')));
     }
 
     /**

@@ -16,8 +16,8 @@ class JobListServiceCoverageTest extends TestCase
     public function test_build_aggregated_and_service_paginators_and_retry_modal_page(): void
     {
         config()->set('horizonhub.jobs_per_page', 2);
-        config()->set('horizonhub.max_horizon_pages', 2);
-        config()->set('horizonhub.horizon_api_job_list_page_size', 2);
+        config()->set('horizonhub.job_list_chunk', 2);
+        config()->set('horizonhub.job_list_scan_cap', 4);
 
         $s1 = Service::create(['name' => 'svc-a', 'base_url' => 'https://a.test', 'status' => 'online']);
         $s2 = Service::create(['name' => 'svc-b', 'base_url' => 'https://b.test', 'status' => 'online']);

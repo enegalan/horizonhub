@@ -141,8 +141,8 @@ See `resources/js/lib/sse.js` for the exact sequencing.
 Horizon's job list endpoints accept only an index cursor (`starting_at`) plus `tag` on the failed list, so the search term cannot be pushed upstream (see [ADR-0007](decisions/accepted/0007-job-search-payload-filtering.md)). Instead:
 
 - `JobSearchFilter` matches the raw payload (`queue`, `name`, `id`), and `JobsPaginator::fetchFiltered()` applies it while pages are being read, so non-matching jobs are never mapped into rows nor sorted.
-- When a search is active, each service/status scan stops after `horizonhub.job_search_match_cap` matches (default 500), bounding the number of upstream requests; `SearchResultsPaginator` then flags the total as a lower bound and the UI renders it with a trailing `+`.
-- The failed jobs batch retry modal always reads the whole window, since `selection=all` must reach every matching job.
+- Every list scan stops after `horizonhub.job_list_scan_cap` jobs per service/section (default 2000; chunk fixed at 50 because Horizon often ignores `limit`).
+- When that window ends before the source is exhausted, `SearchResultsPaginator` flags the total as a lower bound and the UI explains the scan cap.
 
 
 
@@ -186,8 +186,7 @@ The primary configuration file is `config/horizonhub.php`. It centralizes:
 - Failure cooldown and service staleness windows
 - Per-service concurrency limits
 - SSE hot reload interval
-- Job list / UI page sizes and maximum Horizon pages
-- Job search match cap (`job_search_match_cap`)
+- Job list UI page size (`jobs_per_page`) and scan cap (`job_list_scan_cap`)
 - Alert defaults (counts, seconds, minutes, pending TTL, delivery limits)
 
 Most keys expose `HORIZON_HUB_*` environment overrides documented in that file. Avoid hardcoding operational values in services; read them from this config.
