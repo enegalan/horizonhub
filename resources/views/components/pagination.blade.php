@@ -17,7 +17,7 @@
                 @elseif ($firstItem !== null && $lastItem !== null)
                     Showing {{ $firstItem }}–{{ $lastItem }} of {{ $total }}{{ $totalSuffix }}
                 @else
-                    Showing {{ $total }} items
+                    Showing {{ $total }}{{ $totalSuffix }} items
                 @endif
             </p>
             @if ($truncationHint !== null)

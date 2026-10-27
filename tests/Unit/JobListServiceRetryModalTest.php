@@ -57,6 +57,8 @@ class JobListServiceRetryModalTest extends TestCase
         $this->assertCount(1, $page['rows']);
         $this->assertSame('job-3', $page['rows'][0]['uuid']);
         $this->assertCount(3, $all['rows']);
+        $this->assertFalse($page['results_may_be_truncated']);
+        $this->assertFalse($all['results_may_be_truncated']);
     }
 
     public function test_build_failed_jobs_retry_modal_page_with_max_per_page_returns_all_rows(): void
@@ -96,5 +98,45 @@ class JobListServiceRetryModalTest extends TestCase
         $this->assertCount(2, $all['rows']);
         $this->assertSame('job-b', $all['rows'][0]['uuid']);
         $this->assertSame('job-a', $all['rows'][1]['uuid']);
+        $this->assertFalse($all['results_may_be_truncated']);
+    }
+
+    public function test_build_failed_jobs_retry_modal_page_flags_incomplete_scans(): void
+    {
+        config()->set('horizonhub.job_list_chunk', 2);
+        config()->set('horizonhub.job_list_scan_cap', 2);
+
+        $page = 0;
+        Http::fake(function ($request) use (&$page) {
+            if (! str_contains($request->url(), '/jobs/failed')) {
+                return Http::response('unexpected', 500);
+            }
+
+            $page++;
+
+            if ($page === 1) {
+                return Http::response(['jobs' => [
+                    ['id' => 'job-1', 'queue' => 'default', 'name' => 'J1', 'failed_at' => '2024-06-01 14:00:00'],
+                    ['id' => 'job-2', 'queue' => 'default', 'name' => 'J2', 'failed_at' => '2024-06-01 13:00:00'],
+                ]], 200);
+            }
+
+            return Http::response(['jobs' => [
+                ['id' => 'job-3', 'queue' => 'default', 'name' => 'J3', 'failed_at' => '2024-06-01 12:00:00'],
+                ['id' => 'job-4', 'queue' => 'default', 'name' => 'J4', 'failed_at' => '2024-06-01 11:00:00'],
+            ]], 200);
+        });
+
+        $svc = Service::create([
+            'name' => 'svc-retry-modal-truncated',
+            'base_url' => 'https://svc-retry-truncated.test',
+            'status' => 'online',
+        ]);
+
+        $result = JobListService::buildFailedJobsRetryModalPage(new Collection([$svc]), '', null, null, 1, 10);
+
+        $this->assertSame(2, $result['total']);
+        $this->assertTrue($result['results_may_be_truncated']);
+        $this->assertSame(['job-1', 'job-2'], \array_column($result['rows'], 'uuid'));
     }
 }

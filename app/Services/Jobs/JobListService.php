@@ -117,7 +117,7 @@ class JobListService
      * @param int $page The page.
      * @param int $perPage The per page.
      *
-     * @return array{rows: list<array<string, mixed>>, total: int, last_page: int}
+     * @return array{rows: list<array<string, mixed>>, total: int, last_page: int, results_may_be_truncated: bool}
      */
     public static function buildFailedJobsRetryModalPage(
         Collection $services,
@@ -127,7 +127,8 @@ class JobListService
         int $page,
         int $perPage,
     ): array {
-        $rows = self::private__buildRetryModalFailedRows($services, $search, $dateFrom, $dateTo);
+        $collected = self::private__buildRetryModalFailedRows($services, $search, $dateFrom, $dateTo);
+        $rows = $collected['rows'];
 
         $total = \count($rows);
         $lastPage = $perPage > 0 ? (int) \max(1, (int) \ceil($total / $perPage)) : 1;
@@ -145,6 +146,7 @@ class JobListService
             'rows' => $data,
             'total' => $total,
             'last_page' => $lastPage,
+            'results_may_be_truncated' => $collected['results_may_be_truncated'],
         ];
     }
 
@@ -233,7 +235,7 @@ class JobListService
      * @param mixed $dateFrom The date from.
      * @param mixed $dateTo The date to.
      *
-     * @return list<array<string, mixed>>
+     * @return array{rows: list<array<string, mixed>>, results_may_be_truncated: bool}
      */
     private static function private__buildRetryModalFailedRows(
         Collection $services,
@@ -242,6 +244,7 @@ class JobListService
         mixed $dateTo,
     ): array {
         $rows = [];
+        $resultsMayBeTruncated = false;
 
         $dateFromStr = StringFormatter::nullIfBlank($dateFrom);
         $dateToStr = StringFormatter::nullIfBlank($dateTo);
@@ -253,6 +256,7 @@ class JobListService
                 fn (array $query): array => HorizonClientApiService::getFailedJobs($service, $query),
                 $search,
             );
+            $resultsMayBeTruncated = $resultsMayBeTruncated || ! $fetch['complete'];
 
             foreach ($fetch['jobs'] as $job) {
                 $jobUuid = (string) ($job['id'] ?? '');
@@ -307,7 +311,10 @@ class JobListService
             return $aTime->lt($bTime) ? 1 : -1;
         });
 
-        return $rows;
+        return [
+            'rows' => $rows,
+            'results_may_be_truncated' => $resultsMayBeTruncated,
+        ];
     }
 
     /**

@@ -41,6 +41,18 @@ class PaginationComponentTest extends TestCase
         $view->assertSee('Across several services', false);
     }
 
+    public function test_truncated_totals_keep_the_plus_suffix_when_the_current_page_slice_is_empty(): void
+    {
+        $paginator = (new SearchResultsPaginator([], 370, 2, 200, ['path' => '/horizon/jobs']))
+            ->setResultsMayBeTruncated(true);
+
+        $view = $this->view('components.pagination', [
+            'paginator' => $paginator,
+        ]);
+
+        $view->assertSee('Showing 370+ items', false);
+    }
+
     /**
      * Build a two-item paginator for the pagination component under both total modes.
      *

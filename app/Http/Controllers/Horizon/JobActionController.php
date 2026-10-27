@@ -33,6 +33,7 @@ class JobActionController extends Controller
                 'last_page' => 1,
                 'per_page' => $perPage,
                 'total' => 0,
+                'results_may_be_truncated' => false,
             ],
         ];
 
@@ -56,7 +57,10 @@ class JobActionController extends Controller
             if ($selection === 'all') {
                 return \response()->json([
                     'jobs' => [],
-                    'meta' => ['total' => 0],
+                    'meta' => [
+                        'total' => 0,
+                        'results_may_be_truncated' => false,
+                    ],
                 ]);
             }
 
@@ -87,7 +91,10 @@ class JobActionController extends Controller
 
             return \response()->json([
                 'jobs' => $jobs,
-                'meta' => ['total' => $pageData['total']],
+                'meta' => [
+                    'total' => $pageData['total'],
+                    'results_may_be_truncated' => $pageData['results_may_be_truncated'],
+                ],
             ]);
         }
 
@@ -103,6 +110,7 @@ class JobActionController extends Controller
         $returnData['data'] = $pageData['rows'];
         $returnData['meta']['last_page'] = $pageData['last_page'];
         $returnData['meta']['total'] = $pageData['total'];
+        $returnData['meta']['results_may_be_truncated'] = $pageData['results_may_be_truncated'];
 
         return \response()->json($returnData);
     }

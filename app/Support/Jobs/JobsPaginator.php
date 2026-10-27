@@ -99,9 +99,11 @@ final class JobsPaginator
         $startingAt = -1;
         $page = 0;
         $chunk = config('horizonhub.job_list_chunk');
+        $scanCap = config('horizonhub.job_list_scan_cap');
+        $scanned = 0;
         $maxPages = self::private__maxPages();
 
-        while ($page < $maxPages) {
+        while ($page < $maxPages && $scanned < $scanCap) {
             $batch = ClientResponse::data($pageFetcher([
                 'starting_at' => $startingAt,
                 'limit' => $chunk,
@@ -112,7 +114,8 @@ final class JobsPaginator
             }
 
             $rawCount = \count($batch);
-            $batch = \array_values(\array_slice($batch, 0, $chunk));
+            $batch = \array_values(\array_slice($batch, 0, \min($chunk, $scanCap - $scanned)));
+            $scanned += \count($batch);
             $oldestInBatch = null;
 
             foreach ($batch as $job) {

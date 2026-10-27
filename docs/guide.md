@@ -228,7 +228,7 @@ Three collapsible blocks:
 - **Tags** — limit to services carrying selected tags.
 - **Search** — text match on queue name, job name, or job UUID.
 
-Horizon Hub always reads at most `job_list_scan_cap` jobs per service and section. Searches match payloads while those pages are read. When the scan window ends before Horizon runs out of jobs the section total is shown with a trailing `+` and a short note — narrow the search to see older matches.
+Searches match payloads while Horizon Hub reads each service and section. `job_list_scan_cap` limits collected matches and sets a page budget of `ceil(job_list_scan_cap / job_list_chunk)` pages. A broad search can stop after collecting the cap; narrowing the search can reveal older matches within that page budget, but cannot search beyond it. When the scan ends before Horizon runs out of jobs the section total is shown with a trailing `+` and a short note.
 
 ### Job detail
 

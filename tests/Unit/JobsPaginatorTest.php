@@ -100,6 +100,34 @@ class JobsPaginatorTest extends TestCase
         $this->assertSame(2, $requests);
     }
 
+    public function test_fetch_since_timestamp_trims_pages_to_the_remaining_scan_cap(): void
+    {
+        config()->set('horizonhub.job_list_chunk', 50);
+        config()->set('horizonhub.job_list_scan_cap', 51);
+
+        $since = 1_700_000_000;
+        $jobs = \array_map(static fn (int $index): array => [
+            'id' => 'job-' . $index,
+            'completed_at' => $since + $index,
+        ], \range(0, 99));
+
+        $requests = 0;
+        $result = JobsPaginator::fetchSinceTimestamp(
+            $since,
+            function (array $query) use ($jobs, &$requests): array {
+                $requests++;
+
+                return $this->private__response($jobs, $query['starting_at'] + 1);
+            },
+            static fn (array $job): ?int => (int) $job['completed_at'],
+        );
+
+        $this->assertSame(2, $requests);
+        $this->assertCount(51, $result);
+        $this->assertSame('job-0', $result[0]['id']);
+        $this->assertSame('job-50', $result[50]['id']);
+    }
+
     /**
      * @param int $count How many jobs to generate.
      *
