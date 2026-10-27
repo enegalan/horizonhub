@@ -678,9 +678,9 @@
                                 </div>
                             </div>
 
-                            <div class="border-t border-border bg-muted/15 px-3 py-2 sm:px-4" x-show="retryTotal > 0 && !retryLoadingJobs">
+                            <div class="border-t border-border bg-muted/15 px-3 py-2 sm:px-4" x-show="(retryTotal > 0 || retryResultsMayBeTruncated) && !retryLoadingJobs">
                                 <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                                    <div class="min-w-0 shrink-0">
+                                    <div class="min-w-0">
                                         <p class="text-sm text-muted-foreground" x-text="retryPaginationSummaryLine()"></p>
                                         <p
                                             class="mt-0.5 text-xs text-amber-700 dark:text-amber-400"
