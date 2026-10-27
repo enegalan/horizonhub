@@ -119,7 +119,7 @@ class JobsPaginatorTest extends TestCase
 
                 return $this->private__response($jobs, $query['starting_at'] + 1);
             },
-            static fn (array $job): ?int => (int) $job['completed_at'],
+            static fn (array $job): int => (int) $job['completed_at'],
         );
 
         $this->assertSame(2, $requests);
