@@ -28,8 +28,6 @@ trait BuildsDashboardStreams
         $batchesMayBeTruncated = false;
         $maxWaitSeconds = null;
         $maxWaitQueue = null;
-        $queueWithMaxRuntime = null;
-        $queueWithMaxThroughput = null;
         $batchLimit = config('horizonhub.batches_recent_limit');
 
         /** @var Service $service */
@@ -43,14 +41,6 @@ trait BuildsDashboardStreams
             if ($waitEntry !== null && ($maxWaitSeconds === null || $waitEntry['seconds'] > $maxWaitSeconds)) {
                 $maxWaitSeconds = $waitEntry['seconds'];
                 $maxWaitQueue = QueueNameNormalizer::normalize($waitEntry['queue']);
-            }
-
-            if ($queueWithMaxRuntime === null && $stats['queueWithMaxRuntime'] !== null) {
-                $queueWithMaxRuntime = QueueNameNormalizer::normalize($stats['queueWithMaxRuntime']);
-            }
-
-            if ($queueWithMaxThroughput === null && $stats['queueWithMaxThroughput'] !== null) {
-                $queueWithMaxThroughput = QueueNameNormalizer::normalize($stats['queueWithMaxThroughput']);
             }
 
             $silencedData = ClientResponse::data(HorizonClientApiService::getSilencedJobs($service));
@@ -80,8 +70,6 @@ trait BuildsDashboardStreams
             'batchesMayBeTruncated' => $batchesMayBeTruncated,
             'maxWaitSeconds' => $maxWaitSeconds,
             'maxWaitQueue' => $maxWaitQueue,
-            'queueWithMaxRuntime' => $queueWithMaxRuntime,
-            'queueWithMaxThroughput' => $queueWithMaxThroughput,
         ];
 
         $services = Service::getServices([], false, true);

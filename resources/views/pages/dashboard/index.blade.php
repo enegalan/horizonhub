@@ -93,14 +93,12 @@
                 </div>
             </div>
 
-            <div id="dashboard-limits-summary" class="grid divide-y divide-border border-t border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            <div id="dashboard-limits-summary" class="border-t border-border">
                 @if(!empty($defer))
-                    @for ($i = 0; $i < 3; $i++)
-                        <div class="min-w-0 px-5 py-4 sm:px-6">
-                            <div class="skeleton h-3 w-24" style="--skeleton-delay: {{ $i * 60 }}ms"></div>
-                            <div class="mt-2 skeleton h-7 w-20" style="--skeleton-delay: {{ ($i * 60) + 80 }}ms"></div>
-                        </div>
-                    @endfor
+                    <div class="min-w-0 px-5 py-4 sm:px-6">
+                        <div class="skeleton h-3 w-24"></div>
+                        <div class="mt-2 skeleton h-7 w-20" style="--skeleton-delay: 80ms"></div>
+                    </div>
                 @else
                     @include('pages.dashboard.partials.index.limits-summary', ['summary' => []])
                 @endif
@@ -115,15 +113,14 @@
             <div
                 id="dashboard-service-health-grid"
                 class="max-h-96 divide-y divide-border overflow-y-auto"
-                data-turbo-stream-patch-children="true"
             >
                 @if(!empty($defer))
                     @for ($i = 0; $i < 6; $i++)
-                        <div class="flex items-center gap-3 px-4 py-2.5 sm:px-5">
+                        <div class="flex flex-wrap items-center gap-2 px-4 py-2.5 sm:gap-3 sm:px-5">
                             <div class="skeleton size-2 shrink-0 rounded-full" style="--skeleton-delay: {{ $i * 40 }}ms"></div>
                             <div class="skeleton h-4 max-w-48 flex-1" style="--skeleton-delay: {{ ($i * 40) + 60 }}ms"></div>
                             <div class="skeleton h-5 w-16 shrink-0" style="--skeleton-delay: {{ ($i * 40) + 100 }}ms"></div>
-                            <div class="skeleton hidden h-5 w-28 shrink-0 sm:block" style="--skeleton-delay: {{ ($i * 40) + 140 }}ms"></div>
+                            <div class="skeleton h-5 w-28 shrink-0" style="--skeleton-delay: {{ ($i * 40) + 140 }}ms"></div>
                         </div>
                     @endfor
                 @else
