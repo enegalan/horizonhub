@@ -14,7 +14,9 @@ class DashboardPageTest extends TestCase
         $response = $this->get('/horizon');
 
         $response->assertOk();
-        $response->assertSee('horizon-dashboard', false);
+        $response->assertSee('dashboard-stats', false);
+        $response->assertSee('dashboard-alerts-list', false);
+        $response->assertSee('dashboard-workload-list', false);
         $response->assertDontSee('data-service-tag-filter="1"', false);
         $response->assertDontSee('dashboard-index-services', false);
     }

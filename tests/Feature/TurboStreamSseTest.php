@@ -393,19 +393,31 @@ class TurboStreamSseTest extends TestCase
         $result = $this->private__invokeStreamBuilder('buildDashboard');
 
         $this->assertNotNull($result);
-        $this->assertStringContainsString('target="dashboard-value-jobs-minute"', $result);
-        $this->assertStringContainsString('>4<', $result);
+        $this->assertStringContainsString('target="dashboard-stats" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-supervisor-stats" method="morph"', $result);
         $this->assertStringContainsString('bg-orange-500', $result);
         $this->assertMatchesRegularExpression('/dashboard-value-services-online.*?1\s*\/\s*3/s', $result);
         $this->assertStringContainsString('dash-alert', $result);
         $this->assertStringContainsString('online-svc', $result);
-        $this->assertStringContainsString('target="tbody-horizon-dashboard-workload" method="morph"', $result);
-        $this->assertStringContainsString('target="dashboard-value-pending"', $result);
-        $this->assertStringContainsString('target="dashboard-value-silenced"', $result);
-        $this->assertStringContainsString('target="dashboard-value-batches"', $result);
-        $this->assertStringContainsString('target="dashboard-value-processes"', $result);
-        $this->assertStringContainsString('target="dashboard-limits-summary" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-workload-list" method="morph"', $result);
+        $this->assertStringContainsString('Pending jobs', $result);
+        $this->assertStringContainsString('Active queues', $result);
+        $this->assertStringContainsString('Failed jobs', $result);
+        $this->assertStringContainsString('Completed jobs', $result);
+        $this->assertStringContainsString('Batches', $result);
+        $this->assertStringContainsString('In progress', $result);
+        $this->assertStringContainsString('With failures', $result);
+        $this->assertStringContainsString('Jobs Per Minute', $result);
+        $this->assertStringContainsString('Silenced', $result);
+        $this->assertStringContainsString('Total Instances', $result);
+        $this->assertStringContainsString('Total Supervisors', $result);
+        $this->assertStringContainsString('Paused Supervisors', $result);
         $this->assertStringContainsString('target="dashboard-supervisors" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-alert-stats" method="morph"', $result);
+        $this->assertStringContainsString('Total Alerts', $result);
+        $this->assertStringContainsString('Failed Deliveries', $result);
+        $this->assertStringContainsString('target="dashboard-workload-stats" method="morph"', $result);
+        $this->assertStringContainsString('Total Jobs', $result);
     }
 
     public function test_build_dashboard_streams_returns_expected_targets(): void
@@ -413,16 +425,15 @@ class TurboStreamSseTest extends TestCase
         $result = $this->private__invokeStreamBuilder('buildDashboard');
 
         $this->assertNotNull($result);
-        $this->assertStringContainsString('target="dashboard-value-jobs-minute"', $result);
-        $this->assertStringContainsString('target="dashboard-value-pending"', $result);
-        $this->assertStringContainsString('target="dashboard-value-silenced"', $result);
-        $this->assertStringContainsString('target="dashboard-value-batches"', $result);
-        $this->assertStringContainsString('target="dashboard-value-processes"', $result);
-        $this->assertStringContainsString('target="dashboard-limits-summary" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-stats" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-supervisor-stats" method="morph"', $result);
         $this->assertStringContainsString('target="dashboard-supervisors" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-services-kpi-inner" method="morph"', $result);
         $this->assertStringContainsString('target="dashboard-service-health-grid" method="morph"', $result);
-        $this->assertStringContainsString('target="tbody-horizon-dashboard-alerts" method="morph"', $result);
-        $this->assertStringContainsString('target="tbody-horizon-dashboard-workload" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-alert-stats" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-alerts-list" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-workload-stats" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-workload-list" method="morph"', $result);
     }
 
     public function test_build_dashboard_streams_uses_neutral_health_dot_when_no_services_exist(): void

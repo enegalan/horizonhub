@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers\Stream\Concerns;
 
+use App\Enums\AlertLogStatus;
 use App\Enums\ServiceStatus;
+use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientApiService;
 use App\Support\Horizon\ClientResponse;
 use App\Support\Horizon\StatsReader;
+use App\Support\Jobs\JobRuntime;
 use App\Support\NumberFormatter;
-use App\Support\Queues\QueueNameNormalizer;
+use Illuminate\Support\Collection;
 
 trait BuildsDashboardStreams
 {
@@ -20,57 +23,75 @@ trait BuildsDashboardStreams
     {
         $metrics = $this->metrics->buildMetricsDashboardData([]);
         $overview = $this->queueOverview->build([], false);
-        $processes = 0;
+
+        $completedJobs = 0;
+        $failedJobs = 0;
+        $jobsPerMinute = 0;
         $silencedJobs = 0;
-        $silencedAvailable = true;
-        $recentBatches = 0;
-        $batchesAvailable = true;
-        $batchesMayBeTruncated = false;
-        $maxWaitSeconds = null;
-        $maxWaitQueue = null;
-        $batchLimit = config('horizonhub.batches_recent_limit');
+        $batchesTotal = 0;
+        $batchesInProgress = 0;
+        $batchesWithFailures = 0;
 
         /** @var Service $service */
         foreach ($overview['services'] as $service) {
             $statsData = ClientResponse::data(HorizonClientApiService::getStats($service));
             $stats = StatsReader::summary($statsData);
-            $processes += (int) $stats['processes'];
-
-            $waitEntry = StatsReader::maxWaitEntry($statsData);
-
-            if ($waitEntry !== null && ($maxWaitSeconds === null || $waitEntry['seconds'] > $maxWaitSeconds)) {
-                $maxWaitSeconds = $waitEntry['seconds'];
-                $maxWaitQueue = QueueNameNormalizer::normalize($waitEntry['queue']);
-            }
+            $completedJobs += (int) $stats['recentJobs'];
+            $failedJobs += (int) $stats['failedJobs'];
+            $jobsPerMinute += (int) $stats['jobsPastMinute'];
 
             $silencedData = ClientResponse::data(HorizonClientApiService::getSilencedJobs($service));
 
-            if ($silencedData === null) {
-                $silencedAvailable = false;
-            } else {
+            if ($silencedData !== null) {
                 $silencedJobs += NumberFormatter::nonNegativeInt($silencedData['total'] ?? null);
             }
 
             $batchesData = ClientResponse::data(HorizonClientApiService::getBatches($service));
 
-            if ($batchesData === null) {
-                $batchesAvailable = false;
-            } else {
-                $batchCount = NumberFormatter::count($batchesData['batches'] ?? null);
-                $recentBatches += $batchCount;
-                $batchesMayBeTruncated = $batchesMayBeTruncated || $batchCount >= $batchLimit;
+            if ($batchesData !== null) {
+                $batchStats = $this->private__batchStats($batchesData['batches'] ?? null);
+                $batchesTotal += $batchStats['total'];
+                $batchesInProgress += $batchStats['inProgress'];
+                $batchesWithFailures += $batchStats['withFailures'];
             }
         }
 
-        $summary = [
-            'pendingJobs' => $overview['totals']['totalJobs'],
-            'processes' => $processes,
-            'silencedJobs' => $silencedAvailable ? $silencedJobs : null,
-            'recentBatches' => $batchesAvailable ? $recentBatches : null,
-            'batchesMayBeTruncated' => $batchesMayBeTruncated,
-            'maxWaitSeconds' => $maxWaitSeconds,
-            'maxWaitQueue' => $maxWaitQueue,
+        $failedSeries = $metrics['jobsVolumeLast24h']['failed'] ?? [];
+        $failedSeries = \is_array($failedSeries) ? $failedSeries : [];
+        $failedPast24h = 0;
+
+        foreach ($failedSeries as $count) {
+            $failedPast24h += (int) $count;
+        }
+
+        $failedPastHour = $failedSeries === []
+            ? 0
+            : (int) $failedSeries[\array_key_last($failedSeries)];
+
+        $pendingActiveQueues = 0;
+
+        foreach ($overview['rows'] as $row) {
+            if ((int) ($row['jobs'] ?? 0) > 0) {
+                $pendingActiveQueues++;
+            }
+        }
+
+        $stats = [
+            'pendingJobs' => (int) $overview['totals']['totalJobs'],
+            'pendingActiveQueues' => $pendingActiveQueues,
+            'pendingQueueCount' => (int) $overview['totals']['queueCount'],
+            'failedJobs' => $failedJobs,
+            'failedPastHour' => $failedPastHour,
+            'failedPast24h' => $failedPast24h,
+            'completedJobs' => $completedJobs,
+            'jobsPerMinute' => $jobsPerMinute,
+            'silencedJobs' => $silencedJobs,
+            'batchesTotal' => $batchesTotal,
+            'batchesInProgress' => $batchesInProgress,
+            'batchesWithFailures' => $batchesWithFailures,
         ];
+
+        $supervisorStats = $this->private__supervisorStats($overview['masterGroups']);
 
         $services = Service::getServices([], false, true);
 
@@ -79,28 +100,23 @@ trait BuildsDashboardStreams
         }
 
         $enabledServices = $services->where('enabled', true);
-        $silencedValue = $summary['silencedJobs'] !== null
-            ? e(\number_format($summary['silencedJobs']))
-            : '—';
-        $batchesValue = $summary['recentBatches'] !== null
-            ? e(\number_format($summary['recentBatches']) . ($summary['batchesMayBeTruncated'] ? '+' : ''))
-            : '—';
 
         $recentAlertLogs = AlertLog::with(['alert', 'service'])
             ->orderByDesc('sent_at')
             ->limit(config('horizonhub.recent_alert_logs'))
             ->get();
 
+        $alertStats = $this->private__alertStats($recentAlertLogs);
+        $workloadRows = $metrics['workloadRows'] ?? [];
+        $workloadRows = \is_array($workloadRows) ? $workloadRows : [];
+        $workloadStats = $this->private__workloadStats($workloadRows);
+
         return $this->buildStreams([
-            ['update', 'dashboard-value-jobs-minute', e($metrics['jobsPastMinute'] ?? '—'), null],
-            ['update', 'dashboard-value-jobs-hour', e($metrics['jobsPastHour'] ?? '—'), null],
-            ['update', 'dashboard-value-failed-seven', e($metrics['failedPastSevenDays'] ?? '—'), null],
-            ['update', 'dashboard-value-pending', e(\number_format($summary['pendingJobs'])), null],
-            ['update', 'dashboard-value-silenced', $silencedValue, null],
-            ['update', 'dashboard-value-batches', $batchesValue, null],
-            ['update', 'dashboard-value-processes', e(\number_format($summary['processes'])), null],
-            ['update', 'dashboard-limits-summary', \view('pages.dashboard.partials.index.limits-summary', [
-                'summary' => $summary,
+            ['update', 'dashboard-stats', \view('pages.dashboard.partials.index.stats', [
+                'stats' => $stats,
+            ])->render(), 'morph'],
+            ['update', 'dashboard-supervisor-stats', \view('pages.dashboard.partials.index.supervisor-stats', [
+                'supervisorStats' => $supervisorStats,
             ])->render(), 'morph'],
             ['update', 'dashboard-supervisors', \view('pages.partials.master-groups', [
                 'emptyDescription' => 'No supervisors were reported by the connected Horizon services.',
@@ -115,8 +131,148 @@ trait BuildsDashboardStreams
                 'onlineCount' => $enabledServices->where('status', ServiceStatus::Online)->count(),
             ])->render(), 'morph'],
             ['update', 'dashboard-service-health-grid', \view('pages.dashboard.partials.index.service-health-grid', ['services' => $services])->render(), 'morph'],
-            ['update', 'tbody-horizon-dashboard-alerts', \view('pages.dashboard.partials.index.recent-alerts-tbody', ['recentAlertLogs' => $recentAlertLogs])->render(), 'morph'],
-            ['update', 'tbody-horizon-dashboard-workload', \view('pages.dashboard.partials.index.workload-summary-tbody', ['workloadRows' => $metrics['workloadRows']])->render(), 'morph'],
+            ['update', 'dashboard-alert-stats', \view('pages.dashboard.partials.index.alert-stats', [
+                'alertStats' => $alertStats,
+            ])->render(), 'morph'],
+            ['update', 'dashboard-alerts-list', \view('pages.dashboard.partials.index.recent-alerts-list', ['recentAlertLogs' => $recentAlertLogs])->render(), 'morph'],
+            ['update', 'dashboard-workload-stats', \view('pages.dashboard.partials.index.workload-stats', [
+                'workloadStats' => $workloadStats,
+            ])->render(), 'morph'],
+            ['update', 'dashboard-workload-list', \view('pages.dashboard.partials.index.workload-list', ['workloadRows' => $workloadRows])->render(), 'morph'],
         ]);
+    }
+
+    /**
+     * Aggregate alert strip metrics.
+     *
+     * @param Collection<int, AlertLog>|\Illuminate\Database\Eloquent\Collection<int, AlertLog> $recentAlertLogs
+     *
+     * @return array{totalAlerts: int, enabledAlerts: int, failedDeliveries: int}
+     */
+    private function private__alertStats($recentAlertLogs): array
+    {
+        $failedDeliveries = 0;
+
+        foreach ($recentAlertLogs as $log) {
+            if ($log->status === AlertLogStatus::Failed) {
+                $failedDeliveries++;
+            }
+        }
+
+        return [
+            'totalAlerts' => Alert::query()->count(),
+            'enabledAlerts' => Alert::query()->enabled()->count(),
+            'failedDeliveries' => $failedDeliveries,
+        ];
+    }
+
+    /**
+     * Aggregate batch counts from a Horizon batches payload.
+     *
+     * @return array{total: int, inProgress: int, withFailures: int}
+     */
+    private function private__batchStats(mixed $batches): array
+    {
+        if (! \is_array($batches)) {
+            return ['total' => 0, 'inProgress' => 0, 'withFailures' => 0];
+        }
+
+        $total = 0;
+        $inProgress = 0;
+        $withFailures = 0;
+
+        foreach ($batches as $batch) {
+            if (! \is_array($batch)) {
+                continue;
+            }
+
+            $total++;
+            $pendingJobs = NumberFormatter::nonNegativeInt($batch['pendingJobs'] ?? null);
+            $failedJobs = NumberFormatter::nonNegativeInt($batch['failedJobs'] ?? null);
+            $finishedAt = JobRuntime::parseJobTimestamp($batch['finishedAt'] ?? null);
+            $cancelledAt = JobRuntime::parseJobTimestamp($batch['cancelledAt'] ?? null);
+
+            if ($failedJobs > 0) {
+                $withFailures++;
+            }
+
+            if ($cancelledAt === null && $finishedAt === null && $pendingJobs > 0) {
+                $inProgress++;
+            }
+        }
+
+        return [
+            'total' => $total,
+            'inProgress' => $inProgress,
+            'withFailures' => $withFailures,
+        ];
+    }
+
+    /**
+     * Aggregate supervisor strip metrics from master groups.
+     *
+     * @param list<array<string, mixed>> $masterGroups
+     *
+     * @return array{totalInstances: int, totalSupervisors: int, pausedSupervisors: int}
+     */
+    private function private__supervisorStats(array $masterGroups): array
+    {
+        $totalSupervisors = 0;
+        $pausedSupervisors = 0;
+
+        foreach ($masterGroups as $group) {
+            $supervisors = $group['supervisors'] ?? [];
+
+            if (! \is_array($supervisors)) {
+                continue;
+            }
+
+            foreach ($supervisors as $supervisor) {
+                if (! \is_array($supervisor)) {
+                    continue;
+                }
+
+                $totalSupervisors++;
+                $status = \strtolower((string) ($supervisor['status'] ?? ''));
+
+                if (\in_array($status, ['paused', 'inactive'], true)) {
+                    $pausedSupervisors++;
+                }
+            }
+        }
+
+        return [
+            'totalInstances' => \count($masterGroups),
+            'totalSupervisors' => $totalSupervisors,
+            'pausedSupervisors' => $pausedSupervisors,
+        ];
+    }
+
+    /**
+     * Aggregate workload strip metrics from workload rows.
+     *
+     * @param list<array<string, mixed>> $workloadRows
+     *
+     * @return array{totalJobs: int, activeQueues: int, queueCount: int}
+     */
+    private function private__workloadStats(array $workloadRows): array
+    {
+        $totalJobs = 0;
+        $activeQueues = 0;
+
+        foreach ($workloadRows as $row) {
+            $jobs = (int) ($row['jobs'] ?? 0);
+            $totalJobs += $jobs;
+
+            if ($jobs > 0) {
+                $activeQueues++;
+            }
+        }
+
+        return [
+            'totalJobs' => $totalJobs,
+            'activeQueues' => $activeQueues,
+            'queueCount' => \count($workloadRows),
+        ];
     }
 }

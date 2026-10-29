@@ -44,19 +44,23 @@ For what Horizon Hub is and how it integrates technically, see [HORIZONHUB.md](H
 
 The dashboard is the default landing page and the best place for a quick health check across all connected services.
 
-### KPI cards
+### Stats
 
-- **Jobs (last minute / hour)** — recent throughput across enabled services.
-- **Failed jobs (7 days)** — failure volume in the rolling window.
-- **Services online** — how many registered services are currently reachable.
+Top card (Horizon-style columns across enabled services):
+
+- **Pending jobs** — ready queue depth, with Active queues / Queues (Horizon HTTP does not expose reserved/delayed separately).
+- **Failed jobs** — Horizon recent-failed window (typically 7 days), with Past hour / Past 24 hours.
+- **Completed jobs** — recent completed window, with Jobs Per Minute and Silenced.
+- **Batches** — recent batches total, with In progress / With failures.
 
 ### Panels
 
 | Panel            | What it shows                                  | Typical next step                               |
 |------------------|------------------------------------------------|-------------------------------------------------|
-| Service health   | Status per service (online, stand-by, offline) | Open **Services** for detail or connection test |
-| Recent alerts    | Latest alert activity                          | Open **Alerts** for rules or delivery logs      |
-| Current workload | Queue backlog summary                          | Open **Queues** for pending jobs                |
+| Services         | Online count in the header; status list below  | Open **Services** for detail or connection test |
+| Supervisors      | Instances / supervisors / paused strip; groups | Open **Instances** for process detail           |
+| Recent alerts    | Total / enabled / failed-delivery strip; list  | Open **Alerts** for rules or delivery logs      |
+| Current workload | Jobs / active queues / queues strip; list      | Open **Queues** for pending jobs                |
 
 Use the dashboard during incidents to see whether the problem is global (many services) or isolated (one service offline or one queue growing).
 
