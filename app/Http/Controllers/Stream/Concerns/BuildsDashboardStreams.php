@@ -28,9 +28,11 @@ trait BuildsDashboardStreams
         $failedJobs = 0;
         $jobsPerMinute = 0;
         $silencedJobs = 0;
+        $silencedAvailable = true;
         $batchesTotal = 0;
         $batchesInProgress = 0;
         $batchesWithFailures = 0;
+        $batchesAvailable = true;
 
         /** @var Service $service */
         foreach ($overview['services'] as $service) {
@@ -42,13 +44,17 @@ trait BuildsDashboardStreams
 
             $silencedData = ClientResponse::data(HorizonClientApiService::getSilencedJobs($service));
 
-            if ($silencedData !== null) {
+            if ($silencedData === null) {
+                $silencedAvailable = false;
+            } else {
                 $silencedJobs += NumberFormatter::nonNegativeInt($silencedData['total'] ?? null);
             }
 
             $batchesData = ClientResponse::data(HorizonClientApiService::getBatches($service));
 
-            if ($batchesData !== null) {
+            if ($batchesData === null) {
+                $batchesAvailable = false;
+            } else {
                 $batchStats = $this->private__batchStats($batchesData['batches'] ?? null);
                 $batchesTotal += $batchStats['total'];
                 $batchesInProgress += $batchStats['inProgress'];
@@ -85,10 +91,10 @@ trait BuildsDashboardStreams
             'failedPast24h' => $failedPast24h,
             'completedJobs' => $completedJobs,
             'jobsPerMinute' => $jobsPerMinute,
-            'silencedJobs' => $silencedJobs,
-            'batchesTotal' => $batchesTotal,
-            'batchesInProgress' => $batchesInProgress,
-            'batchesWithFailures' => $batchesWithFailures,
+            'silencedJobs' => $silencedAvailable ? $silencedJobs : null,
+            'batchesTotal' => $batchesAvailable ? $batchesTotal : null,
+            'batchesInProgress' => $batchesAvailable ? $batchesInProgress : null,
+            'batchesWithFailures' => $batchesAvailable ? $batchesWithFailures : null,
         ];
 
         $supervisorStats = $this->private__supervisorStats($overview['masterGroups']);
@@ -295,7 +301,7 @@ trait BuildsDashboardStreams
             return ((int) ($right['jobs'] ?? 0)) <=> ((int) ($left['jobs'] ?? 0));
         });
 
-        return \array_values(\array_slice($workloadRows, 0, config('horizonhub.top_n_queues')));
+        return \array_slice($workloadRows, 0, config('horizonhub.top_n_queues'));
     }
 
     /**

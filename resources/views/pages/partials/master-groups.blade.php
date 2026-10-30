@@ -4,8 +4,24 @@
     $showServiceLink ??= false;
     $emptyTitle ??= 'No supervisors';
     $emptyDescription ??= null;
+    $defer = (bool) ($defer ?? false);
 @endphp
 
+@if($defer && $masterGroups === [])
+    @for($i = 0; $i < 2; $i++)
+        <div class="card animate-pulse overflow-hidden">
+            <div class="space-y-2 bg-muted/20 px-4 py-3">
+                <div class="h-3 w-48 rounded bg-muted"></div>
+                <div class="h-3 w-32 rounded bg-muted"></div>
+            </div>
+            <div class="space-y-2 px-4 py-3">
+                <div class="h-3 w-full rounded bg-muted"></div>
+                <div class="h-3 w-5/6 rounded bg-muted"></div>
+                <div class="h-3 w-2/3 rounded bg-muted"></div>
+            </div>
+        </div>
+    @endfor
+@else
 @forelse($masterGroups as $group)
     @php
         $supervisors = $group['supervisors'];
@@ -97,3 +113,4 @@
 @empty
     <x-empty-state :title="$emptyTitle" :description="$emptyDescription" />
 @endforelse
+@endif

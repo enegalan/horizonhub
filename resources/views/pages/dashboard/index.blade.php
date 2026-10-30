@@ -74,9 +74,7 @@
                     'masterGroups' => [],
                     'showServiceLink' => true,
                     'emptyTitle' => 'No supervisors',
-                    'emptyDescription' => $hasEnabledServices
-                        ? 'Waiting for live supervisor data…'
-                        : 'Enable a service to see supervisor processes.',
+                    'emptyDescription' => 'Enable a service to see supervisor processes.',
                     'defer' => $hasEnabledServices,
                 ])
             </div>

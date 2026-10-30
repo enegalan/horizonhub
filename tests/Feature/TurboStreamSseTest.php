@@ -397,7 +397,8 @@ class TurboStreamSseTest extends TestCase
         // Non-2xx for offline/standby (and for stats everywhere): a 2xx response would
         // mark those services online via the heartbeat, which must not happen here
         // because the assertions rely on each service's stored status. Batch and
-        // silenced fixtures are limited to the online service only.
+        // silenced fixtures succeed only for the online host; other hosts fail, so
+        // dashboard silenced/batch aggregates must render as unavailable (—).
         Http::fake(function (Request $request) {
             $url = $request->url();
             $isOnlineHost = \str_contains($url, 'https://online.test/');
@@ -476,10 +477,10 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('Recent failed deliveries', $result);
         $this->assertStringContainsString('target="dashboard-workload-stats" method="morph"', $result);
         $this->assertStringContainsString('Total Jobs', $result);
-        $this->assertMatchesRegularExpression('/Silenced<\/dt>\s*<dd[^>]*>\s*7\s*<\/dd>/s', $result);
-        $this->assertMatchesRegularExpression('/Recent batches<\/p>\s*<p[^>]*>\s*4\s*<\/p>/s', $result);
-        $this->assertMatchesRegularExpression('/In progress<\/dt>\s*<dd[^>]*>\s*1\s*<\/dd>/s', $result);
-        $this->assertMatchesRegularExpression('/With failures<\/dt>\s*<dd[^>]*>\s*1\s*<\/dd>/s', $result);
+        $this->assertMatchesRegularExpression('/Silenced<\/dt>\s*<dd[^>]*>\s*—\s*<\/dd>/s', $result);
+        $this->assertMatchesRegularExpression('/Recent batches<\/p>\s*<p[^>]*>\s*—\s*<\/p>/s', $result);
+        $this->assertMatchesRegularExpression('/In progress<\/dt>\s*<dd[^>]*>\s*—\s*<\/dd>/s', $result);
+        $this->assertMatchesRegularExpression('/With failures<\/dt>\s*<dd[^>]*>\s*—\s*<\/dd>/s', $result);
         $this->assertMatchesRegularExpression('/Past hour<\/dt>\s*<dd[^>]*>\s*3\s*<\/dd>/s', $result);
         $this->assertMatchesRegularExpression('/Past 24 hours<\/dt>\s*<dd[^>]*>\s*5\s*<\/dd>/s', $result);
         $this->assertMatchesRegularExpression('/Recent failed deliveries<\/p>\s*<p[^>]*>\s*2\s*<\/p>/s', $result);
