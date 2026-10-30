@@ -1,18 +1,4 @@
-@php
-    /** @var \Illuminate\Support\Collection<int, \App\Models\Service>|\App\Models\Service[] $services */
-    $services = collect($services ?? [])->sortBy(function (\App\Models\Service $service): int {
-        if (! $service->enabled) {
-            return 3;
-        }
-
-        return match ($service->status) {
-            \App\Enums\ServiceStatus::Online => 2,
-            \App\Enums\ServiceStatus::StandBy => 1,
-            default => 0,
-        };
-    })->values();
-@endphp
-@forelse($services as $service)
+@forelse($services ?? [] as $service)
     @php
         $svcSt = $service->status;
         $isOnline = $svcSt === \App\Enums\ServiceStatus::Online;

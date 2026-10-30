@@ -48,7 +48,6 @@
 
         <div id="alert-detail-stats" data-alert-detail-stats>
             @include('pages.alerts.partials.show.stats', [
-                'chartData' => $chartData ?? null,
                 'defer' => $defer ?? false,
             ])
         </div>

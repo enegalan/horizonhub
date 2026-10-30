@@ -59,7 +59,7 @@
 </div>
 
 <div class="p-4 sm:p-5">
-    <p class="text-sm text-muted-foreground">Batches</p>
+    <p class="text-sm text-muted-foreground">Recent batches</p>
     <p class="mt-1 text-3xl font-semibold tabular-nums tracking-tight text-foreground">{{ number_format($batchesTotal) }}</p>
     <dl class="mt-4 space-y-1.5 text-sm">
         <div class="flex items-baseline justify-between gap-3 border-b border-dotted border-border pb-1.5">

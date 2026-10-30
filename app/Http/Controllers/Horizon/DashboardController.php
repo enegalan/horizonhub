@@ -15,6 +15,7 @@ class DashboardController extends Controller
     {
         return \view('pages.dashboard.index', [
             'defer' => true,
+            'hasEnabledServices' => Service::query()->enabled()->exists(),
             'header' => 'Dashboard',
             'services' => Service::enabledNamed(),
         ]);

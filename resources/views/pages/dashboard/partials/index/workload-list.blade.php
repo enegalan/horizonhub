@@ -2,12 +2,6 @@
     /** @var list<array<string, mixed>> $workloadRows */
     $workloadRows ??= [];
     $defer = (bool) ($defer ?? false);
-
-    if (! $defer && $workloadRows !== []) {
-        \usort($workloadRows, static function (array $left, array $right): int {
-            return ((int) ($right['jobs'] ?? 0)) <=> ((int) ($left['jobs'] ?? 0));
-        });
-    }
 @endphp
 @if($defer)
     @for($i = 0; $i < 3; $i++)

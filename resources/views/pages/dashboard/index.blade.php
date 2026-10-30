@@ -1,7 +1,3 @@
-@php
-    $hasEnabledServices = \App\Models\Service::query()->enabled()->exists();
-@endphp
-
 @extends('layouts.app')
 
 @section('title', 'Dashboard')

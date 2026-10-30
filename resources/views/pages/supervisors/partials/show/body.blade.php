@@ -42,15 +42,11 @@
         $environment = (string) ($master['environment'] ?? '');
         $masterPid = (string) ($master['pid'] ?? '');
         $masterName = (string) ($master['name'] ?? '');
-        $queueNames = \array_values(\array_map('strval', $supervisor['queueNames'] ?? []));
-        $processesByQueue = (array) ($supervisor['processesByQueue'] ?? []);
-        $warnings = \array_values(\array_map('strval', $supervisor['warnings'] ?? []));
-        $options = (array) ($supervisor['options'] ?? []);
+        $queueNames = $supervisor['queueNames'] ?? [];
+        $processesByQueue = $supervisor['processesByQueue'] ?? [];
+        $warnings = $supervisor['warnings'] ?? [];
+        $options = $supervisor['options'] ?? [];
         $backoff = $supervisor['backoff'] ?? null;
-
-        if (\is_array($backoff)) {
-            $backoff = \implode(', ', \array_map(static fn ($value): string => (string) $value, $backoff));
-        }
     @endphp
 
     <div class="mb-5 flex flex-wrap items-center justify-between gap-3">

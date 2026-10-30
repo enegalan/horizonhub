@@ -100,6 +100,7 @@ trait BuildsDashboardStreams
         }
 
         $enabledServices = $services->where('enabled', true);
+        $servicesCount = $enabledServices->count();
 
         $recentAlertLogs = AlertLog::with(['alert', 'service'])
             ->orderByDesc('sent_at')
@@ -110,6 +111,7 @@ trait BuildsDashboardStreams
         $workloadRows = $metrics['workloadRows'] ?? [];
         $workloadRows = \is_array($workloadRows) ? $workloadRows : [];
         $workloadStats = $this->private__workloadStats($workloadRows);
+        $workloadListRows = $this->private__topWorkloadRows($workloadRows);
 
         return $this->buildStreams([
             ['update', 'dashboard-stats', \view('pages.dashboard.partials.index.stats', [
@@ -125,12 +127,14 @@ trait BuildsDashboardStreams
                 'showServiceLink' => true,
             ])->render(), 'morph'],
             ['update', 'dashboard-services-kpi-inner', \view('pages.dashboard.partials.index.kpi-services-online', [
-                'servicesCount' => $enabledServices->count(),
+                'servicesCount' => $servicesCount,
                 'offlineCount' => $enabledServices->where('status', ServiceStatus::Offline)->count(),
                 'standByCount' => $enabledServices->where('status', ServiceStatus::StandBy)->count(),
                 'onlineCount' => $enabledServices->where('status', ServiceStatus::Online)->count(),
             ])->render(), 'morph'],
-            ['update', 'dashboard-service-health-grid', \view('pages.dashboard.partials.index.service-health-grid', ['services' => $services])->render(), 'morph'],
+            ['update', 'dashboard-service-health-grid', \view('pages.dashboard.partials.index.service-health-grid', [
+                'services' => $this->private__sortServicesForHealthGrid($services),
+            ])->render(), 'morph'],
             ['update', 'dashboard-alert-stats', \view('pages.dashboard.partials.index.alert-stats', [
                 'alertStats' => $alertStats,
             ])->render(), 'morph'],
@@ -138,7 +142,9 @@ trait BuildsDashboardStreams
             ['update', 'dashboard-workload-stats', \view('pages.dashboard.partials.index.workload-stats', [
                 'workloadStats' => $workloadStats,
             ])->render(), 'morph'],
-            ['update', 'dashboard-workload-list', \view('pages.dashboard.partials.index.workload-list', ['workloadRows' => $workloadRows])->render(), 'morph'],
+            ['update', 'dashboard-workload-list', \view('pages.dashboard.partials.index.workload-list', [
+                'workloadRows' => $workloadListRows,
+            ])->render(), 'morph'],
         ]);
     }
 
@@ -274,5 +280,49 @@ trait BuildsDashboardStreams
             'activeQueues' => $activeQueues,
             'queueCount' => \count($workloadRows),
         ];
+    }
+
+    /**
+     * Highest-workload rows for the dashboard list (stats keep the full set).
+     *
+     * @param list<array<string, mixed>> $workloadRows
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function private__topWorkloadRows(array $workloadRows): array
+    {
+        if ($workloadRows === []) {
+            return [];
+        }
+
+        \usort($workloadRows, static function (array $left, array $right): int {
+            return ((int) ($right['jobs'] ?? 0)) <=> ((int) ($left['jobs'] ?? 0));
+        });
+
+        return \array_values(\array_slice($workloadRows, 0, config('horizonhub.top_n_queues')));
+    }
+
+    /**
+     * Sort services for the dashboard health grid: offline first, then stand-by, online, disabled.
+     *
+     * @param Collection<int, Service>|\Illuminate\Database\Eloquent\Collection<int, Service> $services
+     *
+     * @return Collection<int, Service>
+     */
+    private function private__sortServicesForHealthGrid($services): Collection
+    {
+        return $services
+            ->sortBy(static function (Service $service): int {
+                if (! $service->enabled) {
+                    return 3;
+                }
+
+                return match ($service->status) {
+                    ServiceStatus::Online => 2,
+                    ServiceStatus::StandBy => 1,
+                    default => 0,
+                };
+            })
+            ->values();
     }
 }
