@@ -215,6 +215,30 @@ trait BuildsDashboardStreams
     }
 
     /**
+     * Sort services for the dashboard health grid: offline first, then stand-by, online, disabled.
+     *
+     * @param Collection<int, Service>|\Illuminate\Database\Eloquent\Collection<int, Service> $services
+     *
+     * @return Collection<int, Service>
+     */
+    private function private__sortServicesForHealthGrid($services): Collection
+    {
+        return $services
+            ->sortBy(static function (Service $service): int {
+                if (! $service->enabled) {
+                    return 3;
+                }
+
+                return match ($service->status) {
+                    ServiceStatus::Online => 2,
+                    ServiceStatus::StandBy => 1,
+                    default => 0,
+                };
+            })
+            ->values();
+    }
+
+    /**
      * Aggregate supervisor strip metrics from master groups.
      *
      * @param list<array<string, mixed>> $masterGroups
@@ -255,6 +279,26 @@ trait BuildsDashboardStreams
     }
 
     /**
+     * Highest-workload rows for the dashboard list (stats keep the full set).
+     *
+     * @param list<array<string, mixed>> $workloadRows
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function private__topWorkloadRows(array $workloadRows): array
+    {
+        if ($workloadRows === []) {
+            return [];
+        }
+
+        \usort($workloadRows, static function (array $left, array $right): int {
+            return ((int) ($right['jobs'] ?? 0)) <=> ((int) ($left['jobs'] ?? 0));
+        });
+
+        return \array_values(\array_slice($workloadRows, 0, config('horizonhub.top_n_queues')));
+    }
+
+    /**
      * Aggregate workload strip metrics from workload rows.
      *
      * @param list<array<string, mixed>> $workloadRows
@@ -280,49 +324,5 @@ trait BuildsDashboardStreams
             'activeQueues' => $activeQueues,
             'queueCount' => \count($workloadRows),
         ];
-    }
-
-    /**
-     * Highest-workload rows for the dashboard list (stats keep the full set).
-     *
-     * @param list<array<string, mixed>> $workloadRows
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function private__topWorkloadRows(array $workloadRows): array
-    {
-        if ($workloadRows === []) {
-            return [];
-        }
-
-        \usort($workloadRows, static function (array $left, array $right): int {
-            return ((int) ($right['jobs'] ?? 0)) <=> ((int) ($left['jobs'] ?? 0));
-        });
-
-        return \array_values(\array_slice($workloadRows, 0, config('horizonhub.top_n_queues')));
-    }
-
-    /**
-     * Sort services for the dashboard health grid: offline first, then stand-by, online, disabled.
-     *
-     * @param Collection<int, Service>|\Illuminate\Database\Eloquent\Collection<int, Service> $services
-     *
-     * @return Collection<int, Service>
-     */
-    private function private__sortServicesForHealthGrid($services): Collection
-    {
-        return $services
-            ->sortBy(static function (Service $service): int {
-                if (! $service->enabled) {
-                    return 3;
-                }
-
-                return match ($service->status) {
-                    ServiceStatus::Online => 2,
-                    ServiceStatus::StandBy => 1,
-                    default => 0,
-                };
-            })
-            ->values();
     }
 }
