@@ -27,6 +27,16 @@ trait BuildsSupervisorStreams
             $supervisorData = $match['supervisor'] ?? null;
         }
 
+        if ($supervisorData !== null) {
+            $backoff = $supervisorData['backoff'] ?? null;
+
+            if (\is_array($backoff)) {
+                $backoff = \implode(', ', \array_map(static fn ($value): string => (string) $value, $backoff));
+            }
+
+            $supervisorData['backoff'] = $backoff;
+        }
+
         $html = \view('pages.supervisors.partials.show.body', [
             'dashboardUrl' => PathBuilder::dashboard($service),
             'master' => $master,

@@ -66,8 +66,16 @@ trait BuildsAlertStreams
             'chart30d' => $this->private__buildChart($alert, 30),
         ];
 
+        $sent24h = (int) \array_sum($chartData['chart24h']['sent']);
+        $failed24h = (int) \array_sum($chartData['chart24h']['failed']);
+        $total7d = (int) (\array_sum($chartData['chart7d']['sent']) + \array_sum($chartData['chart7d']['failed']));
+        $total30d = (int) (\array_sum($chartData['chart30d']['sent']) + \array_sum($chartData['chart30d']['failed']));
+
         $statsHtml = \view('pages.alerts.partials.show.stats', [
-            'chartData' => $chartData,
+            'failed24h' => $failed24h,
+            'sent24h' => $sent24h,
+            'total7d' => $total7d,
+            'total30d' => $total30d,
         ])->render();
 
         $chartJson = \json_encode($chartData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

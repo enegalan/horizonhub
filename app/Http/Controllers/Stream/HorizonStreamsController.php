@@ -94,9 +94,9 @@ class HorizonStreamsController extends StreamController
         return $this->runStream(fn (): string => $this->buildBatchShow($service, $batch));
     }
 
-    public function dashboard(Request $request): StreamedResponse
+    public function dashboard(): StreamedResponse
     {
-        return $this->private__streamFromRequest($request, fn (string $query): string => $this->buildDashboard($query));
+        return $this->runStream(fn (): string => $this->buildDashboard());
     }
 
     public function instances(Request $request): StreamedResponse

@@ -1,202 +1,131 @@
 @extends('layouts.app')
 
+@section('title', 'Dashboard')
+
 @section('content')
-    <div
-        id="horizon-dashboard"
-        class="space-y-6"
-    >
+    <div class="space-y-6">
         <div class="card overflow-hidden">
-            <x-page-hero
-                eyebrow="Overview"
-                title="Dashboard"
-                description="Live health and workload across your connected Horizon services. Filter by tag or service to focus on a subset."
-            />
-
-            <div class="bg-muted/15 px-5 py-4 sm:px-6">
-                <form method="GET" action="{{ route('horizon.index') }}" class="flex flex-wrap items-end gap-3" data-turbo-frame="_top" data-service-tag-filter="1" data-service-tag-filter-manual="1">
-                    <x-service-tag-filter
-                        :all-tags="$allTags ?? []"
-                        :selected-tags="$selectedTags ?? []"
-                        :show-service-multiselect="true"
-                        :services="$services ?? collect()"
-                        :service-ids="$selectedServiceIds ?? []"
-                        service-multiselect-id="dashboard-index-services"
-                        service-multiselect-label="Services"
-                    />
-                    <x-button type="submit" class="h-9 w-full shrink-0 text-sm sm:w-auto">
-                        Filter
-                    </x-button>
-                </form>
-            </div>
-        </div>
-
-        <x-kpi-grid gradient>
-            @include('partials.kpi-throughput-triad', [
-                'idPrefix' => 'dashboard',
-                'defer' => $defer ?? false,
-                'jobsPastMinute' => $jobsPastMinute ?? '—',
-                'jobsPastHour' => $jobsPastHour ?? '—',
-                'failedPastSevenDays' => $failedPastSevenDays ?? '—',
-                'failedLabel' => 'Failed jobs (7 days)',
-            ])
-            <x-stat-card label="Services online" tone="violet" class="sm:col-span-2 lg:col-span-1">
-                <div id="dashboard-services-kpi-inner" class="flex min-h-10 items-center gap-2">
-                    @if(!empty($defer))
-                        <x-skeleton.text class="size-4 shrink-0 rounded-full" />
-                        <x-skeleton.text class="h-8 w-20" />
-                    @else
-                        @include('pages.dashboard.partials.index.kpi-services-online')
-                    @endif
-                </div>
-            </x-stat-card>
-        </x-kpi-grid>
-
-        <x-kpi-grid>
-            <x-stat-card label="Pending jobs" tone="amber" value-id="dashboard-value-pending">
-                @if(!empty($defer))
-                    <x-skeleton.text class="h-8 w-20" />
-                @else
-                    —
-                @endif
-            </x-stat-card>
-            <x-stat-card label="Silenced jobs" tone="rose" value-id="dashboard-value-silenced">
-                @if(!empty($defer))
-                    <x-skeleton.text class="h-8 w-20" />
-                @else
-                    —
-                @endif
-            </x-stat-card>
-            <x-stat-card label="Recent batches" tone="violet" value-id="dashboard-value-batches">
-                @if(!empty($defer))
-                    <x-skeleton.text class="h-8 w-20" />
-                @else
-                    —
-                @endif
-            </x-stat-card>
-            <x-stat-card label="Worker processes" tone="emerald" value-id="dashboard-value-processes">
-                @if(!empty($defer))
-                    <x-skeleton.text class="h-8 w-20" />
-                @else
-                    —
-                @endif
-            </x-stat-card>
-        </x-kpi-grid>
-
-        <div id="dashboard-limits-summary" class="grid gap-4 sm:grid-cols-3">
-            @if(!empty($defer))
-                @for ($i = 0; $i < 3; $i++)
-                    <div class="rounded-lg border border-border/70 bg-muted/20 px-4 py-3">
-                        <div class="skeleton h-3 w-24" style="--skeleton-delay: {{ $i * 60 }}ms"></div>
-                        <div class="mt-2 skeleton h-7 w-20" style="--skeleton-delay: {{ ($i * 60) + 80 }}ms"></div>
-                    </div>
-                @endfor
-            @else
-                @include('pages.dashboard.partials.index.limits-summary', ['summary' => []])
-            @endif
-        </div>
-
-        <div class="card overflow-hidden">
-            <div class="flex items-center justify-between gap-2 border-b border-border bg-muted/20 px-5 py-3 sm:px-6">
-                <h3 class="text-section-title text-foreground">Supervisors</h3>
-                <a href="{{ route('horizon.instances.index') }}" class="link text-xs" data-turbo-action="replace">View instances</a>
-            </div>
-            <div id="dashboard-supervisors" class="space-y-4 p-4 sm:p-5">
-                @if(!empty($defer))
-                    <div class="grid gap-4 xl:grid-cols-2">
-                        @for ($i = 0; $i < 2; $i++)
-                            <div class="card overflow-hidden p-4">
-                                <div class="skeleton h-4 w-40" style="--skeleton-delay: {{ $i * 60 }}ms"></div>
-                                <div class="mt-3 space-y-2">
-                                    <div class="skeleton h-3 w-full" style="--skeleton-delay: {{ ($i * 60) + 80 }}ms"></div>
-                                    <div class="skeleton h-3 w-4/5" style="--skeleton-delay: {{ ($i * 60) + 140 }}ms"></div>
-                                </div>
+            <div
+                id="dashboard-stats"
+                class="grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-x lg:grid-cols-4 lg:divide-y-0"
+            >
+                @if($hasEnabledServices)
+                    @for($i = 0; $i < 4; $i++)
+                        <div class="animate-pulse space-y-3 p-4 sm:p-5">
+                            <div class="h-3 w-28 rounded bg-muted"></div>
+                            <div class="h-8 w-16 rounded bg-muted"></div>
+                            <div class="space-y-2 pt-1">
+                                <div class="h-3 w-full rounded bg-muted"></div>
+                                <div class="h-3 w-3/4 rounded bg-muted"></div>
                             </div>
-                        @endfor
-                    </div>
+                        </div>
+                    @endfor
                 @else
-                    @include('pages.partials.master-groups', [
-                        'emptyDescription' => 'No supervisors were reported by the connected Horizon services.',
-                        'emptyTitle' => 'No supervisors',
-                        'masterGroups' => [],
-                        'showServiceLink' => true,
+                    @include('pages.dashboard.partials.index.stats', ['stats' => []])
+                @endif
+            </div>
+        </div>
+
+        <div class="card overflow-hidden">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+                <div class="flex min-w-0 items-center gap-3">
+                    <h2 class="text-sm font-semibold text-foreground">Services</h2>
+                    <div id="dashboard-services-kpi-inner" class="flex items-center gap-2 text-sm" aria-label="Services online">
+                        @include('pages.dashboard.partials.index.kpi-services-online', [
+                            'offlineCount' => 0,
+                            'onlineCount' => 0,
+                            'servicesCount' => 0,
+                            'standByCount' => 0,
+                        ])
+                    </div>
+                </div>
+                <a href="{{ route('horizon.services.index') }}" class="link text-sm" data-turbo-action="replace">Manage</a>
+            </div>
+            <div id="dashboard-service-health-grid">
+                @include('pages.dashboard.partials.index.service-health-grid', [
+                    'services' => [],
+                    'defer' => $hasEnabledServices,
+                ])
+            </div>
+        </div>
+
+        <div class="card overflow-hidden">
+            <div class="flex items-center justify-between border-b border-border px-4 py-3">
+                <h2 class="text-sm font-semibold text-foreground">Supervisors</h2>
+                <a href="{{ route('horizon.instances.index') }}" class="link text-sm" data-turbo-action="replace">View all</a>
+            </div>
+            <div
+                id="dashboard-supervisor-stats"
+                class="grid grid-cols-1 divide-y divide-border border-b border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+            >
+                @if($hasEnabledServices)
+                    @for($i = 0; $i < 3; $i++)
+                        <div class="animate-pulse space-y-2 px-4 py-4 text-center sm:px-5">
+                            <div class="mx-auto h-3 w-28 rounded bg-muted"></div>
+                            <div class="mx-auto h-8 w-12 rounded bg-muted"></div>
+                        </div>
+                    @endfor
+                @else
+                    @include('pages.dashboard.partials.index.supervisor-stats', ['supervisorStats' => []])
+                @endif
+            </div>
+            <div id="dashboard-supervisors" class="space-y-4 p-4">
+                @include('pages.partials.master-groups', [
+                    'masterGroups' => [],
+                    'showServiceLink' => true,
+                    'emptyTitle' => 'No supervisors',
+                    'emptyDescription' => 'Enable a service to see supervisor processes.',
+                    'defer' => $hasEnabledServices,
+                ])
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div class="card overflow-hidden">
+                <div class="flex items-center justify-between border-b border-border px-4 py-3">
+                    <h2 class="text-sm font-semibold text-foreground">Recent alerts</h2>
+                    <a href="{{ route('horizon.alerts.index') }}" class="link text-sm" data-turbo-action="replace">View all</a>
+                </div>
+                <div
+                    id="dashboard-alert-stats"
+                    class="grid grid-cols-1 divide-y divide-border border-b border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+                >
+                    @include('pages.dashboard.partials.index.alert-stats', ['alertStats' => []])
+                </div>
+                <div id="dashboard-alerts-list" class="divide-y divide-border">
+                    @include('pages.dashboard.partials.index.recent-alerts-list', [
+                        'recentAlertLogs' => [],
+                        'defer' => true,
                     ])
-                @endif
-            </div>
-        </div>
-
-        <div class="card overflow-hidden">
-            <div class="border-b border-border px-5 py-5 sm:px-6">
-                <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-                    <h3 class="text-section-title text-foreground">Services</h3>
-                    <a href="{{ route('horizon.services.index') }}" class="link text-sm" data-turbo-action="replace">Manage services</a>
                 </div>
-                <div id="dashboard-service-health-grid" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    @if(!empty($defer))
-                        @for ($i = 0; $i < 6; $i++)
-                            <div class="card overflow-hidden p-4">
-                                <div class="skeleton h-1 w-full rounded-full" style="--skeleton-delay: {{ $i * 60 }}ms"></div>
-                                <div class="mt-3 flex items-start gap-3">
-                                    <div class="min-w-0 flex-1 space-y-2">
-                                        <div class="skeleton h-4 max-w-55" style="--skeleton-delay: {{ ($i * 60) + 80 }}ms"></div>
-                                        <div class="skeleton h-3 w-1/2" style="--skeleton-delay: {{ ($i * 60) + 160 }}ms"></div>
-                                    </div>
-                                    <div class="skeleton size-4 shrink-0" style="--skeleton-delay: {{ ($i * 60) + 120 }}ms"></div>
-                                </div>
+            </div>
+
+            <div class="card overflow-hidden">
+                <div class="flex items-center justify-between border-b border-border px-4 py-3">
+                    <h2 class="text-sm font-semibold text-foreground">Current workload</h2>
+                    <a href="{{ route('horizon.queues.index') }}" class="link text-sm" data-turbo-action="replace">Queues</a>
+                </div>
+                <div
+                    id="dashboard-workload-stats"
+                    class="grid grid-cols-1 divide-y divide-border border-b border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+                >
+                    @if($hasEnabledServices)
+                        @for($i = 0; $i < 3; $i++)
+                            <div class="animate-pulse space-y-2 px-4 py-4 text-center sm:px-5">
+                                <div class="mx-auto h-3 w-24 rounded bg-muted"></div>
+                                <div class="mx-auto h-8 w-12 rounded bg-muted"></div>
                             </div>
                         @endfor
                     @else
-                        @include('pages.dashboard.partials.index.service-health-grid', ['services' => $services ?? null])
+                        @include('pages.dashboard.partials.index.workload-stats', ['workloadStats' => []])
                     @endif
                 </div>
-            </div>
-        </div>
-
-        <div class="grid gap-6 lg:grid-cols-2">
-            <div class="card flex min-w-0 flex-col overflow-hidden">
-                <div class="flex items-center justify-between bg-muted/20 px-5 py-3 sm:px-6">
-                    <h3 class="text-section-title text-foreground">Recent alerts</h3>
-                    <a href="{{ route('horizon.alerts.index') }}" class="link text-xs" data-turbo-action="replace">View all</a>
+                <div id="dashboard-workload-list" class="divide-y divide-border">
+                    @include('pages.dashboard.partials.index.workload-list', [
+                        'workloadRows' => [],
+                        'defer' => $hasEnabledServices,
+                    ])
                 </div>
-                <x-table
-                    id="horizon-dashboard-alerts"
-                    stream-patch-children
-                >
-                    <x-slot:head>
-                        <x-table.th column="name" class="min-w-30">Alert</x-table.th>
-                        <x-table.th column="service" class="min-w-25">Service</x-table.th>
-                        <x-table.th column="status" class="min-w-20">Status</x-table.th>
-                        <x-table.th column="sent" class="min-w-25">Sent</x-table.th>
-                    </x-slot:head>
-                    @if(!empty($defer))
-                        <x-skeleton.table-rows rows="5" columns="4" />
-                    @else
-                        @include('pages.dashboard.partials.index.recent-alerts-tbody', ['recentAlertLogs' => $recentAlertLogs ?? null])
-                    @endif
-                </x-table>
-            </div>
-
-            <div class="card flex min-w-0 flex-col overflow-hidden">
-                <div class="flex items-center justify-between bg-muted/20 px-5 py-3 sm:px-6">
-                    <h3 class="text-section-title text-foreground">Current workload</h3>
-                    <a href="{{ route('horizon.queues.index') }}" class="link text-xs" data-turbo-action="replace">View queues</a>
-                </div>
-                <x-table
-                    id="horizon-dashboard-workload"
-                    stream-patch-children
-                >
-                    <x-slot:head>
-                        <x-table.th column="service" class="min-w-30">Service</x-table.th>
-                        <x-table.th column="queue" class="min-w-25">Queue</x-table.th>
-                        <x-table.th column="jobs">Jobs</x-table.th>
-                        <x-table.th column="processes">Processes</x-table.th>
-                        <x-table.th column="wait">Wait</x-table.th>
-                    </x-slot:head>
-                    @if(!empty($defer))
-                        <x-skeleton.table-rows rows="5" columns="5" />
-                    @else
-                        @include('pages.dashboard.partials.index.workload-summary-tbody', ['workloadRows' => $workloadRows ?? []])
-                    @endif
-                </x-table>
             </div>
         </div>
     </div>

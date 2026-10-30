@@ -367,11 +367,19 @@ class TurboStreamSseTest extends TestCase
             AlertLog::create([
                 'alert_id' => $alert->id,
                 'service_id' => $service->id,
-                'status' => 'sent',
+                'status' => $index === 0 ? 'failed' : 'sent',
                 'trigger_count' => 1,
                 'sent_at' => now()->subMinutes($index),
             ]);
         }
+
+        AlertLog::create([
+            'alert_id' => $alert->id,
+            'service_id' => $online->id,
+            'status' => 'failed',
+            'trigger_count' => 1,
+            'sent_at' => now()->subMinutes(3),
+        ]);
 
         $this->mock(MetricsDataService::class, function ($mock): void {
             $mock->shouldReceive('buildMetricsDashboardData')
@@ -379,68 +387,231 @@ class TurboStreamSseTest extends TestCase
                 ->with([])
                 ->andReturn([
                     'jobsPastMinute' => 4,
+                    'jobsVolumeLast24h' => [
+                        'failed' => [2, 3],
+                    ],
                     'workloadRows' => [['service' => 'online-svc', 'queue' => 'default', 'jobs' => 1]],
                 ]);
         });
 
-        // The stats read is intentionally not successful: a 2xx response would
-        // mark every service online via the heartbeat, which must not happen
-        // here because the assertions rely on each service's stored status.
-        Http::fake([
-            '*/horizon/api/stats' => Http::response(['message' => 'Forbidden'], 403),
-        ]);
+        // Non-2xx for offline/standby (and for stats everywhere): a 2xx response would
+        // mark those services online via the heartbeat, which must not happen here
+        // because the assertions rely on each service's stored status. Batch and
+        // silenced fixtures succeed only for the online host; other hosts fail, so
+        // dashboard silenced/batch aggregates must render as unavailable (—).
+        Http::fake(function (Request $request) {
+            $url = $request->url();
+            $isOnlineHost = \str_contains($url, 'https://online.test/');
 
-        $result = $this->private__invokeStreamBuilder('buildDashboard', '');
+            if (\str_contains($url, '/horizon/api/stats') || ! $isOnlineHost) {
+                return Http::response(['message' => 'Forbidden'], 403);
+            }
+
+            if (\str_contains($url, '/horizon/api/jobs/silenced')) {
+                return Http::response(['jobs' => [], 'total' => 7], 200);
+            }
+
+            if (\str_contains($url, '/horizon/api/batches')) {
+                return Http::response([
+                    'batches' => [
+                        [
+                            'id' => 'pending-batch',
+                            'pendingJobs' => 2,
+                            'failedJobs' => 0,
+                            'finishedAt' => null,
+                            'cancelledAt' => null,
+                        ],
+                        [
+                            'id' => 'finished-batch',
+                            'pendingJobs' => 0,
+                            'failedJobs' => 0,
+                            'finishedAt' => '2026-10-26T10:05:00+00:00',
+                            'cancelledAt' => null,
+                        ],
+                        [
+                            'id' => 'cancelled-batch',
+                            'pendingJobs' => 0,
+                            'failedJobs' => 0,
+                            'finishedAt' => null,
+                            'cancelledAt' => '2026-10-26T10:06:00+00:00',
+                        ],
+                        [
+                            'id' => 'failed-batch',
+                            'pendingJobs' => 0,
+                            'failedJobs' => 1,
+                            'finishedAt' => '2026-10-26T10:07:00+00:00',
+                            'cancelledAt' => null,
+                        ],
+                    ],
+                ], 200);
+            }
+
+            return Http::response([], 200);
+        });
+
+        $result = $this->private__invokeStreamBuilder('buildDashboard');
 
         $this->assertNotNull($result);
-        $this->assertStringContainsString('target="dashboard-value-jobs-minute"', $result);
-        $this->assertStringContainsString('>4<', $result);
+        $this->assertStringContainsString('target="dashboard-stats" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-supervisor-stats" method="morph"', $result);
         $this->assertStringContainsString('bg-orange-500', $result);
         $this->assertMatchesRegularExpression('/dashboard-value-services-online.*?1\s*\/\s*3/s', $result);
         $this->assertStringContainsString('dash-alert', $result);
         $this->assertStringContainsString('online-svc', $result);
-        $this->assertStringContainsString('target="tbody-horizon-dashboard-workload" method="morph"', $result);
-        $this->assertStringContainsString('target="dashboard-value-pending"', $result);
-        $this->assertStringContainsString('target="dashboard-value-silenced"', $result);
-        $this->assertStringContainsString('target="dashboard-value-batches"', $result);
-        $this->assertStringContainsString('target="dashboard-value-processes"', $result);
-        $this->assertStringContainsString('target="dashboard-limits-summary" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-workload-list" method="morph"', $result);
+        $this->assertStringContainsString('Pending jobs', $result);
+        $this->assertStringContainsString('Active queues', $result);
+        $this->assertStringContainsString('Failed jobs', $result);
+        $this->assertStringContainsString('Completed jobs', $result);
+        $this->assertStringContainsString('Recent batches', $result);
+        $this->assertStringContainsString('In progress', $result);
+        $this->assertStringContainsString('With failures', $result);
+        $this->assertStringContainsString('Jobs Per Minute', $result);
+        $this->assertStringContainsString('Silenced', $result);
+        $this->assertStringContainsString('Total Instances', $result);
+        $this->assertStringContainsString('Total Supervisors', $result);
+        $this->assertStringContainsString('Paused Supervisors', $result);
         $this->assertStringContainsString('target="dashboard-supervisors" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-alert-stats" method="morph"', $result);
+        $this->assertStringContainsString('Total Alerts', $result);
+        $this->assertStringContainsString('Recent failed deliveries', $result);
+        $this->assertStringContainsString('target="dashboard-workload-stats" method="morph"', $result);
+        $this->assertStringContainsString('Total Jobs', $result);
+        $this->assertMatchesRegularExpression('/Silenced<\/dt>\s*<dd[^>]*>\s*—\s*<\/dd>/s', $result);
+        $this->assertMatchesRegularExpression('/Recent batches<\/p>\s*<p[^>]*>\s*—\s*<\/p>/s', $result);
+        $this->assertMatchesRegularExpression('/In progress<\/dt>\s*<dd[^>]*>\s*—\s*<\/dd>/s', $result);
+        $this->assertMatchesRegularExpression('/With failures<\/dt>\s*<dd[^>]*>\s*—\s*<\/dd>/s', $result);
+        $this->assertMatchesRegularExpression('/Past hour<\/dt>\s*<dd[^>]*>\s*3\s*<\/dd>/s', $result);
+        $this->assertMatchesRegularExpression('/Past 24 hours<\/dt>\s*<dd[^>]*>\s*5\s*<\/dd>/s', $result);
+        $this->assertMatchesRegularExpression('/Recent failed deliveries<\/p>\s*<p[^>]*>\s*2\s*<\/p>/s', $result);
     }
 
     public function test_build_dashboard_streams_returns_expected_targets(): void
     {
-        $result = $this->private__invokeStreamBuilder('buildDashboard', '');
+        $service = Service::create([
+            'name' => 'targets-svc',
+            'base_url' => 'https://targets.test',
+            'status' => 'online',
+        ]);
 
-        $this->assertNotNull($result);
-        $this->assertStringContainsString('target="dashboard-value-jobs-minute"', $result);
-        $this->assertStringContainsString('target="dashboard-value-pending"', $result);
-        $this->assertStringContainsString('target="dashboard-value-silenced"', $result);
-        $this->assertStringContainsString('target="dashboard-value-batches"', $result);
-        $this->assertStringContainsString('target="dashboard-value-processes"', $result);
-        $this->assertStringContainsString('target="dashboard-limits-summary" method="morph"', $result);
-        $this->assertStringContainsString('target="dashboard-supervisors" method="morph"', $result);
-        $this->assertStringContainsString('target="dashboard-service-health-grid" method="morph"', $result);
-        $this->assertStringContainsString('target="tbody-horizon-dashboard-alerts" method="morph"', $result);
-        $this->assertStringContainsString('target="tbody-horizon-dashboard-workload" method="morph"', $result);
-    }
+        $alert = Alert::create([
+            'name' => 'targets-alert',
+            'rule_type' => FailureCount::type(),
+            'threshold' => ['count' => 1, 'minutes' => 5],
+            'enabled' => true,
+        ]);
 
-    public function test_build_dashboard_streams_uses_neutral_health_dot_when_no_services_exist(): void
-    {
+        AlertLog::create([
+            'alert_id' => $alert->id,
+            'service_id' => $service->id,
+            'status' => 'failed',
+            'trigger_count' => 1,
+            'sent_at' => now(),
+        ]);
+
         $this->mock(MetricsDataService::class, function ($mock): void {
             $mock->shouldReceive('buildMetricsDashboardData')
                 ->once()
                 ->with([])
                 ->andReturn([
+                    'jobsVolumeLast24h' => [
+                        'failed' => [1, 4],
+                    ],
+                    'workloadRows' => [['service' => 'targets-svc', 'queue' => 'default', 'jobs' => 2]],
+                ]);
+        });
+
+        Http::fake(function (Request $request) {
+            $url = $request->url();
+
+            if (\str_contains($url, '/horizon/api/stats')) {
+                return Http::response(['message' => 'Forbidden'], 403);
+            }
+
+            if (\str_contains($url, '/horizon/api/jobs/silenced')) {
+                return Http::response(['jobs' => [], 'total' => 3], 200);
+            }
+
+            if (\str_contains($url, '/horizon/api/batches')) {
+                return Http::response([
+                    'batches' => [
+                        [
+                            'id' => 'pending-batch',
+                            'pendingJobs' => 1,
+                            'failedJobs' => 0,
+                            'finishedAt' => null,
+                            'cancelledAt' => null,
+                        ],
+                        [
+                            'id' => 'finished-batch',
+                            'pendingJobs' => 0,
+                            'failedJobs' => 0,
+                            'finishedAt' => '2026-10-26T10:05:00+00:00',
+                            'cancelledAt' => null,
+                        ],
+                        [
+                            'id' => 'cancelled-batch',
+                            'pendingJobs' => 0,
+                            'failedJobs' => 0,
+                            'finishedAt' => null,
+                            'cancelledAt' => '2026-10-26T10:06:00+00:00',
+                        ],
+                        [
+                            'id' => 'failed-batch',
+                            'pendingJobs' => 0,
+                            'failedJobs' => 2,
+                            'finishedAt' => '2026-10-26T10:07:00+00:00',
+                            'cancelledAt' => null,
+                        ],
+                    ],
+                ], 200);
+            }
+
+            return Http::response([], 200);
+        });
+
+        $result = $this->private__invokeStreamBuilder('buildDashboard');
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('target="dashboard-stats" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-supervisor-stats" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-supervisors" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-services-kpi-inner" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-service-health-grid" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-alert-stats" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-alerts-list" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-workload-stats" method="morph"', $result);
+        $this->assertStringContainsString('target="dashboard-workload-list" method="morph"', $result);
+        $this->assertMatchesRegularExpression('/Silenced<\/dt>\s*<dd[^>]*>\s*3\s*<\/dd>/s', $result);
+        $this->assertMatchesRegularExpression('/Recent batches<\/p>\s*<p[^>]*>\s*4\s*<\/p>/s', $result);
+        $this->assertMatchesRegularExpression('/In progress<\/dt>\s*<dd[^>]*>\s*1\s*<\/dd>/s', $result);
+        $this->assertMatchesRegularExpression('/With failures<\/dt>\s*<dd[^>]*>\s*1\s*<\/dd>/s', $result);
+        $this->assertMatchesRegularExpression('/Past 24 hours<\/dt>\s*<dd[^>]*>\s*5\s*<\/dd>/s', $result);
+        $this->assertMatchesRegularExpression('/Recent failed deliveries<\/p>\s*<p[^>]*>\s*1\s*<\/p>/s', $result);
+    }
+
+    public function test_build_dashboard_streams_uses_neutral_health_dot_when_no_services_exist(): void
+    {
+        // No services: aggregate silenced/batch fixtures would not surface, and the
+        // assertion is the empty 0/0 health state.
+        $this->mock(MetricsDataService::class, function ($mock): void {
+            $mock->shouldReceive('buildMetricsDashboardData')
+                ->once()
+                ->with([])
+                ->andReturn([
+                    'jobsVolumeLast24h' => [
+                        'failed' => [2, 3],
+                    ],
                     'workloadRows' => [],
                 ]);
         });
 
-        $result = $this->private__invokeStreamBuilder('buildDashboard', '');
+        $result = $this->private__invokeStreamBuilder('buildDashboard');
 
         $this->assertNotNull($result);
         $this->assertStringContainsString('bg-slate-400', $result);
         $this->assertMatchesRegularExpression('/dashboard-value-services-online.*?0\s*\/\s*0/s', $result);
+        $this->assertMatchesRegularExpression('/Past 24 hours<\/dt>\s*<dd[^>]*>\s*5\s*<\/dd>/s', $result);
     }
 
     public function test_build_instances_streams_returns_stats_and_groups(): void

@@ -143,7 +143,7 @@ function mergePreservedSubtree(existing, incoming) {
     }
     const incomingSig = incoming.getAttribute(STREAM_SIG_ATTR);
     const existingSig = existing.getAttribute(STREAM_SIG_ATTR);
-    if (incomingSig !== '' && incomingSig === existingSig) {
+    if (incomingSig && incomingSig === existingSig) {
         return false;
     }
 
