@@ -17,6 +17,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   update:
@@ -58,6 +59,7 @@ jobs:
         with:
           # Fetch entire history so the release date can be extracted from the tag commit.
           fetch-depth: 0
+          fetch-tags: true
           # Checkout the release target branch so CHANGELOG is not out of date.
           ref: ${{ steps.meta.outputs.branch }}
 
@@ -79,8 +81,31 @@ jobs:
           parse-github-usernames: true
 
       - name: Commit updated CHANGELOG
+        id: commit
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
-          branch: ${{ steps.meta.outputs.branch }}
+          # Push to a side branch; main requires a PR via repository ruleset.
+          branch: chore/update-changelog-${{ steps.meta.outputs.tag }}
+          create_branch: true
           commit_message: Update CHANGELOG
           file_pattern: CHANGELOG.md
+
+      - name: Open and merge pull request
+        if: steps.commit.outputs.changes_detected == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          BASE_BRANCH: ${{ steps.meta.outputs.branch }}
+          HEAD_BRANCH: chore/update-changelog-${{ steps.meta.outputs.tag }}
+          VERSION: ${{ steps.meta.outputs.tag }}
+        run: |
+          EXISTING="$(gh pr list --head "$HEAD_BRANCH" --base "$BASE_BRANCH" --state open --json number --jq '.[0].number // empty')"
+          if [ -z "$EXISTING" ]; then
+            gh pr create \
+              --base "$BASE_BRANCH" \
+              --head "$HEAD_BRANCH" \
+              --title "Update CHANGELOG for $VERSION" \
+              --body "Automated changelog update for \`$VERSION\`."
+          fi
+
+          gh pr merge --squash --delete-branch "$HEAD_BRANCH"
