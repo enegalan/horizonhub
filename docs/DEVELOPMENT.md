@@ -133,6 +133,10 @@ Frontend assets are built into the published image at build time; in the dev sta
 
 `npm run build`, lint (pint = `--test`, phpstan, eslint), `composer validate --strict`, and `php artisan test --coverage --min=90 --coverage-clover=coverage.xml` run on every push to `main` and on PRs (`.github/workflows/ci.yml`). Run the same commands locally before pushing. The generated Clover report is uploaded as the `php-coverage` workflow artifact.
 
+### Changelog
+
+`.github/workflows/publish-image.yml` creates a GitHub Release (with generated notes) for each version tag. `.github/workflows/update-changelog.yml` then updates `CHANGELOG.md` from that release body and commits it to the release target branch, following the same pattern as Laravel.
+
 ## Troubleshooting
 
 - **Jobs/queues show nothing**: confirm the service is enabled and `base_url` is reachable from the Horizon Hub host; use **Test connection**.
