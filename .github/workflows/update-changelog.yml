@@ -3,6 +3,17 @@ name: update changelog
 on:
   release:
     types: [released]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Released version tag
+        required: true
+        type: string
+      branch:
+        description: Target branch
+        required: false
+        type: string
+        default: main
 
 permissions:
   contents: write
@@ -12,18 +23,49 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Resolve release metadata
+        id: meta
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TARGET: ${{ github.event.release.target_commitish }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_BRANCH: ${{ inputs.branch }}
+        run: |
+          if [ "$EVENT_NAME" = "release" ]; then
+            TAG="$RELEASE_TAG"
+            BRANCH="$RELEASE_TARGET"
+            NOTES="$RELEASE_BODY"
+          else
+            TAG="$INPUT_VERSION"
+            BRANCH="${INPUT_BRANCH:-main}"
+            NOTES="$(gh release view "$TAG" --json body --jq .body)"
+          fi
+
+          {
+            echo "tag=$TAG"
+            echo "branch=$BRANCH"
+            echo "notes<<NOTES_EOF"
+            printf '%s\n' "$NOTES"
+            echo "NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           # Fetch entire history so the release date can be extracted from the tag commit.
           fetch-depth: 0
           # Checkout the release target branch so CHANGELOG is not out of date.
-          ref: ${{ github.event.release.target_commitish }}
+          ref: ${{ steps.meta.outputs.branch }}
 
       - name: Extract release date from git tag
         id: release_date
+        env:
+          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
         run: |
-          TIMESTAMP_OF_RELEASE_COMMIT=$(git log -1 --date=unix --format=%ad '${{ github.event.release.tag_name }}')
+          TIMESTAMP_OF_RELEASE_COMMIT=$(git log -1 --date=unix --format=%ad "$RELEASE_TAG")
           FORMATED_DATE=$(date -u -d @$TIMESTAMP_OF_RELEASE_COMMIT +%Y-%m-%d)
           echo "date=$FORMATED_DATE" >> "$GITHUB_OUTPUT"
 
@@ -31,14 +73,13 @@ jobs:
         uses: stefanzweifel/changelog-updater-action@v1
         with:
           release-date: ${{ steps.release_date.outputs.date }}
-          release-notes: ${{ github.event.release.body }}
-          latest-version: ${{ github.event.release.tag_name }}
-          compare-url-target-revision: ${{ github.event.release.target_commitish }}
+          release-notes: ${{ steps.meta.outputs.notes }}
+          latest-version: ${{ steps.meta.outputs.tag }}
           parse-github-usernames: true
 
       - name: Commit updated CHANGELOG
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
-          branch: ${{ github.event.release.target_commitish }}
+          branch: ${{ steps.meta.outputs.branch }}
           commit_message: Update CHANGELOG
           file_pattern: CHANGELOG.md

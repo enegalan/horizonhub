@@ -82,16 +82,24 @@ jobs:
           git tag "${{ steps.version.outputs.version }}"
           git push origin "${{ steps.version.outputs.version }}"
 
-      - name: Create GitHub Release
+      - name: Create GitHub Release and trigger changelog update
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.version.outputs.version }}
+          TARGET_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          if gh release view "$VERSION" >/dev/null 2>&1; then
+          if ! gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release create "$VERSION" \
+              --title "$VERSION" \
+              --target "$TARGET_BRANCH" \
+              --generate-notes
+          else
             echo "Release $VERSION already exists"
-            exit 0
           fi
-          gh release create "$VERSION" \
-            --title "$VERSION" \
-            --target "${{ github.event.repository.default_branch }}" \
-            --generate-notes
+
+          # GITHUB_TOKEN-created releases do not trigger `release` workflows.
+          # workflow_dispatch is an allowed follow-up trigger.
+          gh workflow run "update changelog" \
+            --ref "$TARGET_BRANCH" \
+            -f version="$VERSION" \
+            -f branch="$TARGET_BRANCH"

@@ -135,7 +135,7 @@ Frontend assets are built into the published image at build time; in the dev sta
 
 ### Changelog
 
-`.github/workflows/publish-image.yml` creates a GitHub Release (with generated notes) for each version tag. `.github/workflows/update-changelog.yml` then updates `CHANGELOG.md` from that release body and commits it to the release target branch, following the same pattern as Laravel.
+`.github/workflows/publish-image.yml` creates a GitHub Release (with generated notes) for each version tag, then dispatches `.github/workflows/update-changelog.yml` via `workflow_dispatch` (releases created with `GITHUB_TOKEN` do not start `release` workflows). Manual GitHub Releases still update the changelog through the `release` event. The changelog job writes `CHANGELOG.md` and commits it to the release target branch, following the same pattern as Laravel.
 
 ## Troubleshooting
 
