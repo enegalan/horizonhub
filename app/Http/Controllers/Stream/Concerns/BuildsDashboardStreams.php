@@ -8,9 +8,9 @@ use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientApiService;
+use App\Support\Batches\BatchPayloadReader;
 use App\Support\Horizon\ClientResponse;
 use App\Support\Horizon\StatsReader;
-use App\Support\Jobs\JobRuntime;
 use App\Support\NumberFormatter;
 use Illuminate\Support\Collection;
 
@@ -55,7 +55,7 @@ trait BuildsDashboardStreams
             if ($batchesData === null) {
                 $batchesAvailable = false;
             } else {
-                $batchStats = $this->private__batchStats($batchesData['batches'] ?? null);
+                $batchStats = BatchPayloadReader::summarize($batchesData['batches'] ?? null);
                 $batchesTotal += $batchStats['total'];
                 $batchesInProgress += $batchStats['inProgress'];
                 $batchesWithFailures += $batchStats['withFailures'];
@@ -175,48 +175,6 @@ trait BuildsDashboardStreams
             'totalAlerts' => Alert::query()->count(),
             'enabledAlerts' => Alert::query()->enabled()->count(),
             'failedDeliveries' => $failedDeliveries,
-        ];
-    }
-
-    /**
-     * Aggregate batch counts from a Horizon batches payload.
-     *
-     * @return array{total: int, inProgress: int, withFailures: int}
-     */
-    private function private__batchStats(mixed $batches): array
-    {
-        if (! \is_array($batches)) {
-            return ['total' => 0, 'inProgress' => 0, 'withFailures' => 0];
-        }
-
-        $total = 0;
-        $inProgress = 0;
-        $withFailures = 0;
-
-        foreach ($batches as $batch) {
-            if (! \is_array($batch)) {
-                continue;
-            }
-
-            $total++;
-            $pendingJobs = NumberFormatter::nonNegativeInt($batch['pendingJobs'] ?? null);
-            $failedJobs = NumberFormatter::nonNegativeInt($batch['failedJobs'] ?? null);
-            $finishedAt = JobRuntime::parseJobTimestamp($batch['finishedAt'] ?? null);
-            $cancelledAt = JobRuntime::parseJobTimestamp($batch['cancelledAt'] ?? null);
-
-            if ($failedJobs > 0) {
-                $withFailures++;
-            }
-
-            if ($cancelledAt === null && $finishedAt === null && $pendingJobs > 0) {
-                $inProgress++;
-            }
-        }
-
-        return [
-            'total' => $total,
-            'inProgress' => $inProgress,
-            'withFailures' => $withFailures,
         ];
     }
 

@@ -4,7 +4,7 @@ One dashboard to monitor multiple Laravel Horizon instances across all your Lara
 
 ![CI status](https://github.com/enegalan/horizonhub/actions/workflows/ci.yml/badge.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Docker pulls](https://img.shields.io/docker/pulls/enegalan/horizonhub?logo=docker&logoColor=white) ![GitHub stars](https://img.shields.io/github/stars/enegalan/horizonhub?style=social)
 
-**[Quick start](#quick-start-recommended-mysql--redis)** · **[Why Horizon Hub?](COMPARISONS.md)**
+**[Quick start](#quick-start-recommended-mysql--redis)** · **[Why Horizon Hub?](COMPARISONS.md)** · **[Changelog](CHANGELOG.md)**
 
 <img src="art/dashboard.png" width="750" alt="Horizon Hub Dashboard page" />
 

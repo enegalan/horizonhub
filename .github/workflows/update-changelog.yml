@@ -1,0 +1,111 @@
+name: update changelog
+
+on:
+  release:
+    types: [released]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Released version tag
+        required: true
+        type: string
+      branch:
+        description: Target branch
+        required: false
+        type: string
+        default: main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve release metadata
+        id: meta
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TARGET: ${{ github.event.release.target_commitish }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_BRANCH: ${{ inputs.branch }}
+        run: |
+          if [ "$EVENT_NAME" = "release" ]; then
+            TAG="$RELEASE_TAG"
+            BRANCH="$RELEASE_TARGET"
+            NOTES="$RELEASE_BODY"
+          else
+            TAG="$INPUT_VERSION"
+            BRANCH="${INPUT_BRANCH:-main}"
+            NOTES="$(gh release view "$TAG" --json body --jq .body)"
+          fi
+
+          {
+            echo "tag=$TAG"
+            echo "branch=$BRANCH"
+            echo "notes<<NOTES_EOF"
+            printf '%s\n' "$NOTES"
+            echo "NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Fetch entire history so the release date can be extracted from the tag commit.
+          fetch-depth: 0
+          fetch-tags: true
+          # Checkout the release target branch so CHANGELOG is not out of date.
+          ref: ${{ steps.meta.outputs.branch }}
+
+      - name: Extract release date from git tag
+        id: release_date
+        env:
+          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          TIMESTAMP_OF_RELEASE_COMMIT=$(git log -1 --date=unix --format=%ad "$RELEASE_TAG")
+          FORMATED_DATE=$(date -u -d @$TIMESTAMP_OF_RELEASE_COMMIT +%Y-%m-%d)
+          echo "date=$FORMATED_DATE" >> "$GITHUB_OUTPUT"
+
+      - name: Update Changelog
+        uses: stefanzweifel/changelog-updater-action@v1
+        with:
+          release-date: ${{ steps.release_date.outputs.date }}
+          release-notes: ${{ steps.meta.outputs.notes }}
+          latest-version: ${{ steps.meta.outputs.tag }}
+          parse-github-usernames: true
+
+      - name: Commit updated CHANGELOG
+        id: commit
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          # Push to a side branch; main requires a PR via repository ruleset.
+          branch: chore/update-changelog-${{ steps.meta.outputs.tag }}
+          create_branch: true
+          commit_message: Update CHANGELOG
+          file_pattern: CHANGELOG.md
+
+      - name: Open and merge pull request
+        if: steps.commit.outputs.changes_detected == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          BASE_BRANCH: ${{ steps.meta.outputs.branch }}
+          HEAD_BRANCH: chore/update-changelog-${{ steps.meta.outputs.tag }}
+          VERSION: ${{ steps.meta.outputs.tag }}
+        run: |
+          EXISTING="$(gh pr list --head "$HEAD_BRANCH" --base "$BASE_BRANCH" --state open --json number --jq '.[0].number // empty')"
+          if [ -z "$EXISTING" ]; then
+            gh pr create \
+              --base "$BASE_BRANCH" \
+              --head "$HEAD_BRANCH" \
+              --title "Update CHANGELOG for $VERSION" \
+              --body "Automated changelog update for \`$VERSION\`."
+          fi
+
+          gh pr merge --squash --delete-branch "$HEAD_BRANCH"
