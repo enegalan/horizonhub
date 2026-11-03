@@ -66,7 +66,8 @@ app/
     Services/                Service filtering, test connection
   Support/                   Cross-cutting helpers and readers
     Horizon/                 MasterReader, StatsReader, ClientResponse
-    Alerts/                  Rule catalog, evaluation, delivery log presenter
+    Alerts/                  Rule catalog, evaluation, delivery log presenter, chart builder
+    Batches/                 BatchPayloadReader (normalize / summarize Horizon batches)
     Http/                    HttpRetryBackoff
     Jobs/                    JobsPaginator, JobRuntime, JobSearchFilter, SearchResultsPaginator
     Queues/                  QueueNameNormalizer
@@ -98,10 +99,10 @@ tests/
 ### Web (read) path
 
 1. Browser hits `/horizon` (or one of the section routes in `routes/web.php`).
-2. The controller loads data via services and returns a Blade view.
-3. The layout always injects a stream base URL (`window.horizonHubStreamsBaseUrl`); the client opens an SSE connection on load — long-lived when hot reload is enabled, one-shot when disabled (see [Stream (SSE) path](#stream-sse-path)).
+2. The page controller returns a Blade **shell**: layout, filters, and empty/deferred placeholders (`defer => true`). It does not run the Horizon API aggregations used to fill live sections.
+3. The layout always injects a stream base URL (`window.horizonHubStreamsBaseUrl`); the client opens an SSE connection on load — long-lived when hot reload is enabled, one-shot when disabled (see [Stream (SSE) path](#stream-sse-path)). The stream path loads the real data and morphs the placeholders.
 
-Controllers stay thin: they resolve request input (usually via a Form Request), delegate to the relevant service, and pass data to the view.
+Exceptions stay on the page controller when they are not streamed: form drawers, CRUD/actions, and SSR fragments that do not hot-reload.
 
 ### Action path
 
@@ -114,7 +115,7 @@ Horizon Hub retries jobs by reading a job's service and build from its ID, then 
 ### Stream (SSE) path
 
 - `routes/streams.php` declares a stream route that mirrors each section page, mounted with `SubstituteBindings`.
-- `HorizonStreamsController` composes eight `Builds*Streams` traits; each trait renders `turbo-stream` fragments for the partials on its page.
+- `HorizonStreamsController` composes the `Builds*Streams` traits under `app/Http/Controllers/Stream/Concerns/`; each trait orchestrates services/support helpers and renders `turbo-stream` fragments for the partials on its page. Domain calculations belong in `app/Services/*` and `app/Support/*`; traits stay focused on assembling Turbo Stream targets.
 - `StreamController` (the abstract base) deduplicates payloads by SHA-256 fingerprint per target so identical data does not re-emit redundant fragments.
 - The client (`resources/js/lib/sse.js`) opens the stream on `turbo:load`; `resources/js/lib/stream-guard.js` guards against stale/duplicate stream application.
 
