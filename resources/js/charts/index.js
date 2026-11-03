@@ -1,3 +1,15 @@
+import { renderMetricsCharts } from './metrics';
+import { renderAlertDetailCharts } from './alerts';
+
+/**
+ * Render the charts.
+ * @returns {void}
+ */
+export function renderCharts() {
+    renderMetricsCharts();
+    renderAlertDetailCharts();
+}
+
 /**
  * Get the chart colors.
  * @returns {object}
@@ -19,6 +31,26 @@ export function getChartColors() {
         failed: getCssHsl('--destructive'),
         line: getCssHsl('--muted-foreground'),
     };
+}
+
+/**
+ * Apply the chart options.
+ * @param {Element} el
+ * @param {object} options
+ * @returns {void}
+ */
+export function applyChartOptions(el, options) {
+    var existing = window.echarts.getInstanceByDom(el);
+    var previousLegendSelected = existing ? getLegendSelectedFromChart(existing) : null;
+    if (previousLegendSelected) {
+        mergeLegendSelectedIntoOptions(options, previousLegendSelected);
+    }
+    if (!existing) {
+        existing = window.echarts.init(el);
+    }
+    existing.setOption(options, { notMerge: true });
+    existing.resize();
+    bindChartResize(el);
 }
 
 var chartResizeObservers = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
@@ -45,26 +77,6 @@ function bindChartResize(el) {
     if (chartResizeObservers) {
         chartResizeObservers.set(el, observer);
     }
-}
-
-/**
- * Apply the chart options.
- * @param {Element} el
- * @param {object} options
- * @returns {void}
- */
-export function applyChartOptions(el, options) {
-    var existing = window.echarts.getInstanceByDom(el);
-    var previousLegendSelected = existing ? getLegendSelectedFromChart(existing) : null;
-    if (previousLegendSelected) {
-        mergeLegendSelectedIntoOptions(options, previousLegendSelected);
-    }
-    if (!existing) {
-        existing = window.echarts.init(el);
-    }
-    existing.setOption(options, { notMerge: true });
-    existing.resize();
-    bindChartResize(el);
 }
 
 /**

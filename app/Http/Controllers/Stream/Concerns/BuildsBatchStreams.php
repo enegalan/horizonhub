@@ -237,6 +237,8 @@ trait BuildsBatchStreams
             ? (int) \round($progressRaw)
             : ($totalJobs > 0 ? (int) \round(($processedJobs / $totalJobs) * 100) : 0);
 
+        $options = ArrayFormatter::orEmpty($batch['options'] ?? null);
+
         return [
             'id' => $id,
             'name' => \trim((string) ($batch['name'] ?? '')),
@@ -246,7 +248,8 @@ trait BuildsBatchStreams
             'failed_jobs' => $failedJobs,
             'progress' => \max(0, \min(100, $progress)),
             'status' => $this->private__status($pendingJobs, $failedJobs, $finishedAt, $cancelledAt),
-            'options' => ArrayFormatter::orEmpty($batch['options'] ?? null),
+            'options' => $options,
+            'options_json' => \json_encode($options, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
             'created_at' => $createdAt,
             'finished_at' => $finishedAt,
             'cancelled_at' => $cancelledAt,

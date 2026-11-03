@@ -12,7 +12,7 @@
     );
 @endphp
 <div
-    class="rounded-bl-[var(--radius)] overflow-hidden"
+    class="rounded-bl-[--radius] overflow-hidden"
     id="horizon-jobs-stack"
     x-data="{
         sectionOpen: (() => {

@@ -54,6 +54,19 @@ export function renderJsonTree(target, options) {
 }
 
 /**
+ * Render JSON trees on the page.
+ * @returns {void}
+ */
+export function renderJsonTrees() {
+    document.querySelectorAll('[data-json-tree]').forEach(function (target) {
+        var storageKey = target.getAttribute('data-json-tree-storage-key');
+        renderJsonTree(target, {
+            storageKey: typeof storageKey === 'string' && storageKey !== '' ? storageKey : null,
+        });
+    });
+}
+
+/**
  * Read JSON source from data-json-source or the last cached value for this element.
  * @param {HTMLElement} target
  * @returns {string}

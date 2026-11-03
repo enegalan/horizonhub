@@ -76,15 +76,15 @@
         </div>
     @endif
 
-    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <x-stat-card label="Processes" tone="emerald">
+    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <x-stat-card label="Processes">
             @if(($supervisor['processes'] ?? null) !== null)
                 <span>{{ number_format((int) $supervisor['processes']) }}</span>
             @else
                 <span>—</span>
             @endif
         </x-stat-card>
-        <x-stat-card label="Scale" tone="sky">
+        <x-stat-card label="Scale">
             <span>
                 @if(($supervisor['minProcesses'] ?? null) !== null || ($supervisor['maxProcesses'] ?? null) !== null)
                     {{ $supervisor['minProcesses'] ?? '—' }}–{{ $supervisor['maxProcesses'] ?? '—' }}
@@ -93,8 +93,8 @@
                 @endif
             </span>
         </x-stat-card>
-        <x-stat-card label="Balance" tone="violet" :value="($supervisor['balance'] ?? '') !== '' ? $supervisor['balance'] : '—'" />
-        <x-stat-card label="Connection" tone="neutral" :value="($supervisor['connection'] ?? '') !== '' ? $supervisor['connection'] : '—'" />
+        <x-stat-card label="Balance" :value="($supervisor['balance'] ?? '') !== '' ? $supervisor['balance'] : '—'" />
+        <x-stat-card label="Connection" :value="($supervisor['connection'] ?? '') !== '' ? $supervisor['connection'] : '—'" />
     </div>
 
     <div class="mt-6 grid gap-6 lg:grid-cols-2">
@@ -179,7 +179,7 @@
     </div>
 
     @include('pages.partials.raw-options-details', [
-        'options' => $options,
+        'jsonSource' => (string) ($supervisor['options_json'] ?? 'null'),
         'title' => 'Raw supervisor options',
     ])
 @endif

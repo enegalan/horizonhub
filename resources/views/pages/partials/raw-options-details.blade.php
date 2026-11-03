@@ -1,6 +1,6 @@
 @php
-    /** @var array<string, mixed> $options */
-    $options ??= [];
+    /** @var string $jsonSource */
+    $jsonSource ??= 'null';
     /** @var string $title */
     $title ??= 'Raw options';
 @endphp
@@ -9,5 +9,14 @@
     <summary class="cursor-pointer border-b border-border bg-muted/20 px-4 py-3 text-sm font-medium text-foreground">
         {{ $title }}
     </summary>
-    <pre class="max-h-96 overflow-auto p-4 text-xs text-muted-foreground">{{ \json_encode($options, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) }}</pre>
+    <div class="p-4">
+        <div class="rounded-md border border-border bg-muted/30 p-3 text-xs font-mono text-foreground wrap-break-word">
+            <div
+                class="horizon-json-tree"
+                data-stream-preserve-client
+                data-json-tree="options"
+                data-json-source="{{ e($jsonSource) }}"
+            ></div>
+        </div>
+    </div>
 </details>

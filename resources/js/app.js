@@ -2,10 +2,9 @@ import './bootstrap';
 import './components/resizable-table';
 import './components/form-drawer';
 import { startAlpine } from './alpine';
-import { renderJsonTrees } from './horizon/jobs';
-import { renderAlertDetailCharts } from './horizon/alerts';
-import { renderMetricsCharts } from './horizon/metrics';
 import { initTurboStream } from './lib/sse';
+import { renderCharts } from './charts';
+import { renderJsonTrees } from './lib/json-tree';
 import { formatDatetimeElements } from './lib/datetime-format';
 import { getTurboStreamTargetElement, renderTurboStreamWithGuards } from './lib/stream-guard';
 import { mountToaster } from './components/toaster';
@@ -17,8 +16,7 @@ document.addEventListener('turbo:load', function () {
     setTimeout(function () {
         formatDatetimeElements();
         renderJsonTrees();
-        renderMetricsCharts();
-        renderAlertDetailCharts();
+        renderCharts();
     }, 0);
 });
 
@@ -38,8 +36,7 @@ document.addEventListener('turbo:before-stream-render', function (e) {
                 window.horizonSyncResizableTablesUnderRoot(syncRoot);
             }
             renderJsonTrees();
-            renderMetricsCharts();
-            renderAlertDetailCharts();
+            renderCharts();
         }, 0);
     };
 });

@@ -100,17 +100,17 @@
             </div>
         </div>
 
-        <div id="service-show-stats-row-1" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+        <div id="service-show-stats-row-1" class="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             @if(!empty($defer))
-                @include('pages.services.partials.show.skeletons.stats-row-1')
+                <x-skeleton.metric-columns :columns="4" />
             @else
                 @include('pages.services.partials.show.stats-row-1')
             @endif
         </div>
 
-        <div id="service-show-stats-row-2" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+        <div id="service-show-stats-row-2" class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             @if(!empty($defer))
-                @include('pages.services.partials.show.skeletons.stats-row-2')
+                <x-skeleton.metric-columns :columns="4" />
             @else
                 @include('pages.services.partials.show.stats-row-2')
             @endif
@@ -192,6 +192,12 @@
         </div>
         </x-turbo::frame>
 
-        @include('pages.services.partials.index.delete-confirm-modal', ['detailService' => $service])
+        <x-delete-confirm-modal
+            entity="Service"
+            title="Delete service"
+            resource-label="service"
+            :fixed-name="$service->name"
+            :destroy-url="route('horizon.services.destroy', $service)"
+        />
     </div>
 @endsection

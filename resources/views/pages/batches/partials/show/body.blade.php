@@ -59,18 +59,18 @@
         </div>
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <x-stat-card label="Progress" tone="violet">
+    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <x-stat-card label="Progress">
             <div class="flex w-full items-center gap-2">
                 <span>{{ $progress }}%</span>
                 <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                    <div class="h-full rounded-full bg-violet-500" style="width: {{ $progress }}%"></div>
+                    <div class="h-full rounded-full bg-primary" style="width: {{ $progress }}%"></div>
                 </div>
             </div>
         </x-stat-card>
-        <x-stat-card label="Total jobs" tone="neutral" :value="number_format($totalJobs)" />
-        <x-stat-card label="Processed" tone="emerald" :value="number_format($processedJobs)" />
-        <x-stat-card label="Failed" tone="rose" :value="number_format($failedJobsCount)" />
+        <x-stat-card label="Total jobs" :value="number_format($totalJobs)" />
+        <x-stat-card label="Processed" :value="number_format($processedJobs)" />
+        <x-stat-card label="Failed" :value="number_format($failedJobsCount)" />
     </div>
 
     <div class="mt-6 grid gap-6 lg:grid-cols-2">
@@ -194,7 +194,7 @@
     </div>
 
     @include('pages.partials.raw-options-details', [
-        'options' => $options,
+        'jsonSource' => (string) ($batch['options_json'] ?? 'null'),
         'title' => 'Raw batch options',
     ])
 @endif
