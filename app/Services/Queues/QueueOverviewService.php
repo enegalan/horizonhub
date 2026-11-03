@@ -190,6 +190,38 @@ final class QueueOverviewService
     }
 
     /**
+     * Build master groups for the given services (masters only, no workload).
+     *
+     * @param list<int> $serviceIds
+     *
+     * @return array{
+     *     services: Collection<int, Service>,
+     *     masterGroups: list<array<string, mixed>>
+     * }
+     */
+    public function masterGroups(array $serviceIds = []): array
+    {
+        $services = Service::getServices($serviceIds, true, true);
+        $masterGroups = [];
+
+        /** @var Service $service */
+        foreach ($services as $service) {
+            foreach ($this->private__groups($service) as $group) {
+                $masterGroups[] = [
+                    ...$group,
+                    'service_id' => (int) $service->id,
+                    'service' => (string) $service->name,
+                ];
+            }
+        }
+
+        return [
+            'services' => $services,
+            'masterGroups' => $masterGroups,
+        ];
+    }
+
+    /**
      * Map overview rows to the stdClass rows used by the queues table.
      *
      * @param list<array<string, mixed>> $rows

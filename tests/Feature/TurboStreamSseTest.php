@@ -13,6 +13,7 @@ use App\Services\Metrics\MetricsDataService;
 use App\Services\Notifiers\EmailNotifierService;
 use App\Services\Notifiers\SlackNotifierService;
 use App\Services\Services\ServiceFilterService;
+use App\Support\Alerts\AlertChartBuilder;
 use App\Support\Jobs\SearchResultsPaginator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
@@ -342,7 +343,7 @@ class TurboStreamSseTest extends TestCase
             'sent_at' => now()->subHours(2),
         ]);
 
-        $chart = $this->private__invokeStreamBuilder('private__buildChart', $alert, 1);
+        $chart = AlertChartBuilder::forAlert($alert, 1);
 
         $this->assertArrayHasKey('xAxis', $chart);
         $this->assertCount(24, $chart['xAxis']);
@@ -1128,7 +1129,7 @@ class TurboStreamSseTest extends TestCase
      * the Turbo Stream HTML instead of opening an SSE connection and reading the
      * streamed frames.
      *
-     * @param string $method The builder method name, such as `buildAlerts` or `private__buildChart`.
+     * @param string $method The builder method name.
      * @param mixed ...$args The arguments forwarded to the builder; each builder declares its own argument types.
      */
     private function private__invokeStreamBuilder(string $method, mixed ...$args): mixed

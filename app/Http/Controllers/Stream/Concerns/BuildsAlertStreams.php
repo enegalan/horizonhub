@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers\Stream\Concerns;
 
-use App\Enums\AlertLogStatus;
 use App\Models\Alert;
-use App\Models\AlertLog;
 use App\Models\Service;
 use App\Services\Services\ServiceFilterService;
-use Carbon\Carbon;
+use App\Support\Alerts\AlertChartBuilder;
 
 trait BuildsAlertStreams
 {
@@ -61,9 +59,9 @@ trait BuildsAlertStreams
     protected function buildAlertShow(Alert $alert): string
     {
         $chartData = [
-            'chart24h' => $this->private__buildChart($alert, 1),
-            'chart7d' => $this->private__buildChart($alert, 7),
-            'chart30d' => $this->private__buildChart($alert, 30),
+            'chart24h' => AlertChartBuilder::forAlert($alert, 1),
+            'chart7d' => AlertChartBuilder::forAlert($alert, 7),
+            'chart30d' => AlertChartBuilder::forAlert($alert, 30),
         ];
 
         $sent24h = (int) \array_sum($chartData['chart24h']['sent']);
@@ -84,63 +82,5 @@ trait BuildsAlertStreams
             ['update', 'alert-detail-stats', $statsHtml, 'morph'],
             ['replace', 'alert-detail-chart-data', "<script type='application/json' id='alert-detail-chart-data'>$chartJson</script>", null],
         ]);
-    }
-
-    /**
-     * Build chart data for an alert for a given window.
-     *
-     * @param Alert $alert The alert.
-     * @param int $days The number of days to build the chart for.
-     *
-     * @return array{xAxis: list<string>, sent: list<int>, failed: list<int>}
-     */
-    private function private__buildChart(Alert $alert, int $days): array
-    {
-        $since = $days === 1
-        ? \now()->subDay()
-        : \now()->subDays($days - 1)->startOfDay();
-
-        $bucketFormatPhp = $days === 1 ? 'Y-m-d H:00' : 'Y-m-d';
-
-        $buckets = [];
-        $totalSlots = $days === 1 ? 24 : $days;
-
-        for ($i = 0; $i < $totalSlots; $i++) {
-            $key = $days === 1
-                ? \now()->subHours(23 - $i)->format($bucketFormatPhp)
-                : \now()->subDays($days - 1 - $i)->format($bucketFormatPhp);
-            $buckets[$key] = ['sent' => 0, 'failed' => 0];
-        }
-
-        $logs = AlertLog::where('alert_id', $alert->id)
-            ->where('sent_at', '>=', $since)
-            ->get(['sent_at', 'status']);
-
-        foreach ($logs as $log) {
-            $key = $days === 1
-                ? $log->sent_at->copy()->startOfHour()->format($bucketFormatPhp)
-                : $log->sent_at->copy()->startOfDay()->format($bucketFormatPhp);
-
-            if (! isset($buckets[$key])) {
-                continue;
-            }
-
-            $status = $log->status === AlertLogStatus::Sent ? 'sent' : 'failed';
-            $buckets[$key][$status]++;
-        }
-
-        $xAxis = [];
-        $sent = [];
-        $failed = [];
-
-        foreach ($buckets as $k => $v) {
-            $xAxis[] = $days === 1
-                ? Carbon::parse($k)->format('H:i')
-                : Carbon::parse($k)->format('M j');
-            $sent[] = $v['sent'];
-            $failed[] = $v['failed'];
-        }
-
-        return ['xAxis' => $xAxis, 'sent' => $sent, 'failed' => $failed];
     }
 }

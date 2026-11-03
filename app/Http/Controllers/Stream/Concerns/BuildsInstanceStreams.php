@@ -2,11 +2,7 @@
 
 namespace App\Http\Controllers\Stream\Concerns;
 
-use App\Models\Service;
-use App\Services\Horizon\HorizonClientApiService;
 use App\Services\Services\ServiceFilterService;
-use App\Support\Horizon\ClientResponse;
-use App\Support\Horizon\MasterReader;
 
 trait BuildsInstanceStreams
 {
@@ -17,41 +13,24 @@ trait BuildsInstanceStreams
      */
     protected function buildInstances(string $query): string
     {
-        $services = Service::getServices(
+        $overview = $this->queueOverview->masterGroups(
             ServiceFilterService::resolveServiceIdsFromQuery($query),
-            true,
-            true,
         );
-        $masterGroups = [];
+        $masterGroups = $overview['masterGroups'];
         $supervisors = 0;
         $processes = 0;
 
-        /** @var Service $service */
-        foreach ($services as $service) {
-            $mastersData = ClientResponse::data(HorizonClientApiService::getMasters($service));
-
-            if ($mastersData === null) {
-                continue;
-            }
-
-            foreach (MasterReader::groupsFromMastersPayload($mastersData) as $group) {
-                foreach ($group['supervisors'] as $supervisor) {
-                    $supervisors++;
-                    $processes += (int) ($supervisor['processes'] ?? 0);
-                }
-
-                $masterGroups[] = [
-                    ...$group,
-                    'service_id' => (int) $service->id,
-                    'service' => (string) $service->name,
-                ];
+        foreach ($masterGroups as $group) {
+            foreach ($group['supervisors'] as $supervisor) {
+                $supervisors++;
+                $processes += (int) ($supervisor['processes'] ?? 0);
             }
         }
 
         $statsHtml = \view('pages.instances.partials.index.stats', [
             'masters' => \count($masterGroups),
             'processes' => $processes,
-            'services' => $services->count(),
+            'services' => $overview['services']->count(),
             'supervisors' => $supervisors,
         ])->render();
 
