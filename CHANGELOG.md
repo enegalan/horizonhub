@@ -5,7 +5,7 @@
 ## [v3.2.5](https://github.com/enegalan/horizonhub/compare/v3.2.0...v3.2.5) - 2026-11-03
 
 ### What's Changed
-* 306 automate weekly changelog updates from merged pr by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/309
+* automate weekly changelog updates from merged pr by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/309
 
 **Full Changelog**: https://github.com/enegalan/horizonhub/compare/v3.2.0...v3.2.5
 
@@ -352,14 +352,14 @@
 * SSE streaming by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/8
 * Horizon models removal by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/11
 * Reorder Class Methods for Improved Readability and Maintenance by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/12
-* 9 refactor notifier services by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/13
+* refactor notifier services by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/13
 * Refactor job tables in Horizon views to include UUID column  by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/17
 * Fix for metrics when hotreloading is not enabled by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/19
 * Enhance alert evaluation functionality for UX by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/20
 * Add horizon offline alert rule and evaluation logic by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/21
 * Add reusable data table component for Horizon views by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/23
 * Implement job and queue pattern handling in alerts by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/24
-* 26 UI library integration by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/27
+* UI library integration by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/27
 * Refactor configuration access and remove deprecated settings by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/28
 * Multiservice alerts by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/31
 * Json data display enhancement by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/33
@@ -408,7 +408,7 @@
 * Metrics responsive and service disabling feature by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/98
 * Add loading state for retry modal and enhance confirm modal styling by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/99
 * Refactor alert, provider, and service controllers to utilize FlashSta… by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/100
-* 102 headers per service by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/104
+* headers per service by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/104
 * Update dark theme color variables for improved contrast and aesthetics by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/106
 * Tags by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/108
 * Update Alert model and validation to enforce service selection requirements by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/109
