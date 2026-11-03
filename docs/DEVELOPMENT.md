@@ -129,17 +129,6 @@ docker compose -f docker-compose.dev.yml exec hub npm run build   # after JS/CSS
 
 Frontend assets are built into the published image at build time; in the dev stack they are built on first start (or via `npm run build` on the host / inside the container).
 
-
-
-## Demo environment
-
-`demo/` contains a separate stack with the hub plus three fake Horizon apps (`demo-app-*` on ports 8081–8083). Useful for end-to-end testing of monitoring, metrics, and alerts without real workloads:
-
-```bash
-cd demo
-docker compose up -d
-```
-
 ## CI
 
 `npm run build`, lint (pint = `--test`, phpstan, eslint), `composer validate --strict`, and `php artisan test --coverage --min=90 --coverage-clover=coverage.xml` run on every push to `main` and on PRs (`.github/workflows/ci.yml`). Run the same commands locally before pushing. The generated Clover report is uploaded as the `php-coverage` workflow artifact.
