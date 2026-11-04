@@ -48,13 +48,8 @@
                 </form>
             </div>
 
-            <div id="queue-show-stats" class="grid gap-4 border-b border-border p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-5">
-                @for ($i = 0; $i < 5; $i++)
-                    <div class="rounded-lg border border-border/70 bg-muted/20 px-4 py-3">
-                        <div class="skeleton h-3 w-20" style="--skeleton-delay: {{ $i * 60 }}ms"></div>
-                        <div class="mt-2 skeleton h-7 w-16" style="--skeleton-delay: {{ ($i * 60) + 80 }}ms"></div>
-                    </div>
-                @endfor
+            <div id="queue-show-stats" class="grid gap-3 border-b border-border p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-5">
+                <x-skeleton.metric-columns :columns="5" />
             </div>
 
             <div class="border-b border-border">

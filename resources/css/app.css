@@ -422,6 +422,46 @@
     padding: 8px 10px;
 }
 
+.provider-card[data-provider-color="violet"] {
+    @apply hover:border-violet-500/45 dark:hover:border-violet-400/50;
+}
+.provider-card[data-provider-color="indigo"] {
+    @apply hover:border-indigo-500/45 dark:hover:border-indigo-400/50;
+}
+.provider-card[data-provider-color="sky"] {
+    @apply hover:border-sky-500/45 dark:hover:border-sky-400/50;
+}
+
+.provider-card[data-provider-color="violet"] [data-provider-accent="1"] {
+    @apply bg-linear-to-r from-violet-500/80 via-violet-400/60 to-transparent;
+}
+.provider-card[data-provider-color="indigo"] [data-provider-accent="1"] {
+    @apply bg-linear-to-r from-indigo-500/80 via-indigo-400/60 to-transparent;
+}
+.provider-card[data-provider-color="sky"] [data-provider-accent="1"] {
+    @apply bg-linear-to-r from-sky-500/80 via-sky-400/60 to-transparent;
+}
+
+.provider-card[data-provider-color="violet"] [data-provider-icon="1"] {
+    @apply border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-300;
+}
+.provider-card[data-provider-color="indigo"] [data-provider-icon="1"] {
+    @apply border-indigo-500/20 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300;
+}
+.provider-card[data-provider-color="sky"] [data-provider-icon="1"] {
+    @apply border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300;
+}
+
+.provider-card[data-provider-color="violet"] [data-provider-badge="1"] {
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-violet-500/15 text-violet-700 dark:text-violet-400;
+}
+.provider-card[data-provider-color="indigo"] [data-provider-badge="1"] {
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-indigo-500/15 text-indigo-700 dark:text-indigo-400;
+}
+.provider-card[data-provider-color="sky"] [data-provider-badge="1"] {
+    @apply inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors border-transparent bg-sky-500/15 text-sky-700 dark:text-sky-400;
+}
+
 .alert-card--enabled {
     @apply hover:border-emerald-500/45 dark:hover:border-emerald-400/50;
 }

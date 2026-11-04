@@ -44,23 +44,24 @@
         </form>
     </div>
 
-    <div @class([
-        'grid gap-3 border-b border-border px-5 py-4 sm:px-6',
-        'sm:grid-cols-2' => (int) $statsColumns === 2,
-        'sm:grid-cols-3' => (int) $statsColumns === 3,
-        'sm:grid-cols-4' => (int) $statsColumns === 4,
-    ])>
-        <div
-            @if($statsTarget) id="{{ $statsTarget }}" @endif
-            class="contents"
-            data-turbo-stream-patch-children="true"
-        >
-            @if($defer)
-                <x-skeleton.metric-columns :columns="$statsColumns" />
-            @else
-                @include($statsView, $statsViewData)
-            @endif
-        </div>
+    <div
+        @if($statsTarget) id="{{ $statsTarget }}" @endif
+        class="border-b border-border"
+        data-turbo-stream-patch-children="true"
+    >
+        @if($defer)
+            <div @class([
+                'grid grid-cols-1 divide-y divide-border',
+                'sm:grid-cols-2 sm:divide-x' => (int) $statsColumns === 2,
+                'sm:grid-cols-3 sm:divide-x sm:divide-y-0' => (int) $statsColumns === 3,
+                'sm:grid-cols-2 sm:divide-x lg:grid-cols-4 lg:divide-y-0' => (int) $statsColumns === 4,
+            ])>
+                <x-skeleton.metric-columns :columns="$statsColumns" variant="strip" />
+            </div>
+        @else
+            @include($statsView, $statsViewData)
+        @endif
+
     </div>
 
     @isset($divider)

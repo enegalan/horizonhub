@@ -96,6 +96,7 @@ trait BuildsServiceStreams
      * @param Request $request The request.
      *
      * @return array{
+     *     service: Service,
      *     jobsPastMinute: int|mixed,
      *     jobsPastHour: int|mixed,
      *     failedPastSevenDays: int|mixed,
@@ -118,6 +119,7 @@ trait BuildsServiceStreams
         $search = StringFormatter::trim($request->query('search'));
 
         $data = [
+            'service' => $service,
             'jobsPastMinute' => 0,
             'jobsPastHour' => 0,
             'failedPastSevenDays' => 0,

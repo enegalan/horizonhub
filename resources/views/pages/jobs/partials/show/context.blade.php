@@ -6,6 +6,7 @@
                 class="horizon-json-tree"
                 data-stream-preserve-client
                 data-json-tree="context"
+                data-json-tree-storage-key="horizonhub:job:{{ e($job->uuid) }}:json-tree:context"
                 data-json-source="{{ e($job->context ?? 'null') }}"
             ></div>
         </div>

@@ -35,6 +35,11 @@ trait BuildsSupervisorStreams
             }
 
             $supervisorData['backoff'] = $backoff;
+
+            $supervisorData['options_json'] = \json_encode(
+                $supervisorData['options'] ?? [],
+                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE,
+            );
         }
 
         $html = \view('pages.supervisors.partials.show.body', [

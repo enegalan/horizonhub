@@ -22,7 +22,7 @@
             <div class="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2">
                 <div class="flex items-center gap-2">
                     <span class="inline-flex shrink-0 size-2.5 rounded-full {{ $statusColor }} @if($statusBlink) animate-pulse @endif" title="{{ $statusTitle }}" aria-label="{{ $statusTitle }}"></span>
-                    <span class="font-mono text-sm text-foreground">{{ $supervisor->name }}</span>
+                    <a href="{{ route('horizon.services.supervisors.show', ['service' => $service, 'supervisor' => $supervisor->name]) }}" class="link font-mono text-sm" data-turbo-action="replace">{{ $supervisor->name }}</a>
                 </div>
             </div>
         @endforeach

@@ -11,7 +11,8 @@
         >
             <div class="flex flex-wrap gap-2" id="horizon-job-detail-actions-stream">
                 @if(!empty($defer))
-                    @include('pages.jobs.partials.show.skeletons.actions')
+                    <x-skeleton.text class="h-8 w-8 rounded-md" />
+                    <x-skeleton.text class="h-8 w-36 rounded-md" />
                 @else
                     @include('pages.jobs.partials.show.actions')
                 @endif
@@ -20,7 +21,16 @@
     </div>
     <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2" id="horizon-job-detail-meta">
         @if(!empty($defer))
-            @include('pages.jobs.partials.show.skeletons.meta')
+            @for ($i = 0; $i < 10; $i++)
+                <div>
+                    <dt class="label-muted">
+                        <x-skeleton.text class="h-3 w-20" />
+                    </dt>
+                    <dd class="mt-0.5">
+                        <x-skeleton.text class="h-4 w-32 max-w-full" />
+                    </dd>
+                </div>
+            @endfor
         @else
             @include('pages.jobs.partials.show.meta')
         @endif
@@ -42,14 +52,32 @@
     </div>
     <div id="horizon-job-detail-data">
         @if(!empty($defer))
-            @include('pages.jobs.partials.show.skeletons.data')
+            <div>
+                <dt class="label-muted mb-1">
+                    <x-skeleton.text class="h-3 w-12" />
+                </dt>
+                <div class="flex flex-col gap-2 mt-1 rounded-md border border-border bg-muted/30 p-3">
+                    <x-skeleton.text class="block h-3 w-full max-w-md" />
+                    <x-skeleton.text class="block h-3 w-full max-w-sm" />
+                    <x-skeleton.text class="block h-3 w-full max-w-lg" />
+                </div>
+            </div>
         @else
             @include('pages.jobs.partials.show.data')
         @endif
     </div>
     <div id="horizon-job-detail-payload">
         @if(!empty($defer))
-            @include('pages.jobs.partials.show.skeletons.payload')
+            <div>
+                <dt class="label-muted mb-1">
+                    <x-skeleton.text class="h-3 w-16" />
+                </dt>
+                <div class="flex flex-col gap-2 mt-1 rounded-md border border-border bg-muted/30 p-3">
+                    <x-skeleton.text class="block h-3 w-full max-w-lg" />
+                    <x-skeleton.text class="block h-3 w-full max-w-md" />
+                    <x-skeleton.text class="block h-3 w-full max-w-sm" />
+                </div>
+            </div>
         @else
             @include('pages.jobs.partials.show.payload')
         @endif

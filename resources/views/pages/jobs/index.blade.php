@@ -116,7 +116,7 @@
                 });
             },
             toggleFailed(id, serviceId, rowIndex, event) {
-                var index = typeof rowIndex === 'number' ? rowIndex : Number(rowIndex);
+                var index = Number(rowIndex);
                 if (event && event.shiftKey && !Number.isNaN(index) && index >= 0) {
                     this.applyFailedJobShiftSelection(index);
                     return;
@@ -137,7 +137,7 @@
                         .map(function (j) {
                             return {
                                 id: String(j.id || ''),
-                                service_id: typeof j.service_id === 'number' ? j.service_id : Number(j.service_id),
+                                service_id: Number(j.service_id),
                             };
                         })
                         .filter(function (j) {
@@ -161,7 +161,7 @@
                 this.retrySelectionAnchorGlobalIndex = null;
             },
             setRetryPage(page) {
-                var p = typeof page === 'number' ? page : Number(page);
+                var p = Number(page);
                 if (!p || p < 1 || p > this.retryLastPage) return;
                 this.retryPage = p;
                 this.loadFailedJobs();
@@ -313,7 +313,7 @@
                     if (!job || !job.id) {
                         continue;
                     }
-                    var serviceId = typeof job.service_id === 'number' ? job.service_id : Number(job.service_id);
+                    var serviceId = Number(job.service_id);
                     this.toggleFailedJobShiftSelection(String(job.id), serviceId);
                 }
             },
@@ -323,7 +323,7 @@
                 }
                 this.selectedFailedJobs.push({
                     id: id,
-                    service_id: typeof serviceId === 'number' ? serviceId : Number(serviceId),
+                    service_id: Number(serviceId),
                 });
             },
             isFailedJobSelected(id) {

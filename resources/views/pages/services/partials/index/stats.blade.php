@@ -1,6 +1,8 @@
 @php
     $serviceStats ??= ['total' => 0, 'online' => 0, 'offline' => 0];
 @endphp
-<x-stat-card label="Total" :value="$serviceStats['total']" />
-<x-stat-card label="Online" :value="$serviceStats['online']" tone="emerald" />
-<x-stat-card label="Offline" :value="$serviceStats['offline']" tone="amber" />
+<div class="grid grid-cols-1 divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+    <x-stat-card label="Total" variant="strip" :value="$serviceStats['total']" />
+    <x-stat-card label="Online" variant="strip" :value="$serviceStats['online']" />
+    <x-stat-card label="Offline" variant="strip" :value="$serviceStats['offline']" />
+</div>

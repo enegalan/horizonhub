@@ -22,6 +22,7 @@ class BatchPayloadReaderTest extends TestCase
         $this->assertSame('pending', $row['status']);
         $this->assertSame(6, $row['processed_jobs']);
         $this->assertSame(60, $row['progress']);
+        $this->assertSame('[]', $row['options_json']);
     }
 
     public function test_rows_and_detail_normalize_payload_shapes(): void

@@ -1,4 +1,4 @@
-import { applyChartOptions, getChartColors } from "../charts/charts";
+import { applyChartOptions, getChartColors } from ".";
 import { parseJsonFromElement } from "../lib/parse";
 
 /**

@@ -20,13 +20,8 @@
             </x-page-hero>
 
             <div id="batch-show-body" class="p-5 sm:p-6">
-                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    @for ($i = 0; $i < 4; $i++)
-                        <div class="rounded-lg border border-border/70 bg-muted/20 px-4 py-3">
-                            <div class="skeleton h-3 w-24" style="--skeleton-delay: {{ $i * 60 }}ms"></div>
-                            <div class="mt-2 skeleton h-7 w-20" style="--skeleton-delay: {{ ($i * 60) + 80 }}ms"></div>
-                        </div>
-                    @endfor
+                <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <x-skeleton.metric-columns :columns="4" />
                 </div>
             </div>
         </div>

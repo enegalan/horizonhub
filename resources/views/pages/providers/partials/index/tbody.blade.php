@@ -25,19 +25,24 @@
             : "{$providerMeta['label']} recipients";
     @endphp
     <article
-        class="card group relative overflow-hidden transition-colors hover:border-primary/30"
+        class="provider-card card group relative overflow-hidden transition-colors"
+        data-provider-color="{{ $providerMeta['color'] }}"
         data-stream-row-id="prv-{{ (int) $provider->id }}"
         data-horizon-stream-sig="{{ $streamSig }}"
     >
         <div
-            class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-{{ $providerMeta['color'] }}-500/80 via-{{ $providerMeta['color'] }}-400/60 to-transparent"
+            class="absolute inset-x-0 top-0 h-1"
+            data-provider-accent="1"
             aria-hidden="true"
         ></div>
 
         <div class="flex h-full flex-col p-4">
             <div class="flex items-start justify-between gap-3">
                 <div class="flex min-w-0 items-start gap-3">
-                    <div class="flex size-11 shrink-0 items-center justify-center rounded-xl border border-{{ $providerMeta['color'] }}-500/20 bg-{{ $providerMeta['color'] }}-500/10 text-{{ $providerMeta['color'] }}-700 dark:text-{{ $providerMeta['color'] }}-300">
+                    <div
+                        class="flex size-11 shrink-0 items-center justify-center rounded-xl border"
+                        data-provider-icon="1"
+                    >
                         <x-dynamic-component :component="'icons.' . $providerMeta['icon']" class="size-5" />
                     </div>
                     <div class="min-w-0">
@@ -47,7 +52,7 @@
                         </p>
                     </div>
                 </div>
-                <span class="badge shrink-0 border-transparent bg-{{ $providerMeta['color'] }}-500/15 text-{{ $providerMeta['color'] }}-700 dark:text-{{ $providerMeta['color'] }}-300">
+                <span class="shrink-0" data-provider-badge="1">
                     {{ $providerMeta['label'] }}
                 </span>
             </div>

@@ -25,23 +25,26 @@
             </div>
         </div>
 
-        <x-kpi-grid class="mb-6">
-            @include('partials.kpi-throughput-triad', [
-                'idPrefix' => 'metrics',
-                'defer' => $defer ?? false,
-                'jobsPastMinute' => $jobsPastMinute ?? '—',
-                'jobsPastHour' => $jobsPastHour ?? '—',
-                'failedPastSevenDays' => $failedPastSevenDays ?? '—',
-                'failedLabel' => 'Failed jobs (past 7 days)',
-            ])
-            <x-stat-card label="Failure rate (last 24h)" tone="amber" value-id="metrics-value-failure-rate">
-                @if(!empty($defer))
-                    <x-skeleton.text class="h-8 w-24" />
-                @else
-                    @include('pages.metrics.partials.index.failure-rate-value', ['failureRate24h' => $failureRate24h ?? null])
-                @endif
-            </x-stat-card>
-        </x-kpi-grid>
+        <div class="mb-6 card overflow-hidden">
+            <div class="grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-x lg:grid-cols-4 lg:divide-y-0">
+                @include('partials.kpi-throughput-triad', [
+                    'idPrefix' => 'metrics',
+                    'defer' => $defer ?? false,
+                    'jobsPastMinute' => $jobsPastMinute ?? '—',
+                    'jobsPastHour' => $jobsPastHour ?? '—',
+                    'failedPastSevenDays' => $failedPastSevenDays ?? '—',
+                    'failedLabel' => 'Failed jobs (past 7 days)',
+                    'variant' => 'strip',
+                ])
+                <x-stat-card label="Failure rate (last 24h)" variant="strip" value-id="metrics-value-failure-rate">
+                    @if(!empty($defer))
+                        <x-skeleton.text class="h-8 w-24" />
+                    @else
+                        @include('pages.metrics.partials.index.failure-rate-value', ['failureRate24h' => $failureRate24h ?? null])
+                    @endif
+                </x-stat-card>
+            </div>
+        </div>
 
         <div class="grid gap-4">
             <div class="grid gap-4 lg:grid-cols-2">

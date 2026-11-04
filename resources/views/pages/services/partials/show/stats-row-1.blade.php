@@ -5,6 +5,7 @@
     'jobsPastHour' => number_format($jobsPastHour),
     'failedPastSevenDays' => number_format($failedPastSevenDays),
     'failedLabel' => 'Failed (past 7 days)',
+    'variant' => 'quiet',
 ])
 @php
     /** @var \App\Enums\HorizonStatus|null $hzStatus */
@@ -20,7 +21,7 @@
         $horizonStatusLabel = ! empty($horizonStatus) ? (string) $horizonStatus : 'Unknown';
     }
 @endphp
-<x-stat-card label="Horizon status" tone="{{ $hzStatus?->isActive() === true ? 'emerald' : ($hzStatus === \App\Enums\HorizonStatus::Inactive ? 'amber' : 'neutral') }}">
+<x-stat-card label="Horizon status">
     <span
         class="inline-flex shrink-0 size-2.5 rounded-full {{ $horizonStatusColor }}"
         title="Horizon {{ $horizonStatusLabel }}"
