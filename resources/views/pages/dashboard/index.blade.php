@@ -88,9 +88,9 @@
                 </div>
                 <div
                     id="dashboard-alert-stats"
-                    class="grid grid-cols-1 divide-y divide-border border-b border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+                    class="grid grid-cols-1 divide-y divide-border border-b border-border sm:grid-cols-2 sm:divide-x sm:divide-y-0"
                 >
-                    @include('pages.dashboard.partials.index.alert-stats', ['alertStats' => []])
+                    <x-skeleton.metric-columns :columns="2" variant="strip" />
                 </div>
                 <div id="dashboard-alerts-list" class="divide-y divide-border">
                     @include('pages.dashboard.partials.index.recent-alerts-list', [

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Stream\Concerns;
 
-use App\Enums\AlertLogStatus;
 use App\Enums\ServiceStatus;
 use App\Models\Alert;
 use App\Models\AlertLog;
@@ -113,7 +112,6 @@ trait BuildsDashboardStreams
             ->limit(config('horizonhub.recent_alert_logs'))
             ->get();
 
-        $alertStats = $this->private__alertStats($recentAlertLogs);
         $workloadRows = $metrics['workloadRows'] ?? [];
         $workloadRows = \is_array($workloadRows) ? $workloadRows : [];
         $workloadStats = $this->private__workloadStats($workloadRows);
@@ -141,9 +139,7 @@ trait BuildsDashboardStreams
             ['update', 'dashboard-service-health-grid', \view('pages.dashboard.partials.index.service-health-grid', [
                 'services' => $this->private__sortServicesForHealthGrid($services),
             ])->render(), 'morph'],
-            ['update', 'dashboard-alert-stats', \view('pages.dashboard.partials.index.alert-stats', [
-                'alertStats' => $alertStats,
-            ])->render(), 'morph'],
+            ['update', 'dashboard-alert-stats', \view('pages.dashboard.partials.index.alert-stats', ['alertStats' => ['total' => Alert::query()->count(), 'enabled' => Alert::query()->enabled()->count()]])->render(), 'morph'],
             ['update', 'dashboard-alerts-list', \view('pages.dashboard.partials.index.recent-alerts-list', ['recentAlertLogs' => $recentAlertLogs])->render(), 'morph'],
             ['update', 'dashboard-workload-stats', \view('pages.dashboard.partials.index.workload-stats', [
                 'workloadStats' => $workloadStats,
@@ -152,30 +148,6 @@ trait BuildsDashboardStreams
                 'workloadRows' => $workloadListRows,
             ])->render(), 'morph'],
         ]);
-    }
-
-    /**
-     * Aggregate alert strip metrics.
-     *
-     * @param Collection<int, AlertLog>|\Illuminate\Database\Eloquent\Collection<int, AlertLog> $recentAlertLogs
-     *
-     * @return array{totalAlerts: int, enabledAlerts: int, failedDeliveries: int}
-     */
-    private function private__alertStats($recentAlertLogs): array
-    {
-        $failedDeliveries = 0;
-
-        foreach ($recentAlertLogs as $log) {
-            if ($log->status === AlertLogStatus::Failed) {
-                $failedDeliveries++;
-            }
-        }
-
-        return [
-            'totalAlerts' => Alert::query()->count(),
-            'enabledAlerts' => Alert::query()->enabled()->count(),
-            'failedDeliveries' => $failedDeliveries,
-        ];
     }
 
     /**
