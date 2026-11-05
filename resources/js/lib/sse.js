@@ -28,6 +28,10 @@ export function initTurboStream() {
     document.addEventListener('turbo:load', function () {
         scheduleStreamReconnect();
     });
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState !== 'visible') return;
+        scheduleStreamReconnect();
+    });
     scheduleStreamReconnect();
 }
 
@@ -113,7 +117,7 @@ function closeStream() {
 }
 
 /**
- * Debounce reconnect so turbo:load + init do not open duplicate SSE sockets.
+ * Debounce reconnect so turbo:load, init, and visibility do not open duplicate SSE sockets.
  * @returns {void}
  */
 function scheduleStreamReconnect() {
