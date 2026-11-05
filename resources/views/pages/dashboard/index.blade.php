@@ -86,12 +86,6 @@
                     <h2 class="text-sm font-semibold text-foreground">Recent alerts</h2>
                     <a href="{{ route('horizon.alerts.index') }}" class="link text-sm" data-turbo-action="replace">View all</a>
                 </div>
-                <div
-                    id="dashboard-alert-stats"
-                    class="grid grid-cols-1 divide-y divide-border border-b border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0"
-                >
-                    @include('pages.dashboard.partials.index.alert-stats', ['alertStats' => []])
-                </div>
                 <div id="dashboard-alerts-list" class="divide-y divide-border">
                     @include('pages.dashboard.partials.index.recent-alerts-list', [
                         'recentAlertLogs' => [],
@@ -104,21 +98,6 @@
                 <div class="flex items-center justify-between border-b border-border px-4 py-3">
                     <h2 class="text-sm font-semibold text-foreground">Current workload</h2>
                     <a href="{{ route('horizon.queues.index') }}" class="link text-sm" data-turbo-action="replace">Queues</a>
-                </div>
-                <div
-                    id="dashboard-workload-stats"
-                    class="grid grid-cols-1 divide-y divide-border border-b border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0"
-                >
-                    @if($hasEnabledServices)
-                        @for($i = 0; $i < 3; $i++)
-                            <div class="animate-pulse space-y-2 px-4 py-4 text-center sm:px-5">
-                                <div class="mx-auto h-3 w-24 rounded bg-muted"></div>
-                                <div class="mx-auto h-8 w-12 rounded bg-muted"></div>
-                            </div>
-                        @endfor
-                    @else
-                        @include('pages.dashboard.partials.index.workload-stats', ['workloadStats' => []])
-                    @endif
                 </div>
                 <div id="dashboard-workload-list" class="divide-y divide-border">
                     @include('pages.dashboard.partials.index.workload-list', [

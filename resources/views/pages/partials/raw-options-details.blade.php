@@ -6,7 +6,7 @@
 @endphp
 
 <details class="mt-6 card overflow-hidden">
-    <summary class="cursor-pointer border-b border-border bg-muted/20 px-4 py-3 text-sm font-medium text-foreground">
+    <summary class="cursor-pointer bg-muted/20 px-4 py-3 text-sm font-medium text-foreground">
         {{ $title }}
     </summary>
     <div class="p-4">

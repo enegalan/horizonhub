@@ -152,7 +152,7 @@
     </div>
 
     <div class="mt-6 card overflow-hidden">
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/20 px-4 py-3">
+        <div class="flex flex-wrap items-center justify-between gap-2 bg-muted/20 px-4 py-3">
             <h3 class="text-section-title text-foreground">Queues</h3>
             <p class="text-xs text-muted-foreground">{{ \count($queueNames) }} queue(s)</p>
         </div>

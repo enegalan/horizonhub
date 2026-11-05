@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers\Stream\Concerns;
 
-use App\Enums\AlertLogStatus;
 use App\Enums\ServiceStatus;
-use App\Models\Alert;
 use App\Models\AlertLog;
 use App\Models\Service;
 use App\Services\Horizon\HorizonClientApiService;
@@ -113,10 +111,8 @@ trait BuildsDashboardStreams
             ->limit(config('horizonhub.recent_alert_logs'))
             ->get();
 
-        $alertStats = $this->private__alertStats($recentAlertLogs);
         $workloadRows = $metrics['workloadRows'] ?? [];
         $workloadRows = \is_array($workloadRows) ? $workloadRows : [];
-        $workloadStats = $this->private__workloadStats($workloadRows);
         $workloadListRows = $this->private__topWorkloadRows($workloadRows);
 
         return $this->buildStreams([
@@ -141,41 +137,11 @@ trait BuildsDashboardStreams
             ['update', 'dashboard-service-health-grid', \view('pages.dashboard.partials.index.service-health-grid', [
                 'services' => $this->private__sortServicesForHealthGrid($services),
             ])->render(), 'morph'],
-            ['update', 'dashboard-alert-stats', \view('pages.dashboard.partials.index.alert-stats', [
-                'alertStats' => $alertStats,
-            ])->render(), 'morph'],
             ['update', 'dashboard-alerts-list', \view('pages.dashboard.partials.index.recent-alerts-list', ['recentAlertLogs' => $recentAlertLogs])->render(), 'morph'],
-            ['update', 'dashboard-workload-stats', \view('pages.dashboard.partials.index.workload-stats', [
-                'workloadStats' => $workloadStats,
-            ])->render(), 'morph'],
             ['update', 'dashboard-workload-list', \view('pages.dashboard.partials.index.workload-list', [
                 'workloadRows' => $workloadListRows,
             ])->render(), 'morph'],
         ]);
-    }
-
-    /**
-     * Aggregate alert strip metrics.
-     *
-     * @param Collection<int, AlertLog>|\Illuminate\Database\Eloquent\Collection<int, AlertLog> $recentAlertLogs
-     *
-     * @return array{totalAlerts: int, enabledAlerts: int, failedDeliveries: int}
-     */
-    private function private__alertStats($recentAlertLogs): array
-    {
-        $failedDeliveries = 0;
-
-        foreach ($recentAlertLogs as $log) {
-            if ($log->status === AlertLogStatus::Failed) {
-                $failedDeliveries++;
-            }
-        }
-
-        return [
-            'totalAlerts' => Alert::query()->count(),
-            'enabledAlerts' => Alert::query()->enabled()->count(),
-            'failedDeliveries' => $failedDeliveries,
-        ];
     }
 
     /**
@@ -243,7 +209,7 @@ trait BuildsDashboardStreams
     }
 
     /**
-     * Highest-workload rows for the dashboard list (stats keep the full set).
+     * Highest-workload rows for the dashboard list.
      *
      * @param list<array<string, mixed>> $workloadRows
      *
@@ -260,33 +226,5 @@ trait BuildsDashboardStreams
         });
 
         return \array_slice($workloadRows, 0, config('horizonhub.top_n_queues'));
-    }
-
-    /**
-     * Aggregate workload strip metrics from workload rows.
-     *
-     * @param list<array<string, mixed>> $workloadRows
-     *
-     * @return array{totalJobs: int, activeQueues: int, queueCount: int}
-     */
-    private function private__workloadStats(array $workloadRows): array
-    {
-        $totalJobs = 0;
-        $activeQueues = 0;
-
-        foreach ($workloadRows as $row) {
-            $jobs = (int) ($row['jobs'] ?? 0);
-            $totalJobs += $jobs;
-
-            if ($jobs > 0) {
-                $activeQueues++;
-            }
-        }
-
-        return [
-            'totalJobs' => $totalJobs,
-            'activeQueues' => $activeQueues,
-            'queueCount' => \count($workloadRows),
-        ];
     }
 }

@@ -473,18 +473,17 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('Total Supervisors', $result);
         $this->assertStringContainsString('Paused Supervisors', $result);
         $this->assertStringContainsString('target="dashboard-supervisors" method="morph"', $result);
-        $this->assertStringContainsString('target="dashboard-alert-stats" method="morph"', $result);
-        $this->assertStringContainsString('Total Alerts', $result);
-        $this->assertStringContainsString('Recent failed deliveries', $result);
-        $this->assertStringContainsString('target="dashboard-workload-stats" method="morph"', $result);
-        $this->assertStringContainsString('Total Jobs', $result);
+        $this->assertStringContainsString('target="dashboard-alerts-list" method="morph"', $result);
+        $this->assertStringNotContainsString('target="dashboard-alert-stats" method="morph"', $result);
+        $this->assertStringNotContainsString('Recent failed deliveries', $result);
+        $this->assertStringNotContainsString('target="dashboard-workload-stats" method="morph"', $result);
+        $this->assertStringNotContainsString('Total Jobs', $result);
         $this->assertMatchesRegularExpression('/Silenced<\/dt>\s*<dd[^>]*>\s*—\s*<\/dd>/s', $result);
         $this->assertMatchesRegularExpression('/Recent batches<\/p>\s*<p[^>]*>\s*—\s*<\/p>/s', $result);
         $this->assertMatchesRegularExpression('/In progress<\/dt>\s*<dd[^>]*>\s*—\s*<\/dd>/s', $result);
         $this->assertMatchesRegularExpression('/With failures<\/dt>\s*<dd[^>]*>\s*—\s*<\/dd>/s', $result);
         $this->assertMatchesRegularExpression('/Past hour<\/dt>\s*<dd[^>]*>\s*3\s*<\/dd>/s', $result);
         $this->assertMatchesRegularExpression('/Past 24 hours<\/dt>\s*<dd[^>]*>\s*5\s*<\/dd>/s', $result);
-        $this->assertMatchesRegularExpression('/Recent failed deliveries<\/p>\s*<p[^>]*>\s*2\s*<\/p>/s', $result);
     }
 
     public function test_build_dashboard_streams_returns_expected_targets(): void
@@ -579,16 +578,18 @@ class TurboStreamSseTest extends TestCase
         $this->assertStringContainsString('target="dashboard-supervisors" method="morph"', $result);
         $this->assertStringContainsString('target="dashboard-services-kpi-inner" method="morph"', $result);
         $this->assertStringContainsString('target="dashboard-service-health-grid" method="morph"', $result);
-        $this->assertStringContainsString('target="dashboard-alert-stats" method="morph"', $result);
+        $this->assertStringNotContainsString('target="dashboard-alert-stats" method="morph"', $result);
         $this->assertStringContainsString('target="dashboard-alerts-list" method="morph"', $result);
-        $this->assertStringContainsString('target="dashboard-workload-stats" method="morph"', $result);
+        $this->assertStringNotContainsString('target="dashboard-workload-stats" method="morph"', $result);
         $this->assertStringContainsString('target="dashboard-workload-list" method="morph"', $result);
         $this->assertMatchesRegularExpression('/Silenced<\/dt>\s*<dd[^>]*>\s*3\s*<\/dd>/s', $result);
         $this->assertMatchesRegularExpression('/Recent batches<\/p>\s*<p[^>]*>\s*4\s*<\/p>/s', $result);
         $this->assertMatchesRegularExpression('/In progress<\/dt>\s*<dd[^>]*>\s*1\s*<\/dd>/s', $result);
         $this->assertMatchesRegularExpression('/With failures<\/dt>\s*<dd[^>]*>\s*1\s*<\/dd>/s', $result);
         $this->assertMatchesRegularExpression('/Past 24 hours<\/dt>\s*<dd[^>]*>\s*5\s*<\/dd>/s', $result);
-        $this->assertMatchesRegularExpression('/Recent failed deliveries<\/p>\s*<p[^>]*>\s*1\s*<\/p>/s', $result);
+        $this->assertStringNotContainsString('Total Alerts', $result);
+        $this->assertStringNotContainsString('Total Jobs', $result);
+        $this->assertStringNotContainsString('Recent failed deliveries', $result);
     }
 
     public function test_build_dashboard_streams_uses_neutral_health_dot_when_no_services_exist(): void
