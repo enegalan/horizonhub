@@ -30,6 +30,7 @@ export function initTurboStream() {
     });
     document.addEventListener('visibilitychange', function () {
         if (document.visibilityState !== 'visible') return;
+        _reconnectAttempts = 0;
         scheduleStreamReconnect();
     });
     scheduleStreamReconnect();
