@@ -364,6 +364,13 @@ class TurboStreamSseTest extends TestCase
             'enabled' => true,
         ]);
 
+        Alert::create([
+            'name' => 'dash-disabled-alert',
+            'rule_type' => FailureCount::type(),
+            'threshold' => ['count' => 1, 'minutes' => 5],
+            'enabled' => false,
+        ]);
+
         foreach ([$online, $offline, $standBy] as $index => $service) {
             AlertLog::create([
                 'alert_id' => $alert->id,
@@ -484,7 +491,7 @@ class TurboStreamSseTest extends TestCase
         $this->assertMatchesRegularExpression('/With failures<\/dt>\s*<dd[^>]*>\s*—\s*<\/dd>/s', $result);
         $this->assertMatchesRegularExpression('/Past hour<\/dt>\s*<dd[^>]*>\s*3\s*<\/dd>/s', $result);
         $this->assertMatchesRegularExpression('/Past 24 hours<\/dt>\s*<dd[^>]*>\s*5\s*<\/dd>/s', $result);
-        $this->assertMatchesRegularExpression('/Total Alerts<\/p>\s*<p[^>]*>\s*1\s*<\/p>/s', $result);
+        $this->assertMatchesRegularExpression('/Total Alerts<\/p>\s*<p[^>]*>\s*2\s*<\/p>/s', $result);
         $this->assertMatchesRegularExpression('/Enabled<\/p>\s*<p[^>]*>\s*1\s*<\/p>/s', $result);
     }
 
@@ -501,6 +508,13 @@ class TurboStreamSseTest extends TestCase
             'rule_type' => FailureCount::type(),
             'threshold' => ['count' => 1, 'minutes' => 5],
             'enabled' => true,
+        ]);
+
+        Alert::create([
+            'name' => 'targets-disabled-alert',
+            'rule_type' => FailureCount::type(),
+            'threshold' => ['count' => 1, 'minutes' => 5],
+            'enabled' => false,
         ]);
 
         AlertLog::create([
@@ -589,7 +603,7 @@ class TurboStreamSseTest extends TestCase
         $this->assertMatchesRegularExpression('/In progress<\/dt>\s*<dd[^>]*>\s*1\s*<\/dd>/s', $result);
         $this->assertMatchesRegularExpression('/With failures<\/dt>\s*<dd[^>]*>\s*1\s*<\/dd>/s', $result);
         $this->assertMatchesRegularExpression('/Past 24 hours<\/dt>\s*<dd[^>]*>\s*5\s*<\/dd>/s', $result);
-        $this->assertMatchesRegularExpression('/Total Alerts<\/p>\s*<p[^>]*>\s*1\s*<\/p>/s', $result);
+        $this->assertMatchesRegularExpression('/Total Alerts<\/p>\s*<p[^>]*>\s*2\s*<\/p>/s', $result);
         $this->assertMatchesRegularExpression('/Enabled<\/p>\s*<p[^>]*>\s*1\s*<\/p>/s', $result);
         $this->assertStringNotContainsString('Recent failed deliveries', $result);
     }
