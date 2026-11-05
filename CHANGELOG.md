@@ -1,6 +1,20 @@
 # Release Notes
 
-## [Unreleased](https://github.com/enegalan/horizonhub/compare/v3.3.0...HEAD)
+## [Unreleased](https://github.com/enegalan/horizonhub/compare/v3.3.5...HEAD)
+
+## [v3.3.5](https://github.com/enegalan/horizonhub/compare/v3.3.0...v3.3.5) - 2026-11-05
+
+### What's Changed
+
+* Update CHANGELOG for v3.3.0 by [@github-actions](https://github.com/github-actions)[bot] in https://github.com/enegalan/horizonhub/pull/313
+* chore(deps-dev): bump globals from 17.13.0 to 17.14.0 by [@dependabot](https://github.com/dependabot)[bot] in https://github.com/enegalan/horizonhub/pull/314
+* refactor: trim dashboard alert KPIs and quiet section headers by [@enegalan](https://github.com/enegalan) in https://github.com/enegalan/horizonhub/pull/315
+
+### New Contributors
+
+* [@github-actions](https://github.com/github-actions)[bot] made their first contribution in https://github.com/enegalan/horizonhub/pull/313
+
+**Full Changelog**: https://github.com/enegalan/horizonhub/compare/v3.3.0...v3.3.5
 
 ## [v3.3.0](https://github.com/enegalan/horizonhub/compare/v3.2.5...v3.3.0) - 2026-11-04
 
